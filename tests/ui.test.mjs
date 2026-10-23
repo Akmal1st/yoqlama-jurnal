@@ -41,7 +41,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
   });
 }
 
-test("o'quvchilarni bir yo'la chiqarish va qaytarish (Ctrl+Z)", async () => {
+test("o'quvchini faolsizlantirish va qayta faollashtirish", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     const page = await browser.newPage({viewport: {width: 390, height: 844}});
@@ -49,17 +49,29 @@ test("o'quvchilarni bir yo'la chiqarish va qaytarish (Ctrl+Z)", async () => {
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
-    const before = await page.evaluate(() => D.classes[1].students.map((s) => s.name));
+    const names = () => page.evaluate(() => D.classes[1].students.map((s) => s.name));
+    const before = await names(), gone = [before[0], before[2]];
+    const marks = await page.evaluate(() => JSON.stringify(D.classes[1].students[0].marks));
     await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="0"]');
     await page.click('[data-a=rmst][data-i="1"]');
     await page.check('[data-rm="0"]'); await page.check('[data-rm="2"]');
     await page.click(".modal [data-ok]");
-    await page.waitForSelector(".modal [data-ok]"); await page.click(".modal [data-ok]");   // tasdiqlash
-    await page.waitForFunction((n) => D.classes[1].students.length === n - 2, before.length);
-    const after = await page.evaluate(() => D.classes[1].students.map((s) => s.name));
-    assert.deepEqual(after, before.filter((_, i) => i !== 0 && i !== 2));
-    await page.evaluate(() => undoLast());
-    assert.deepEqual(await page.evaluate(() => D.classes[1].students.map((s) => s.name)), before);
+    assert.deepEqual(await names(), before.filter((n) => !gone.includes(n)), "jurnaldan yashirildi");
+    // hisobot va xavf ro'yxatida ham yo'q
+    const inReport = await page.evaluate((g) => { const c = D.classes[1], [lo, hi, q] = periodNow(); return reportRows(c, lo, hi, q).rows.some((r) => g.includes(r.name)); }, gone);
+    assert.equal(inReport, false, "hisobotda ko'rinmasligi kerak");
+    await page.click(".tabbar [data-go=journal]"); await page.click('[data-ci="1"]');
+    assert.equal(await page.locator(`td.nm:has-text("${gone[0]}")`).count(), 0);
+    // qayta faollashtirish: o'z joyiga, baholari bilan
+    await page.evaluate(() => studentsDialog(1));
+    await page.click('.modal [data-on="1"]'); await page.click('.modal [data-x]');
+    await page.evaluate(() => studentsDialog(1));
+    await page.click('.modal [data-on="0"]'); await page.click('.modal [data-x]');
+    assert.deepEqual(await names(), before, "tartib tiklandi");
+    assert.equal(await page.evaluate(() => JSON.stringify(D.classes[1].students[0].marks)), marks, "baholar saqlangan");
+    // Ctrl+Z ham qaytaradi
+    await page.evaluate(() => { deactivate(D.classes[1], [3]); undoLast(); });
+    assert.deepEqual(await names(), before);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
