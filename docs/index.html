@@ -278,7 +278,7 @@ table.r tr:hover td{background:var(--alt)}
 .secs button{border-radius:12px}
 .secs button.on{background:var(--acc-soft);color:var(--acc);font-weight:700}
 .steps button.on{box-shadow:0 6px 14px -8px var(--acc)}
-.foot{background:linear-gradient(180deg,transparent,var(--win) 30%)}
+.foot{background:var(--win);box-shadow:0 -10px 16px -12px rgba(60,45,20,.25)}
 @media (max-width:820px){
   main{padding:18px 16px 104px}
   .tabbar{background:color-mix(in srgb,var(--base) 86%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);box-shadow:0 -8px 24px -18px rgba(0,0,0,.35)}
@@ -287,6 +287,36 @@ table.r tr:hover td{background:var(--alt)}
   .tabbar .nav svg{border-radius:99px;padding:3px 14px;width:52px;height:28px;box-sizing:border-box;transition:background .15s}
   .tabbar .nav.on svg{background:var(--acc-soft)}
   .card{padding:18px}
+}
+/* telefon: yonga surish yo'q — hammasi qatorlarga o'raladi, yozuvlar to'liq (chop etishga ta'sir qilmaydi) */
+@media screen and (max-width:820px){
+  .chips{flex-wrap:wrap!important;overflow:visible;gap:6px!important}
+  .chip{white-space:normal;min-height:36px;padding:6px 13px;line-height:1.2}
+  .seg{overflow:visible;flex-wrap:wrap;max-width:100%}
+  .seg button{flex:1 1 auto;white-space:normal;line-height:1.2;padding:6px 10px}
+  .secs{flex-wrap:wrap;overflow:visible}
+  .secs button{white-space:normal;flex:1 1 auto;text-align:center;padding:9px 10px}
+  .btn{white-space:normal;line-height:1.2;text-align:center;padding-top:6px;padding-bottom:6px}
+  .keys{display:grid;grid-template-columns:repeat(9,1fr);overflow:visible;gap:4px;padding:8px}
+  .keys .hint{grid-column:1/-1;max-width:none;font-size:13px;white-space:normal;margin:0 2px 2px}
+  .keys .key{min-width:0;width:100%;height:40px;font-size:14px;padding:0}
+  table.j .nm{white-space:normal;text-overflow:clip;overflow-wrap:anywhere;min-width:104px;max-width:124px;line-height:1.15;font-size:13.5px;padding:2px 6px 2px 2px}
+  table.j .nm .badge{display:inline-block;margin:2px 0 0}
+  /* hisobot jadvallari telefonda kartochka ko'rinishida — har qiymat yonida nomi */
+  table.r,table.r tbody,table.r tr,table.r td{display:block}
+  table.r tr:first-child{display:none}
+  table.r tr{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px;background:var(--base)}
+  table.r tr:hover td{background:transparent}
+  table.r td{border:0;padding:0;font-size:14px}
+  table.r td:empty{display:none}
+  table.r td[data-l]::before{content:attr(data-l) ": ";color:var(--muted);font-size:12.5px;font-weight:400}
+  table.r td.hd{flex:1 1 60%;font-weight:700;font-size:15.5px}
+  table.r td.hd::before,table.r td.no::before{content:none}
+  table.r td.no{color:var(--muted);font-weight:700}
+  table.r td.wide{flex-basis:100%}
+  .lrow .who{flex:1 1 calc(100% - 44px)}
+  .foot>.muted,.foot>span:not(.sp){flex:1 1 100%}
+  .foot .btn{flex:1 1 auto}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 @media print{
@@ -911,7 +941,7 @@ function modal(inner, onMount) {
     const m = h(`<div class="modal"><div class="card">${inner}</div></div>`);
     const close = (v) => { m.remove(); res(v); };
     m.addEventListener("click", (e) => { if (e.target === m) close(null); });
-    document.body.append(m); onMount && onMount(m, close);
+    document.body.append(m); labelTables(m); onMount && onMount(m, close);
   });
 }
 function ask(title, text, val = "", type = "text") {
@@ -964,10 +994,24 @@ function applyTheme() {
   document.body.classList.toggle("dense", D.web.density === "kompakt");
   $("#app").classList.toggle("compact", D.web.density === "kompakt");
 }
+// telefonda hisobot jadvali kartochka bo'lib chiqadi: har katakka ustun nomini yozib qo'yamiz
+function labelTables(root) {
+  root.querySelectorAll("table.r").forEach((t) => {
+    if (!t.rows.length) return;
+    const hs = [...t.rows[0].cells].map((c) => c.textContent.trim());
+    let hd = hs[0] === "№" ? 1 : 0;
+    [...t.rows].slice(1).forEach((r) => [...r.cells].forEach((td, j) => {
+      if (hs[j] === "№") td.classList.add("no");
+      else if (j === hd) td.classList.add("hd");
+      else { td.dataset.l = hs[j] || ""; if (/izoh|yetishmaydi/i.test(hs[j] || "")) td.classList.add("wide"); }
+    }));
+  });
+}
 function render() {
   applyTheme(); renderNav();
   const m = $("#main");
   ({today: pageToday, journal: pageJournal, lesson: pageLesson, reports: pageReports, settings: pageSettings})[S.page](m);
+  labelTables(m);
 }
 
 /* ───────── 1. Bugun ───────── */
@@ -1631,11 +1675,10 @@ function jpSeg() {
   return `<div class="seg">${[["j", "Kundalik"], ["sum", "BSB / CHSB"], ["year", "Yillik"]].map(([k, n]) => `<button class="${S.jpage === k ? "on" : ""}" data-jp="${k}">${n}</button>`).join("")}</div>`;
 }
 function classChips() {
-  return `<div class="row chips" style="gap:8px">${D.classes.map((x, i) => `<button class="chip ${i === S.ci ? "on" : ""}" data-ci="${i}">${esc(label(x))}</button>`).join("")}<button class="chip" data-add>＋ Sinf</button></div>`;
+  return `<div class="row chips" style="gap:8px">${D.classes.map((x, i) => `<button class="chip ${i === S.ci ? "on" : ""}" data-ci="${i}">${esc(label(x))}</button>`).join("")}</div>`;
 }
 function bindTop(m) {
   m.querySelectorAll("[data-ci]").forEach((b) => b.onclick = () => { S.ci = +b.dataset.ci; S.sel = null; render(); });
-  const a = $("[data-add]", m); if (a) a.onclick = addClassDialog;
   m.querySelectorAll("[data-jp]").forEach((b) => b.onclick = () => { S.jpage = b.dataset.jp; S.sel = null; render(); });
 }
 const g5pill = (g, title = "") => g ? `<span class="pill" title="${esc(title)}" style="background:${gradeColor(G5COL[g])};color:${contrast(gradeColor(G5COL[g]))}">${g}</span>` : `<span class="muted">—</span>`;
