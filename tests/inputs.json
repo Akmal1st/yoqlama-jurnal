@@ -1,0 +1,29 @@
+{
+  "today": "2026-10-23",
+  "grade5": [0, 29.9, 30, 65.5, 66, 85.9, 86, 100],
+  "marks": ["", "8", "10", "8/9", "8 9", "8,9", "89", "110", "kq9", "9kq", "kq", "s", "S", "dq", "k", "ch", "x", "s8", "8/9/10", "kqkq", "11", "0", "a", "  7  "],
+  "scores": ["", "18", "7.5", "7,5", "7.55", "s", "DQ", "kq", "ch", "-1", "1001", "abc", "0"],
+  "plans": [
+    "== 1-chorak\nKasrlar | 2\n1. O'nli kasrlar\nCHSB (40 ball)\n# izoh\n== II chorak\nTenglamalar\t3\n2) BSB №1 (25 ball)\nKoordinatalar | 15",
+    "Mavzu bir\nMavzu ikki | 1\n\n3-chorak\nMavzu uch"
+  ],
+  "emaktab": [
+    {"sheet": "Matematika", "rows": [
+      ["Sinf: 7-B 2026/2027"], ["Fan: Matematika"], [],
+      ["№", "F.I.Sh.", "Sentabr", null, null, "Oktabr", null, null, "15.10", "1 chorak"],
+      [null, null, 2, 9, 16, 7, 14, 21, "bsb"],
+      [null, null, null, null, null, null, null, null, 25],
+      [1, "Aliyev Ali", 8, "н", 9, "7/8", null, 10, 20],
+      [2, "Valiyeva Vali", 5, 6, "б", 4, 3, null, "н"],
+      [3, "Soliyev Soli", null, 10, 10, 9, "п", 8, 23.5],
+      [4, "Qodirova Sevara", "о", "12", "x?", 7, 7, 6, null]
+    ]},
+    {"sheet": "Algebra 8", "rows": [
+      ["Класс: 8-A"], [null, "Предмет: Алгебра"],
+      ["№", "ФИО", "Декабрь", null, "Январь"],
+      [null, null, 20, 27, 10],
+      [1, "Karimov Bek", 5, "н", 9],
+      [2, "Ergasheva Malika", "п", 10, "б"]
+    ]}
+  ]
+}

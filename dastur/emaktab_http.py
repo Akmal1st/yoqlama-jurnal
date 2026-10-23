@@ -1,0 +1,275 @@
+# -*- coding: utf-8 -*-
+"""
+emaktab_http.py — emaktab.uz ga brauzersiz (faqat standart kutubxona) kirish va jurnal Excelini olish.
+Kirish (captcha bilan), «Mening sinflarim», chorak identifikatori va Excel yuklash. FAQAT O'QISH.
+`ui` obyekti: log(str) va ask_captcha(png_bytes)->str|None metodlariga ega bo'lishi kerak.
+"""
+import http.cookiejar as _cj
+import json
+import os
+import re
+import urllib.error as _ue
+import urllib.parse as _up
+import urllib.request as _ur
+from html.parser import HTMLParser as _HP
+from pathlib import Path
+
+EMK_HOME = Path.home() / ".emaktab"
+EMK_COOKIES = EMK_HOME / "cookies.txt"
+EMK_URLS = {"teachers": "https://emaktab.uz/teachers",
+            "myclasses": "https://schools.emaktab.uz/v2/myclasses",
+            "login": "https://login.emaktab.uz/",
+            "excel": "https://schools.emaktab.uz/v2/excel"}
+
+
+def _emk_safe(name):
+    return re.sub(r"[^\w.-]+", "_", name, flags=re.U).strip("_")
+
+
+class EmkFallback(Exception):
+    """HTTP usuli bajara olmadi — brauzer (Playwright) usuliga o'tish mumkin."""
+
+
+_EMK_UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+class _EmkForms(_HP):
+    """HTML dan formalar (input maydonlari, rasmlari) va sinf/jurnal havolalarini yig'adi."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.forms, self._f, self.imgs, self.img_attrs = [], None, [], {}
+        self.links, self._a, self._root_depth, self._depth, self.has_root = [], None, None, 0, False
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        self._depth += 1
+        if a.get("id") == "ContentPanelTeacher":
+            self.has_root, self._root_depth = True, self._depth
+        if tag == "form":
+            self._f = {"action": a.get("action") or "", "inputs": [], "imgs": []}
+            self.forms.append(self._f)
+        elif tag == "img" and (a.get("src") or a.get("data-src")):
+            src = a.get("src") or a.get("data-src")
+            self.imgs.append(src)
+            self.img_attrs[src] = a
+            if self._f is not None:
+                self._f["imgs"].append(src)
+        elif tag in ("input", "button") and self._f is not None:
+            self._f["inputs"].append({"name": a.get("name"), "type": (a.get("type") or "text").lower(), "value": a.get("value") or ""})
+        elif tag == "a" and a.get("href"):
+            self._a = {"href": a["href"], "title": a.get("title") or "", "text": "", "root": self._root_depth is not None}
+            self.links.append(self._a)
+
+    def handle_endtag(self, tag):
+        if tag == "form":
+            self._f = None
+        elif tag == "a":
+            self._a = None
+        if self._root_depth is not None and self._depth == self._root_depth:
+            self._root_depth = None
+        self._depth -= 1
+
+    def handle_data(self, d):
+        if self._a is not None:
+            self._a["text"] += d
+
+
+class EmkHttp:
+    """Brauzersiz (faqat standart kutubxona) seans: login/captcha, sinflar, Excel. Interfeysi EmkSession bilan bir xil."""
+    is_http = True
+
+    def __init__(self, ui, cookie="", home=None):
+        """home — sessiya papkasi (cookies.txt shu yerda). Bot har foydalanuvchiga alohida papka beradi."""
+        self.ui, self.cookie = ui, (cookie or "").strip()
+        self.home = Path(home) if home else EMK_HOME
+        self.cookies = self.home / "cookies.txt"
+
+    def __enter__(self):
+        self.jar = _cj.MozillaCookieJar(str(self.cookies))
+        try:
+            if self.cookies.exists():
+                self.jar.load(ignore_discard=True, ignore_expires=True)
+        except Exception:  # noqa: BLE001
+            pass
+        self.op = _ur.build_opener(_ur.HTTPCookieProcessor(self.jar))
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def pause(self, ms):
+        import time
+        time.sleep(ms / 1000)
+
+    def save_state(self):
+        try:
+            self.home.mkdir(parents=True, exist_ok=True)
+            self.jar.save(ignore_discard=True, ignore_expires=True)
+            self.cookies.chmod(0o600)
+        except Exception:  # noqa: BLE001
+            pass
+
+    def raw(self, url, data=None, headers=None, timeout=60):
+        h = {"User-Agent": _EMK_UA, "Accept-Language": "uz,ru;q=0.8,en;q=0.5"}
+        if self.cookie:
+            h["Cookie"] = self.cookie
+        h.update(headers or {})
+        body = None
+        if data is not None:
+            body = _up.urlencode(data).encode()
+            h["Content-Type"] = "application/x-www-form-urlencoded"
+        try:
+            r = self.op.open(_ur.Request(url, data=body, headers=h), timeout=timeout)
+            st = r.status
+        except _ue.HTTPError as e:
+            r, st = e, e.code
+        except (_ue.URLError, OSError) as e:
+            raise RuntimeError(f"Tarmoq xatosi: {getattr(e, 'reason', e)}")
+        return st, getattr(r, "url", url), r.headers, r.read()
+
+    def req(self, url, data=None, headers=None):
+        st, final, hd, raw = self.raw(url, data, headers)
+        return st, final, raw.decode(hd.get_content_charset() or "utf-8", errors="replace")
+
+    @staticmethod
+    def is_login(final, html):
+        host = _up.urlparse(final).netloc.lower()
+        return host.startswith("login.") or bool(re.search(r"<input[^>]+type=[\"']?password", html, re.I))
+
+    def is_logged_in(self):
+        st, final, html = self.req(EMK_URLS["myclasses"])
+        return st == 200 and not self.is_login(final, html)
+
+    def login(self, user, password):
+        if self.is_logged_in():
+            self.ui.log("Saqlangan sessiya bilan kirildi.")
+            return
+        st, final, html = self.req(EMK_URLS["login"])
+        for attempt in range(1, 5):
+            fp = _EmkForms()
+            fp.feed(html)
+            form = next((f for f in fp.forms if any(i["type"] == "password" for i in f["inputs"])), None)
+            if not form:
+                raise EmkFallback("Login formasi topilmadi")
+            data = {i["name"]: i["value"] for i in form["inputs"]
+                    if i["name"] and i["type"] not in ("submit", "button", "checkbox", "radio", "file", "image")}
+            pw = next((i["name"] for i in form["inputs"] if i["type"] == "password" and i["name"]), None)
+            texts = [i["name"] for i in form["inputs"] if i["name"] and i["type"] in ("text", "email", "tel", "number")]
+            us = next((n for n in texts if re.search(r"^(log|user|mail|phone|tel)", n, re.I)), None) or (texts[0] if texts else None)
+            if not pw or not us:
+                raise EmkFallback("Login maydonlari topilmadi")
+            data[us], data[pw] = user, password
+            for i in form["inputs"]:
+                if i["type"] == "checkbox" and i["name"] and re.search(r"remember|eslab|save", i["name"], re.I):
+                    data[i["name"]] = i["value"] or "true"
+            imgs = form.get("imgs") or fp.imgs
+            # captcha manzili <img> da bo'lmasa (JS/JSON ichida): …/captcha/true/<guid> ko'rinishidagi havolalarni qidiramiz
+            extra = [m.group(0) for m in re.finditer(r"[^\s\"'<>()=]*captcha/[^\s\"'<>()]*", html.replace("\\/", "/"), re.I)]
+            if not extra:
+                for i in form["inputs"]:
+                    if i["type"] == "hidden" and re.search(r"captcha", i["name"] or "", re.I) and \
+                            re.fullmatch(r"[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}", i["value"] or ""):
+                        extra.append("/captcha/true/" + i["value"])
+            imgs = list(dict.fromkeys(extra + list(imgs)))
+            cap = next((n for n in texts if n != us and re.search(r"captcha|code|kod|answer|sum|number|digit", n, re.I)), None) \
+                or next((n for n in texts if n != us), None)
+            if cap and imgs:
+                def _score(u):                                    # captcha rasmini boshqa rasmlardan (logotip va h.k.) ajratish
+                    at = fp.img_attrs.get(u, {})
+                    blob = " ".join([u[:200], at.get("id") or "", at.get("class") or "", at.get("alt") or "", at.get("title") or ""]).lower()
+                    sc = 10 if ("captcha" in blob or "капч" in blob) else 0
+                    if re.search(r"kod|code|secur|verify|digit|num|son", blob):
+                        sc += 3
+                    if sc < 10 and re.search(r"logo|icon|favicon|banner|sprite|avatar|flag|\.svg|brand|header|footer", blob):
+                        sc -= 10
+                    return sc
+                png = None
+                for src in sorted(imgs, key=_score, reverse=True)[:4]:
+                    try:
+                        cst, _, hd, body = self.raw(_up.urljoin(final, src), headers={"Accept": "image/*,*/*;q=0.8", "Referer": final})
+                    except RuntimeError as e:
+                        raise EmkFallback(str(e))
+                    if cst == 200 and len(body) > 60 and (hd.get_content_type() or "").startswith("image/"):
+                        png = body
+                        self.ui.log(f"Captcha rasmi: {src[:150]}")
+                        break
+                if png is None:
+                    raise EmkFallback("Captcha rasmini yuklab bo'lmadi")
+                try:
+                    self.home.mkdir(parents=True, exist_ok=True)
+                    (self.home / "debug_login.html").write_text(html, encoding="utf-8")   # nosozlikni topish uchun
+                except Exception:  # noqa: BLE001
+                    pass
+                ans = self.ui.ask_captcha(png)
+                if ans is None:
+                    raise RuntimeError("Captcha kiritish bekor qilindi.")
+                data[cap] = ans
+                self.ui.log(f"[{attempt}] Captcha kiritildi.")
+            st, final2, html = self.req(_up.urljoin(final, form["action"] or final), data, {"Referer": final})
+            if not self.is_login(final2, html):
+                self.save_state()
+                self.ui.log("Muvaffaqiyatli kirildi.")
+                return
+            self.ui.log(f"[{attempt}] Kirib bo'lmadi (parol yoki captcha noto'g'ri bo'lishi mumkin).")
+            final = final2
+        raise EmkFallback("Kirib bo'lmadi (HTTP usuli)")
+
+    def catalog(self):
+        st, final, html = self.req(EMK_URLS["myclasses"])
+        if self.is_login(final, html):
+            raise RuntimeError("Sessiya tugagan — «Kirish» tugmasini bosing.")
+        fp = _EmkForms()
+        fp.feed(html)
+        out, cur = [], None
+        for a in fp.links:
+            if fp.has_root and not a["root"]:
+                continue
+            href = _up.urljoin(final, a["href"])
+            if "/v2/class?class=" in href:
+                cur = {"name": a["text"].strip(), "url": href, "journals": []}
+                out.append(cur)
+            elif cur is not None and re.search(r"/journal/school/\d+/group/\d+/subject/\d+", href):
+                cur["journals"].append({"subject": (a["title"] or a["text"]).strip(), "url": href})
+        if not out:
+            raise EmkFallback("Sinflar HTML ichida topilmadi")
+        self.save_state()
+        return out
+
+    def download(self, cname, journal, quarter, folder):
+        url = journal["url"]
+        m = re.search(r"/school/(\d+)/group/(\d+)/subject/(\d+)", url)
+        if not m:
+            raise EmkFallback("Jurnal havolasi noto'g'ri")
+        st, final, html = self.req(url)
+        if self.is_login(final, html):
+            raise RuntimeError("Sessiya tugagan — «Kirish» tugmasini bosing.")
+        i = html.find("__JOURNAL__INITIAL__STATE__")
+        state = None
+        if i >= 0:
+            j = html.find("=", i)
+            try:
+                state, _ = json.JSONDecoder().raw_decode(html[j + 1:].lstrip())
+            except ValueError:
+                state = None
+        hdr = (state or {}).get("journalHeader") if isinstance(state, dict) else None
+        if not hdr:
+            raise EmkFallback("Jurnal holati (chorak identifikatori) HTML ichida topilmadi")
+        pers = ((hdr.get("periods") or {}).get(hdr.get("currentGroupId")) or {}).get("periods") or []
+        target = hdr.get("currentPeriodId")
+        if quarter:
+            q = str(quarter)
+            mt = next((p for p in pers if str(p.get("number", -1) + 1) == q or str(p.get("name", "")).startswith(q)), None)
+            if not mt:
+                raise ValueError(f"{quarter}-chorak topilmadi: {[p.get('name') for p in pers]}")
+            target = mt["id"]
+        label = next((p["name"] for p in pers if p["id"] == target), "joriy")
+        school, group, subject = m.groups()
+        st, _, hd, body = self.raw(EMK_URLS["excel"] + "?" + _up.urlencode(
+            {"action": "gjsxls", "school": school, "group": group, "subgroup": 0, "subject": subject, "period": target}),
+            headers={"Referer": url}, timeout=120)
+        if st != 200 or not body or "html" in (hd.get("content-type") or "").lower():
+            raise EmkFallback(f"Excel o'rniga javob keldi (HTTP {st})")
+        mm = re.search(r"filename\*?=(?:UTF-8'')?\"?([^\";]+)", hd.get("content-disposition") or "", re.I)
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / (_emk_safe(f"{cname}_{journal['subject']}_{label}") + ((Path(mm.group(1)).suffix if mm else "") or ".xls"))
+        path.write_bytes(body)
+        return path

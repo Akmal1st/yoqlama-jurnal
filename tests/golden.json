@@ -1,0 +1,3835 @@
+{
+ "grade5": [
+  2,
+  2,
+  3,
+  3,
+  4,
+  4,
+  5,
+  5
+ ],
+ "marks": [
+  "",
+  "8",
+  "10",
+  "8/9",
+  "8/9",
+  "8/9",
+  null,
+  null,
+  "9kq",
+  "9kq",
+  "kq",
+  "s",
+  "s",
+  "dq",
+  "k",
+  "ch",
+  "x",
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
+  "7"
+ ],
+ "scores": [
+  "",
+  18,
+  7.5,
+  7.5,
+  7.5,
+  "s",
+  "dq",
+  "kq",
+  "ch",
+  null,
+  null,
+  null,
+  0
+ ],
+ "plans": [
+  [
+   {
+    "t": "Kasrlar",
+    "h": 2,
+    "q": 1
+   },
+   {
+    "t": "O'nli kasrlar",
+    "h": 1,
+    "q": 1
+   },
+   {
+    "t": "CHSB (40 ball)",
+    "h": 1,
+    "q": 1
+   },
+   {
+    "t": "Tenglamalar",
+    "h": 3,
+    "q": 2
+   },
+   {
+    "t": "BSB №1 (25 ball)",
+    "h": 1,
+    "q": 2
+   },
+   {
+    "t": "Koordinatalar",
+    "h": 10,
+    "q": 2
+   }
+  ],
+  [
+   {
+    "t": "Mavzu bir",
+    "h": 1,
+    "q": null
+   },
+   {
+    "t": "Mavzu ikki",
+    "h": 1,
+    "q": null
+   },
+   {
+    "t": "Mavzu uch",
+    "h": 1,
+    "q": 3
+   }
+  ]
+ ],
+ "emaktab": [
+  [
+   {
+    "name": "7-B",
+    "subject": "Matematika",
+    "dates": [
+     "2026-09-02",
+     "2026-09-09",
+     "2026-09-16",
+     "2026-10-07",
+     "2026-10-14",
+     "2026-10-21"
+    ],
+    "students": [
+     {
+      "name": "Aliyev Ali",
+      "marks": {
+       "2026-09-02": "8",
+       "2026-09-09": "s",
+       "2026-09-16": "9",
+       "2026-10-07": "7/8",
+       "2026-10-21": "10"
+      },
+      "scores": {
+       "bsb|2026-10-15": 20
+      }
+     },
+     {
+      "name": "Valiyeva Vali",
+      "marks": {
+       "2026-09-02": "5",
+       "2026-09-09": "6",
+       "2026-09-16": "k",
+       "2026-10-07": "4",
+       "2026-10-14": "3"
+      },
+      "scores": {
+       "bsb|2026-10-15": "s"
+      }
+     },
+     {
+      "name": "Soliyev Soli",
+      "marks": {
+       "2026-09-09": "10",
+       "2026-09-16": "10",
+       "2026-10-07": "9",
+       "2026-10-14": "dq",
+       "2026-10-21": "8"
+      },
+      "scores": {
+       "bsb|2026-10-15": 23.5
+      }
+     },
+     {
+      "name": "Qodirova Sevara",
+      "marks": {
+       "2026-09-02": "kq",
+       "2026-10-07": "7",
+       "2026-10-14": "7",
+       "2026-10-21": "6"
+      },
+      "scores": {}
+     }
+    ],
+    "skipped": {
+     "12": 1,
+     "x?": 1
+    },
+    "works": [
+     {
+      "type": "bsb",
+      "date": "2026-10-15",
+      "max": 25,
+      "title": ""
+     }
+    ],
+    "quarter": {
+     "q": 1,
+     "start": "2026-09-02",
+     "end": "2026-10-21"
+    }
+   }
+  ],
+  [
+   {
+    "name": "8-A",
+    "subject": "Algebra",
+    "dates": [
+     "2026-12-20",
+     "2026-12-27",
+     "2027-01-10"
+    ],
+    "students": [
+     {
+      "name": "Karimov Bek",
+      "marks": {
+       "2026-12-20": "5",
+       "2026-12-27": "s",
+       "2027-01-10": "9"
+      },
+      "scores": {}
+     },
+     {
+      "name": "Ergasheva Malika",
+      "marks": {
+       "2026-12-20": "dq",
+       "2026-12-27": "10",
+       "2027-01-10": "k"
+      },
+      "scores": {}
+     }
+    ],
+    "skipped": {},
+    "works": [],
+    "quarter": null
+   }
+  ]
+ ],
+ "classes": [
+  {
+   "label": "6-A · Matematika",
+   "quarters": {
+    "1": {
+     "results": [
+      {
+       "bsb": 28,
+       "chsb": 11,
+       "fb": 5,
+       "n_fb": 7,
+       "avg": 4.571429,
+       "total": 44,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 20,
+       "chsb": 18.5,
+       "fb": 7,
+       "n_fb": 8,
+       "avg": 7,
+       "total": 45.5,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 9.5,
+       "chsb": 20.5,
+       "fb": 8,
+       "n_fb": 12,
+       "avg": 7.583333,
+       "total": 38,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 21.5,
+       "chsb": 20.5,
+       "fb": 8,
+       "n_fb": 9,
+       "avg": 8.222222,
+       "total": 50,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 32.5,
+       "chsb": 27.5,
+       "fb": 4,
+       "n_fb": 6,
+       "avg": 3.666667,
+       "total": 64,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 12,
+       "chsb": 39,
+       "fb": 8,
+       "n_fb": 8,
+       "avg": 7.5,
+       "total": 59,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 29,
+       "chsb": 16,
+       "fb": 7,
+       "n_fb": 11,
+       "avg": 7.090909,
+       "total": 52,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 18,
+       "chsb": 33.5,
+       "fb": 7,
+       "n_fb": 13,
+       "avg": 6.692308,
+       "total": 58.5,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 33,
+       "chsb": 18.5,
+       "fb": 8,
+       "n_fb": 11,
+       "avg": 7.636364,
+       "total": 59.5,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 23,
+       "chsb": 13,
+       "fb": 7,
+       "n_fb": 8,
+       "avg": 7,
+       "total": 43,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 24,
+       "chsb": 26,
+       "fb": 4,
+       "n_fb": 7,
+       "avg": 3.857143,
+       "total": 54,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 29.5,
+       "chsb": 30,
+       "fb": 7,
+       "n_fb": 7,
+       "avg": 7.428571,
+       "total": 66.5,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 4
+      },
+      {
+       "bsb": 34.5,
+       "chsb": 36,
+       "fb": 7,
+       "n_fb": 7,
+       "avg": 7.142857,
+       "total": 77.5,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 4
+      },
+      {
+       "bsb": 37,
+       "chsb": 10,
+       "fb": 4,
+       "n_fb": 8,
+       "avg": 3.875,
+       "total": 51,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      }
+     ],
+     "readiness": [
+      [],
+      {
+       "Umarova Sevara": [
+        "BSB 25.09 — ball yo'q"
+       ],
+       "Ergasheva Malika": [
+        "BSB 21.10 — ball yo'q"
+       ]
+      }
+     ]
+    },
+    "2": {
+     "results": [
+      {
+       "bsb": 4,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 4,
+       "max_bsb": 20,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 11.5,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 11.5,
+       "max_bsb": 20,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 4.5,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 4.5,
+       "max_bsb": 20,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 5,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 5,
+       "max_bsb": 20,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 13,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 13,
+       "max_bsb": 20,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 4,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 4,
+       "max_bsb": 20,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 5,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 5,
+       "max_bsb": 20,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 13,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 13,
+       "max_bsb": 20,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 4,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 4,
+       "max_bsb": 20,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 10.5,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 10.5,
+       "max_bsb": 20,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 8,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 8,
+       "max_bsb": 20,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 13,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 13,
+       "max_bsb": 20,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 8,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 8,
+       "max_bsb": 20,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 16,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 16,
+       "max_bsb": 20,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      }
+     ],
+     "readiness": [
+      [
+       "BSB maksimal ballari yig'indisi 20 (kerak: 50)",
+       "CHSB maksimal ballari yig'indisi 0 (kerak: 40)"
+      ],
+      {
+       "Mirzayeva Dilnoza": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Hasanov Bekzod": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Rahimova Nilufar": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Umarova Sevara": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Olimova Gulnoza": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Ergasheva Malika": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Qodirov Javohir": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Toshmatov Jasur": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Aliyeva Madina": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Abdullayev Sardor": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Saidov Aziz": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Botirov Jasur": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Zokirov Islom": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Yusupov Bekzod": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ]
+      }
+     ]
+    }
+   },
+   "year": [
+    {
+     "sb": 43,
+     "avg_fb": 4.571429,
+     "year": 15.321429,
+     "ready": false,
+     "year_grade": null,
+     "exam": 72,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 50,
+     "avg_fb": 7,
+     "year": 19.5,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 34.5,
+     "avg_fb": 7.583333,
+     "year": 16.208333,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 47,
+     "avg_fb": 8.222222,
+     "year": 19.972222,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 73,
+     "avg_fb": 3.666667,
+     "year": 21.916667,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 55,
+     "avg_fb": 7.5,
+     "year": 21.25,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 50,
+     "avg_fb": 7.090909,
+     "year": 19.590909,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 64.5,
+     "avg_fb": 6.692308,
+     "year": 22.817308,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 55.5,
+     "avg_fb": 7.636364,
+     "year": 21.511364,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 46.5,
+     "avg_fb": 7,
+     "year": 18.625,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 58,
+     "avg_fb": 3.857143,
+     "year": 18.357143,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 72.5,
+     "avg_fb": 7.428571,
+     "year": 25.553571,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      4,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 78.5,
+     "avg_fb": 7.142857,
+     "year": 26.767857,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      4,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 63,
+     "avg_fb": 3.875,
+     "year": 19.625,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    }
+   ],
+   "report": {
+    "lessons": 23,
+    "dates": [
+     "2026-09-02",
+     "2026-09-04",
+     "2026-09-07",
+     "2026-09-09",
+     "2026-09-11",
+     "2026-09-14",
+     "2026-09-16",
+     "2026-09-18",
+     "2026-09-21",
+     "2026-09-23",
+     "2026-09-25",
+     "2026-09-28",
+     "2026-09-30",
+     "2026-10-02",
+     "2026-10-05",
+     "2026-10-07",
+     "2026-10-09",
+     "2026-10-12",
+     "2026-10-14",
+     "2026-10-16",
+     "2026-10-19",
+     "2026-10-21",
+     "2026-10-23"
+    ],
+    "rows": [
+     {
+      "name": "Mirzayeva Dilnoza",
+      "n": 7,
+      "avg": 4.57,
+      "att": 87,
+      "s": 2,
+      "dq": 1,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 3,
+      "why": [
+       "o'rtacha 4.6 < 5",
+       "CHSB 16.10: 28%"
+      ]
+     },
+     {
+      "name": "Hasanov Bekzod",
+      "n": 8,
+      "avg": 7,
+      "att": 91.3,
+      "s": 1,
+      "dq": 0,
+      "k": 1,
+      "kq": 0,
+      "ch": 0,
+      "absent": 2,
+      "why": [
+       "BSB 21.10: 20%"
+      ]
+     },
+     {
+      "name": "Rahimova Nilufar",
+      "n": 12,
+      "avg": 7.58,
+      "att": 95.7,
+      "s": 1,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 1,
+      "why": [
+       "BSB 25.09: 18%",
+       "BSB 21.10: 20%"
+      ]
+     },
+     {
+      "name": "Umarova Sevara",
+      "n": 9,
+      "avg": 8.22,
+      "att": 87,
+      "s": 1,
+      "dq": 1,
+      "k": 1,
+      "kq": 1,
+      "ch": 0,
+      "absent": 3,
+      "why": []
+     },
+     {
+      "name": "Olimova Gulnoza",
+      "n": 6,
+      "avg": 3.67,
+      "att": 78.3,
+      "s": 4,
+      "dq": 1,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 5,
+      "why": [
+       "o'rtacha 3.7 < 5",
+       "davomat 78% < 80%",
+       "sababsiz 4 ta",
+       "baholar pasaymoqda (4.7 → 2.7)",
+       "BSB 25.09: 34%"
+      ]
+     },
+     {
+      "name": "Ergasheva Malika",
+      "n": 8,
+      "avg": 7.5,
+      "att": 91.3,
+      "s": 0,
+      "dq": 0,
+      "k": 2,
+      "kq": 0,
+      "ch": 0,
+      "absent": 2,
+      "why": []
+     },
+     {
+      "name": "Qodirov Javohir",
+      "n": 11,
+      "avg": 7.09,
+      "att": 95.7,
+      "s": 1,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 1,
+      "why": [
+       "BSB 21.10: 28%"
+      ]
+     },
+     {
+      "name": "Toshmatov Jasur",
+      "n": 13,
+      "avg": 6.69,
+      "att": 95.7,
+      "s": 0,
+      "dq": 0,
+      "k": 1,
+      "kq": 0,
+      "ch": 0,
+      "absent": 1,
+      "why": [
+       "BSB 21.10: 30%"
+      ]
+     },
+     {
+      "name": "Aliyeva Madina",
+      "n": 11,
+      "avg": 7.64,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     },
+     {
+      "name": "Abdullayev Sardor",
+      "n": 8,
+      "avg": 7,
+      "att": 91.3,
+      "s": 2,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 2,
+      "why": [
+       "BSB 25.09: 20%",
+       "CHSB 16.10: 32%"
+      ]
+     },
+     {
+      "name": "Saidov Aziz",
+      "n": 7,
+      "avg": 3.86,
+      "att": 95.7,
+      "s": 1,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 1,
+      "why": [
+       "o'rtacha 3.9 < 5"
+      ]
+     },
+     {
+      "name": "Botirov Jasur",
+      "n": 7,
+      "avg": 7.43,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": [
+       "BSB 21.10: 36%"
+      ]
+     },
+     {
+      "name": "Zokirov Islom",
+      "n": 7,
+      "avg": 7.14,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     },
+     {
+      "name": "Yusupov Bekzod",
+      "n": 8,
+      "avg": 3.88,
+      "att": 69.6,
+      "s": 0,
+      "dq": 5,
+      "k": 2,
+      "kq": 0,
+      "ch": 0,
+      "absent": 7,
+      "why": [
+       "o'rtacha 3.9 < 5",
+       "davomat 70% < 80%",
+       "ketma-ket 4 dars qoldirgan",
+       "CHSB 16.10: 25%"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "label": "7-G · Informatika",
+   "quarters": {
+    "1": {
+     "results": [
+      {
+       "bsb": 2,
+       "chsb": 40,
+       "fb": 0,
+       "n_fb": 3,
+       "avg": 3.666667,
+       "total": 42,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 5.5,
+       "chsb": 37.5,
+       "fb": 7,
+       "n_fb": 10,
+       "avg": 7.4,
+       "total": 50,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 9,
+       "chsb": 35,
+       "fb": 8,
+       "n_fb": 8,
+       "avg": 8,
+       "total": 52,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 12.5,
+       "chsb": 32.5,
+       "fb": 9,
+       "n_fb": 4,
+       "avg": 8.75,
+       "total": 54,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 16,
+       "chsb": 30,
+       "fb": 7,
+       "n_fb": 4,
+       "avg": 7,
+       "total": 53,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 19.5,
+       "chsb": 27.5,
+       "fb": 7,
+       "n_fb": 5,
+       "avg": 7,
+       "total": 54,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 23,
+       "chsb": 25,
+       "fb": 7,
+       "n_fb": 8,
+       "avg": 6.625,
+       "total": 55,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 26.5,
+       "chsb": 22.5,
+       "fb": 7,
+       "n_fb": 10,
+       "avg": 7.1,
+       "total": 56,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 30,
+       "chsb": 20,
+       "fb": 0,
+       "n_fb": 3,
+       "avg": 7,
+       "total": 50,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 33.5,
+       "chsb": 17.5,
+       "fb": 5,
+       "n_fb": 5,
+       "avg": 4.6,
+       "total": 56,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 37,
+       "chsb": 15,
+       "fb": 8,
+       "n_fb": 6,
+       "avg": 7.833333,
+       "total": 60,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 40.5,
+       "chsb": 12.5,
+       "fb": 8,
+       "n_fb": 5,
+       "avg": 8.2,
+       "total": 61,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 44,
+       "chsb": 10,
+       "fb": 8,
+       "n_fb": 8,
+       "avg": 8,
+       "total": 62,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      },
+      {
+       "bsb": 47.5,
+       "chsb": 7.5,
+       "fb": 8,
+       "n_fb": 4,
+       "avg": 7.5,
+       "total": 63,
+       "max_bsb": 50,
+       "max_chsb": 40,
+       "missing": 0,
+       "complete": true,
+       "grade": 3
+      }
+     ],
+     "readiness": [
+      [],
+      {
+       "Zokirov Islom": [
+        "formativ baholar 3 ta (kamida 4 ta kerak)"
+       ],
+       "Botirov Jasur": [
+        "formativ baholar 3 ta (kamida 4 ta kerak)"
+       ]
+      }
+     ]
+    },
+    "2": {
+     "results": [
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      }
+     ],
+     "readiness": [
+      [
+       "BSB maksimal ballari yig'indisi 0 (kerak: 50)",
+       "CHSB maksimal ballari yig'indisi 0 (kerak: 40)"
+      ],
+      {
+       "Zokirov Islom": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Rahimova Nilufar": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Aliyeva Madina": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Ergasheva Malika": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Hasanov Bekzod": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Qodirov Javohir": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Umarova Sevara": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Olimova Gulnoza": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Botirov Jasur": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Saidov Aziz": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Nazarov Sherzod": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Mirzayeva Dilnoza": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Ismoilova Zarina": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "G'aniyeva Nodira": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ]
+      }
+     ]
+    }
+   },
+   "year": [
+    {
+     "sb": 42,
+     "avg_fb": 3.666667,
+     "year": 14.166667,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 43,
+     "avg_fb": 7.4,
+     "year": 18.15,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 44,
+     "avg_fb": 8,
+     "year": 19,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 45,
+     "avg_fb": 8.75,
+     "year": 20,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 46,
+     "avg_fb": 7,
+     "year": 18.5,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 47,
+     "avg_fb": 7,
+     "year": 18.75,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 48,
+     "avg_fb": 6.625,
+     "year": 18.625,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 49,
+     "avg_fb": 7.1,
+     "year": 19.35,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 50,
+     "avg_fb": 7,
+     "year": 19.5,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 51,
+     "avg_fb": 4.6,
+     "year": 17.35,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 52,
+     "avg_fb": 7.833333,
+     "year": 20.833333,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 53,
+     "avg_fb": 8.2,
+     "year": 21.45,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 54,
+     "avg_fb": 8,
+     "year": 21.5,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 55,
+     "avg_fb": 7.5,
+     "year": 21.25,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      3,
+      null,
+      null,
+      null
+     ]
+    }
+   ],
+   "report": {
+    "lessons": 15,
+    "dates": [
+     "2026-09-04",
+     "2026-09-08",
+     "2026-09-11",
+     "2026-09-15",
+     "2026-09-18",
+     "2026-09-22",
+     "2026-09-25",
+     "2026-09-29",
+     "2026-10-02",
+     "2026-10-06",
+     "2026-10-09",
+     "2026-10-13",
+     "2026-10-16",
+     "2026-10-20",
+     "2026-10-23"
+    ],
+    "rows": [
+     {
+      "name": "Zokirov Islom",
+      "n": 3,
+      "avg": 3.67,
+      "att": 86.7,
+      "s": 1,
+      "dq": 1,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 2,
+      "why": [
+       "o'rtacha 3.7 < 5",
+       "shu kungacha 3 ta baho (< 4)",
+       "BSB 05.10: 4%"
+      ]
+     },
+     {
+      "name": "Rahimova Nilufar",
+      "n": 10,
+      "avg": 7.4,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": [
+       "BSB 05.10: 11%"
+      ]
+     },
+     {
+      "name": "Aliyeva Madina",
+      "n": 8,
+      "avg": 8,
+      "att": 93.3,
+      "s": 0,
+      "dq": 0,
+      "k": 1,
+      "kq": 0,
+      "ch": 0,
+      "absent": 1,
+      "why": [
+       "BSB 05.10: 18%"
+      ]
+     },
+     {
+      "name": "Ergasheva Malika",
+      "n": 4,
+      "avg": 8.75,
+      "att": 93.3,
+      "s": 1,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 1,
+      "why": [
+       "baholar pasaymoqda (9.5 → 8.0)",
+       "BSB 05.10: 25%"
+      ]
+     },
+     {
+      "name": "Hasanov Bekzod",
+      "n": 4,
+      "avg": 7,
+      "att": 86.7,
+      "s": 1,
+      "dq": 1,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 2,
+      "why": [
+       "BSB 05.10: 32%"
+      ]
+     },
+     {
+      "name": "Qodirov Javohir",
+      "n": 5,
+      "avg": 7,
+      "att": 93.3,
+      "s": 0,
+      "dq": 0,
+      "k": 1,
+      "kq": 0,
+      "ch": 0,
+      "absent": 1,
+      "why": [
+       "BSB 05.10: 39%"
+      ]
+     },
+     {
+      "name": "Umarova Sevara",
+      "n": 8,
+      "avg": 6.62,
+      "att": 93.3,
+      "s": 0,
+      "dq": 1,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 1,
+      "why": []
+     },
+     {
+      "name": "Olimova Gulnoza",
+      "n": 10,
+      "avg": 7.1,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     },
+     {
+      "name": "Botirov Jasur",
+      "n": 3,
+      "avg": 7,
+      "att": 86.7,
+      "s": 1,
+      "dq": 1,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 2,
+      "why": [
+       "shu kungacha 3 ta baho (< 4)"
+      ]
+     },
+     {
+      "name": "Saidov Aziz",
+      "n": 5,
+      "avg": 4.6,
+      "att": 86.7,
+      "s": 0,
+      "dq": 1,
+      "k": 1,
+      "kq": 0,
+      "ch": 0,
+      "absent": 2,
+      "why": [
+       "o'rtacha 4.6 < 5"
+      ]
+     },
+     {
+      "name": "Nazarov Sherzod",
+      "n": 6,
+      "avg": 7.83,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": [
+       "CHSB 19.10: 38%"
+      ]
+     },
+     {
+      "name": "Mirzayeva Dilnoza",
+      "n": 5,
+      "avg": 8.2,
+      "att": 86.7,
+      "s": 1,
+      "dq": 0,
+      "k": 1,
+      "kq": 0,
+      "ch": 0,
+      "absent": 2,
+      "why": [
+       "CHSB 19.10: 31%"
+      ]
+     },
+     {
+      "name": "Ismoilova Zarina",
+      "n": 8,
+      "avg": 8,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": [
+       "baholar pasaymoqda (9.2 → 6.8)",
+       "CHSB 19.10: 25%"
+      ]
+     },
+     {
+      "name": "G'aniyeva Nodira",
+      "n": 4,
+      "avg": 7.5,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": [
+       "CHSB 19.10: 19%"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "label": "9-A · Algebra",
+   "quarters": {
+    "1": {
+     "results": [
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 7,
+       "n_fb": 6,
+       "avg": 6.833333,
+       "total": 7,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 8,
+       "n_fb": 10,
+       "avg": 7.9,
+       "total": 8,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 7,
+       "n_fb": 5,
+       "avg": 6.6,
+       "total": 7,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 8,
+       "n_fb": 8,
+       "avg": 7.5,
+       "total": 8,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 8,
+       "n_fb": 5,
+       "avg": 7.8,
+       "total": 8,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 7,
+       "n_fb": 5,
+       "avg": 7,
+       "total": 7,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 7,
+       "n_fb": 8,
+       "avg": 6.875,
+       "total": 7,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 3,
+       "avg": 4.666667,
+       "total": 0,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 7,
+       "n_fb": 5,
+       "avg": 7.4,
+       "total": 7,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 7,
+       "n_fb": 7,
+       "avg": 6.857143,
+       "total": 7,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 7,
+       "n_fb": 7,
+       "avg": 6.857143,
+       "total": 7,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 8,
+       "n_fb": 7,
+       "avg": 7.571429,
+       "total": 8,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 8,
+       "n_fb": 6,
+       "avg": 8,
+       "total": 8,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 7,
+       "n_fb": 8,
+       "avg": 6.625,
+       "total": 7,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      }
+     ],
+     "readiness": [
+      [
+       "BSB maksimal ballari yig'indisi 25 (kerak: 50)",
+       "CHSB maksimal ballari yig'indisi 0 (kerak: 40)"
+      ],
+      {
+       "Rahimova Nilufar": [
+        "BSB 23.10 — ball yo'q"
+       ],
+       "Saidov Aziz": [
+        "BSB 23.10 — ball yo'q"
+       ],
+       "Umarova Sevara": [
+        "BSB 23.10 — ball yo'q"
+       ],
+       "Zokirov Islom": [
+        "BSB 23.10 — ball yo'q"
+       ],
+       "Aliyeva Madina": [
+        "BSB 23.10 — ball yo'q"
+       ],
+       "Hasanov Bekzod": [
+        "BSB 23.10 — ball yo'q"
+       ],
+       "Olimova Gulnoza": [
+        "BSB 23.10 — ball yo'q"
+       ],
+       "Mirzayeva Dilnoza": [
+        "BSB 23.10 — ball yo'q",
+        "formativ baholar 3 ta (kamida 4 ta kerak)"
+       ],
+       "Karimov Otabek": [
+        "BSB 23.10 — ball yo'q"
+       ],
+       "G'aniyeva Nodira": [
+        "BSB 23.10 — ball yo'q"
+       ],
+       "Toshmatov Jasur": [
+        "BSB 23.10 — ball yo'q"
+       ],
+       "Yusupov Bekzod": [
+        "BSB 23.10 — ball yo'q"
+       ],
+       "Abdullayev Sardor": [
+        "BSB 23.10 — ball yo'q"
+       ],
+       "Nazarov Sherzod": [
+        "BSB 23.10 — ball yo'q"
+       ]
+      }
+     ]
+    },
+    "2": {
+     "results": [
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      }
+     ],
+     "readiness": [
+      [
+       "BSB maksimal ballari yig'indisi 0 (kerak: 50)",
+       "CHSB maksimal ballari yig'indisi 0 (kerak: 40)"
+      ],
+      {
+       "Rahimova Nilufar": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Saidov Aziz": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Umarova Sevara": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Zokirov Islom": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Aliyeva Madina": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Hasanov Bekzod": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Olimova Gulnoza": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Mirzayeva Dilnoza": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Karimov Otabek": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "G'aniyeva Nodira": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Toshmatov Jasur": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Yusupov Bekzod": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Abdullayev Sardor": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Nazarov Sherzod": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ]
+      }
+     ]
+    }
+   },
+   "year": [
+    {
+     "sb": 0,
+     "avg_fb": 6.833333,
+     "year": 6.833333,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 7.9,
+     "year": 7.9,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 6.6,
+     "year": 6.6,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 7.5,
+     "year": 7.5,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 7.8,
+     "year": 7.8,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 7,
+     "year": 7,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 6.875,
+     "year": 6.875,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 4.666667,
+     "year": 4.666667,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 7.4,
+     "year": 7.4,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 6.857143,
+     "year": 6.857143,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 6.857143,
+     "year": 6.857143,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 7.571429,
+     "year": 7.571429,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 8,
+     "year": 8,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 6.625,
+     "year": 6.625,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    }
+   ],
+   "report": {
+    "lessons": 14,
+    "dates": [
+     "2026-09-07",
+     "2026-09-08",
+     "2026-09-14",
+     "2026-09-15",
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-28",
+     "2026-09-29",
+     "2026-10-05",
+     "2026-10-06",
+     "2026-10-12",
+     "2026-10-13",
+     "2026-10-19",
+     "2026-10-20"
+    ],
+    "rows": [
+     {
+      "name": "Rahimova Nilufar",
+      "n": 6,
+      "avg": 6.83,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": [
+       "baholar pasaymoqda (7.7 → 6.0)"
+      ]
+     },
+     {
+      "name": "Saidov Aziz",
+      "n": 10,
+      "avg": 7.9,
+      "att": 92.9,
+      "s": 1,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 1,
+      "why": []
+     },
+     {
+      "name": "Umarova Sevara",
+      "n": 5,
+      "avg": 6.6,
+      "att": 78.6,
+      "s": 2,
+      "dq": 0,
+      "k": 1,
+      "kq": 0,
+      "ch": 0,
+      "absent": 3,
+      "why": [
+       "davomat 79% < 80%",
+       "baholar pasaymoqda (7.5 → 6.0)"
+      ]
+     },
+     {
+      "name": "Zokirov Islom",
+      "n": 8,
+      "avg": 7.5,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     },
+     {
+      "name": "Aliyeva Madina",
+      "n": 5,
+      "avg": 7.8,
+      "att": 92.9,
+      "s": 1,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 1,
+      "why": []
+     },
+     {
+      "name": "Hasanov Bekzod",
+      "n": 5,
+      "avg": 7,
+      "att": 85.7,
+      "s": 0,
+      "dq": 1,
+      "k": 1,
+      "kq": 0,
+      "ch": 0,
+      "absent": 2,
+      "why": []
+     },
+     {
+      "name": "Olimova Gulnoza",
+      "n": 8,
+      "avg": 6.88,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     },
+     {
+      "name": "Mirzayeva Dilnoza",
+      "n": 3,
+      "avg": 4.67,
+      "att": 85.7,
+      "s": 0,
+      "dq": 2,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 2,
+      "why": [
+       "o'rtacha 4.7 < 5",
+       "shu kungacha 3 ta baho (< 4)"
+      ]
+     },
+     {
+      "name": "Karimov Otabek",
+      "n": 5,
+      "avg": 7.4,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     },
+     {
+      "name": "G'aniyeva Nodira",
+      "n": 7,
+      "avg": 6.86,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     },
+     {
+      "name": "Toshmatov Jasur",
+      "n": 7,
+      "avg": 6.86,
+      "att": 92.9,
+      "s": 0,
+      "dq": 1,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 1,
+      "why": []
+     },
+     {
+      "name": "Yusupov Bekzod",
+      "n": 7,
+      "avg": 7.57,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     },
+     {
+      "name": "Abdullayev Sardor",
+      "n": 6,
+      "avg": 8,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     },
+     {
+      "name": "Nazarov Sherzod",
+      "n": 8,
+      "avg": 6.62,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     }
+    ]
+   }
+  },
+  {
+   "label": "9-A · Geometriya",
+   "quarters": {
+    "1": {
+     "results": [
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 8,
+       "n_fb": 9,
+       "avg": 7.777778,
+       "total": 8,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 8,
+       "n_fb": 8,
+       "avg": 7.875,
+       "total": 8,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 8,
+       "n_fb": 9,
+       "avg": 7.666667,
+       "total": 8,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 8,
+       "n_fb": 6,
+       "avg": 7.666667,
+       "total": 8,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 8,
+       "n_fb": 8,
+       "avg": 7.5,
+       "total": 8,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 8,
+       "n_fb": 8,
+       "avg": 8,
+       "total": 8,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 3,
+       "avg": 2,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 2,
+       "avg": 2.5,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 7,
+       "n_fb": 9,
+       "avg": 7.333333,
+       "total": 7,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 9,
+       "n_fb": 10,
+       "avg": 8.5,
+       "total": 9,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 8,
+       "n_fb": 6,
+       "avg": 8.333333,
+       "total": 8,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 4,
+       "n_fb": 4,
+       "avg": 4,
+       "total": 4,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 2,
+       "avg": 6,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 8,
+       "n_fb": 10,
+       "avg": 8.2,
+       "total": 8,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      }
+     ],
+     "readiness": [
+      [
+       "BSB maksimal ballari yig'indisi 0 (kerak: 50)",
+       "CHSB maksimal ballari yig'indisi 0 (kerak: 40)"
+      ],
+      {
+       "Botirov Jasur": [
+        "formativ baholar 3 ta (kamida 4 ta kerak)"
+       ],
+       "Olimova Gulnoza": [
+        "formativ baholar 2 ta (kamida 4 ta kerak)"
+       ],
+       "Aliyeva Madina": [
+        "formativ baholar 2 ta (kamida 4 ta kerak)"
+       ]
+      }
+     ]
+    },
+    "2": {
+     "results": [
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 0,
+       "n_fb": 0,
+       "avg": null,
+       "total": 0,
+       "max_bsb": 0,
+       "max_chsb": 0,
+       "missing": 0,
+       "complete": false,
+       "grade": null
+      }
+     ],
+     "readiness": [
+      [
+       "BSB maksimal ballari yig'indisi 0 (kerak: 50)",
+       "CHSB maksimal ballari yig'indisi 0 (kerak: 40)"
+      ],
+      {
+       "Qodirov Javohir": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "G'aniyeva Nodira": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Karimov Otabek": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Zokirov Islom": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Hasanov Bekzod": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Mirzayeva Dilnoza": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Botirov Jasur": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Olimova Gulnoza": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Rahimova Nilufar": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Umarova Sevara": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Saidov Aziz": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Ismoilova Zarina": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Aliyeva Madina": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ],
+       "Yusupov Bekzod": [
+        "formativ baholar 0 ta (kamida 4 ta kerak)"
+       ]
+      }
+     ]
+    }
+   },
+   "year": [
+    {
+     "sb": 0,
+     "avg_fb": 7.777778,
+     "year": 7.777778,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 7.875,
+     "year": 7.875,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 7.666667,
+     "year": 7.666667,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 7.666667,
+     "year": 7.666667,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 7.5,
+     "year": 7.5,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 8,
+     "year": 8,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 2,
+     "year": 2,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 2.5,
+     "year": 2.5,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 7.333333,
+     "year": 7.333333,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 8.5,
+     "year": 8.5,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 8.333333,
+     "year": 8.333333,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 4,
+     "year": 4,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 6,
+     "year": 6,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 8.2,
+     "year": 8.2,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    }
+   ],
+   "report": {
+    "lessons": 16,
+    "dates": [
+     "2026-09-02",
+     "2026-09-04",
+     "2026-09-09",
+     "2026-09-11",
+     "2026-09-16",
+     "2026-09-18",
+     "2026-09-23",
+     "2026-09-25",
+     "2026-09-30",
+     "2026-10-02",
+     "2026-10-07",
+     "2026-10-09",
+     "2026-10-14",
+     "2026-10-16",
+     "2026-10-21",
+     "2026-10-23"
+    ],
+    "rows": [
+     {
+      "name": "Qodirov Javohir",
+      "n": 9,
+      "avg": 7.78,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     },
+     {
+      "name": "G'aniyeva Nodira",
+      "n": 8,
+      "avg": 7.88,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": [
+       "baholar pasaymoqda (9.0 → 6.8)"
+      ]
+     },
+     {
+      "name": "Karimov Otabek",
+      "n": 9,
+      "avg": 7.67,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     },
+     {
+      "name": "Zokirov Islom",
+      "n": 6,
+      "avg": 7.67,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": [
+       "baholar pasaymoqda (9.3 → 6.0)"
+      ]
+     },
+     {
+      "name": "Hasanov Bekzod",
+      "n": 8,
+      "avg": 7.5,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     },
+     {
+      "name": "Mirzayeva Dilnoza",
+      "n": 8,
+      "avg": 8,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     },
+     {
+      "name": "Botirov Jasur",
+      "n": 3,
+      "avg": 2,
+      "att": 87.5,
+      "s": 1,
+      "dq": 1,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 2,
+      "why": [
+       "o'rtacha 2.0 < 5",
+       "shu kungacha 3 ta baho (< 4)"
+      ]
+     },
+     {
+      "name": "Olimova Gulnoza",
+      "n": 2,
+      "avg": 2.5,
+      "att": 75,
+      "s": 2,
+      "dq": 2,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 4,
+      "why": [
+       "shu kungacha 2 ta baho (< 4)",
+       "davomat 75% < 80%"
+      ]
+     },
+     {
+      "name": "Rahimova Nilufar",
+      "n": 9,
+      "avg": 7.33,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     },
+     {
+      "name": "Umarova Sevara",
+      "n": 10,
+      "avg": 8.5,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     },
+     {
+      "name": "Saidov Aziz",
+      "n": 6,
+      "avg": 8.33,
+      "att": 87.5,
+      "s": 1,
+      "dq": 0,
+      "k": 1,
+      "kq": 0,
+      "ch": 0,
+      "absent": 2,
+      "why": []
+     },
+     {
+      "name": "Ismoilova Zarina",
+      "n": 4,
+      "avg": 4,
+      "att": 87.5,
+      "s": 1,
+      "dq": 1,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 2,
+      "why": [
+       "o'rtacha 4.0 < 5"
+      ]
+     },
+     {
+      "name": "Aliyeva Madina",
+      "n": 2,
+      "avg": 6,
+      "att": 93.8,
+      "s": 0,
+      "dq": 1,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 1,
+      "why": [
+       "shu kungacha 2 ta baho (< 4)"
+      ]
+     },
+     {
+      "name": "Yusupov Bekzod",
+      "n": 10,
+      "avg": 8.2,
+      "att": 100,
+      "s": 0,
+      "dq": 0,
+      "k": 0,
+      "kq": 0,
+      "ch": 0,
+      "absent": 0,
+      "why": []
+     }
+    ]
+   }
+  }
+ ],
+ "period": [
+  "2026-09-02",
+  "2026-10-23",
+  1
+ ]
+}

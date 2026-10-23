@@ -1,0 +1,38 @@
+name: Testlar
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  hisob-kitob:
+    name: Hisob-kitoblar (kompyuter dasturi va web ilova)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Python kutubxonalari
+        run: pip install PySide6 pandas openpyxl pytest
+      - name: Kompyuter dasturi = golden.json
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: cd tests && python -m pytest -q test_python.py
+      - name: Web ilova = golden.json
+        run: node --test tests/web.test.mjs
+
+  brauzer:
+    name: Web ilova brauzerda (kompyuter va telefon ekrani)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node --test tests/ui.test.mjs

@@ -1,0 +1,13 @@
+# shaxsiy ma'lumotlar va maxfiy kalitlar — repozitoriyaga tushmasin
+bot.env
+journal.json
+!tests/fixtures/journal.json
+*.json.bak
+zaxira/
+arxiv/
+bot_inbox.json
+# vaqtinchalik
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
