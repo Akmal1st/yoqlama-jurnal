@@ -40,3 +40,26 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
     } finally { await browser.close(); }
   });
 }
+
+test("o'quvchilarni bir yo'la chiqarish va qaytarish (Ctrl+Z)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const before = await page.evaluate(() => D.classes[1].students.map((s) => s.name));
+    await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="0"]');
+    await page.click('[data-a=rmst][data-i="1"]');
+    await page.check('[data-rm="0"]'); await page.check('[data-rm="2"]');
+    await page.click(".modal [data-ok]");
+    await page.waitForSelector(".modal [data-ok]"); await page.click(".modal [data-ok]");   // tasdiqlash
+    await page.waitForFunction((n) => D.classes[1].students.length === n - 2, before.length);
+    const after = await page.evaluate(() => D.classes[1].students.map((s) => s.name));
+    assert.deepEqual(after, before.filter((_, i) => i !== 0 && i !== 2));
+    await page.evaluate(() => undoLast());
+    assert.deepEqual(await page.evaluate(() => D.classes[1].students.map((s) => s.name)), before);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
