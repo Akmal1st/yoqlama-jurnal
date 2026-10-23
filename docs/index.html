@@ -211,7 +211,7 @@ table.bl .bn{text-align:left;min-width:150px}
   .tiles .tile div:last-child{font-size:19px}
 }
 @media print{
-  .side,.tabbar,.noprint,.keys{display:none!important}
+  .side,.tabbar,.noprint,.keys,.toast,.modal{display:none!important}
   .pb{page-break-before:always}
   @page{size:landscape;margin:10mm}
   main{padding:0}
@@ -1862,10 +1862,17 @@ function repBlank(c) {
   else { const d = pdate(S.bday || t); lo = iso(new Date(d.getFullYear(), d.getMonth(), 1)); hi = iso(new Date(d.getFullYear(), d.getMonth() + 1, 0)); }
   const dates = c.dates.filter((d) => lo <= d && d <= hi && !isNoLesson(c, d)), two = mode === "day";
   const chunks = []; for (let i = 0; i < Math.max(1, dates.length); i += 31) chunks.push(dates.slice(i, i + 31));
-  return `<div class="row noprint" style="gap:8px"><div class="seg">${[["day", "Kun"], ["week", "Hafta"], ["month", "Oy"]].map(([k, n]) => `<button class="${mode === k ? "on" : ""}" data-bm="${k}">${n}</button>`).join("")}</div>
+  // har bo'lak bitta varaqqa sig'sin: ustunlar kam bo'lsa — tik (A4), ko'p bo'lsa — yotiq; qator balandligi o'quvchilar soniga qarab (mm)
+  const ncol = Math.max(...chunks.map((ds) => ds.length)) * (two ? 2 : 1), wide = ncol > 8, nameW = ncol <= 4 ? 40 : ncol <= 8 ? 32 : ncol <= 16 ? 26 : 20;
+  const avail = (wide ? 190 : 277) - (two ? 30 : 26), rowH = Math.min(9, Math.max(4, avail / Math.max(1, c.students.length)));
+  const fs = rowH < 5 ? 7.5 : rowH < 6.5 ? 9 : 10.5;
+  const printCss = `<style>@media print{@page{size:A4 ${wide ? "landscape" : "portrait"};margin:10mm}
+    .blank{break-inside:avoid}.blank h2{font-size:14pt}.blank .row{margin-bottom:2mm}
+    table.bl{margin-top:0;font-size:${fs}pt;table-layout:fixed;width:100%}table.bl .bn{min-width:0;width:${nameW}%;overflow:hidden;white-space:nowrap}table.bl .nr{width:7mm}table.bl td{height:${rowH.toFixed(2)}mm;padding:0 1.5mm}table.bl th{height:auto;padding:1mm}}</style>`;
+  return `${printCss}<div class="row noprint" style="gap:8px"><div class="seg">${[["day", "Kun"], ["week", "Hafta"], ["month", "Oy"]].map(([k, n]) => `<button class="${mode === k ? "on" : ""}" data-bm="${k}">${n}</button>`).join("")}</div>
       <input type="date" id="bday" value="${S.bday || t}" style="max-width:180px"><span class="muted">Faqat ismlar va dars kunlari — belgilar chiqmaydi.</span></div>
     ${chunks.map((ds, n) => `<div class="blank ${n ? "pb" : ""}"><div class="row"><h2 class="sp">${esc(label(c))}</h2><span>${fmt(lo)} – ${fmt(hi)}</span></div>
-      <table class="bl"><tr><th ${two ? 'rowspan="2"' : ""}>№</th><th ${two ? 'rowspan="2"' : ""} class="bn">O'quvchi</th>${ds.map((d) => two ? `<th colspan="2">${fmt(d).slice(0, 5)} ${WD[pyWd(d)]}</th>` : `<th>${mode === "month" ? d.slice(8) : fmt(d).slice(0, 5)}<br><small>${WD[pyWd(d)]}</small></th>`).join("")}</tr>
+      <table class="bl"><tr><th ${two ? 'rowspan="2"' : ""} class="nr">№</th><th ${two ? 'rowspan="2"' : ""} class="bn">O'quvchi</th>${ds.map((d) => two ? `<th colspan="2">${fmt(d).slice(0, 5)} ${WD[pyWd(d)]}</th>` : `<th>${mode === "month" ? d.slice(8) : fmt(d).slice(0, 5)}<br><small>${WD[pyWd(d)]}</small></th>`).join("")}</tr>
       ${two ? `<tr>${ds.map(() => "<th><small>Davomat</small></th><th><small>Ball</small></th>").join("")}</tr>` : ""}
       ${c.students.map((s, i) => `<tr><td>${i + 1}</td><td class="bn">${esc(s.name)}</td>${"<td></td>".repeat(ds.length * (two ? 2 : 1))}</tr>`).join("")}</table></div>`).join("")}
     ${dates.length ? "" : `<div class="muted">Bu davrda dars kunlari yo'q.</div>`}`;
