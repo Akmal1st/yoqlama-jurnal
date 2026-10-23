@@ -217,7 +217,12 @@ table.bl .bn{text-align:left;min-width:150px}
   main{padding:0}
   body{background:#fff;color:#000}
   .card{border:0;padding:0}
+  .pfit{zoom:var(--pz,1)}
 }
+/* hisobotni chop etishda ixcham ko'rinish (o'lchash uchun ham shu qoidalar) */
+@media print{.pfit .tiles{grid-template-columns:repeat(4,1fr)}.pfit table.r{font-size:11pt}.pfit table.r th,.pfit table.r td{padding:2px 6px}.pfit .tiles{gap:6px}.pfit .tile{padding:6px 10px}.pfit .tile div:last-child{font-size:16pt}.pfit h2{margin:0}.pfit .pill{padding:0 6px}}
+body.pmeas .noprint{display:none!important}
+body.pmeas .pfit table.r{font-size:11pt}body.pmeas .pfit table.r th,body.pmeas .pfit table.r td{padding:2px 6px}body.pmeas .pfit .tiles{gap:6px;grid-template-columns:repeat(4,1fr)}body.pmeas .pfit .tile{padding:6px 10px}body.pmeas .pfit .tile div:last-child{font-size:16pt}body.pmeas .pfit h2{margin:0}body.pmeas .pfit .pill{padding:0 6px}
 </style>
 </head>
 <body>
@@ -1215,7 +1220,7 @@ function pageReports(m) {
   m.querySelectorAll("[data-kind]").forEach((b) => b.onclick = () => { R.kind = b.dataset.kind; render(); });
   const rc = $("#rc", m); if (rc) rc.onchange = (e) => { R.ci = +e.target.value; render(); };
   const rp = $("#rp", m); if (rp) rp.onchange = (e) => { R.per = e.target.value; render(); };
-  m.querySelectorAll("[data-print]").forEach((b) => b.onclick = () => window.print());
+  m.querySelectorAll("[data-print]").forEach((b) => b.onclick = () => { fitPrint(); window.print(); });
   m.querySelectorAll("[data-card]").forEach((b) => b.onclick = () => studentCard(R.ci, b.dataset.card));
   m.querySelectorAll("[data-rq]").forEach((b) => b.onclick = () => { S.rq = +b.dataset.rq; render(); });
   m.querySelectorAll("[data-bm]").forEach((b) => b.onclick = () => { S.bmode = b.dataset.bm; render(); });
@@ -1864,6 +1869,26 @@ function compareRows(lo, hi) {
     return {c, n: c.students.length, lessons, avg, att, risk: rows.filter((r) => r.risk).length, bsb: pct("bsb"), chsb: pct("chsb")};
   });
 }
+// Hisobot bitta varaqqa sig'sin: chop etish o'lchamida o'lchab, kerak bo'lsa kichraytiramiz (zoom)
+function fitPrint() {
+  const sec = $("main section.card"), kind = S.rep && S.rep.kind;
+  let st = document.getElementById("pfit-css"); if (st) st.remove();
+  if (S.page !== "reports" || !sec || kind === "blank") return;
+  const land = kind !== "ready", mm = 96 / 25.4, pw = (land ? 277 : 190) * mm, ph = (land ? 190 : 277) * mm;
+  sec.classList.add("pfit"); document.body.classList.add("pmeas");
+  const old = sec.style.width; sec.style.setProperty("--pz", "1");
+  // zoom kichraysa, sahifa kengligi CSS pikselda kattalashadi va matn kamroq bo'linadi — shuning uchun ikkilik qidiruv
+  const fits = (z) => { sec.style.width = pw / z + "px"; return sec.scrollHeight * z <= ph * 0.95 && sec.scrollWidth <= pw / z + 1; };
+  let z = 1;
+  if (!fits(1)) { let a = 0.2, b = 1; for (let i = 0; i < 12; i++) { const mid = (a + b) / 2; if (fits(mid)) a = mid; else b = mid; } z = a; }
+  sec.style.width = old; document.body.classList.remove("pmeas");
+  sec.style.setProperty("--pz", z.toFixed(3));
+  st = document.createElement("style"); st.id = "pfit-css";
+  st.textContent = `@media print{@page{size:A4 ${land ? "landscape" : "portrait"};margin:10mm}}`;
+  document.head.appendChild(st);
+  return z;
+}
+window.addEventListener("beforeprint", () => { try { fitPrint(); } catch (e) {} });
 function repReady(c) {
   const q = S.rq || curQuarter();
   if (!qRange(q)) return `<div class="muted">${q}-chorak sanalari belgilanmagan.</div>`;

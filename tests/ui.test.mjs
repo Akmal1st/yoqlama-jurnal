@@ -75,3 +75,25 @@ test("o'quvchini faolsizlantirish va qayta faollashtirish", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("hisobotlar chop etilganda bitta varaqqa sig'adi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    // katta sinf: 40 o'quvchi, uzun izohlar bilan
+    await page.evaluate(() => { const c = D.classes[0]; for (let i = c.students.length; i < 40; i++) c.students.push({name: `Qo'shimcha O'quvchi Familiyasi ${i}`, marks: {}, scores: {}}); save(); });
+    await page.click(".side [data-go=reports]");
+    const pages = async () => { await page.evaluate(() => fitPrint()); await page.emulateMedia({media: "print"});
+      const pdf = await page.pdf({preferCSSPageSize: true}); await page.emulateMedia({media: "screen"});
+      return (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length; };
+    for (const k of ["cls", "ready", "cmp", "blank"]) {
+      await page.click(`[data-kind=${k}]`);
+      assert.equal(await pages(), 1, `${k}: bitta varaq bo'lishi kerak`);
+    }
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
