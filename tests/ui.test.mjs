@@ -326,3 +326,28 @@ test("jurnal: bo'sh va to'ldirilgan kataklar bir chiziqda", async () => {
     }
   } finally { await browser.close(); }
 });
+
+test("jurnal: sinflar 1-qatorda, tanlangan sinfning fanlari 2-qatorda", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.click(".tabbar [data-go=journal]");
+    const names = await page.evaluate(() => D.classes.map((c) => c.name));
+    const multi = names.find((n, i) => names.indexOf(n) !== i);
+    assert.ok(multi, "fixture'da bir sinfning 2 ta fani bor");
+    assert.equal(await page.locator(`.clsnav [data-cls="${multi}"]`).count(), 1);
+    await page.click(`[data-cls="${multi}"]`);
+    const subs = page.locator(".subs [data-ci]");
+    assert.equal(await subs.count(), names.filter((n) => n === multi).length);
+    await subs.last().click();
+    const ci = await page.evaluate(() => S.ci);
+    await page.click(".clsnav [data-ci]:not(.sub)"); await page.click(`[data-cls="${multi}"]`);
+    assert.equal(await page.evaluate(() => S.ci), ci, "oxirgi tanlangan fan eslab qolinadi");
+    for (const jp of ["sum", "bsb", "year"]) { await page.click(`[data-jp=${jp}]`); assert.equal(await page.locator(".clsnav").count(), 1); }
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
