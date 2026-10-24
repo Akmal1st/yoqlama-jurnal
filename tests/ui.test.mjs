@@ -734,3 +734,34 @@ test("O'rindiq xaritasi: tuzish va xaritadan yo'qlama", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Tug'ilgan kunlar: kiritish, matndan to'ldirish va «Bugun»da eslatish", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 26, 9, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const p = await page.evaluate(() => [parseBday("12.03.2013"), parseBday("2013-03-12"), parseBday("5/11"), parseBday("31.02.2013"), parseBday("01.09.12")]);
+    assert.deepEqual(p, ["2013-03-12", "2013-03-12", "0000-11-05", null, "2012-09-01"]);
+    const names = await page.evaluate(() => { S.ci = 0; S.page = "journal"; render(); bdaysDialog(0); return D.classes[0].students.map((s) => s.name); });
+    await page.fill('[data-bd="0"]', "26.10.2014"); await page.press('[data-bd="0"]', "Tab");
+    await page.click("summary");
+    await page.fill("#bdp", `${names[1]}\t27.10.2013\n${names[2].toUpperCase()} 15.01.2013\nNoma'lum Odam 01.01.2013`);
+    await page.click("[data-bdp]");
+    const b = await page.evaluate(() => D.classes[0].students.slice(0, 3).map((s) => s.bday));
+    assert.deepEqual(b, ["2014-10-26", "2013-10-27", "2013-01-15"]);
+    // boshqa fan jurnalidagi shu o'quvchiga ham yoziladi
+    const other = await page.evaluate((n) => D.classes.filter((c) => c.students.some((s) => s.name === n)).map((c) => c.students.find((s) => s.name === n).bday), names[0]);
+    assert.ok(other.every((x) => x === "2014-10-26"));
+    await page.click(".modal [data-x]");
+    await page.evaluate(() => go("today"));
+    await page.waitForSelector(".bday");
+    const txt = await page.textContent(".bday");
+    assert.ok(txt.includes(names[0]) && txt.includes("12 yosh"), txt);
+    assert.ok((await page.textContent("main")).includes(`${names[1]}`) && (await page.textContent("main")).includes("tug'ilgan kun ertaga"));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
