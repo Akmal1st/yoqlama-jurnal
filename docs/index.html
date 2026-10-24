@@ -1177,7 +1177,8 @@ function pageToday(m) {
       <h1>${hello} ${L.length ? `Bugun ${L.length} ta darsingiz bor` : "Bugun darsingiz yo'q"}</h1></div>
       <input type="text" id="find" placeholder="🔍 O'quvchi yoki sinfni qidirish" style="max-width:320px"></header>
     ${nowd ? `<div class="card hot row"><span class="sp">📆 ${nowd} ta sinf uchun dars kunlari belgilanmagan — «Bugun» ro'yxati to'liq bo'lmasligi mumkin.</span><button class="btn" data-days>Belgilash</button></div>` : ""}
-    ${(() => { const a = backupAge(); return a === null || a > 7 ? `<div class="card row"><span class="sp">💾 ${a === null ? "Ma'lumotlar hali faylga saqlanmagan." : `Oxirgi zaxira ${a} kun oldin olingan.`} Brauzer tozalansa, ma'lumot yo'qolishi mumkin — faylga saqlab qo'ying.</span><button class="btn pri" data-backup2>Saqlash</button></div>` : ""; })()}
+    ${TG_NEW ? (() => { const w = new Date(TG_NEW.date * 1000); return `<div class="card hot row"><span class="sp">🔄 Telegram'da boshqa qurilmadan yangiroq zaxira bor (${fmt(iso(w))} ${pad(w.getHours())}:${pad(w.getMinutes())}). Shu qurilmaga yuklaysizmi?</span><button class="btn pri" data-tg="tgnew">Yuklash</button><button class="btn" data-tg="tgkeep">Yo'q, menikini saqlash</button></div>`; })() : ""}
+    ${(() => { const a = backupAge(), t = tgAge(); return (a === null || a > 7) && (t === null || t > 7) ? `<div class="card row"><span class="sp">💾 ${a === null ? "Ma'lumotlar hali faylga saqlanmagan." : `Oxirgi zaxira ${a} kun oldin olingan.`} Brauzer tozalansa, ma'lumot yo'qolishi mumkin — faylga saqlab qo'ying.</span><button class="btn pri" data-backup2>Saqlash</button></div>` : ""; })()}
     <div id="found"></div>
     <section class="grid lessons">${cards}</section>
     <div class="grid two">
@@ -1197,6 +1198,7 @@ function pageToday(m) {
   m.querySelectorAll("[data-stud]").forEach((b) => b.onclick = () => { const [ci, n] = b.dataset.stud.split("|"); studentCard(+ci, n); });
   const dd = $("[data-days]", m); if (dd) dd.onclick = () => { S.sec = 1; go("settings"); };
   $("[data-backup]", m).onclick = exportJson;
+  m.querySelectorAll("[data-tg]").forEach((b) => b.onclick = () => tgAction(b.dataset.tg));
   const b2 = $("[data-backup2]", m); if (b2) b2.onclick = () => { exportJson(); render(); };
   const f = $("#find", m);
   f.oninput = () => {
@@ -1592,6 +1594,10 @@ function pageSettings(m) {
     const age = backupAge();
     body = (installEvt ? srow("Ilovani o'rnatish", "Telefon yoki kompyuter ekraniga ilova sifatida qo'shiladi va internetsiz ochiladi", `<button class="btn pri" data-a="inst">📲 O'rnatish</button>`)
       : isStandalone() ? "" : srow("Telefonga o'rnatish", /iPhone|iPad/.test(navigator.userAgent) ? "Safari'da «Ulashish» → «Bosh ekranga qo'shish» (Add to Home Screen)" : "Brauzer menyusi (⋮) → «Ilovani o'rnatish» yoki «Bosh ekranga qo'shish»", "")) +
+      (() => { const c = tgCfg(), on = tgOn(), l = c.last ? new Date(c.last) : null;
+        return srow("✈️ Telegram'ga avtomatik zaxira", on ? `Ulangan: @${esc(c.bot || "bot")} · oxirgi zaxira: ${l ? `${fmt(iso(l))} ${pad(l.getHours())}:${pad(l.getMinutes())}` : "hali yo'q"}. Boshqa qurilmada ham shu botni ulasangiz, ma'lumotlar ular orasida almashinadi.`
+          : "Ma'lumotlar har kuni o'zingizning Telegram botingizga fayl bo'lib boradi. Telefon yo'qolsa yoki brauzer tozalansa ham jurnal saqlanib qoladi.",
+          on ? `<button class="btn pri" data-a="tgsend">📤 Hozir yuborish</button><button class="btn" data-a="tgload">📥 Telegram'dan yuklash</button><button class="btn" data-a="tgoff">Uzish</button>` : `<button class="btn pri" data-a="tgon">🔗 Ulash</button>`); })() +
       srow("Faylga saqlash (zaxira)" + (age === null ? "" : ` <span class="muted" style="font-weight:500">· oxirgisi ${age ? age + " kun oldin" : "bugun"}</span>`), "journal.json — kompyuterdagi dastur yoki boshqa qurilmada ochish uchun. Vaqti-vaqti bilan saqlab qo'ying.", `<button class="btn pri" data-a="exp">💾 Yuklab olish</button>`) +
       srow("Fayldan yuklash", "Kompyuterdagi dasturning journal.json fayli yoki oldin saqlangan zaxira. Hozirgi ma'lumotlar almashtiriladi.", `<button class="btn" data-a="imp">📂 Faylni tanlash</button>`) +
       srow("emaktab'dan import", "emaktab «Fan jurnali» Excel fayli (.xls / .xlsx): o'quvchilar, baholar, yo'qlama va BSB/CHSB ballari mavjud jurnalga qo'shiladi", `<button class="btn" data-a="xls">📊 Excel faylni tanlash</button>`) +
@@ -1662,6 +1668,7 @@ async function settingsAction(a, i) {
   else if (a === "xls") importExcel();
   else if (a === "emk") emkDialog();
   else if (a === "roll") rollover();
+  else if (a.startsWith("tg")) tgAction(a);
   else if (a === "exp") exportJson();
   else if (a === "imp") importJson();
   else if (a === "hist") {
@@ -2743,6 +2750,116 @@ function rollover() {
 }
 function backupAge() { if (!D.web.exported) return null; return Math.floor((Date.now() - Date.parse(D.web.exported)) / 864e5); }
 
+/* ───────── Telegram: avtomatik zaxira va qurilmalar orasida sinxronlash ───────── */
+// O'qituvchining o'z boti: token faqat shu brauzerda saqlanadi (journal.json ga yozilmaydi).
+// Zaxira botga fayl bo'lib boradi va qadab qo'yiladi; boshqa qurilma qadalgan faylni ko'rib, yangiroq bo'lsa yuklashni taklif qiladi.
+const TG_KEY = "yoqlama_tg", TG_GAP = 2 * 36e5;
+function tgCfg() { try { return JSON.parse(localStorage.getItem(TG_KEY)) || {}; } catch (e) { return {}; } }
+function tgSet(p) { const c = Object.assign(tgCfg(), p); try { localStorage.setItem(TG_KEY, JSON.stringify(c)); } catch (e) {} return c; }
+const tgOn = () => { const c = tgCfg(); return !!(c.token && c.chat); };
+function tgDev() { let c = tgCfg(); if (!c.dev) c = tgSet({dev: Math.random().toString(36).slice(2, 8)}); return c.dev; }
+const tgAge = () => { const l = tgCfg().last; return tgOn() && l ? Math.floor((Date.now() - Date.parse(l)) / 864e5) : null; };
+const djb = (t) => { let x = 5381; for (let i = 0; i < t.length; i++) x = (x * 33 ^ t.charCodeAt(i)) >>> 0; return x.toString(36) + t.length; };
+async function tgApi(method, params, token = tgCfg().token) {
+  const fd = params instanceof FormData;
+  const r = await fetch(`https://api.telegram.org/bot${token}/${method}`, {method: "POST", body: fd ? params : JSON.stringify(params || {}), headers: fd ? {} : {"Content-Type": "application/json"}});
+  const j = await r.json().catch(() => ({}));
+  if (!j.ok) throw new Error(j.description || `Telegram javob bermadi (${r.status})`);
+  return j.result;
+}
+let TG_NEW = null, tgBusy = false; // TG_NEW — boshqa qurilmadan kelgan yangiroq zaxira (Bugun sahifasida taklif qilinadi)
+async function tgBackup(force) {
+  const c = tgCfg(); if (!c.token || !c.chat || tgBusy) return false;
+  const json = JSON.stringify(D), hash = djb(json);
+  if (!force && c.hash === hash) return false;
+  tgBusy = true;
+  try {
+    const now = new Date(), hm = `${pad(now.getHours())}:${pad(now.getMinutes())}`, fd = new FormData();
+    fd.append("chat_id", c.chat);
+    fd.append("document", new Blob([json], {type: "application/json"}), `journal_${iso(now)}_${hm.replace(":", "")}.json`);
+    fd.append("caption", `📒 Yo'qlama jurnali zaxirasi\n${fmt(iso(now))} ${hm} · ${D.classes.length} ta sinf\nTiklash: ilovada «Sozlamalar → Ma'lumotlar → Telegram'dan yuklash» yoki faylni «Fayldan yuklash» orqali oching.\n#q${tgDev()}`);
+    fd.append("disable_notification", "true");
+    const msg = await tgApi("sendDocument", fd);
+    try { await tgApi("pinChatMessage", {chat_id: c.chat, message_id: msg.message_id, disable_notification: true}); } catch (e) { /* qadash shart emas */ }
+    tgSet({hash, last: now.toISOString(), seen: msg.message_id});
+    return true;
+  } finally { tgBusy = false; }
+}
+async function tgPinned() {
+  const ch = await tgApi("getChat", {chat_id: tgCfg().chat}), pm = ch.pinned_message;
+  return pm && pm.document ? pm : null;
+}
+async function tgPull(pm) {
+  const f = await tgApi("getFile", {file_id: pm.document.file_id});
+  const data = await (await fetch(`https://api.telegram.org/file/bot${tgCfg().token}/${f.file_path}`)).json();
+  if (!data || !Array.isArray(data.classes)) throw new Error("bu jurnal fayli emas");
+  D = normalize(data); autoDates(); save(); TG_NEW = null;
+  tgSet({seen: pm.message_id, hash: djb(JSON.stringify(D)), last: new Date(pm.date * 1000).toISOString()});
+}
+// ilova ochilganda: avval boshqa qurilmada yangiroq zaxira bormi — bo'lsa, so'ramasdan ustidan yozmaymiz
+async function tgAuto() {
+  if (!tgOn() || navigator.onLine === false) return;
+  try {
+    const pm = await tgPinned(), dev = pm && ((pm.caption || "").match(/#q(\w+)/) || [])[1];
+    if (pm && dev !== tgDev() && pm.message_id > (tgCfg().seen || 0)) { TG_NEW = pm; if (S.page === "today") render(); return; }
+    await tgBackup(false);
+  } catch (e) { console.warn("Telegram:", e.message); }
+}
+document.addEventListener("visibilitychange", () => {
+  const l = tgCfg().last;
+  if (document.visibilityState === "hidden" && tgOn() && !TG_NEW && (!l || Date.now() - Date.parse(l) > TG_GAP)) tgBackup(false).catch(() => {});
+});
+function tgSetup() {
+  return modal(`<h2>Telegram'ga avtomatik zaxira</h2>
+    <div class="muted">Ma'lumotlaringiz o'zingizning Telegram botingizga fayl bo'lib boradi: har gal ilovani ochganingizda (o'zgarish bo'lsa) va ilovadan chiqqaningizda (2 soatda bir martadan ko'p emas). Bot faqat sizniki — boshqa hech kim ko'rmaydi.</div>
+    <ol class="col" style="gap:8px;padding-left:20px;margin:4px 0">
+      <li>Telegram'da <a href="https://t.me/BotFather" target="_blank" rel="noopener"><b>@BotFather</b></a> ni oching, <b>/newbot</b> deb yozing, botga nom va «..._bot» bilan tugaydigan manzil bering.</li>
+      <li>BotFather bergan <b>tokenni</b> (masalan, <code>123456789:AAH…</code>) nusxalab shu yerga qo'ying:</li></ol>
+    <input type="text" id="tgt" placeholder="123456789:AAH..." autocomplete="off" spellcheck="false">
+    <div id="tgs" class="col" style="gap:8px"></div>
+    <div class="row"><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn pri" data-ok>Davom etish</button></div>`, (m, close) => {
+    let step = 0, bot = null;
+    const out = $("#tgs", m), ok = $("[data-ok]", m), tok = () => $("#tgt", m).value.trim();
+    $("[data-x]", m).onclick = () => close(false);
+    ok.onclick = async () => {
+      ok.disabled = true;
+      try {
+        if (step === 0) {
+          if (!/^\d+:[\w-]{20,}$/.test(tok())) throw new Error("Token noto'g'ri ko'rinishda");
+          bot = await tgApi("getMe", {}, tok()); step = 1; ok.textContent = "Tekshirish";
+          out.innerHTML = `<div>3. Endi botingizni oching va <b>«Start»</b> (yoki «Boshlash») tugmasini bosing:</div>
+            <a class="btn" href="https://t.me/${esc(bot.username)}" target="_blank" rel="noopener">✈️ @${esc(bot.username)} ni ochish</a><div class="muted">So'ng shu yerga qaytib «Tekshirish»ni bosing.</div>`;
+        } else {
+          const ups = await tgApi("getUpdates", {}, tok());
+          const u = ups.reverse().find((x) => x.message && x.message.chat && x.message.chat.type === "private");
+          if (!u) throw new Error("Botga hali xabar kelmadi — botni ochib «Start» bosing, so'ng qayta tekshiring");
+          tgSet({token: tok(), chat: u.message.chat.id, bot: bot.username, hash: "", seen: 0});
+          await tgApi("sendMessage", {chat_id: u.message.chat.id, text: "✅ Yo'qlama jurnali ulandi. Zaxira nusxalar shu yerga keladi, oxirgisi doim tepada qadalgan turadi."});
+          TG_NEW = null; await tgAuto(); close(true);
+        }
+      } catch (e) { toast(e.message === "Failed to fetch" ? "Telegram'ga ulanib bo'lmadi — internetni tekshiring" : e.message); }
+      ok.disabled = false;
+    };
+  });
+}
+async function tgAction(a) {
+  try {
+    if (a === "tgon") { if (await tgSetup()) { render(); toast(TG_NEW ? "Ulandi. Botda boshqa qurilmadan zaxira bor — «Bugun» sahifasiga qarang" : "Ulandi va birinchi zaxira yuborildi"); } }
+    else if (a === "tgsend") { toast("Yuborilmoqda…"); await tgBackup(true); TG_NEW = null; render(); toast("Zaxira Telegram'ga yuborildi"); }
+    else if (a === "tgload" || a === "tgnew") {
+      const pm = a === "tgnew" ? TG_NEW : await tgPinned();
+      if (!pm) { toast("Botda qadalgan zaxira topilmadi"); return; }
+      const when = new Date(pm.date * 1000);
+      if (!await confirmBox("Telegram'dan yuklash", `${fmt(iso(when))} ${pad(when.getHours())}:${pad(when.getMinutes())} dagi zaxira yuklanadi.\nShu qurilmadagi hozirgi ma'lumotlar uning o'rniga almashtiriladi.`, "Yuklash")) return;
+      await tgPull(pm); S.ci = 0; go("today"); toast(`${D.classes.length} ta sinf Telegram'dan yuklandi`);
+    } else if (a === "tgkeep") { tgSet({seen: TG_NEW.message_id}); TG_NEW = null; await tgBackup(true); render(); toast("Shu qurilmadagi ma'lumotlar Telegram'ga yuborildi"); }
+    else if (a === "tgoff") {
+      if (!await confirmBox("Telegram'ni uzish", "Avtomatik zaxira to'xtaydi. Botdagi eski fayllar o'chmaydi.", "Uzish")) return;
+      const c = tgCfg(); localStorage.setItem(TG_KEY, JSON.stringify({dev: c.dev})); TG_NEW = null; render();
+    }
+  } catch (e) { toast(e.message === "Failed to fetch" ? "Telegram'ga ulanib bo'lmadi — internetni tekshiring" : "Telegram: " + e.message); }
+}
+
 /* ───────── PWA: o'rnatish va oflayn ishlash ───────── */
 let installEvt = null;
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; if (S.page === "settings") render(); });
@@ -2753,7 +2870,7 @@ const isStandalone = () => matchMedia("(display-mode: standalone)").matches || n
 if (document.getElementById("app")) {
   D = load(); autoDates(); if (D.classes.some((c) => c.plan && c.plan.on)) { reflowAll(); save(); }
   if (D.web.density === "kompakt") V.mode = "quarter";
-  render(); emkReady();
+  render(); emkReady(); tgAuto();
   setInterval(() => { if (S.page === "journal" && isLocked() !== $("[data-lock]")?.textContent.includes("🔒")) renderNav(); }, 30000);
 }
 </script>

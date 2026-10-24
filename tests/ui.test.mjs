@@ -417,3 +417,53 @@ test("jurnal: telefonda ism bir qatorda, familiya qisqartiriladi", async () => {
     assert.ok(r.h < r.lh * 2, `ism bir qatorda emas (${r.h}px)`);
   } finally { await browser.close(); }
 });
+
+test("Telegram: ulash, avtomatik zaxira va boshqa qurilmadan yuklash (soxta bot API)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    const calls = [], docs = [];
+    let pinned = null, nextId = 10;
+    const other = JSON.stringify({classes: [{name: "5-B", subject: "Fizika", students: [{name: "Boshqa Qurilma", marks: {}}]}]});
+    await page.route("https://api.telegram.org/**", async (route) => {
+      const url = route.request().url(), m = url.split("/").pop();
+      if (url.includes("/file/")) return route.fulfill({status: 200, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: other});
+      calls.push(m);
+      const body = route.request().postData() || "";
+      let result = true;
+      if (m === "getMe") result = {id: 1, is_bot: true, username: "sinf_test_bot"};
+      else if (m === "getUpdates") result = [{update_id: 1, message: {message_id: 1, chat: {id: 777, type: "private"}, text: "/start"}}];
+      else if (m === "sendMessage") result = {message_id: nextId++};
+      else if (m === "sendDocument") { docs.push(body); const id = nextId++; pinned = {message_id: id, date: 1761300000, caption: (body.match(/#q\w+/) || [""])[0], document: {file_id: "F" + id}}; result = {message_id: id}; }
+      else if (m === "getChat") result = {id: 777, pinned_message: pinned};
+      else if (m === "getFile") result = {file_path: "documents/x.json"};
+      return route.fulfill({status: 200, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: JSON.stringify({ok: true, result})});
+    });
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="5"]');
+    await page.click("[data-a=tgon]");
+    await page.fill("#tgt", "123456789:AAHabcdefghijklmnopqrstuvwxyz");
+    await page.click(".modal [data-ok]"); await page.waitForSelector("text=@sinf_test_bot ni ochish");
+    await page.click(".modal [data-ok]"); await page.waitForSelector(".modal", {state: "detached"});
+    await page.waitForSelector("text=Ulangan: @sinf_test_bot");
+    assert.equal(docs.length, 1, "birinchi zaxira yuborilishi kerak");
+    assert.ok(docs[0].includes('"classes"') && docs[0].includes("777"), "faylda jurnal bo'lishi kerak");
+    assert.ok(calls.includes("pinChatMessage"));
+    // token jurnal fayliga yozilmaydi
+    assert.ok(!(await page.evaluate(() => JSON.stringify(D))).includes("AAHabc"));
+    // o'zgarishsiz qayta ochilganda takror yuborilmaydi
+    await page.evaluate(() => tgAuto()); assert.equal(docs.length, 1);
+    // boshqa qurilma yangiroq zaxira qadadi → Bugun sahifasida taklif → yuklash
+    pinned = {message_id: 99, date: 1761300500, caption: "#qboshqa", document: {file_id: "F99"}};
+    await page.evaluate(async () => { S.page = "today"; await tgAuto(); });
+    await page.waitForSelector("text=boshqa qurilmadan yangiroq zaxira");
+    page.once("dialog", (d) => d.accept());
+    await page.click("[data-tg=tgnew]"); await page.click(".modal [data-ok]");
+    await page.waitForFunction(() => D.classes.length === 1 && D.classes[0].name === "5-B");
+    assert.equal(docs.length, 1, "yuklangandan keyin eski ma'lumot yuborilmasligi kerak");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
