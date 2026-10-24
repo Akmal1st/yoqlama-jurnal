@@ -22,6 +22,10 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       await chooser.setFiles(FIXTURE);
       await page.waitForSelector("text=Xayrli");
       await nav("journal");
+      // ko'rinish: kompyuterda chap panelda, telefonda jurnal tepasida
+      await page.click(`${name === "telefon" ? "main" : ".side"} [data-mode=week]`);
+      assert.equal(await page.evaluate(() => V.mode), "week");
+      await page.click(`${name === "telefon" ? "main" : ".side"} [data-mode=month]`);
       await page.click("[data-jp=sum]"); await page.waitForSelector("table.sum");
       await page.click("[data-jp=year]"); await page.waitForSelector("table.sum");
       await page.click("[data-jp=j]"); await page.click('td.nm[data-st="0"]');
