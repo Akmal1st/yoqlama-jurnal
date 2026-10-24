@@ -351,3 +351,25 @@ test("jurnal: sinflar 1-qatorda, tanlangan sinfning fanlari 2-qatorda", async ()
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Sozlamalar → Baholash: baho ranglari oraliqlari aniq ko'rinadi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 360, height: 760}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="2"]');
+    assert.deepEqual(await page.$$eval(".grng .grb span", (x) => x.map((e) => e.textContent)), ["– 4", "– 7", "– 10"]);
+    await page.selectOption('[data-rmin="1"]', "6");
+    assert.deepEqual(await page.$$eval(".grng .grb span", (x) => x.map((e) => e.textContent)), ["– 5", "– 7", "– 10"]);
+    assert.equal(await page.evaluate(() => gradeColor(5)), await page.evaluate(() => ranges()[0].color), "5 endi «Past» rangida");
+    await page.selectOption('[data-rmin="1"]', "8");   // band bor — rad etiladi
+    assert.deepEqual(await page.evaluate(() => ranges().map((r) => r.min)), [1, 6, 8]);
+    // ustunlar bir-birining ustiga chiqmaydi
+    const ok = await page.evaluate(() => [...document.querySelectorAll(".grng .grb")].every((g) => { const s = g.querySelector("span").getBoundingClientRect(), c = g.nextElementSibling.getBoundingClientRect(); return s.right <= c.left; }));
+    assert.ok(ok, "oraliq yozuvi rang tugmasi ostida qolmasin");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});

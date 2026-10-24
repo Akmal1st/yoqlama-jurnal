@@ -345,6 +345,13 @@ table.r tr:hover td{background:var(--alt)}
 /* hisobotni chop etishda ixcham ko'rinish (o'lchash uchun ham shu qoidalar) */
 @media print{.pfit .tiles{grid-template-columns:repeat(4,1fr)}.pfit table.r{font-size:11pt}.pfit table.r th,.pfit table.r td{padding:2px 6px}.pfit .tiles{gap:6px}.pfit .tile{padding:6px 10px}.pfit .tile div:last-child{font-size:16pt}.pfit h2{margin:0}.pfit .pill{padding:0 6px}}
 body.pmeas .noprint{display:none!important}
+/* Sozlamalar → baho ranglari */
+.gprev{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin:12px 0 14px;max-width:460px}
+.gprev span{height:34px;border-radius:8px;display:grid;place-items:center;font-weight:800;background:var(--alt)}
+.grng{display:grid;grid-template-columns:minmax(0,1fr) max-content 56px;gap:8px 12px;align-items:center;max-width:460px}
+.grng .gh{font-size:12.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.grng .grb{display:flex;align-items:center;gap:8px;white-space:nowrap}.grng .grb select{flex:none;width:66px;padding:0 4px 0 10px}
+.grng input[type=text]{min-width:0;width:100%}.grng input[type=color]{width:56px;height:40px;padding:3px;border-radius:10px}
 /* sinf → fan */
 .clsnav{gap:8px}.clsnav .chips{gap:8px}
 .chip small{font-weight:500;opacity:.75}
@@ -1522,8 +1529,13 @@ function pageSettings(m) {
       srow("Bayramlar", "Har yili (OO-KK) yoki bir martalik (YYYY-OO-KK), vergul bilan", `<input type="text" id="hol" value="${esc(st.holidays.join(", "))}" style="min-width:260px">`);
   } else if (S.sec === 2) {
     const rs = ranges();
-    body = `<div class="srow"><div><b>Baho ranglari</b><div class="muted">Har oraliq «dan» qiymatidan boshlanadi.</div><div class="col" style="margin-top:10px">${rs.map((r, i) =>
-      `<div class="row" style="gap:8px"><span style="width:60px">dan</span><input type="number" min="1" max="10" data-rmin="${i}" value="${r.min}" style="width:80px"><input type="color" data-rcol="${i}" value="${r.color}" style="width:60px;padding:2px"><input type="text" data-rname="${i}" value="${esc(r.name)}" style="max-width:180px"></div>`).join("")}</div></div></div>` +
+    const upTo = (i) => i + 1 < rs.length ? rs[i + 1].min - 1 : 10;
+    body = `<div class="srow"><div><b>Baho ranglari</b><div class="muted">Jurnalda har bir baho qaysi rangda chiqishi. Har guruh tanlangan bahodan boshlanib, keyingi guruhgacha davom etadi.</div>
+      <div class="gprev">${Array.from({length: 10}, (_, k) => { const col = gradeColor(k + 1); return `<span style="${col ? `background:${col};color:${contrast(col)}` : ""}">${k + 1}</span>`; }).join("")}</div>
+      <div class="grng"><div class="gh">Guruh nomi</div><div class="gh">Baholar</div><div class="gh">Rang</div>${rs.map((r, i) =>
+      `<input type="text" data-rname="${i}" value="${esc(r.name)}" aria-label="Guruh nomi">
+       <div class="grb"><select data-rmin="${i}" aria-label="Boshlanishi">${Array.from({length: 10}, (_, k) => `<option value="${k + 1}" ${r.min === k + 1 ? "selected" : ""}>${k + 1}</option>`).join("")}</select><span>– ${upTo(i)}</span></div>
+       <input type="color" data-rcol="${i}" value="${r.color}" aria-label="Rang">`).join("")}</div></div></div>` +
       srow("Xavf: o'rtacha baho shundan past", "", `<input type="number" step="0.5" data-rk="avg_below" value="${st.risk.avg_below}" style="width:100px">`) +
       srow("Xavf: davomat foizi shundan past", "", `<input type="number" data-rk="att_below" value="${st.risk.att_below}" style="width:100px">`) +
       srow("Xavf: sababsiz qoldirish soni", "shuncha yoki ko'p", `<input type="number" data-rk="s_ge" value="${st.risk.s_ge}" style="width:100px">`) +
@@ -1577,8 +1589,12 @@ function pageSettings(m) {
   });
   const mw = $("#mw", m); if (mw) mw.onchange = () => { const v = +mw.value; st.method_weekday = v < 0 ? null : v; save(); toast("Metod kuni saqlandi"); };
   const hol = $("#hol", m); if (hol) hol.onchange = () => { st.holidays = hol.value.split(/[,\s]+/).filter(Boolean); save(); toast("Bayramlar saqlandi"); };
-  m.querySelectorAll("[data-rmin]").forEach((x) => x.onchange = () => { ranges()[+x.dataset.rmin].min = +x.value; save(); });
-  m.querySelectorAll("[data-rcol]").forEach((x) => x.onchange = () => { ranges()[+x.dataset.rcol].color = x.value; save(); });
+  m.querySelectorAll("[data-rmin]").forEach((x) => x.onchange = () => {
+    const rs = ranges(), r = rs[+x.dataset.rmin], v = +x.value;
+    if (rs.some((o) => o !== r && o.min === v)) { toast(`${v} dan boshlanadigan guruh allaqachon bor`); render(); return; }
+    r.min = v; save(); render();
+  });
+  m.querySelectorAll("[data-rcol]").forEach((x) => x.onchange = () => { ranges()[+x.dataset.rcol].color = x.value; save(); render(); });
   m.querySelectorAll("[data-rname]").forEach((x) => x.onchange = () => { ranges()[+x.dataset.rname].name = x.value; save(); });
   m.querySelectorAll("[data-rk]").forEach((x) => x.onchange = () => { st.risk[x.dataset.rk] = +x.value; save(); toast("Saqlandi"); });
   m.querySelectorAll("[data-th]").forEach((b) => b.onclick = () => { D.web.theme = b.dataset.th; save(); render(); });
