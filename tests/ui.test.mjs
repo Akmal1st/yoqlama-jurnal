@@ -565,3 +565,26 @@ test("Ota-onalarga xabarlar: butun sinf, haftalik xulosa", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["telefon", {width: 390, height: 844}]]) {
+  test(`${name}: Hisobotlar → Grafik va statistika`, async () => {
+    const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+    try {
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await page.click(`${name === "telefon" ? ".tabbar" : ".side"} [data-go=reports]`);
+      await page.click("[data-kind=stats]");
+      assert.equal(await page.locator("svg.stat").count(), 3);
+      const d = await page.evaluate(() => { const c = D.classes[0], [lo, hi] = periodNow(); return {dist: statsData(c, lo, hi).dist.reduce((a, b) => a + b, 0),
+        all: c.students.reduce((a, s) => a + c.dates.filter((x) => lo <= x && x <= hi && x <= todayIso() && !isNoLesson(c, x)).reduce((n, x) => n + gradesOf(s.marks[x] || "").length, 0), 0)}; });
+      assert.equal(d.dist, d.all, "taqsimotdagi baholar soni jurnaldagi bilan bir xil");
+      await page.click(".lists [data-card]"); await page.waitForSelector(".modal");
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
+      assert.deepEqual(errors, []);
+    } finally { await browser.close(); }
+  });
+}
