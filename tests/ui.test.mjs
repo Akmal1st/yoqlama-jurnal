@@ -285,3 +285,29 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
     } finally { await browser.close(); }
   });
 }
+
+test("Sozlamalar → Dizayn: mavzu, yozuv turi, o'lcham va rang", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="3"]');
+    await page.waitForSelector(".dprev");
+    await page.click("[data-th=dark]"); await page.click("[data-font=georgia]"); await page.click("[data-fs=l]"); await page.click("[data-accent=blue]"); await page.click("[data-rad=sharp]");
+    const st = await page.evaluate(() => ({theme: document.documentElement.dataset.theme, font: getComputedStyle(document.body).fontFamily, acc: getComputedStyle(document.documentElement).getPropertyValue("--acc").trim(),
+      zoom: getComputedStyle(document.querySelector("main")).zoom, web: [D.web.font, D.web.fsize, D.web.accent, D.web.radius], saved: JSON.parse(localStorage.getItem("yoqlama_jurnal")).web.font}));
+    assert.equal(st.theme, "dark"); assert.match(st.font, /Georgia/); assert.equal(st.acc, "#6aa7ef"); assert.equal(st.zoom, "1.08");
+    assert.deepEqual(st.web, ["georgia", "l", "blue", "sharp"]); assert.equal(st.saved, "georgia");
+    await page.click("[data-th=light]");
+    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--acc").trim()), "#1f5fae");
+    await page.click("[data-a=dreset]");
+    assert.deepEqual(await page.evaluate(() => [D.web.font, D.web.fsize, D.web.accent, D.web.radius]), ["lserif", "m", "teal", "round"]);
+    assert.match(await page.evaluate(() => getComputedStyle(document.body).fontFamily), /Liberation Serif/);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});

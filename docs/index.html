@@ -340,6 +340,20 @@ table.r tr:hover td{background:var(--alt)}
 /* hisobotni chop etishda ixcham ko'rinish (o'lchash uchun ham shu qoidalar) */
 @media print{.pfit .tiles{grid-template-columns:repeat(4,1fr)}.pfit table.r{font-size:11pt}.pfit table.r th,.pfit table.r td{padding:2px 6px}.pfit .tiles{gap:6px}.pfit .tile{padding:6px 10px}.pfit .tile div:last-child{font-size:16pt}.pfit h2{margin:0}.pfit .pill{padding:0 6px}}
 body.pmeas .noprint{display:none!important}
+/* Sozlamalar → Dizayn */
+.seg.wrap{flex-wrap:wrap}
+.dprev{display:flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin:4px 0 8px;box-shadow:var(--sh)}
+.dside{width:92px;background:var(--side-bg);color:var(--side-fg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px 6px;font-weight:700}
+.dside b{width:34px;height:34px;border-radius:10px;background:#fff;color:var(--acc);display:grid;place-items:center}
+.dmain{flex:1;background:var(--win);padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.dtitle{font-size:18px;font-weight:700}
+.fonts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;flex:1 1 100%}
+.fopt{border:2px solid var(--line);background:var(--base);border-radius:12px;padding:8px 12px;text-align:left;display:flex;flex-direction:column;gap:2px}
+.fopt span{font-size:20px;color:var(--muted)}
+.fopt.on,.acc.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.accs{display:flex;flex-wrap:wrap;gap:8px;flex:1 1 100%}
+.acc{border:2px solid var(--line);background:var(--base);border-radius:999px;padding:5px 12px 5px 5px;display:flex;align-items:center;gap:8px;font-weight:600}
+.acc i{width:26px;height:26px;border-radius:50%;display:block}
 /* Kun rejimi: yo'qlama va baho alohida */
 table.j th.d.dsp{min-width:66px}
 /* BSB tahlili */
@@ -401,6 +415,27 @@ const DEFAULTS = {
 const clone = (o) => JSON.parse(JSON.stringify(o));
 let D = null;
 
+/* ───────── dizayn: shrift, mavzu, rang, o'lcham (D.web da saqlanadi) ───────── */
+const DESIGN_DEF = {font: "lserif", fsize: "m", accent: "teal", radius: "round"};
+const FONTS = [["lserif", "Liberation Serif", `"Liberation Serif","Times New Roman",Tinos,Times,serif`], ["times", "Times New Roman", `"Times New Roman",Times,"Liberation Serif",serif`],
+  ["georgia", "Georgia", `Georgia,"DejaVu Serif",serif`], ["lsans", "Liberation Sans", `"Liberation Sans",Arial,Helvetica,sans-serif`],
+  ["verdana", "Verdana", `Verdana,"DejaVu Sans",Geneva,sans-serif`], ["system", "Tizim shrifti", `system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif`]];
+const FSIZES = [["s", "Kichik", 0.92], ["m", "O'rta", 1], ["l", "Katta", 1.08], ["xl", "Juda katta", 1.16]];
+// [nomi, och: acc, acc-d, acc-soft, panel1, panel2; tungi: acc, acc-d, acc-soft, panel1, panel2]
+const ACCENTS = {teal: ["Firuza", "#0b6f79", "#08525a", "#e1efee", "#0c5d66", "#083f46", "#3fb8c2", "#6ccdd5", "#173a3e", "#0f2a2e", "#0a1b1e"],
+  blue: ["Ko'k", "#1f5fae", "#174a88", "#e3ecf8", "#1d4f8f", "#123661", "#6aa7ef", "#93c0f5", "#1a2d47", "#122236", "#0b1624"],
+  green: ["Yashil", "#2e7d4a", "#225f38", "#e4f1e8", "#256b3f", "#174a2b", "#62c084", "#8bd5a5", "#173826", "#10281b", "#0a1a11"],
+  violet: ["Binafsha", "#6a3fa0", "#52307d", "#efe7f8", "#5a3589", "#3c2160", "#b08ae6", "#c7aaf0", "#2c2142", "#1e1630", "#130e1f"],
+  wine: ["To'q qizil", "#9c2f45", "#7a2436", "#f7e4e8", "#862a3d", "#5c1a29", "#ec8197", "#f2a5b5", "#41202a", "#2c151c", "#1c0d12"],
+  brown: ["Jigarrang", "#8a5a2b", "#6b4520", "#f4ebe0", "#76502a", "#523619", "#d7a46e", "#e4bf95", "#3a2a1b", "#281d13", "#19120c"]};
+function designCss(w) {
+  const f = (FONTS.find((x) => x[0] === w.font) || FONTS[0])[2], z = (FSIZES.find((x) => x[0] === w.fsize) || FSIZES[1])[2], a = ACCENTS[w.accent] || ACCENTS.teal;
+  const light = `--acc:${a[1]};--acc-d:${a[2]};--acc-soft:${a[3]};--side-bg:linear-gradient(175deg,${a[4]} 0%,${a[5]} 100%);`;
+  const dark = `--acc:${a[6]};--acc-d:${a[7]};--acc-soft:${a[8]};--side-bg:linear-gradient(175deg,${a[9]} 0%,${a[10]} 100%);`;
+  return `:root{${light}--r:${w.radius === "sharp" ? "6px" : "18px"}}:root[data-theme="dark"]{${dark}}
+    @media (prefers-color-scheme: dark){:root:not([data-theme="light"]):not([data-theme="dark"]){${dark}}}
+    body,button,input,select,textarea{font-family:${f}}@media screen{main{zoom:${z}}}`;
+}
 function normalize(d) {
   d = d && typeof d === "object" ? d : {};
   d.version = d.version || 2;
@@ -417,7 +452,7 @@ function normalize(d) {
     c.extra_x = c.extra_x || []; c.held = c.held || []; c.lessons = c.lessons || {}; c.works = c.works || [];
     c.att_ok = c.att_ok || []; c.analyses = Array.isArray(c.analyses) ? c.analyses : []; c.students_off = c.students_off || []; c.students = (c.students || []).map((s) => Object.assign({marks: {}}, s));
   }
-  d.web = Object.assign({density: "oddiy", theme: "auto", gen: []}, d.web || {});
+  d.web = Object.assign({density: "oddiy", theme: "auto", gen: []}, DESIGN_DEF, d.web || {});
   d.v2 = d.v2 || {};
   if (!d.v2.ranges3 && !d.web.ranges3) { st.ranges = clone(DEFAULTS.ranges); d.web.ranges3 = true; }
   return d;
@@ -1051,6 +1086,8 @@ async function toggleLock() {
   if (isLocked()) await unlock(); else { unlockedUntil = 0; render(); toast("Qulflandi"); }
 }
 function applyTheme() {
+  let dc = document.getElementById("design-css"); if (!dc) { dc = document.createElement("style"); dc.id = "design-css"; document.head.append(dc); }
+  const css = designCss(D.web); if (dc.textContent !== css) dc.textContent = css;
   const t = D.web.theme; document.documentElement.dataset.theme = t === "auto" ? "" : t;
   if (t === "auto") delete document.documentElement.dataset.theme;
   document.body.classList.toggle("dense", D.web.density === "kompakt");
@@ -1442,7 +1479,7 @@ function pageReports(m) {
 }
 
 /* ───────── 5. Sozlamalar ───────── */
-const SECS = ["Sinflar va o'quvchilar", "Dars kunlari va choraklar", "Baholash", "Ko'rinish", "Himoya", "Ma'lumotlar"];
+const SECS = ["Sinflar va o'quvchilar", "Dars kunlari va choraklar", "Baholash", "🎨 Dizayn", "Himoya", "Ma'lumotlar"];
 function srow(t, d, btn) { return `<div class="srow"><div><b>${t}</b><div class="muted">${d}</div></div><div class="row" style="gap:6px">${btn}</div></div>`; }
 function pageSettings(m) {
   const st = D.settings; let body = "";
@@ -1469,9 +1506,19 @@ function pageSettings(m) {
       srow("Formativ baho (FB) uchun kamida", "Chorakda shuncha kundalik baho bo'lmasa, FB = 0", `<input type="number" min="1" id="fbm" value="${fbMin()}" style="width:100px">`) +
       srow("KTRdagi BSB/CHSB mavzulari", "Rejadagi «BSB …» va «CHSB …» mavzulari uchun summativ ish o'zi qo'shilsin", `<button class="btn" data-a="ktrw">${ktrWorksOn() ? "Yoqilgan" : "O'chiq"}</button>`);
   } else if (S.sec === 3) {
-    const th = D.web.theme;
-    body = srow("Mavzu", "Avtomatik — telefon/kompyuter sozlamasiga qarab", `<div class="seg">${[["auto", "Avto"], ["light", "Och"], ["dark", "Qorong'i"]].map(([k, n]) => `<button class="${th === k ? "on" : ""}" data-th="${k}">${n}</button>`).join("")}</div>`) +
-      srow("Ko'rinish zichligi", "Oddiy — katta kataklar; Kompakt — butun chorak bitta ekranda", `<div class="seg"><button class="${D.web.density !== "kompakt" ? "on" : ""}" data-den="oddiy">Oddiy</button><button class="${D.web.density === "kompakt" ? "on" : ""}" data-den="kompakt">Kompakt</button></div>`);
+    const w = D.web, seg = (attr, list, cur) => `<div class="seg wrap">${list.map(([k, n]) => `<button class="${cur === k ? "on" : ""}" data-${attr}="${k}">${n}</button>`).join("")}</div>`;
+    body = `<div class="dprev"><div class="dside"><b>Y</b><span>Jurnal</span></div><div class="dmain"><div class="dtitle">Namuna: 7-B · Matematika</div>
+        <div class="row" style="gap:6px"><span class="cell" style="width:38px;display:grid;place-items:center;background:${gradeColor(9)};color:${contrast(gradeColor(9))}">9</span><span class="cell" style="width:38px;display:grid;place-items:center;background:${D.settings.attendance.s};color:#fff">S</span><span class="cell t" style="width:38px;display:grid;place-items:center">—</span><button class="btn pri sm">▶ Darsni boshlash</button></div>
+        <div class="muted">Aa Bb Oʻoʻ Gʻgʻ 0123456789 — «Yozuv namunasi»</div></div></div>` +
+      srow("Mavzu", "Kunduzgi — och fon; Tungi — qorong'i fon, kechqurun ko'zni charchatmaydi; Avto — telefon/kompyuter sozlamasiga qarab", seg("th", [["light", "☀ Kunduzgi"], ["dark", "🌙 Tungi"], ["auto", "Avto"]], w.theme)) +
+      `<div class="srow"><div><b>Yozuv turi</b><div class="muted">Butun ilova, hisobotlar va chop etiladigan hujjatlar shu shriftda chiqadi</div></div>
+        <div class="fonts">${FONTS.map(([k, n, ff]) => `<button class="fopt ${w.font === k ? "on" : ""}" data-font="${k}" style="font-family:${esc(ff)}"><b>${n}</b><span>Aa Oʻoʻ 123</span></button>`).join("")}</div></div>` +
+      srow("Yozuv o'lchami", "Ekrandagi yozuv va kataklar kattaligi", seg("fs", FSIZES.map(([k, n]) => [k, n]), w.fsize)) +
+      `<div class="srow"><div><b>Asosiy rang</b><div class="muted">Tugmalar, yon panel va ajratilgan elementlar rangi</div></div>
+        <div class="accs">${Object.entries(ACCENTS).map(([k, a]) => `<button class="acc ${w.accent === k ? "on" : ""}" data-accent="${k}" title="${a[0]}"><i style="background:linear-gradient(135deg,${a[1]} 50%,${a[6]} 50%)"></i>${a[0]}</button>`).join("")}</div></div>` +
+      srow("Burchaklar", "Kartochka va jadvallar burchagi", seg("rad", [["round", "Yumaloq"], ["sharp", "To'g'ri"]], w.radius)) +
+      srow("Ko'rinish zichligi", "Oddiy — katta kataklar; Kompakt — butun chorak bitta ekranda", seg("den", [["oddiy", "Oddiy"], ["kompakt", "Kompakt"]], w.density === "kompakt" ? "kompakt" : "oddiy")) +
+      srow("Standart dizayn", "Shrift, rang, o'lcham va burchaklarni boshlang'ich holatga qaytaradi", `<button class="btn" data-a="dreset">↺ Qaytarish</button>`);
   } else if (S.sec === 4) {
     const p = st.protect;
     body = srow("Qo'yilgan baholarni himoyalash", "Mavjud bahoni o'zgartirishdan oldin qulfni ochish kerak (bo'sh katakka baho qo'yish erkin)", `<button class="btn" data-a="prot">${p.enabled ? "Yoqilgan" : "O'chiq"}</button>`) +
@@ -1511,12 +1558,15 @@ function pageSettings(m) {
   m.querySelectorAll("[data-rk]").forEach((x) => x.onchange = () => { st.risk[x.dataset.rk] = +x.value; save(); toast("Saqlandi"); });
   m.querySelectorAll("[data-th]").forEach((b) => b.onclick = () => { D.web.theme = b.dataset.th; save(); render(); });
   m.querySelectorAll("[data-den]").forEach((b) => b.onclick = () => { D.web.density = b.dataset.den; save(); render(); });
+  for (const [attr, key] of [["font", "font"], ["fs", "fsize"], ["accent", "accent"], ["rad", "radius"]])
+    m.querySelectorAll(`[data-${attr}]`).forEach((b) => b.onclick = () => { D.web[key] = b.dataset[attr]; save(); render(); });
   const fbm = $("#fbm", m); if (fbm) fbm.onchange = () => { st.fb_min = Math.max(1, +fbm.value || 4); save(); toast("Saqlandi"); };
   const alm = $("#alm", m); if (alm) alm.onchange = () => { st.protect.auto_lock_min = Math.max(1, +alm.value); save(); };
 }
 async function settingsAction(a, i) {
   const st = D.settings;
   if (a === "addc") addClassDialog();
+  else if (a === "dreset") { Object.assign(D.web, DESIGN_DEF); save(); render(); toast("Standart dizayn tiklandi"); }
   else if (a === "stud") addStudents(i);
   else if (a === "rmst") studentsDialog(i);
   else if (a === "edit") editClass(i);
