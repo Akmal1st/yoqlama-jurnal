@@ -765,3 +765,46 @@ test("Tug'ilgan kunlar: kiritish, matndan to'ldirish va «Bugun»da eslatish", a
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Zaxira xotira (IndexedDB): tiklash, kunlik nusxalar va ma'lumot versiyasi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const ctx = await browser.newContext({viewport: {width: 390, height: 844}});
+    const page = await ctx.newPage();
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.waitForFunction(() => IDB.ready);
+    const n = await page.evaluate(async () => { D.classes[0].students[0].name = "Tiklangan Bola"; save(); await idbFlush(); return D.classes.length; });
+    assert.equal(await page.evaluate(() => D.web.dv), 1);
+    // localStorage o'chirildi (masalan, brauzer tozaladi) — IndexedDB'dan tiklanadi
+    await page.evaluate(() => localStorage.removeItem("yoqlama_jurnal"));
+    await page.reload(); await page.waitForFunction(() => IDB.ready);
+    await page.waitForSelector("text=zaxira xotiradan");
+    assert.equal(await page.evaluate(() => D.classes.length), n);
+    assert.equal(await page.evaluate(() => D.classes[0].students[0].name), "Tiklangan Bola");
+    assert.ok(await page.evaluate(() => !!localStorage.getItem("yoqlama_jurnal")), "localStorage ham qayta yozildi");
+    // kunlik nusxalar: kechagi nusxani qo'shib, undan tiklash
+    await page.evaluate(async () => {
+      const d = JSON.parse(JSON.stringify(D)); d.classes = d.classes.slice(0, 1);
+      await idbReq("snap", "readwrite", (st) => st.put({at: new Date().toISOString(), txt: JSON.stringify(d)}, "2000-01-01"));
+      S.sec = 5; go("settings");
+    });
+    await page.click("[data-a=snaps]"); await page.waitForSelector(".modal .lsns");
+    assert.equal(await page.locator("[data-srs]").count(), 1);
+    await page.click("[data-srs]"); await page.click(".modal [data-ok]");
+    await page.waitForSelector("text=holati tiklandi");
+    assert.equal(await page.evaluate(() => D.classes.length), 1);
+    await page.evaluate(() => idbFlush());
+    const keys = await page.evaluate(() => idbReq("snap", "readonly", (st) => st.getAllKeys()));
+    assert.ok(keys.some((k) => k.endsWith("~")), "tiklashdan oldingi holat saqlangan: " + keys);
+    // yangiroq versiyadagi ma'lumot: ustidan yozilmaydi
+    await page.evaluate(() => { const d = JSON.parse(localStorage.getItem("yoqlama_jurnal")); d.web.dv = 99; d.web.saved = new Date(Date.now() + 1e7).toISOString(); localStorage.setItem("yoqlama_jurnal", JSON.stringify(d)); });
+    await page.reload(); await page.waitForFunction(() => IDB.ready);
+    await page.waitForSelector("text=yangiroq versiyasida");
+    await page.evaluate(() => { D.classes[0].name = "O'zgardi"; save(); });
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("yoqlama_jurnal")).web.dv), 99);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
