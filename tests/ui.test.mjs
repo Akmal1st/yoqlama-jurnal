@@ -697,3 +697,40 @@ test("Tez yoqlama: kartochkani surish bilan belgilash", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("O'rindiq xaritasi: tuzish va xaritadan yo'qlama", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const names = await page.evaluate(() => {
+      const t = todayIso(), c = D.classes[0];
+      if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } c.extra_x = c.extra_x.filter((d) => d !== t); c.held.push(t);
+      c.students.forEach((s) => delete s.marks[t]); D.settings.protect.enabled = false; save(); startLesson(0); return c.students.map((s) => s.name);
+    });
+    await page.click('[data-am="map"]');
+    await page.click("text=Xaritani tuzish");
+    await page.click("[data-sa]");
+    assert.equal(await page.locator(".modal .seat:not(.empty)").count(), names.length);
+    // 1-o'rindagi o'quvchini bo'sh joyga ko'chirish, 2-sini xaritadan olish
+    const empty = await page.locator(".modal .seat.empty").first().getAttribute("data-seat");
+    await page.click('.modal [data-seat="0-0"]'); await page.click(`.modal [data-seat="${empty}"]`);
+    await page.click('.modal [data-seat="0-1"]'); await page.click(".modal [data-unseat]");
+    const at = await page.evaluate(() => D.web.seats[ckey(D.classes[0])].at);
+    assert.equal(at[empty], names[0]); assert.equal(at["0-0"], undefined); assert.equal(at["0-1"], undefined);
+    await page.click(".modal [data-x]");
+    // xaritadan yo'qlama: bosishlar S → DQ
+    await page.click(`[data-seat="${empty}"]`);
+    await page.click(`[data-seat="${empty}"]`);
+    await page.click('[data-satt="1"]');
+    const m = await page.evaluate(() => D.classes[0].students.slice(0, 2).map((s) => s.marks[todayIso()] || ""));
+    assert.deepEqual(m, ["dq", "s"]);
+    assert.ok((await page.textContent(`[data-seat="${empty}"]`)).includes("DQ"));
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
