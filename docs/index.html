@@ -924,14 +924,18 @@ function log(c, s, date, old, nw) {
   if (lg.length > 5000) lg.splice(0, lg.length - 5000);
 }
 /* bitta katakka belgi: faqat bugungi kun; mavjud baho — qulf ochiq bo'lsa */
+// qulf faqat qo'yilgan bahoni o'zgartirishni to'sadi: baho qo'shish va KQ (kech qoldi) katagiga baho qo'yish mumkin
+function isAdditive(old, nw) {
+  const go = gradesOf(old), gn = gradesOf(nw);
+  if (!go.length) return old === "kq" && lateOf(nw);
+  return gn.slice(0, go.length).join("/") === go.join("/");
+}
 function putMark(c, si, date, nw, quiet) {
   if (date !== todayIso()) { if (!quiet) toast("Faqat bugungi kunga belgi qo'yish mumkin"); return false; }
   if (isNoLesson(c, date)) { if (!quiet) toast("Bu kunda dars yo'q (X)"); return false; }
   const s = c.students[si], old = s.marks[date] || "";
   if (old === nw) return false;
-  const go = gradesOf(old), gn = gradesOf(nw);
-  const additive = go.length && gn.slice(0, go.length).join("/") === go.join("/");
-  if (old && !additive && isLocked()) { toast("🔒 Qo'yilgan baho himoyalangan. O'zgartirish uchun qulfni oching."); return false; }
+  if (old && !isAdditive(old, nw) && isLocked()) { toast("🔒 Qo'yilgan baho himoyalangan. O'zgartirish uchun qulfni oching."); return false; }
   if (nw) s.marks[date] = nw; else delete s.marks[date];
   log(c, s, date, old, nw); if (!quiet || quiet === "batch") pushUndo([{kind: "mark", c, s, key: date, old, nw}]); touchLock(); save(); return true;
 }
@@ -1641,7 +1645,7 @@ async function undoLast() {
   const live = batch.filter((u) => D.classes.includes(u.c) && u.c.students.includes(u.s) &&
     ((u.kind === "mark" ? u.s.marks[u.key] : (u.s.scores || {})[u.key]) ?? "") === u.nw);
   if (!live.length) { toast("Bu o'zgarish keyin yana o'zgargan — bekor qilinmadi"); return; }
-  const prot = live.some((u) => { if (u.old === "") return false; if (u.kind !== "mark") return true; const go = gradesOf(u.old), gn = gradesOf(u.nw); return !(go.length && gn.slice(0, go.length).join("/") === go.join("/")); });
+  const prot = live.some((u) => { if (u.old === "") return false; if (u.kind !== "mark") return true; return !isAdditive(u.old, u.nw); });
   if (prot && isLocked() && !await unlock()) { UNDO.push(batch); return; }
   for (const u of live) {
     const b = u.kind === "mark" ? u.s.marks : (u.s.scores = u.s.scores || {});
