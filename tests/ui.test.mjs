@@ -541,3 +541,27 @@ test("Bugun: «Hamma keldi» va oldingi uy vazifasi; mavzular oynasi", async () 
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Ota-onalarga xabarlar: butun sinf, haftalik xulosa", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const name = await page.evaluate(() => {
+      const t = todayIso(), c = D.classes[0], s = c.students[0];
+      if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } c.extra_x = c.extra_x.filter((d) => d !== t); c.held.push(t);
+      s.marks[t] = "9"; c.lessons[t] = {topic: "Kasrlar", hw: "12-mashq"}; save(); S.ci = 0; S.page = "journal"; render(); parentBulk(0); return s.name;
+    });
+    await page.waitForSelector(".pmsg");
+    const first = await page.inputValue('[data-pt="0"]');
+    assert.ok(first.includes(name) && first.includes("baho 9") && first.includes("Uy vazifasi") && first.includes("12-mashq"), first);
+    assert.ok((await page.getAttribute('[data-ptg="0"]', "href")).startsWith("https://t.me/share/url"));
+    await page.click('[data-pbl="ru"]');
+    assert.ok((await page.inputValue('[data-pt="0"]')).includes("оценка 9"));
+    await page.selectOption("#pbk", "auto"); await page.check("#pbo");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
