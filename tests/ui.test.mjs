@@ -311,3 +311,18 @@ test("Sozlamalar → Dizayn: mavzu, yozuv turi, o'lcham va rang", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("jurnal: bo'sh va to'ldirilgan kataklar bir chiziqda", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 360, height: 760}});
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    for (const den of ["oddiy", "kompakt"]) for (const mode of ["day", "week", "month"]) {
+      const bad = await page.evaluate(([den, mode]) => { D.web.density = den; S.page = "journal"; V.mode = mode; render();
+        return [...document.querySelectorAll("table.j tr")].filter((tr) => new Set([...tr.querySelectorAll(".cell")].map((c) => Math.round(c.getBoundingClientRect().top))).size > 1).length; }, [den, mode]);
+      assert.equal(bad, 0, `${den} / ${mode}`);
+    }
+  } finally { await browser.close(); }
+});
