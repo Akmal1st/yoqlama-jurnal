@@ -99,6 +99,8 @@ label.f{display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:14p
 /* jurnal jadvali */
 .tblwrap{overflow:auto;background:var(--base);border:1px solid var(--line);border-radius:var(--r);padding:6px;max-height:calc(100vh - 270px)}
 @media (max-width:820px){.tblwrap{max-height:none}}
+/* yonga surilganda sana ustuni ism ustuni ostida yarim qolib ketmasin: ustunlar chegarasiga tortiladi */
+.tblwrap{scroll-snap-type:x mandatory;position:relative}table.j th:not(.nm){scroll-snap-align:start}
 table.j{border-collapse:separate;border-spacing:4px;font-size:14px}
 table.j th{font-weight:700;color:var(--muted);position:sticky;top:0;background:var(--base);z-index:2;padding:4px 0}
 /* yopishqoq sarlavha: orasidagi va ustidagi bo'shliqlardan pastki qatorlar ko'rinmasin */
@@ -361,7 +363,7 @@ body.pmeas .noprint{display:none!important}
 /* davr tanlash: ‹ sarlavha › Bugun — doim bir qatorda */
 .pernav{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0}
 .pernav h2{min-width:150px;text-align:center;white-space:nowrap}
-@media screen and (max-width:820px){.pernav{flex:1 1 100%}.pernav h2{min-width:0;flex:1;font-size:19px}}
+@media screen and (max-width:820px){.pernav{flex:1 1 100%}.pernav h2{min-width:0;flex:1;font-size:19px;white-space:normal;line-height:1.2}}
 /* kataklar: bo'shi ham aniq ko'rinsin, hammasi bir xil o'lchamda, yozuv katakdan chiqmasin */
 .cell:empty{box-shadow:inset 0 0 0 1px var(--line)}
 .cell.sel,.cell.sel:empty{box-shadow:0 0 0 3px var(--acc)}
@@ -1142,7 +1144,7 @@ function render() {
   clearPrintDoc(); applyTheme(); renderNav();
   const m = $("#main");
   ({today: pageToday, journal: pageJournal, lesson: pageLesson, reports: pageReports, settings: pageSettings})[S.page](m);
-  labelTables(m);
+  labelTables(m); snapCols();
 }
 
 /* ───────── 1. Bugun ───────── */
@@ -1291,6 +1293,18 @@ function pageJournal(m) {
   m.querySelectorAll("[data-k]").forEach((b) => b.onclick = () => applyKey(b.dataset.k));
   $("[data-two]", m).onclick = () => { S.second = !S.second; render(); if (S.second) toast("Keyingi raqam ikkinchi baho sifatida qo'shiladi"); };
 }
+// ism ustuni yopishqoq: tortish chegarasi uning o'ng chetidan boshlanadi (kenglik yozuv o'lchamiga qarab o'zgaradi)
+function snapCols() {
+  const tw = $("#tw"), d = tw && tw.querySelector("th.d"); if (!d) return;
+  const tb = d.closest("table"), sp = parseFloat(getComputedStyle(tb).borderSpacing) || 0, x = (t) => t.offsetLeft - d.offsetLeft;
+  tw.style.scrollPaddingLeft = d.offsetLeft - sp + "px";
+  // oxirida ham ustun chegarasida to'xtasin: kerak bo'lsa jadval o'ngiga bo'sh joy qo'shamiz
+  tb.style.marginRight = "0px";
+  const max = tw.scrollWidth - tw.clientWidth; if (max <= 0) return;
+  const stop = [...tb.querySelectorAll("th:not(.nm)")].map((t) => x(t) + sp).find((v) => v >= max - 0.5);
+  if (stop != null) tb.style.marginRight = stop - max + "px";
+}
+window.addEventListener("resize", snapCols);
 function scrollToday() {
   const tw = $("#tw"), th = tw && tw.querySelector("th.today");
   if (tw && th) tw.scrollLeft = Math.max(0, th.offsetLeft - tw.clientWidth / 2);
