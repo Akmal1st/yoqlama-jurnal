@@ -1588,6 +1588,10 @@ function pageSettings(m) {
     const sc = sched(), nL = sc ? sc.days.reduce((a, d) => a + d.filter(Boolean).length, 0) : 0;
     body = srow("📅 Dars jadvali", sc ? `Haftasiga ${nL} ta dars · ${sc.bells.length} soatlik kun. Dars kunlari va «Bugun» sahifasi shu jadvalga qarab ishlaydi.` : "Haftalik jadvalni bir marta kiriting yoki Excel fayldan yuklang — «Bugun» sahifasi darslarni soat tartibida ko'rsatadi, dars kunlari o'zi belgilanadi.",
       `<button class="btn pri" data-a="sch">${sc ? "Tahrirlash" : "Kiritish"}</button><button class="btn" data-a="schx">📊 Excel'dan yuklash</button><button class="btn" data-a="scht">⬇ Namuna Excel</button>`) +
+      (() => { const r = remCfg(), perm = "Notification" in window ? Notification.permission : "denied";
+        return srow("🔔 Dars eslatmasi", `Jadvaldagi har bir darsdan oldin telefonga/kompyuterga bildirishnoma keladi: soat, sinf, mavzu va oldingi uy vazifasi.${r.on && perm !== "granted" ? " <span class='warn'>Bildirishnomaga ruxsat yo'q — eslatma faqat ilova ichida chiqadi.</span>" : ""} Ilova ochiq yoki fonda turganda ishlaydi.`,
+          `<select id="remm" style="width:auto" ${r.on ? "" : "disabled"}>${[0, 2, 5, 10, 15].map((k) => `<option value="${k}" ${r.min === k ? "selected" : ""}>${k ? `${k} daqiqa oldin` : "Dars boshlanganda"}</option>`).join("")}</select>
+          <button class="btn ${r.on ? "" : "pri"}" data-a="rem">${r.on ? "O'chirish" : "Yoqish"}</button>${r.on ? `<button class="btn" data-a="remt">Sinab ko'rish</button>` : ""}`); })() +
       `<div class="srow"><div><b>Har bir sinfning dars kunlari</b><div class="muted">Bosib belgilang. Saqlangach joriy chorak sanalari o'zi yaratiladi.</div></div></div>` +
       D.classes.map((c, i) => `<div class="srow"><div><b>${esc(label(c))}</b></div><div class="days">${WD.slice(0, 6).map((w, k) => `<button class="${(c.weekdays || []).includes(k) ? "on" : ""}" data-wd="${i}|${k}">${w}</button>`).join("")}</div></div>`).join("") +
       `<div class="srow"><div><b>Choraklar</b><div class="muted">Boshlanish va tugash sanalari — hamma sinflar uchun umumiy.</div><div class="col" style="margin-top:10px">${qs}</div></div>
@@ -1658,6 +1662,7 @@ function pageSettings(m) {
     const [q, k] = inp.dataset.q.split("|").map(Number); const r = st.quarters[q - 1] || ["", ""]; r[k] = inp.value;
     st.quarters[q - 1] = r[0] || r[1] ? r : null; save();
   });
+  const remm = $("#remm", m); if (remm) remm.onchange = () => { D.web.remind = Object.assign(remCfg(), {min: +remm.value}); save(); remSchedule(); toast("Eslatma vaqti saqlandi"); };
   const mw = $("#mw", m); if (mw) mw.onchange = () => { const v = +mw.value; st.method_weekday = v < 0 ? null : v; save(); toast("Metod kuni saqlandi"); };
   const hol = $("#hol", m); if (hol) hol.onchange = () => { st.holidays = hol.value.split(/[,\s]+/).filter(Boolean); save(); toast("Bayramlar saqlandi"); };
   m.querySelectorAll("[data-rmin]").forEach((x) => x.onchange = () => {
@@ -1709,6 +1714,8 @@ async function settingsAction(a, i) {
   else if (a === "roll") rollover();
   else if (a.startsWith("tg")) tgAction(a);
   else if (a === "sch") scheduleEditor();
+  else if (a === "rem") remToggle();
+  else if (a === "remt") { const p = remPlan()[0] || {title: "1-soat · 08:00 — Sinov", body: "Eslatma shunday ko'rinadi"}; remShow(Object.assign({}, p, {key: "test" + Date.now()})); }
   else if (a === "schx") scheduleImport();
   else if (a === "scht") scheduleTemplate().catch((e) => toast(e.message));
   else if (a === "exp") exportJson();
@@ -3166,11 +3173,60 @@ function scheduleEditor(init, missing = []) {
     $("[data-del]", m).onclick = () => { if (s.bells.length > 1) { s.bells.pop(); s.days.forEach((d) => d.pop()); redraw(); } };
     $("[data-x]", m).onclick = () => close(false);
     $("[data-ok]", m).onclick = () => {
-      D.web.schedule = s; const n = schedApplyWeekdays(); save(); close(true); render();
+      D.web.schedule = s; const n = schedApplyWeekdays(); save(); remSchedule(); close(true); render();
       toast(`Dars jadvali saqlandi${n ? ` · ${n} ta sinfning dars kunlari yangilandi` : ""}`);
     };
   });
 }
+
+/* ───────── dars eslatmasi: jadval bo'yicha darsdan N daqiqa oldin bildirishnoma ───────── */
+// D.web.remind = {on, min}; ilova ochiq (yoki fonda) turganda ishlaydi — server yo'q
+const remCfg = () => Object.assign({on: false, min: 5}, D.web.remind || {});
+const REM = {timers: [], fired: new Set()};
+function remPlan(now = new Date()) {
+  const t = iso(now), {min} = remCfg(), out = [];
+  for (const x of schedToday(t)) {
+    if (!x.from) continue;
+    const [hh, mm] = x.from.split(":").map(Number), start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm);
+    if (isNoLesson(x.c, t) || start <= now) continue;
+    const prev = x.c.dates.filter((d) => d < t && !isNoLesson(x.c, d)).pop(), hw = prev && (x.c.lessons[prev] || {}).hw;
+    const topic = (x.c.lessons[t] || {}).topic;
+    out.push({key: `${t}|${x.no}`, at: new Date(start - min * 6e4), ci: x.ci, title: `${x.no + 1}-soat · ${x.from} — ${label(x.c)}`,
+      body: [topic ? `Mavzu: ${topic}` : "", hw ? `Uyga berilgan edi: ${hw}` : "", `${x.c.students.length} o'quvchi`].filter(Boolean).join("\n")});
+  }
+  return out;
+}
+async function remShow(p) {
+  if (REM.fired.has(p.key)) return; REM.fired.add(p.key);
+  toast(`🔔 ${p.title}`);
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const opt = {body: p.body, tag: "dars-" + p.key, icon: "icon-192.png", badge: "icon-192.png", data: {ci: p.ci}};
+  try { const r = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if (r) return await r.showNotification(p.title, opt); } catch (e) { /* oddiy bildirishnomaga o'tamiz */ }
+  try { const n = new Notification(p.title, opt); n.onclick = () => { window.focus(); n.close(); }; } catch (e) { /* telefon brauzeri faqat SW orqali ruxsat beradi */ }
+}
+function remSchedule() {
+  REM.timers.forEach(clearTimeout); REM.timers = [];
+  if (!remCfg().on) return;
+  const now = new Date();
+  for (const p of remPlan(now)) {
+    const ms = p.at - now;
+    if (ms <= 0) remShow(p);   // eslatma vaqti o'tgan, lekin dars hali boshlanmagan — darhol
+    else if (ms < 864e5) REM.timers.push(setTimeout(() => remShow(p), ms));
+  }
+  // yarim tunda ertangi kun uchun qayta rejalashtirish
+  const mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 1);
+  REM.timers.push(setTimeout(remSchedule, mid - now));
+}
+async function remToggle() {
+  const c = remCfg();
+  if (!c.on) {
+    if (!sched()) { toast("Avval dars jadvalini kiriting — eslatma jadvaldagi soatlarga qarab keladi"); return; }
+    if ("Notification" in window && Notification.permission === "default") { try { await Notification.requestPermission(); } catch (e) { /* eski brauzer */ } }
+    if (!("Notification" in window) || Notification.permission !== "granted") toast("Brauzer bildirishnomaga ruxsat bermadi — eslatma faqat ilova ichida chiqadi");
+  }
+  D.web.remind = Object.assign(c, {on: !c.on}); save(); remSchedule(); render();
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && D && D.web) remSchedule(); });
 
 /* ───────── Telegram: avtomatik zaxira va qurilmalar orasida sinxronlash ───────── */
 // O'qituvchining o'z boti: token faqat shu brauzerda saqlanadi (journal.json ga yozilmaydi).
@@ -3292,7 +3348,7 @@ const isStandalone = () => matchMedia("(display-mode: standalone)").matches || n
 if (document.getElementById("app")) {
   D = load(); autoDates(); if (D.classes.some((c) => c.plan && c.plan.on)) { reflowAll(); save(); }
   if (D.web.density === "kompakt") V.mode = "quarter";
-  render(); emkReady(); tgAuto();
+  render(); emkReady(); tgAuto(); remSchedule();
   setInterval(() => { if (S.page === "journal" && isLocked() !== $("[data-lock]")?.textContent.includes("🔒")) renderNav(); }, 30000);
 }
 </script>

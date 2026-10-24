@@ -628,3 +628,35 @@ test("Doskaga chaqirish va guruhlarga bo'lish", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Dars eslatmasi: jadval bo'yicha darsdan oldin bildirishnoma", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.install({time: new Date(2026, 9, 26, 8, 52)});   // dushanba 08:52
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => {
+      D.settings.method_weekday = null; D.settings.holidays = [];
+      D.classes.forEach((c) => { c.extra_x = []; });
+      const c0 = D.classes[0], c1 = D.classes[1], t = todayIso(), p = c1.dates.filter((d) => d < t).pop();
+      c1.lessons[p] = Object.assign({}, c1.lessons[p], {hw: "12-mashq"});
+      D.web.schedule = {bells: [["08:55", "09:40"], ["10:00", "10:45"]], days: [[ckey(c0), ckey(c1)], ["", ""], ["", ""], ["", ""], ["", ""], ["", ""]]};
+      save(); S.sec = 1; go("settings");
+    });
+    await page.click("[data-a=rem]");
+    await page.waitForFunction(() => D.web.remind && D.web.remind.on);
+    // 1-soatning eslatma vaqti (08:50) o'tgan, dars hali boshlanmagan — darhol chiqadi
+    await page.waitForSelector(".toast:has-text('1-soat · 08:55')");
+    const plan = await page.evaluate(() => remPlan().map((p) => [p.title, p.body, p.at.getHours() * 60 + p.at.getMinutes()]));
+    assert.equal(plan.length, 2); assert.equal(plan[1][2], 9 * 60 + 55); assert.ok(plan[1][1].includes("12-mashq"), plan[1][1]);
+    await page.selectOption("#remm", "10");
+    await page.clock.runFor(57 * 60 * 1000);   // 09:49 — hali erta
+    assert.equal(await page.evaluate(() => REM.fired.size), 1);
+    await page.clock.runFor(2 * 60 * 1000);    // 09:51 — 2-soat eslatmasi (09:50) chiqdi
+    assert.deepEqual(await page.evaluate(() => [...REM.fired]), ["2026-10-26|0", "2026-10-26|1"]);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
