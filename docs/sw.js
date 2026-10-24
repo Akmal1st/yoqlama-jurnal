@@ -1,5 +1,5 @@
 /* Yo'qlama jurnali — oflayn ishlash uchun kesh. Ilova yangilanganda VERSION ni oshiring. */
-const VERSION = "jurnal-v31";
+const VERSION = "jurnal-v32";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./icon-maskable.png"];
 const XLSX_URL = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
 
@@ -23,4 +23,9 @@ self.addEventListener("fetch", (e) => {
   } else if (req.url === XLSX_URL) {
     e.respondWith(caches.match(XLSX_URL).then((r) => r || fetch(XLSX_URL, {mode: "cors"}).then((res) => { if (res.ok) { const cp = res.clone(); caches.open(VERSION).then((c) => c.put(XLSX_URL, cp)); } return res; })));
   }
+});
+// dars eslatmasi bosilganda ilovani ochish
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({type: "window", includeUncontrolled: true}).then((cs) => cs.length ? cs[0].focus() : self.clients.openWindow("./")));
 });
