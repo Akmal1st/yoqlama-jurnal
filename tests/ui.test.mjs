@@ -400,3 +400,20 @@ test("jurnal: yonga surilganda sana ustuni ism ustuni ostida yarim qolmaydi", as
     assert.ok(over <= 0, `sarlavha tugmaga ${over}px kirib ketgan`);
   } finally { await browser.close(); }
 });
+
+test("jurnal: telefonda ism bir qatorda, familiya qisqartiriladi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 360, height: 760}});
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    assert.equal(await page.evaluate(() => shortName("Isakjanov Shoxjaxon")), "I. Shoxjaxon");
+    const r = await page.evaluate(() => { S.page = "journal"; V.mode = "month"; render();
+      const td = $('td.nm[data-st="0"]'), lh = parseFloat(getComputedStyle(td).lineHeight) || 20;
+      return {txt: td.innerText.trim(), name: D.classes[S.ci].students[0].name, h: td.getBoundingClientRect().height, lh}; });
+    assert.ok(r.txt.includes(r.name.split(/\s+/)[0][0] + ". "), r.txt);
+    assert.ok(!r.txt.includes(r.name), "to'liq ism ko'rinmasligi kerak");
+    assert.ok(r.h < r.lh * 2, `ism bir qatorda emas (${r.h}px)`);
+  } finally { await browser.close(); }
+});
