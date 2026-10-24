@@ -188,6 +188,7 @@ table.sum th.wk{padding:0}
 .wbtn small{display:block;font-weight:600;font-size:11px}
 input.sc{width:58px;min-height:36px;height:36px;padding:0 4px;text-align:center;font-weight:700;background:var(--alt);border-radius:7px;border:1px solid transparent}
 input.sc.ab{color:var(--danger)}
+input.sc.lt{width:76px;color:#6d4c41;background:#efe3dc}
 input.sc.bad{border-color:var(--danger);background:#fde8e6}
 select.g5{width:62px;min-height:34px;padding:0 4px}
 .warnbox{border-color:#f0b4ae;background:#fff4f2;color:#8a1c12}
@@ -604,6 +605,13 @@ function parseScore(text) {
   const v = +pyFixed(parseFloat(t), 1);
   if (!/^-?\d+(\.\d+)?$/.test(t) || !isFinite(v) || v < 0 || v > 1000) return null;
   return v;
+}
+
+// «18 KQ», «KQ 18», «18/kq» — ball va kech qolgani; late: true/false (faqat ball yozilganda), null — davomatga tegilmaydi
+function parseScoreLate(text) {
+  const t = String(text ?? "").trim().toLowerCase();
+  if (/\d/.test(t) && /kq|кқ|кк/.test(t)) { const v = parseScore(t.replace(/kq|кқ|кк/g, " ").replace(/[\s/:+;-]+/g, " ").trim()); return {v, late: isNum(v) ? true : null}; }
+  const v = parseScore(t); return {v, late: isNum(v) ? false : null};
 }
 
 /* ───────── summativ baholash: BSB / CHSB, chorak va yillik ball (emaktab qoidalari) ───────── */
@@ -1702,8 +1710,8 @@ function pageSum(m) {
     const body2 = c.students.map((s, si) => {
       const r = quarterResult(c, s, q, works), scs = s.scores || {};
       return `<tr><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${esc(s.name)}</td>${works.map((w) => {
-        const v = scs[w.id] ?? ""; const bad = isNum(v) && v > w.max;
-        return `<td class="c"><input class="sc ${v === "" ? "" : isNum(v) ? "" : "ab"} ${bad ? "bad" : ""}" data-sc="${si}|${w.id}" value="${esc(isNum(v) ? fmtNum(v) : String(v).toUpperCase())}" inputmode="decimal" enterkeyhint="next" autocomplete="off"></td>`;
+        const v = scs[w.id] ?? ""; const bad = isNum(v) && v > w.max, lt = isNum(v) && lateOf(s.marks[w.date]);
+        return `<td class="c"><input class="sc ${v === "" ? "" : isNum(v) ? "" : "ab"} ${bad ? "bad" : ""} ${lt ? "lt" : ""}" data-sc="${si}|${w.id}" value="${esc(isNum(v) ? fmtNum(v) + (lt ? " KQ" : "") : String(v).toUpperCase())}" inputmode="decimal" enterkeyhint="next" autocomplete="off"></td>`;
       }).join("")}
         <td class="s">${fmtNum(r.bsb)}</td><td class="s">${fmtNum(r.chsb)}</td><td class="s" title="${r.n_fb} ta baho${r.avg !== null ? ", o'rtacha " + r.avg.toFixed(2) : ""}">${r.n_fb >= fbMin() ? r.fb : `<span class="warn" title="Formativ baholar kam">${r.n_fb}/${fbMin()}</span>`}</td>
         <td class="s"><b>${fmtNum(r.total)}</b></td><td class="s">${r.grade ? g5pill(r.grade, "100–86 → 5, 85–66 → 4, 65–30 → 3, qolgani → 2") : `<span class="muted" title="${r.missing ? r.missing + " ta ball kiritilmagan" : "Maksimal ballar 50/40 emas"}">…</span>`}</td>
@@ -1711,7 +1719,7 @@ function pageSum(m) {
     }).join("");
     body = `${cp.length ? `<div class="card warnbox">⚠ ${cp.map(esc).join(" · ")}</div>` : `<div class="ok">✓ Maksimal ballar to'g'ri: BSB ${fmtNum(sb)}/${BSB_TOTAL}, CHSB ${fmtNum(sc)}/${CHSB_TOTAL}</div>`}
       ${works.length ? `<div class="tblwrap"><table class="j sum">${head}${body2}</table></div>` : `<div class="card muted">Bu chorakda summativ ishlar yo'q. «＋ Ish qo'shish» tugmasini bosing yoki KTRdagi «BSB»/«CHSB» mavzulari o'zi qo'shiladi.</div>`}
-      <p class="muted" style="margin:0">Ball yoki S / DQ / K / KQ yozing. Jami = BSB + CHSB + FB (formativ: kundalik baholar o'rtachasi, kamida ${fbMin()} ta). Baho: 100–86 → 5, 85–66 → 4, 65–30 → 3, qolgani → 2.</p>`;
+      <p class="muted" style="margin:0">Ball yoki S / DQ / K / KQ yozing. Kech qolgan, lekin ish yozgan bo'lsa: «18 KQ». Jami = BSB + CHSB + FB (formativ: kundalik baholar o'rtachasi, kamida ${fbMin()} ta). Baho: 100–86 → 5, 85–66 → 4, 65–30 → 3, qolgani → 2.</p>`;
   }
   m.innerHTML = `<div class="col" style="gap:12px">${classChips()}
     <div class="row" style="gap:8px">${jpSeg()}<div class="seg">${qs}</div><span class="sp"></span>
@@ -1731,11 +1739,17 @@ function pageSum(m) {
     inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); inp.blur(); const all = [...m.querySelectorAll("[data-sc]")], col = inp.dataset.sc.split("|")[1];
       const nx = all.slice(all.indexOf(inp) + 1).find((x) => x.dataset.sc.split("|")[1] === col); if (nx) setTimeout(() => { const el = m.querySelector(`[data-sc="${nx.dataset.sc}"]`); if (el) { el.focus(); el.select(); } }, 0); } };
     inp.onchange = async () => {
-      const [si, wid] = inp.dataset.sc.split("|"), s = c.students[+si], w = c.works.find((x) => x.id === wid), v = parseScore(inp.value);
-      if (v === null) { toast("Ball (masalan 18 yoki 7.5) yoki S / DQ / K / KQ yozing"); inp.classList.add("bad"); return; }
+      const [si, wid] = inp.dataset.sc.split("|"), s = c.students[+si], w = c.works.find((x) => x.id === wid), {v, late} = parseScoreLate(inp.value);
+      if (v === null) { toast("Ball (masalan 18 yoki 7.5), kech qolgan bo'lsa «18 KQ», yoki S / DQ / K / KQ yozing"); inp.classList.add("bad"); return; }
       if (isNum(v) && v > w.max) { toast(`Ball ${fmtNum(w.max)} dan oshmasligi kerak`); inp.classList.add("bad"); return; }
       const focusKey = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.sc : null;
-      await putScore(c, s, wid, v); const y = window.scrollY, sl = $(".tblwrap", m) ? $(".tblwrap", m).scrollLeft : 0; render(); window.scrollTo(0, y);
+      // kech qolgan bo'lsa ham ball qo'yiladi: KQ shu ish kunining davomatiga yoziladi
+      const om = s.marks[w.date] || "", nm = late === null || (!late && !lateOf(om)) ? om : late ? buildMark(gradesOf(om), true) : buildMark(gradesOf(om), false);
+      if (nm !== om && om && isLocked() && !await unlock()) return;
+      const batch = [];
+      if (!await putScore(c, s, wid, v, batch)) return;
+      if (nm !== om) { if (nm) s.marks[w.date] = nm; else delete s.marks[w.date]; log(c, s, w.date, om, nm); batch.push({kind: "mark", c, s, key: w.date, old: om, nw: nm}); save(); }
+      if (batch.length) pushUndo(batch); const y = window.scrollY, sl = $(".tblwrap", m) ? $(".tblwrap", m).scrollLeft : 0; render(); window.scrollTo(0, y);
       const tw = $(".tblwrap"); if (tw) tw.scrollLeft = sl;
       if (focusKey) { const el = document.querySelector(`[data-sc="${focusKey}"]`); if (el) { el.focus(); el.select(); } }
     };

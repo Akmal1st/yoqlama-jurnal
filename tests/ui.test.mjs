@@ -141,3 +141,29 @@ test("emaktab.uz saytidan xatcho'p orqali import", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("BSB/CHSB: kech qolgan (KQ) o'quvchiga ball qo'yish", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => { D.settings.protect.enabled = false; save(); });
+    await page.click(".side [data-go=journal]"); await page.click("[data-jp=sum]");
+    const cell = await page.$("[data-sc]"); const key = await cell.getAttribute("data-sc");
+    const state = () => page.evaluate((k) => { const [si, wid] = k.split("|"), c = D.classes[S.ci], s = c.students[+si], w = c.works.find((x) => x.id === wid);
+      return {sc: s.scores[wid], mark: s.marks[w.date] || ""}; }, key);
+    const before = await state();
+    await page.fill(`[data-sc="${key}"]`, "12 kq"); await page.press(`[data-sc="${key}"]`, "Tab");
+    let st = await state();
+    assert.equal(st.sc, 12); assert.ok(st.mark.endsWith("kq"), st.mark);
+    assert.equal(await page.inputValue(`[data-sc="${key}"]`), "12 KQ");
+    await page.fill(`[data-sc="${key}"]`, "12"); await page.press(`[data-sc="${key}"]`, "Tab");
+    st = await state(); assert.equal(st.sc, 12); assert.ok(!st.mark.endsWith("kq"));
+    await page.evaluate(() => { undoLast(); undoLast(); });
+    assert.deepEqual(await state(), before);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
