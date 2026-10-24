@@ -216,6 +216,9 @@ table.j td.nm[data-st]{cursor:pointer}
 .modal .card.wide{width:min(760px,100%)}
 .seg.tabs{flex-wrap:wrap}
 svg.growth{width:100%;height:auto;background:var(--alt);border-radius:10px}
+svg.stat{width:100%;height:auto;background:var(--alt);border-radius:10px}svg.stat .pt:hover circle:last-of-type{r:6}svg.stat .pt:hover path{opacity:.85}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px 22px}
+.lists{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}.lists ol{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 /* bo'sh varaq */
@@ -1515,8 +1518,8 @@ function pageReports(m) {
   const R = S.rep; R.ci = Math.min(R.ci, D.classes.length - 1); R.kind = R.kind || "cls";
   const c = D.classes[R.ci], [lo, hi] = repRange(R.per), rq = /^q\d$/.test(R.per) ? +R.per[1] : R.per === "cur" ? periodNow()[2] : null, {rows, lessons} = reportRows(c, lo, hi, rq);
   const pers = [["cur", "Joriy chorak / oy"], ...[1, 2, 3, 4].filter(qRange).map((q) => [`q${q}`, `${q}-chorak`]), ["month", "Shu oy"], ["week", "Shu hafta"], ["all", "Butun yil"]];
-  const kinds = [["cls", "Sinf hisoboti"], ["ready", "Chorakka tayyorlik"], ["cmp", "Sinflarni solishtirish"], ["blank", "Bo'sh yo'qlama varag'i"]];
-  const needCls = R.kind !== "cmp", needPer = R.kind === "cls" || R.kind === "cmp";
+  const kinds = [["cls", "Sinf hisoboti"], ["stats", "📈 Grafik va statistika"], ["ready", "Chorakka tayyorlik"], ["cmp", "Sinflarni solishtirish"], ["blank", "Bo'sh yo'qlama varag'i"]];
+  const needCls = R.kind !== "cmp", needPer = R.kind === "cls" || R.kind === "cmp" || R.kind === "stats";
   let sec;
   if (R.kind === "cls") {
     const gr = rows.filter((r) => r.avg !== null), avg = gr.length ? gr.reduce((a, r) => a + r.avg * r.n, 0) / gr.reduce((a, r) => a + r.n, 0) : null;
@@ -1532,7 +1535,8 @@ function pageReports(m) {
         <td>${r.avg !== null ? `<span class="pill" style="background:${col};color:${contrast(col)}">${r.avg.toFixed(2)}</span>` : "—"}</td><td class="n">${r.n}</td>
         <td>${r.att !== null ? r.att.toFixed(1) + "%" : "—"}</td><td class="n">${r.s || ""}</td><td class="n">${r.dq || ""}</td><td class="n">${r.k || ""}</td><td class="n">${r.kq || ""}</td>
         <td class="${r.risk ? "warn" : "muted"}" style="font-weight:600">${esc(r.why.join("; ")) || "—"}</td></tr>`; }).join("")}</table></div>`;
-  } else if (R.kind === "ready") sec = `<div class="row noprint"><span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button></div>${repReady(c)}`;
+  } else if (R.kind === "stats") sec = `<div class="row"><h2 class="sp">${esc(label(c))} · ${fmt(lo)} – ${fmt(hi)}</h2><button class="btn pri noprint" data-print>Chop etish / PDF</button></div>${repStats(c, lo, hi, rows)}`;
+  else if (R.kind === "ready") sec = `<div class="row noprint"><span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button></div>${repReady(c)}`;
   else if (R.kind === "cmp") sec = `<div class="row noprint"><span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button><button class="btn" data-ccsv>Excel (CSV)</button></div>${repCompare(lo, hi)}`;
   else sec = `<div class="row noprint"><span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button></div>${repBlank(c)}`;
   m.innerHTML = `<div class="col" style="gap:16px">
@@ -2771,6 +2775,75 @@ function repReady(c) {
     ${!cp.length && !names.length ? `<div class="ok">✓ Hammasi tayyor: barcha ballar kiritilgan, formativ baholar yetarli. Chorak baholarini qo'yish mumkin.</div>` : ""}
     ${cp.length ? `<div class="warnbox card">⚠ ${cp.map(esc).join("<br>⚠ ")}</div>` : ""}
     ${names.length ? `<div class="muted">${names.length} ta o'quvchida kamchilik bor:</div><table class="r"><tr><th>№</th><th>O'quvchi</th><th>Nima yetishmaydi</th></tr>${names.map((n, i) => `<tr><td>${i + 1}</td><td><b>${esc(n)}</b></td><td>${per[n].map(esc).join("<br>")}</td></tr>`).join("")}</table>` : ""}`;
+}
+/* ───────── grafik va statistika ───────── */
+// haftalar bo'yicha: sinf o'rtacha bahosi va davomat; baholar taqsimoti; kim ko'p qoldirgan / eng past / eng yaxshi
+function statsData(c, lo, hi) {
+  const t = todayIso(), ds = c.dates.filter((d) => lo <= d && d <= hi && d <= t && !isNoLesson(c, d));
+  const wk = (d) => iso(addDays(pdate(d), -pyWd(d))), weeks = new Map(), dist = Array(11).fill(0);
+  for (const d of ds) {
+    const w = weeks.get(wk(d)) || {from: wk(d), g: [], seats: 0, abs: 0}; weeks.set(wk(d), w);
+    for (const s of c.students) {
+      const m = s.marks[d] || "", gs = gradesOf(m), a = attPart(m);
+      for (const g of gs) { w.g.push(g); if (g >= 1 && g <= 10) dist[g]++; }
+      w.seats++; if (["s", "dq", "k"].includes(a)) w.abs++;
+    }
+  }
+  const W = [...weeks.values()].map((w) => ({from: w.from, avg: w.g.length ? w.g.reduce((a, b) => a + b, 0) / w.g.length : null, n: w.g.length, att: w.seats ? 100 * (1 - w.abs / w.seats) : null}));
+  return {weeks: W, dist, lessons: ds.length};
+}
+function lineSvg(pts, {min, max, fmtV, label: lbl, ticks}) {
+  const Wd = 440, H = 230, L = 42, R = 14, T = 14, B = 30, n = pts.length;
+  const x = (i) => L + (n < 2 ? (Wd - L - R) / 2 : i * (Wd - L - R) / (n - 1)), y = (v) => T + (H - T - B) * (1 - (v - min) / (max - min));
+  let s = `<svg viewBox="0 0 ${Wd} ${H}" class="stat" role="img" aria-label="${esc(lbl)}">`;
+  for (const v of ticks) s += `<line x1="${L}" x2="${Wd - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" font-size="13" fill="var(--muted)">${fmtV(v)}</text>`;
+  const step = Math.max(1, Math.ceil(n / 5));
+  pts.forEach((p, i) => { if (i % step === 0 || i === n - 1) s += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="13" fill="var(--muted)">${fmt(p.from).slice(0, 5)}</text>`; });
+  const segs = []; let cur = [];
+  pts.forEach((p, i) => { if (p.v === null) { if (cur.length) segs.push(cur); cur = []; } else cur.push(`${x(i)},${y(p.v)}`); });
+  if (cur.length) segs.push(cur);
+  for (const g of segs) s += `<polyline points="${g.join(" ")}" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  pts.forEach((p, i) => { if (p.v !== null) s += `<g class="pt"><circle cx="${x(i)}" cy="${y(p.v)}" r="14" fill="transparent"/><circle cx="${x(i)}" cy="${y(p.v)}" r="4.5" fill="var(--acc)" stroke="var(--base)" stroke-width="2"/><title>${fmt(p.from)} haftasi: ${fmtV(p.v)}${p.note ? " · " + p.note : ""}</title></g>`; });
+  return s + `</svg>`;
+}
+function distSvg(dist) {
+  const Wd = 440, H = 230, L = 10, R = 10, T = 22, B = 28, mx = Math.max(1, ...dist.slice(1)), bw = (Wd - L - R) / 10;
+  const y = (v) => T + (H - T - B) * (1 - v / mx), tot = dist.slice(1).reduce((a, b) => a + b, 0);
+  let s = `<svg viewBox="0 0 ${Wd} ${H}" class="stat" role="img" aria-label="Baholar taqsimoti">`;
+  s += `<line x1="${L}" x2="${Wd - R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line)"/>`;
+  for (let g = 1; g <= 10; g++) {
+    const v = dist[g], x0 = L + (g - 1) * bw + 2, w = bw - 4, col = gradeColor(g) || "var(--acc)", h = y(0) - y(v);
+    s += `<g class="pt"><rect x="${x0}" y="${T}" width="${w}" height="${H - T - B}" fill="transparent"/>${v ? `<path d="M${x0},${y(0)} v${-Math.max(0, h - 4)} q0,-4 4,-4 h${w - 8} q4,0 4,4 v${Math.max(0, h - 4)} z" fill="${col}"/>` : ""}
+      ${v ? `<text x="${x0 + w / 2}" y="${y(v) - 5}" text-anchor="middle" font-size="13" fill="var(--muted)">${v}</text>` : ""}
+      <text x="${x0 + w / 2}" y="${H - 8}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--text)">${g}</text><title>${g} baho: ${v} ta${tot ? ` (${Math.round(100 * v / tot)}%)` : ""}</title></g>`;
+  }
+  return s + `</svg>`;
+}
+function attOpts(W) {
+  const lo = Math.max(0, Math.floor(Math.min(...W.map((w) => w.att ?? 100)) / 10) * 10 - 10), step = 100 - lo > 40 ? 20 : 10;
+  return {min: lo, max: 100, ticks: Array.from({length: (100 - lo) / step + 1}, (_, i) => lo + i * step), fmtV: (v) => Math.round(v) + "%", label: "Haftalik davomat"};
+}
+function repStats(c, lo, hi, rows) {
+  const st = statsData(c, lo, hi), W = st.weeks;
+  const top = (arr, f, n = 5) => arr.slice().sort(f).slice(0, n);
+  const absent = top(rows.filter((r) => r.s + r.dq + r.k > 0), (a, b) => (b.s + b.dq + b.k) - (a.s + a.dq + a.k));
+  const graded = rows.filter((r) => r.avg !== null), low = top(graded, (a, b) => a.avg - b.avg), best = top(graded, (a, b) => b.avg - a.avg);
+  const li = (r, v) => `<li><button class="link nmlink" data-card="${esc(r.name)}">${esc(r.name)}</button> <span class="muted">— ${v}</span></li>`;
+  const avgs = W.filter((w) => w.avg !== null), first = avgs[0], last = avgs[avgs.length - 1];
+  const trend = first && last && avgs.length > 1 ? last.avg - first.avg : null;
+  return `<div class="tiles"><div class="tile"><div class="muted">Haftalar</div><div>${W.length}</div></div>
+      <div class="tile"><div class="muted">Qo'yilgan baholar</div><div>${st.dist.reduce((a, b) => a + b, 0)}</div></div>
+      <div class="tile"><div class="muted">O'rtacha o'zgarishi</div><div class="${trend === null ? "" : trend >= 0 ? "ok" : "warn"}">${trend === null ? "—" : (trend >= 0 ? "▲ +" : "▼ ") + trend.toFixed(2)}</div></div>
+      <div class="tile"><div class="muted">Dars kunlari</div><div>${st.lessons}</div></div></div>
+    <div class="sgrid">
+      <section class="col" style="gap:6px"><h3>Sinf o'rtacha bahosi (haftalar bo'yicha)</h3>${avgs.length ? lineSvg(W.map((w) => ({from: w.from, v: w.avg, note: `${w.n} ta baho`})), {min: 1, max: 10, ticks: [2, 4, 6, 8, 10], fmtV: (v) => (Math.round(v * 10) / 10).toString(), label: "Haftalik o'rtacha baho"}) : `<div class="muted">Bu davrda baho yo'q.</div>`}</section>
+      <section class="col" style="gap:6px"><h3>Davomat (haftalar bo'yicha, %)</h3>${W.length ? lineSvg(W.map((w) => ({from: w.from, v: w.att})), attOpts(W)) : `<div class="muted">Bu davrda dars yo'q.</div>`}</section>
+      <section class="col" style="gap:6px"><h3>Baholar taqsimoti</h3>${distSvg(st.dist)}</section>
+      <section class="col" style="gap:10px"><div class="lists">
+        <div><h3>Ko'p qoldirganlar</h3>${absent.length ? `<ol>${absent.map((r) => li(r, `${r.s + r.dq + r.k} dars (S ${r.s} · DQ ${r.dq} · K ${r.k})`)).join("")}</ol>` : `<div class="muted">Qoldirish yo'q 👍</div>`}</div>
+        <div><h3>Eng past o'rtacha</h3>${low.length ? `<ol>${low.map((r) => li(r, r.avg.toFixed(2))).join("")}</ol>` : `<div class="muted">—</div>`}</div>
+        <div><h3>Eng yaxshi o'rtacha</h3>${best.length ? `<ol>${best.map((r) => li(r, r.avg.toFixed(2))).join("")}</ol>` : `<div class="muted">—</div>`}</div></div></section>
+    </div>`;
 }
 function repCompare(lo, hi) {
   const rows = compareRows(lo, hi), f = (v, d = 1, s = "") => v === null ? "—" : v.toFixed(d) + s;
