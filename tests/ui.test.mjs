@@ -167,3 +167,25 @@ test("BSB/CHSB: kech qolgan (KQ) o'quvchiga ball qo'yish", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("jurnal: KQ katagiga himoya yoqilgan holda ham baho qo'yiladi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const r = await page.evaluate(() => {
+      const c = D.classes[0], t = todayIso(); D.settings.method_weekday = null; c.extra_x = [];
+      if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); }
+      D.settings.protect.enabled = true; unlockedUntil = 0; S.ci = 0;
+      c.students[0].marks[t] = "kq"; c.students[1].marks[t] = "7";
+      S.sel = [0, t]; applyKey("8");
+      S.sel = [1, t]; applyKey("9");
+      return [isLocked(), c.students[0].marks[t], c.students[1].marks[t]];
+    });
+    assert.deepEqual(r, [true, "8kq", "7"], "KQ ga baho qo'shildi, qo'yilgan baho esa himoyalangan");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
