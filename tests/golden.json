@@ -3831,5 +3831,761 @@
   "2026-09-02",
   "2026-10-23",
   1
+ ],
+ "bsb": [
+  {
+   "stats": {
+    "n": 8,
+    "absent": [
+     "Qodirova Sevara"
+    ],
+    "qmax": [
+     2,
+     2,
+     3,
+     3,
+     5,
+     5
+    ],
+    "tot_max": 20,
+    "students": [
+     {
+      "name": "Aliyev Ali",
+      "pts": [
+       2,
+       2,
+       3,
+       3,
+       5,
+       5
+      ],
+      "total": 20,
+      "pct": 100,
+      "grade": 5,
+      "empty": 0
+     },
+     {
+      "name": "Valiyeva Vali",
+      "pts": [
+       2,
+       1,
+       2,
+       1,
+       1,
+       0
+      ],
+      "total": 7,
+      "pct": 35,
+      "grade": 3,
+      "empty": 0
+     },
+     {
+      "name": "Soliyev Soli",
+      "pts": [
+       1,
+       2,
+       3,
+       2.5,
+       4,
+       1
+      ],
+      "total": 13.5,
+      "pct": 67.5,
+      "grade": 4,
+      "empty": 0
+     },
+     {
+      "name": "Karimov Bek",
+      "pts": [
+       0,
+       0,
+       1,
+       0,
+       0,
+       0
+      ],
+      "total": 1,
+      "pct": 5,
+      "grade": 2,
+      "empty": 0
+     },
+     {
+      "name": "Ergasheva Malika",
+      "pts": [
+       2,
+       2,
+       3,
+       3,
+       4,
+       4
+      ],
+      "total": 18,
+      "pct": 90,
+      "grade": 5,
+      "empty": 0
+     },
+     {
+      "name": "Toshev Anvar",
+      "pts": [
+       1,
+       0,
+       2,
+       1,
+       2,
+       0
+      ],
+      "total": 6,
+      "pct": 30,
+      "grade": 3,
+      "empty": 2
+     },
+     {
+      "name": "Rahimova Dilnoza",
+      "pts": [
+       2,
+       2,
+       3,
+       3,
+       3,
+       2
+      ],
+      "total": 15,
+      "pct": 75,
+      "grade": 4,
+      "empty": 0
+     },
+     {
+      "name": "Yusupov Jasur",
+      "pts": [
+       0,
+       1,
+       0,
+       0,
+       0,
+       0
+      ],
+      "total": 1,
+      "pct": 5,
+      "grade": 2,
+      "empty": 0
+     }
+    ],
+    "questions": [
+     {
+      "i": 1,
+      "max": 2,
+      "mean": 1.25,
+      "pct": 62.5,
+      "full": 4,
+      "zero": 2,
+      "d": 1,
+      "level": "o'rtacha"
+     },
+     {
+      "i": 2,
+      "max": 2,
+      "mean": 1.25,
+      "pct": 62.5,
+      "full": 4,
+      "zero": 2,
+      "d": 0.75,
+      "level": "o'rtacha"
+     },
+     {
+      "i": 3,
+      "max": 3,
+      "mean": 2.125,
+      "pct": 70.833333,
+      "full": 4,
+      "zero": 1,
+      "d": 0.833333,
+      "level": "oson"
+     },
+     {
+      "i": 4,
+      "max": 3,
+      "mean": 1.6875,
+      "pct": 56.25,
+      "full": 3,
+      "zero": 2,
+      "d": 1,
+      "level": "o'rtacha"
+     },
+     {
+      "i": 5,
+      "max": 5,
+      "mean": 2.375,
+      "pct": 47.5,
+      "full": 1,
+      "zero": 2,
+      "d": 0.9,
+      "level": "o'rtacha"
+     },
+     {
+      "i": 6,
+      "max": 5,
+      "mean": 1.5,
+      "pct": 30,
+      "full": 1,
+      "zero": 4,
+      "d": 0.9,
+      "level": "qiyin"
+     }
+    ],
+    "grades": {
+     "5": 2,
+     "4": 2,
+     "3": 2,
+     "2": 2
+    },
+    "mean_total": 10.1875,
+    "mean_pct": 50.9375,
+    "median_pct": 51.25,
+    "best": {
+     "name": "Aliyev Ali",
+     "pts": [
+      2,
+      2,
+      3,
+      3,
+      5,
+      5
+     ],
+     "total": 20,
+     "pct": 100,
+     "grade": 5,
+     "empty": 0
+    },
+    "worst": {
+     "name": "Karimov Bek",
+     "pts": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      0
+     ],
+     "total": 1,
+     "pct": 5,
+     "grade": 2,
+     "empty": 0
+    },
+    "empty_cells": 2,
+    "quality": 50,
+    "mastery": 75
+   },
+   "rec": {
+    "good": [
+     "«5» baho olganlar: 2 ta (Aliyev Ali, Ergasheva Malika)."
+    ],
+    "bad": [
+     "O'zlashtirishi past savollar: 6-savol (30%), 5-savol (48%).",
+     "Ko'pchilik 0 ball olgan savollar: 6-savol (4 ta) — mavzu o'tilmagan, shart tushunarsiz yoki vaqt yetmagan bo'lishi mumkin.",
+     "«2» baho olganlar: 2 ta (25%): Karimov Bek, Yusupov Jasur.",
+     "Ishtirok etmaganlar: 1 ta (Qodirova Sevara).",
+     "2 ta katak to'ldirilmagan — hisobda 0 ball deb olindi."
+    ],
+    "tips": [
+     "6-savol (30%): mavzuni qayta tushuntiring, o'xshash misollarni sinfda birgalikda yeching.",
+     "5-savol (48%): xatolarni tahlil qiling va qo'shimcha mashqlar bering.",
+     "Karimov Bek, Yusupov Jasur bilan yakka tartibda ishlang: asosiy tushunchalarni takrorlash va qo'shimcha dars.",
+     "Aliyev Ali, Ergasheva Malika — qiyinroq (olimpiada, qo'shimcha) topshiriqlar bering yoki yordamchi sifatida jalb qiling.",
+     "Ishtirok etmaganlarga BSB ni qayta topshirish imkonini bering (kasallik va boshqa sabablarni aniqlang)."
+    ]
+   }
+  },
+  {
+   "stats": {
+    "n": 3,
+    "absent": [],
+    "qmax": [
+     10,
+     10
+    ],
+    "tot_max": 20,
+    "students": [
+     {
+      "name": "A",
+      "pts": [
+       10,
+       10
+      ],
+      "total": 20,
+      "pct": 100,
+      "grade": 5,
+      "empty": 0
+     },
+     {
+      "name": "B",
+      "pts": [
+       10,
+       10
+      ],
+      "total": 20,
+      "pct": 100,
+      "grade": 5,
+      "empty": 0
+     },
+     {
+      "name": "C",
+      "pts": [
+       6.5,
+       0
+      ],
+      "total": 6.5,
+      "pct": 32.5,
+      "grade": 3,
+      "empty": 1
+     }
+    ],
+    "questions": [
+     {
+      "i": 1,
+      "max": 10,
+      "mean": 8.833333,
+      "pct": 88.333333,
+      "full": 2,
+      "zero": 0,
+      "d": null,
+      "level": "oson"
+     },
+     {
+      "i": 2,
+      "max": 10,
+      "mean": 6.666667,
+      "pct": 66.666667,
+      "full": 2,
+      "zero": 1,
+      "d": null,
+      "level": "o'rtacha"
+     }
+    ],
+    "grades": {
+     "5": 2,
+     "4": 0,
+     "3": 1,
+     "2": 0
+    },
+    "mean_total": 15.5,
+    "mean_pct": 77.5,
+    "median_pct": 100,
+    "best": {
+     "name": "A",
+     "pts": [
+      10,
+      10
+     ],
+     "total": 20,
+     "pct": 100,
+     "grade": 5,
+     "empty": 0
+    },
+    "worst": {
+     "name": "C",
+     "pts": [
+      6.5,
+      0
+     ],
+     "total": 6.5,
+     "pct": 32.5,
+     "grade": 3,
+     "empty": 1
+    },
+    "empty_cells": 1,
+    "quality": 66.666667,
+    "mastery": 100
+   },
+   "rec": {
+    "good": [
+     "Bilim sifati yuqori: 67% o'quvchi «4» va «5» baho olgan.",
+     "«5» baho olganlar: 2 ta (A, B).",
+     "Yaxshi o'zlashtirilgan savollar: 1-savol (88%) — bu mavzular bo'yicha bilim mustahkam.",
+     "Ishtirok etgan barcha o'quvchi «3» dan past bo'lmagan baho olgan."
+    ],
+    "bad": [
+     "1 ta katak to'ldirilmagan — hisobda 0 ball deb olindi."
+    ],
+    "tips": [
+     "A, B — qiyinroq (olimpiada, qo'shimcha) topshiriqlar bering yoki yordamchi sifatida jalb qiling."
+    ]
+   }
+  },
+  {
+   "stats": {
+    "n": 0,
+    "absent": [
+     "A"
+    ],
+    "qmax": [
+     4,
+     4,
+     4
+    ],
+    "tot_max": 12,
+    "students": [],
+    "questions": [],
+    "grades": {
+     "5": 0,
+     "4": 0,
+     "3": 0,
+     "2": 0
+    }
+   },
+   "rec": {
+    "good": [],
+    "bad": [
+     "Tahlil uchun ishtirok etgan o'quvchilar va ballar kerak."
+    ],
+    "tips": []
+   }
+  },
+  {
+   "stats": {
+    "n": 12,
+    "absent": [],
+    "qmax": [
+     5,
+     5,
+     5,
+     5,
+     5,
+     5,
+     5
+    ],
+    "tot_max": 35,
+    "students": [
+     {
+      "name": "O'quvchi 0",
+      "pts": [
+       5,
+       5,
+       5,
+       0,
+       0,
+       0,
+       0
+      ],
+      "total": 15,
+      "pct": 42.857143,
+      "grade": 3,
+      "empty": 0
+     },
+     {
+      "name": "O'quvchi 1",
+      "pts": [
+       5,
+       5,
+       5,
+       2,
+       1,
+       0,
+       1
+      ],
+      "total": 19,
+      "pct": 54.285714,
+      "grade": 3,
+      "empty": 0
+     },
+     {
+      "name": "O'quvchi 2",
+      "pts": [
+       5,
+       5,
+       5,
+       4,
+       2,
+       0,
+       0
+      ],
+      "total": 21,
+      "pct": 60,
+      "grade": 3,
+      "empty": 0
+     },
+     {
+      "name": "O'quvchi 3",
+      "pts": [
+       5,
+       5,
+       5,
+       0,
+       0,
+       0,
+       1
+      ],
+      "total": 16,
+      "pct": 45.714286,
+      "grade": 3,
+      "empty": 0
+     },
+     {
+      "name": "O'quvchi 4",
+      "pts": [
+       5,
+       5,
+       5,
+       2,
+       1,
+       0,
+       0
+      ],
+      "total": 18,
+      "pct": 51.428571,
+      "grade": 3,
+      "empty": 0
+     },
+     {
+      "name": "O'quvchi 5",
+      "pts": [
+       5,
+       5,
+       5,
+       4,
+       2,
+       0,
+       1
+      ],
+      "total": 22,
+      "pct": 62.857143,
+      "grade": 3,
+      "empty": 0
+     },
+     {
+      "name": "O'quvchi 6",
+      "pts": [
+       5,
+       5,
+       5,
+       0,
+       0,
+       0,
+       0
+      ],
+      "total": 15,
+      "pct": 42.857143,
+      "grade": 3,
+      "empty": 0
+     },
+     {
+      "name": "O'quvchi 7",
+      "pts": [
+       5,
+       5,
+       5,
+       2,
+       1,
+       0,
+       1
+      ],
+      "total": 19,
+      "pct": 54.285714,
+      "grade": 3,
+      "empty": 0
+     },
+     {
+      "name": "O'quvchi 8",
+      "pts": [
+       5,
+       5,
+       5,
+       4,
+       2,
+       0,
+       0
+      ],
+      "total": 21,
+      "pct": 60,
+      "grade": 3,
+      "empty": 0
+     },
+     {
+      "name": "O'quvchi 9",
+      "pts": [
+       5,
+       5,
+       5,
+       0,
+       0,
+       0,
+       1
+      ],
+      "total": 16,
+      "pct": 45.714286,
+      "grade": 3,
+      "empty": 0
+     },
+     {
+      "name": "O'quvchi 10",
+      "pts": [
+       5,
+       5,
+       5,
+       2,
+       1,
+       0,
+       0
+      ],
+      "total": 18,
+      "pct": 51.428571,
+      "grade": 3,
+      "empty": 0
+     },
+     {
+      "name": "O'quvchi 11",
+      "pts": [
+       5,
+       5,
+       5,
+       4,
+       2,
+       0,
+       1
+      ],
+      "total": 22,
+      "pct": 62.857143,
+      "grade": 3,
+      "empty": 0
+     }
+    ],
+    "questions": [
+     {
+      "i": 1,
+      "max": 5,
+      "mean": 5,
+      "pct": 100,
+      "full": 12,
+      "zero": 0,
+      "d": 0,
+      "level": "oson"
+     },
+     {
+      "i": 2,
+      "max": 5,
+      "mean": 5,
+      "pct": 100,
+      "full": 12,
+      "zero": 0,
+      "d": 0,
+      "level": "oson"
+     },
+     {
+      "i": 3,
+      "max": 5,
+      "mean": 5,
+      "pct": 100,
+      "full": 12,
+      "zero": 0,
+      "d": 0,
+      "level": "oson"
+     },
+     {
+      "i": 4,
+      "max": 5,
+      "mean": 2,
+      "pct": 40,
+      "full": 0,
+      "zero": 4,
+      "d": 0.8,
+      "level": "o'rtacha"
+     },
+     {
+      "i": 5,
+      "max": 5,
+      "mean": 1,
+      "pct": 20,
+      "full": 0,
+      "zero": 4,
+      "d": 0.4,
+      "level": "qiyin"
+     },
+     {
+      "i": 6,
+      "max": 5,
+      "mean": 0,
+      "pct": 0,
+      "full": 0,
+      "zero": 12,
+      "d": 0,
+      "level": "qiyin"
+     },
+     {
+      "i": 7,
+      "max": 5,
+      "mean": 0.5,
+      "pct": 10,
+      "full": 0,
+      "zero": 6,
+      "d": 0.066667,
+      "level": "qiyin"
+     }
+    ],
+    "grades": {
+     "5": 0,
+     "4": 0,
+     "3": 12,
+     "2": 0
+    },
+    "mean_total": 18.5,
+    "mean_pct": 52.857143,
+    "median_pct": 52.857143,
+    "best": {
+     "name": "O'quvchi 5",
+     "pts": [
+      5,
+      5,
+      5,
+      4,
+      2,
+      0,
+      1
+     ],
+     "total": 22,
+     "pct": 62.857143,
+     "grade": 3,
+     "empty": 0
+    },
+    "worst": {
+     "name": "O'quvchi 0",
+     "pts": [
+      5,
+      5,
+      5,
+      0,
+      0,
+      0,
+      0
+     ],
+     "total": 15,
+     "pct": 42.857143,
+     "grade": 3,
+     "empty": 0
+    },
+    "empty_cells": 0,
+    "quality": 0,
+    "mastery": 100
+   },
+   "rec": {
+    "good": [
+     "Yaxshi o'zlashtirilgan savollar: 1-savol (100%), 2-savol (100%), 3-savol (100%) — bu mavzular bo'yicha bilim mustahkam.",
+     "Ishtirok etgan barcha o'quvchi «3» dan past bo'lmagan baho olgan."
+    ],
+    "bad": [
+     "O'zlashtirishi past savollar: 6-savol (0%), 7-savol (10%), 5-savol (20%), 4-savol (40%).",
+     "Ko'pchilik 0 ball olgan savollar: 4-savol (4 ta), 5-savol (4 ta), 6-savol (12 ta), 7-savol (6 ta) — mavzu o'tilmagan, shart tushunarsiz yoki vaqt yetmagan bo'lishi mumkin.",
+     "Kuchli va kuchsiz o'quvchilarni yaxshi ajratmagan savollar: 6-savol, 7-savol — savol shakli yoki murakkabligini ko'rib chiqing.",
+     "Oxirgi savollar (5%) boshidagilardan (100%) ancha past — vaqt yetmagan yoki murakkab topshiriqlar qiyinlik tug'dirgan bo'lishi mumkin.",
+     "Bilim sifati past: faqat 0% o'quvchi «4» va «5» baho olgan."
+    ],
+    "tips": [
+     "6-savol (0%): mavzuni qayta tushuntiring, o'xshash misollarni sinfda birgalikda yeching.",
+     "7-savol (10%): mavzuni qayta tushuntiring, o'xshash misollarni sinfda birgalikda yeching.",
+     "5-savol (20%): mavzuni qayta tushuntiring, o'xshash misollarni sinfda birgalikda yeching.",
+     "4-savol (40%): xatolarni tahlil qiling va qo'shimcha mashqlar bering.",
+     "Yuqori bahoga yaqin o'quvchilar — qisqa takrorlash bilan natijani oshirish mumkin: O'quvchi 5 (2 ball → «4»), O'quvchi 11 (2 ball → «4»).",
+     "Bo'lim bo'yicha umumiy takrorlash darsi o'tkazing, so'ng qisqa nazorat (formativ) ishi bilan natijani tekshiring."
+    ]
+   }
+  }
  ]
 }

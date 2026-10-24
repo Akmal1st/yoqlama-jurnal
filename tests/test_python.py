@@ -9,7 +9,7 @@ GOLDEN = json.loads((TESTS / "golden.json").read_text(encoding="utf-8"))
 RESULT = compute()
 
 
-@pytest.mark.parametrize("key", ["grade5", "marks", "scores", "plans", "emaktab", "period"])
+@pytest.mark.parametrize("key", ["grade5", "marks", "scores", "plans", "emaktab", "period", "bsb"])
 def test_simple(key):
     assert RESULT[key] == GOLDEN[key]
 

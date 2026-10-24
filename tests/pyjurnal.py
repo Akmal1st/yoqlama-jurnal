@@ -86,6 +86,10 @@ def compute():
             co["report"] = {"lessons": lessons, "dates": dates, "rows": [{k: r[k] for k in RKEYS} for r in rows]}
             out["classes"].append(co)
         out["period"] = [lo, hi, q]
+        out["bsb"] = []
+        for b in INPUTS["bsb"]:
+            an = J.bsb_stats(b["qmax"], b["rows"])
+            out["bsb"].append({"stats": an, "rec": J.bsb_recommendations(an)})
         return norm(out)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
