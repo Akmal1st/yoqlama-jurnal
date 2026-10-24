@@ -98,6 +98,9 @@ table.j .sn{display:none}
 .lsn input{min-height:36px;padding:6px 9px}
 .pmsg{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line);border-radius:12px}.pmsg textarea{min-height:110px;font-size:14px}
 @media (max-width:560px){.lsn{grid-template-columns:52px minmax(0,1fr)}.lsn input[data-lh]{grid-column:2}}
+.pick{min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;padding:12px;border-radius:14px;background:var(--acc-soft)}
+.pname{font-size:30px;font-weight:800;line-height:1.15}.pick.flash{animation:pk .35s ease-out}@keyframes pk{from{transform:scale(.92);opacity:.3}to{transform:none;opacity:1}}
+.grps{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;max-height:min(55vh,480px);overflow:auto}.grp{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:3px}
 .tag.now{background:var(--acc);color:#fff;padding:2px 8px;border-radius:99px;margin-left:6px}
 table.sch td{padding:0}table.sch select{min-width:96px;min-height:36px;padding:4px 6px;font-size:13px}table.sch td.bl{display:flex;flex-direction:column;gap:2px;align-items:center;padding:2px 4px}table.sch td.bl input{width:104px;min-height:32px;padding:2px 6px;font-size:13px;text-align:center}
 .badge{font-size:11px;font-weight:800;color:#b42318;background:#fde8e6;padding:1px 7px;border-radius:99px;margin-left:6px;white-space:nowrap}
@@ -1386,6 +1389,8 @@ async function moreMenu() {
     [`⏸ Faol / faolsiz o'quvchilar${c.students_off.length ? ` (${c.students_off.length} faolsiz)` : ""}`, () => studentsDialog(S.ci)],
     S.sel && ["⭐ Kuzatuvga qo'shish / olib tashlash", () => { const s = c.students[S.sel[0]]; s.star = !s.star; save(); render(); }],
     S.sel && ["📇 O'quvchi kartochkasi", () => studentCard(S.ci, c.students[S.sel[0]].name)],
+    ["🎲 Doskaga chaqirish (tasodifiy o'quvchi)", () => callDialog(S.ci)],
+    ["👥 Guruhlarga bo'lish", () => groupsDialog(S.ci)],
     ["📝 Mavzular va uy vazifalari", () => lessonsDialog(S.ci)],
     ["✉️ Ota-onalarga xabarlar (butun sinf)", () => parentBulk(S.ci)],
     ["📚 Kalendar-tematik reja (KTR)", () => ktrDialog(S.ci)],
@@ -1455,7 +1460,8 @@ function pageLesson(m) {
   }
   m.innerHTML = `<div class="col" style="gap:12px"><div class="row"><button class="btn sm" data-exit>‹ Chiqish</button>
     <div class="col sp" style="gap:0"><h2>${esc(label(c))}</h2><span class="muted">${longDate(t)}${les.topic ? " · " + esc(les.topic) : ""}</span></div>
-    <div class="steps">${steps}</div></div>${body}
+    <div class="steps">${steps}</div></div>
+    <div class="row wrap" style="gap:8px"><button class="btn sm" data-call>🎲 Doskaga chaqirish</button><button class="btn sm" data-grp>👥 Guruhlarga bo'lish</button></div>${body}
     <div class="foot"><span class="muted sp">Kelmagan: ${absent} · kech qolgan: ${late} · baho qo'yilgan: ${graded}</span>
       ${S.step ? `<button class="btn" data-back>‹ Orqaga</button>` : ""}<button class="btn pri" data-next>${["Saqlash va baholarga o'tish ›", "Keyingi: mavzu ›", "✓ Darsni yakunlash"][S.step]}</button></div></div>`;
   const keepY = () => { const y = window.scrollY; render(); window.scrollTo(0, y); };
@@ -1475,6 +1481,8 @@ function pageLesson(m) {
   m.querySelectorAll("[data-two]").forEach((b) => b.onclick = () => { S.two = b.dataset.two === "1"; render(); });
   const all = $("[data-all]", m); if (all) all.onclick = () => { c.students.forEach((_, si) => { if (["s", "dq", "k"].includes(attOf(c, si))) putMark(c, si, t, "", true); }); keepY(); };
   $("[data-exit]", m).onclick = () => { saveTopic(); go("today"); };
+  $("[data-call]", m).onclick = () => { saveTopic(); callDialog(S.lesson); };
+  $("[data-grp]", m).onclick = () => { saveTopic(); groupsDialog(S.lesson); };
   const bk = $("[data-back]", m); if (bk) bk.onclick = () => { saveTopic(); S.step--; render(); };
   $("[data-next]", m).onclick = () => {
     saveTopic();
@@ -2944,6 +2952,112 @@ function lessonsDialog(ci) {
     };
     const redraw = () => { $("#lsb", m).innerHTML = body(); bind(); }; bind();
     $("[data-x]", m).onclick = () => { close(); render(); };
+  });
+}
+
+/* ───────── doskaga chaqirish va guruhlarga bo'lish ───────── */
+// bugun kelmaganlar (S/DQ/K) chiqarib tashlanadi; joriy davrdagi baholar soni va o'rtachasi
+function classPool(c) {
+  const t = todayIso(), [lo, hi] = periodNow();
+  return c.students.map((s, si) => {
+    const gr = Object.entries(s.marks).filter(([d]) => lo <= d && d <= hi && !isNoLesson(c, d)).flatMap(([, m]) => gradesOf(m));
+    return {s, si, n: gr.length, avg: gr.length ? gr.reduce((a, b) => a + b, 0) / gr.length : null, today: gradesOf(s.marks[t] || "").length > 0};
+  }).filter((x) => !["s", "dq", "k"].includes(attPart(x.s.marks[t] || "")));
+}
+// «kam so'ralganlar ko'proq»: baholari kam bo'lgan o'quvchining og'irligi katta, bugun baho olgan kamdan-kam chiqadi
+function pickWeights(pool, fair) {
+  const mx = Math.max(0, ...pool.map((x) => x.n));
+  return pool.map((x) => !fair ? 1 : (mx - x.n + 1) * (x.today ? 0.15 : 1));
+}
+function weightedPick(pool, w, rnd = Math.random) {
+  const sum = w.reduce((a, b) => a + b, 0); let r = rnd() * sum;
+  for (let i = 0; i < pool.length; i++) { r -= w[i]; if (r < 0) return pool[i]; }
+  return pool[pool.length - 1];
+}
+const CALLED = {};   // shu seansda chaqirilganlar: sinf kaliti → Set(ism)
+function callDialog(ci) {
+  const c = D.classes[ci], t = todayIso(), key = ckey(c), called = CALLED[key] = CALLED[key] || new Set();
+  const canGrade = c.dates.includes(t) && !isNoLesson(c, t);
+  let fair = D.web.pick_fair !== false, cur = null;
+  const body = () => {
+    const pool = classPool(c), left = pool.filter((x) => !called.has(x.s.name));
+    const s = cur && c.students[cur.si], gs = s ? gradesOf(s.marks[t] || "") : [];
+    return `<div class="seg"><button class="${fair ? "on" : ""}" data-fair="1">Kam so'ralganlar ko'proq</button><button class="${fair ? "" : "on"}" data-fair="0">Teng ehtimol</button></div>
+      <div class="pick">${s ? `<div class="pname">${esc(s.name)}</div><div class="muted">${cur.n ? `Bu davrda ${cur.n} ta baho · o'rtacha ${pyFixed(cur.avg, 1)}` : "Bu davrda hali baho olmagan"}</div>`
+        : `<div class="muted" style="font-size:17px">«🎲 Chaqirish»ni bosing</div>`}</div>
+      ${s && canGrade ? `<div class="row wrap" style="gap:4px;justify-content:center">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((g) =>
+        `<button class="gb" data-pg="${g}" style="${gs.includes(g) ? `background:${gradeColor(g)};border:2px solid var(--text);color:#12303a` : ""}">${g}</button>`).join("")}</div>` : ""}
+      <div class="muted">Darsda: ${pool.length} o'quvchi · chaqirilmagan: ${left.length}${called.size ? ` · chaqirilganlar: ${esc([...called].map(shortName).join(", "))}` : ""}</div>`;
+  };
+  return modal(`<h2>🎲 Doskaga chaqirish · ${esc(label(c))}</h2>
+    <div class="muted">Bugun kelmaganlar chiqmaydi. Bir o'quvchi qayta chiqmaydi — hamma chaqirilgach ro'yxat yangidan boshlanadi.${canGrade ? " Bahoni shu yerning o'zida qo'yish mumkin." : ""}</div>
+    <div id="pkb" class="col" style="gap:12px">${body()}</div>
+    <div class="row"><button class="btn" data-reset>Ro'yxatni yangilash</button><span class="sp"></span><button class="btn" data-x>Yopish</button><button class="btn pri" data-go>🎲 Chaqirish</button></div>`, (m, close) => {
+    const redraw = () => { $("#pkb", m).innerHTML = body(); bind(); };
+    const bind = () => {
+      m.querySelectorAll("[data-fair]").forEach((b) => b.onclick = () => { fair = b.dataset.fair === "1"; D.web.pick_fair = fair; save(); redraw(); });
+      m.querySelectorAll("[data-pg]").forEach((b) => b.onclick = () => {
+        const g = +b.dataset.pg, old = c.students[cur.si].marks[t] || "", gs = gradesOf(old);
+        putMark(c, cur.si, t, buildMark(gs.includes(g) ? gs.filter((x) => x !== g) : [g], lateOf(old))); redraw();
+      });
+    };
+    bind();
+    $("[data-go]", m).onclick = () => {
+      const pool = classPool(c); if (!pool.length) { toast("Darsda o'quvchi yo'q"); return; }
+      let left = pool.filter((x) => !called.has(x.s.name)); if (!left.length) { called.clear(); left = pool; }
+      cur = weightedPick(left, pickWeights(left, fair)); called.add(cur.s.name); redraw();
+      const p = $(".pick", m); p.classList.remove("flash"); void p.offsetWidth; p.classList.add("flash");
+    };
+    $("[data-reset]", m).onclick = () => { called.clear(); cur = null; redraw(); };
+    $("[data-x]", m).onclick = () => { close(); render(); };
+  });
+}
+// guruhlar: tasodifiy yoki teng kuchli (o'rtacha baho bo'yicha muvozanatlangan)
+function makeGroups(pool, k, mode, rnd = Math.random) {
+  const a = pool.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  const G = Array.from({length: k}, () => []);
+  if (mode === "even") {
+    // «ilon» usulida tarqatib, keyin guruhlar o'rtachasi yaqinlashguncha o'quvchilarni almashtiramiz
+    const v = (x) => x.avg ?? 6, mean = (g) => g.reduce((t, x) => t + v(x), 0) / (g.length || 1);
+    const spread = () => { const ms = G.map(mean), m = ms.reduce((t, x) => t + x, 0) / k; return ms.reduce((t, x) => t + (x - m) ** 2, 0); };
+    a.sort((x, y) => v(y) - v(x));
+    a.forEach((x, i) => { const r = Math.floor(i / k), p = i % k; G[r % 2 ? k - 1 - p : p].push(x); });
+    for (let pass = 0, better = true; better && pass < 50; pass++) {
+      better = false;
+      for (let g1 = 0; g1 < k; g1++) for (let g2 = g1 + 1; g2 < k; g2++) for (let i1 = 0; i1 < G[g1].length; i1++) for (let i2 = 0; i2 < G[g2].length; i2++) {
+        const before = spread(); [G[g1][i1], G[g2][i2]] = [G[g2][i2], G[g1][i1]];
+        if (spread() < before - 1e-9) better = true; else [G[g1][i1], G[g2][i2]] = [G[g2][i2], G[g1][i1]];
+      }
+    }
+  } else a.forEach((x, i) => G[i % k].push(x));
+  return G;
+}
+function groupsDialog(ci) {
+  const c = D.classes[ci];
+  let k = D.web.groups_k || 4, mode = D.web.groups_mode || "rand", G = null;
+  const avgOf = (g) => { const v = g.filter((x) => x.avg !== null); return v.length ? pyFixed(v.reduce((a, x) => a + x.avg, 0) / v.length, 1) : "—"; };
+  const text = () => G.map((g, i) => `${i + 1}-guruh: ${g.map((x) => x.s.name).join(", ")}`).join("\n");
+  const body = () => {
+    const pool = classPool(c);
+    if (!G) G = makeGroups(pool, Math.min(k, Math.max(1, pool.length)), mode);
+    return `<div class="row wrap" style="gap:8px"><span>Guruhlar soni:</span><div class="seg">${[2, 3, 4, 5, 6].map((n) => `<button class="${n === k ? "on" : ""}" data-gk="${n}">${n}</button>`).join("")}</div>
+        <div class="seg"><button class="${mode === "rand" ? "on" : ""}" data-gm="rand">Tasodifiy</button><button class="${mode === "even" ? "on" : ""}" data-gm="even">Teng kuchli</button></div></div>
+      <div class="muted">Darsda: ${pool.length} o'quvchi (bugun kelmaganlar qo'shilmaydi).${mode === "even" ? " Teng kuchli: har guruhga kuchli va kuchsizroq o'quvchilar teng taqsimlanadi." : ""}</div>
+      <div class="grps">${G.map((g, i) => `<div class="grp"><div class="row"><b class="sp">${i + 1}-guruh</b><span class="muted">${g.length} ta${mode === "even" ? ` · o'rt. ${avgOf(g)}` : ""}</span></div>
+        ${g.map((x) => `<div>${esc(x.s.name)}</div>`).join("")}</div>`).join("")}</div>`;
+  };
+  return modal(`<h2>👥 Guruhlarga bo'lish · ${esc(label(c))}</h2><div id="grb" class="col" style="gap:12px">${body()}</div>
+    <div class="row wrap"><button class="btn" data-copy>📋 Nusxa olish</button><span class="sp"></span><button class="btn" data-x>Yopish</button><button class="btn pri" data-mix>🔀 Qayta aralashtirish</button></div>`, (m, close) => {
+    const redraw = () => { $("#grb", m).innerHTML = body(); bind(); };
+    const bind = () => {
+      m.querySelectorAll("[data-gk]").forEach((b) => b.onclick = () => { k = +b.dataset.gk; D.web.groups_k = k; save(); G = null; redraw(); });
+      m.querySelectorAll("[data-gm]").forEach((b) => b.onclick = () => { mode = b.dataset.gm; D.web.groups_mode = mode; save(); G = null; redraw(); });
+    };
+    bind();
+    $("[data-mix]", m).onclick = () => { G = null; redraw(); };
+    $("[data-copy]", m).onclick = async () => { try { await navigator.clipboard.writeText(text()); toast("Guruhlar nusxalandi — xohlagan joyga qo'yishingiz mumkin"); } catch (e) { toast("Nusxa olib bo'lmadi"); } };
+    $("[data-x]", m).onclick = () => close();
   });
 }
 

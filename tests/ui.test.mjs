@@ -588,3 +588,43 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
     } finally { await browser.close(); }
   });
 }
+
+test("Doskaga chaqirish va guruhlarga bo'lish", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const info = await page.evaluate(() => {
+      const t = todayIso(), c = D.classes[0];
+      if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } c.extra_x = c.extra_x.filter((d) => d !== t); c.held.push(t);
+      c.students.forEach((s) => delete s.marks[t]); c.students[0].marks[t] = "s";
+      // og'irlik: kam baho olgan ko'proq, bugun baho olgan kamroq
+      const w = pickWeights([{n: 5}, {n: 0}, {n: 0, today: true}], true);
+      const G = makeGroups(Array.from({length: 10}, (_, i) => ({avg: i + 1})), 3, "even", () => 0.5);
+      save(); S.ci = 0; startLesson(0); return {absent: c.students[0].name, n: c.students.length, w, sizes: G.map((g) => g.length), sums: G.map((g) => g.reduce((a, x) => a + x.avg, 0))};
+    });
+    assert.ok(info.w[1] > info.w[0] && info.w[2] < info.w[1], JSON.stringify(info.w));
+    assert.deepEqual(info.sizes.sort(), [3, 3, 4]);
+    assert.ok(Math.max(...info.sums) - Math.min(...info.sums) <= 10, JSON.stringify(info.sums));
+    await page.click("[data-call]");
+    const seen = new Set();
+    for (let i = 0; i < info.n - 1; i++) { await page.click(".modal [data-go]"); seen.add(await page.textContent(".pname")); }
+    assert.equal(seen.size, info.n - 1, "har kim bir martadan chiqadi");
+    assert.ok(!seen.has(info.absent), "kelmagan o'quvchi chaqirilmaydi");
+    const last = await page.textContent(".pname");
+    await page.click('.modal [data-pg="8"]');
+    assert.equal(await page.evaluate((n) => D.classes[0].students.find((s) => s.name === n).marks[todayIso()], last), "8");
+    await page.click(".modal [data-x]");
+    await page.click("[data-grp]");
+    await page.click('[data-gk="3"]'); await page.click('[data-gm="even"]');
+    assert.equal(await page.locator(".grp").count(), 3);
+    const total = await page.evaluate(() => [...document.querySelectorAll(".grp")].reduce((a, g) => a + g.children.length - 1, 0));
+    assert.equal(total, info.n - 1);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
