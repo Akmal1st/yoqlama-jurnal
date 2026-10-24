@@ -11,6 +11,7 @@ Bu dastur o'qituvchilar uchun. Unda yo'qlama, kundalik baholar, BSB/CHSB, chorak
 ## Ishga tushirish
 
 - **Web ilova:** `docs/index.html` faylini brauzerda oching. Telefonda sayt manzilini oching va «Bosh ekranga qo'shish» tugmasini bosing.
+- **emaktab.uz dan import (web ilova):** Sozlamalar → Ma'lumotlar → «emaktab.uz saytidan to'g'ridan-to'g'ri» → «📒 emaktab → Jurnal» tugmasini xatcho'plar paneliga sudrang. Keyin emaktab'ga kirib, «Sinflarim» sahifasida shu xatcho'pni bosing. Joriy chorak jurnallari ilovaga keladi, login/parol hech qayerga uzatilmaydi. Bu usul faqat sayt manzilidan ochilgan ilovada ishlaydi, `docs/index.html` faylidan ochilganda ishlamaydi.
 - **Kompyuter dasturi:**
   1. `pip install PySide6 pandas xlrd openpyxl` buyrug'ini bajaring.
   2. `python dastur/yoqlama_jurnal2.py` buyrug'i bilan oching. Eski ko'rinish `yoqlama_jurnal.py` bilan ochiladi.
