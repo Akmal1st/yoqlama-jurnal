@@ -91,6 +91,7 @@ a.btn{text-decoration:none;color:inherit}a.btn.pri{color:var(--acc-fg)}
 .big{font-size:24px;font-weight:800}
 .item{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--soft)}
 .av{width:38px;height:38px;border-radius:12px;background:var(--soft);color:var(--acc);display:grid;place-items:center;font-weight:800;flex:none}
+table.j .sn{display:none}
 .badge{font-size:11px;font-weight:800;color:#b42318;background:#fde8e6;padding:1px 7px;border-radius:99px;margin-left:6px;white-space:nowrap}
 input[type=text],input[type=date],input[type=password],input[type=number],select,textarea{background:var(--base);border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-height:40px;width:100%}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:-1px}
@@ -309,8 +310,11 @@ table.r tr:hover td{background:var(--alt)}
   .keys{display:grid;grid-template-columns:repeat(9,1fr);overflow:visible;gap:4px;padding:8px}
   .keys .hint{grid-column:1/-1;max-width:none;font-size:13px;white-space:normal;margin:0 2px 2px}
   .keys .key{min-width:0;width:100%;height:40px;font-size:14px;padding:0}
-  table.j .nm{white-space:normal;text-overflow:clip;overflow-wrap:anywhere;min-width:104px;max-width:124px;line-height:1.15;font-size:13.5px;padding:2px 6px 2px 2px}
-  table.j .nm .badge{display:inline-block;margin:2px 0 0}
+  table.j .nm{white-space:nowrap;text-overflow:ellipsis;max-width:150px;font-size:13.5px;padding:2px 6px 2px 2px}
+  table.j .nm .fn{display:none}table.j .nm .sn{display:inline}
+  table.j .nm i{min-width:18px}
+  /* «xavf» belgisi telefonda qizil nuqta (to'liq so'z kartochkada) */
+  table.j .nm .badge{display:inline-block;width:8px;height:8px;padding:0;margin:0 0 1px 5px;font-size:0;background:#d92d20;vertical-align:middle}
   /* hisobot jadvallari telefonda kartochka ko'rinishida — har qiymat yonida nomi */
   table.r,table.r tbody,table.r tr,table.r td{display:block}
   table.r tr:first-child{display:none}
@@ -1251,7 +1255,7 @@ function pageJournal(m) {
   let body = "";
   c.students.forEach((s, si) => {
     const r = rows[si];
-    body += `<tr class="${S.sel && S.sel[0] === si ? "cur" : ""}"><td class="nm" data-st="${si}" title="${esc(s.name)} — kartochkani ochish"><i>${si + 1}</i>${s.star ? "⭐ " : ""}${esc(s.name)}${riskNames.has(s.name) ? '<span class="badge">xavf</span>' : ""}</td>`;
+    body += `<tr class="${S.sel && S.sel[0] === si ? "cur" : ""}"><td class="nm" data-st="${si}" title="${esc(s.name)} — kartochkani ochish"><i>${si + 1}</i>${s.star ? "⭐ " : ""}${nmHtml(s.name)}${riskNames.has(s.name) ? '<span class="badge">xavf</span>' : ""}</td>`;
     ds.forEach((d, di) => {
       if (split && !isNoLesson(c, d)) {
         const mk = s.marks[d] || "", ap = attPart(mk), gs = gradesOf(mk), ac = markColors(ap), gc = gs.length ? markColors(buildMark(gs, false)) : null;
@@ -1294,6 +1298,9 @@ function pageJournal(m) {
   $("[data-two]", m).onclick = () => { S.second = !S.second; render(); if (S.second) toast("Keyingi raqam ikkinchi baho sifatida qo'shiladi"); };
 }
 // ism ustuni yopishqoq: tortish chegarasi uning o'ng chetidan boshlanadi (kenglik yozuv o'lchamiga qarab o'zgaradi)
+// telefonda ism bir qatorda: «Isakjanov Shoxjaxon» → «I. Shoxjaxon» (to'liq ism kompyuterda va title'da)
+function shortName(n) { const w = String(n).trim().split(/\s+/); return w.length > 1 ? `${w[0][0]}. ${w[1]}` : w[0] || ""; }
+const nmHtml = (n) => `<span class="fn">${esc(n)}</span><span class="sn">${esc(shortName(n))}</span>`;
 let snapRO = null, snapTb = null;
 function snapCols() {
   const tw = $("#tw"), d = tw && tw.querySelector("th.d"); if (!d) return;
@@ -1902,7 +1909,7 @@ function pageSum(m) {
       <th>BSB<small>/${BSB_TOTAL}</small></th><th>CHSB<small>/${CHSB_TOTAL}</small></th><th title="Formativ baho: kundalik baholar o'rtachasi (kamida ${fbMin()} ta)">FB<small>/${FB_TOTAL}</small></th><th>Jami<small>/100</small></th><th>Tavsiya</th><th>Chorak<small>bahosi</small></th></tr>`;
     const body2 = c.students.map((s, si) => {
       const r = quarterResult(c, s, q, works), scs = s.scores || {};
-      return `<tr><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${esc(s.name)}</td>${works.map((w) => {
+      return `<tr><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>${works.map((w) => {
         const v = scs[w.id] ?? ""; const bad = isNum(v) && v > w.max, lt = isNum(v) && lateOf(s.marks[w.date]);
         return `<td class="c"><input class="sc ${v === "" ? "" : isNum(v) ? "" : "ab"} ${bad ? "bad" : ""} ${lt ? "lt" : ""}" data-sc="${si}|${w.id}" value="${esc(isNum(v) ? fmtNum(v) + (lt ? " KQ" : "") : String(v).toUpperCase())}" inputmode="decimal" enterkeyhint="next" autocomplete="off"></td>`;
       }).join("")}
@@ -1988,7 +1995,7 @@ function pageYear(m) {
   const rows = c.students.map((s, si) => {
     const y = yearResult(c, s), sc = s.scores || {};
     const qcells = y.q.map((r, i) => { const fq = sc[`final:q${i + 1}`]; return `<td class="s">${fq !== undefined && fq !== "" ? g5pill(+fq) : r && r.grade ? `<span class="muted" title="Tavsiya (qo'yilmagan)">(${r.grade})</span>` : "—"}</td>`; }).join("");
-    return `<tr><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${esc(s.name)}</td>${qcells}<td class="s">${y.ready ? fmtNum(y.year) : `<span class="muted" title="Hamma choraklar ballari to'liq emas">…</span>`}</td>
+    return `<tr><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>${qcells}<td class="s">${y.ready ? fmtNum(y.year) : `<span class="muted" title="Hamma choraklar ballari to'liq emas">…</span>`}</td>
       <td class="s">${g5pill(y.year_grade)}</td><td class="s">${g5select(`data-fy="${si}|final:y"`, sc["final:y"])}</td>
       ${c.has_exam ? `<td class="c"><input class="sc" data-ex="${si}" value="${esc(fmtNum(sc.exam ?? ""))}" inputmode="decimal"></td><td class="s">${y.final !== null ? fmtNum(y.final) : "…"}</td><td class="s">${g5pill(y.final_grade)}</td>
       <td class="s">${g5select(`data-fy="${si}|final:f"`, sc["final:f"])}</td>` : ""}</tr>`;
@@ -2167,7 +2174,7 @@ function pageBsb(m) {
       <tr class="mx"><td></td><td class="nm"><b>Maksimal ball</b></td>${B.max.map((v, i) => `<td class="c"><input class="sc" data-bx="${i}" value="${gnum(v)}" inputmode="decimal" autocomplete="off"></td>`).join("")}<td class="s">${gnum(tot)}</td><td class="s">100</td><td></td></tr>`;
     const rows = c.students.map((s, si) => {
       const r = baRow(B, s.name), on = r.in !== false;
-      return `<tr class="${on ? "" : "off"}" data-row="${si}"><td class="c"><input type="checkbox" data-bin="${si}" ${on ? "checked" : ""}></td><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${esc(s.name)}</td>
+      return `<tr class="${on ? "" : "off"}" data-row="${si}"><td class="c"><input type="checkbox" data-bin="${si}" ${on ? "checked" : ""}></td><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>
         ${B.max.map((mx, i) => { const v = r.pts[i]; return `<td class="c"><input class="sc ${v > mx ? "bad" : ""}" data-bp="${si}|${i}" value="${v === null || v === undefined ? "" : gnum(v)}" inputmode="decimal" enterkeyhint="next" autocomplete="off" ${on ? "" : "disabled"}></td>`; }).join("")}
         <td class="s" data-tot></td><td class="s a" data-pct></td><td class="s" data-g></td></tr>`;
     }).join("");
