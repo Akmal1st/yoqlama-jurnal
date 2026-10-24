@@ -92,6 +92,8 @@ a.btn{text-decoration:none;color:inherit}a.btn.pri{color:var(--acc-fg)}
 .item{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--soft)}
 .av{width:38px;height:38px;border-radius:12px;background:var(--soft);color:var(--acc);display:grid;place-items:center;font-weight:800;flex:none}
 table.j .sn{display:none}
+.tag.now{background:var(--acc);color:#fff;padding:2px 8px;border-radius:99px;margin-left:6px}
+table.sch td{padding:0}table.sch select{min-width:96px;min-height:36px;padding:4px 6px;font-size:13px}table.sch td.bl{display:flex;flex-direction:column;gap:2px;align-items:center;padding:2px 4px}table.sch td.bl input{width:104px;min-height:32px;padding:2px 6px;font-size:13px;text-align:center}
 .badge{font-size:11px;font-weight:800;color:#b42318;background:#fde8e6;padding:1px 7px;border-radius:99px;margin-left:6px;white-space:nowrap}
 input[type=text],input[type=date],input[type=password],input[type=number],select,textarea{background:var(--base);border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-height:40px;width:100%}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:-1px}
@@ -675,9 +677,13 @@ function riskOverview() {
 }
 const hasMarks = (c, s) => c.students.some((st) => st.marks[s]);
 function lessonsToday() {
-  const t = todayIso();
-  return D.classes.map((c, ci) => ({c, ci})).filter(({c}) => c.dates.includes(t) && !isNoLesson(c, t))
+  const t = todayIso(), sc = schedToday(t);
+  const L = D.classes.map((c, ci) => ({c, ci})).filter(({c}) => c.dates.includes(t) && !isNoLesson(c, t))
     .map(({c, ci}) => ({c, ci, done: hasMarks(c, t) || c.att_ok.includes(t)}));
+  if (!sc.length) return L;
+  // jadval bo'yicha: birinchi soati bo'yicha tartiblash, vaqtini qo'shish
+  const at = (ci) => sc.filter((x) => x.ci === ci);
+  return L.map((x) => ({...x, slots: at(x.ci)})).sort((a, b) => (a.slots[0] ? a.slots[0].no : 99) - (b.slots[0] ? b.slots[0].no : 99));
 }
 function upcoming(days = 7) {
   const t = todayIso(), hi = iso(addDays(new Date(), days)), out = [];
@@ -1161,11 +1167,15 @@ function pageToday(m) {
   const nowd = D.classes.filter((c) => !c.weekdays || !c.weekdays.length).length;
   const risk = riskOverview().flatMap((r) => r.names.map((n) => ({ci: r.ci, ...n})));
   const ups = upcoming();
-  const cards = L.length ? L.map(({c, ci, done}) => {
+  const hm = `${pad(new Date().getHours())}:${pad(new Date().getMinutes())}`;
+  const nextNo = (() => { const all = L.flatMap((x) => x.slots || []).filter((x) => x.from).sort((a, b) => a.no - b.no); const cur = all.find((x) => x.from <= hm && hm < x.to); return cur ? ["now", cur.no] : (all.find((x) => hm < x.from) ? ["next", all.find((x) => hm < x.from).no] : null); })();
+  const cards = L.length ? L.map(({c, ci, done, slots}) => {
     const n = c.students.filter((s) => s.marks[t]).length;
+    const tag = slots && slots.length ? slots.map((x) => `${x.no + 1}-soat${x.from ? ` · ${x.from}–${x.to}` : ""}`).join(", ") : "BUGUN";
+    const live = nextNo && slots && slots.some((x) => x.no === nextNo[1]) ? (nextNo[0] === "now" ? `<span class="tag now">HOZIR</span>` : `<span class="tag">KEYINGI</span>`) : "";
     const w = c.works.find((x) => x.date === t), topic = (c.lessons[t] || {}).topic;
     const note = w ? `Bugun ${w.type.toUpperCase()}${w.max ? ` (${w.max} ball)` : ""} — natijalarni kiritish` : topic ? `Mavzu: ${esc(topic)}` : "Mavzu kiritilmagan";
-    return `<article class="card ${done ? "" : "hot"} col"><div class="row"><span class="tag">BUGUN</span><span class="sp"></span>
+    return `<article class="card ${done ? "" : "hot"} col"><div class="row"><span class="tag">${tag}</span>${live}<span class="sp"></span>
       <span class="${done ? "ok" : "warn"}">${done ? `Yo'qlama ✓ · ${n} belgi` : "Yo'qlama qilinmagan"}</span></div>
       <div class="big">${esc(c.name)}</div><div class="muted">${esc(c.subject || "Fan ko'rsatilmagan")} · ${c.students.length} o'quvchi</div>
       <div>${note}</div><div class="sp"></div>
@@ -1549,7 +1559,10 @@ function pageSettings(m) {
         `<button class="btn sm" data-a="stud" data-i="${i}">＋ O'quvchi</button><button class="btn sm" data-a="rmst" data-i="${i}">⏸ Faolsiz${c.students_off.length ? ` (${c.students_off.length})` : ""}</button><button class="btn sm" data-a="edit" data-i="${i}">✎</button><button class="btn sm danger" data-a="del" data-i="${i}">O'chirish</button>`)).join("");
   } else if (S.sec === 1) {
     const qs = [1, 2, 3, 4].map((q) => { const r = st.quarters[q - 1] || ["", ""]; return `<div class="row" style="gap:8px"><b style="width:80px">${q}-chorak</b><input type="date" data-q="${q}|0" value="${r[0] || ""}" style="max-width:180px"> — <input type="date" data-q="${q}|1" value="${r[1] || ""}" style="max-width:180px"></div>`; }).join("");
-    body = `<div class="srow"><div><b>Har bir sinfning dars kunlari</b><div class="muted">Bosib belgilang. Saqlangach joriy chorak sanalari o'zi yaratiladi.</div></div></div>` +
+    const sc = sched(), nL = sc ? sc.days.reduce((a, d) => a + d.filter(Boolean).length, 0) : 0;
+    body = srow("📅 Dars jadvali", sc ? `Haftasiga ${nL} ta dars · ${sc.bells.length} soatlik kun. Dars kunlari va «Bugun» sahifasi shu jadvalga qarab ishlaydi.` : "Haftalik jadvalni bir marta kiriting yoki Excel fayldan yuklang — «Bugun» sahifasi darslarni soat tartibida ko'rsatadi, dars kunlari o'zi belgilanadi.",
+      `<button class="btn pri" data-a="sch">${sc ? "Tahrirlash" : "Kiritish"}</button><button class="btn" data-a="schx">📊 Excel'dan yuklash</button><button class="btn" data-a="scht">⬇ Namuna Excel</button>`) +
+      `<div class="srow"><div><b>Har bir sinfning dars kunlari</b><div class="muted">Bosib belgilang. Saqlangach joriy chorak sanalari o'zi yaratiladi.</div></div></div>` +
       D.classes.map((c, i) => `<div class="srow"><div><b>${esc(label(c))}</b></div><div class="days">${WD.slice(0, 6).map((w, k) => `<button class="${(c.weekdays || []).includes(k) ? "on" : ""}" data-wd="${i}|${k}">${w}</button>`).join("")}</div></div>`).join("") +
       `<div class="srow"><div><b>Choraklar</b><div class="muted">Boshlanish va tugash sanalari — hamma sinflar uchun umumiy.</div><div class="col" style="margin-top:10px">${qs}</div></div>
         <button class="btn pri" data-a="genq">Saqlash va dars kunlarini yaratish</button></div>` +
@@ -1669,6 +1682,9 @@ async function settingsAction(a, i) {
   else if (a === "emk") emkDialog();
   else if (a === "roll") rollover();
   else if (a.startsWith("tg")) tgAction(a);
+  else if (a === "sch") scheduleEditor();
+  else if (a === "schx") scheduleImport();
+  else if (a === "scht") scheduleTemplate().catch((e) => toast(e.message));
   else if (a === "exp") exportJson();
   else if (a === "imp") importJson();
   else if (a === "hist") {
@@ -2749,6 +2765,117 @@ function rollover() {
   });
 }
 function backupAge() { if (!D.web.exported) return null; return Math.floor((Date.now() - Date.parse(D.web.exported)) / 864e5); }
+
+/* ───────── dars jadvali ───────── */
+// D.web.schedule = {bells: [["08:00","08:45"], …], days: [[jurnal kaliti | "" har soat uchun] × 6 kun (Du…Sh)]}
+const SCH_DEF_BELLS = [["08:00", "08:45"], ["08:50", "09:35"], ["09:40", "10:25"], ["10:35", "11:20"], ["11:25", "12:10"], ["12:15", "13:00"]];
+const ckey = (c) => `${c.name}|${c.subject}`;
+function sched() { const s = D.web.schedule; return s && Array.isArray(s.days) && s.days.some((d) => d.some(Boolean)) ? s : null; }
+function schedEmpty() { return {bells: clone(SCH_DEF_BELLS), days: Array.from({length: 6}, () => SCH_DEF_BELLS.map(() => ""))}; }
+// bugungi darslar soat tartibida: [{c, ci, no, from, to}]
+function schedToday(t = todayIso()) {
+  const s = sched(), wd = pyWd(t); if (!s || wd > 5) return [];
+  return (s.days[wd] || []).map((k, no) => { const ci = D.classes.findIndex((c) => ckey(c) === k); return k && ci >= 0 ? {c: D.classes[ci], ci, no, from: (s.bells[no] || [])[0] || "", to: (s.bells[no] || [])[1] || ""} : null; }).filter(Boolean);
+}
+// jadvaldan har sinfning dars kunlarini olish; o'chgan kunlardagi bo'sh kelajak sanalar olib tashlanadi
+function schedApplyWeekdays() {
+  const s = sched(); if (!s) return 0; const q = quarterOf(todayIso()), t = todayIso(); let n = 0;
+  for (const c of D.classes) {
+    const wds = [0, 1, 2, 3, 4, 5].filter((d) => (s.days[d] || []).includes(ckey(c)));
+    if (!wds.length || JSON.stringify(wds) === JSON.stringify((c.weekdays || []).slice().sort())) continue;
+    c.weekdays = wds; n++;
+    c.dates = c.dates.filter((d) => d < t || wds.includes(pyWd(d)) || hasMarks(c, d) || c.lessons[d] || c.works.some((w) => w.date === d));
+    if (q) genQuarter(q, [c]);
+  }
+  return n;
+}
+const normCls = (x) => String(x || "").toUpperCase().replace(/[«»"'ʻʼ`‘’\s._-]/g, "");
+// Excel jadvalni o'qish: kunlar ustunlarda (yoki qatorlarda), har katakda «6-A», «6-A Matematika» kabi yozuv
+function parseSchedule(rows) {
+  const DAYRX = [/^(du|dush|пн|пон)/i, /^(se|sesh|вт|вто)/i, /^(ch|chor|ср|сре)/i, /^(pa|pay|чт|чет)/i, /^(ju|jum|пт|пят)/i, /^(sh|shan|сб|суб)/i];
+  const dayOf = (v) => { const t = String(v || "").trim(); if (t.length < 2) return -1; return DAYRX.findIndex((r) => r.test(t)); };
+  rows = rows.map((r) => (r || []).map((v) => v == null ? "" : String(v).trim()));
+  let grid = rows, hr = grid.findIndex((r) => r.filter((v) => dayOf(v) >= 0).length >= 3);
+  if (hr < 0) { // kunlar birinchi ustunlarda bo'lsa — jadvalni ag'darib qo'yamiz
+    const w = Math.max(0, ...rows.map((r) => r.length));
+    grid = Array.from({length: w}, (_, j) => rows.map((r) => r[j] || ""));
+    hr = grid.findIndex((r) => r.filter((v) => dayOf(v) >= 0).length >= 3);
+  }
+  if (hr < 0) throw new Error("Jadvalda hafta kunlari (Dushanba, Seshanba …) topilmadi");
+  const cols = grid[hr].map(dayOf), TRX = /(\d{1,2})[:.](\d{2})\s*[-–—]\s*(\d{1,2})[:.](\d{2})/;
+  const byCls = new Map(); for (const c of D.classes) { const k = normCls(c.name); if (!byCls.has(k)) byCls.set(k, []); byCls.get(k).push(c); }
+  const out = {bells: [], days: Array.from({length: 6}, () => [])}, miss = new Set();
+  for (const r of grid.slice(hr + 1)) {
+    if (r.join("").trim() === "") continue;
+    const tm = r.map((v) => v.match(TRX)).find(Boolean);
+    const no = out.bells.length; out.bells.push(tm ? [`${pad(+tm[1])}:${tm[2]}`, `${pad(+tm[3])}:${tm[4]}`] : (SCH_DEF_BELLS[no] || ["", ""]).slice());
+    for (let d = 0; d < 6; d++) out.days[d][no] = "";
+    r.forEach((v, j) => {
+      const d = cols[j]; if (d < 0 || d > 5 || !v || v === "-" || v === "—") return;
+      // «6 - A», «6-«A»», «6A» → «6A»; so'ng so'zlarga bo'lib sinf nomini qidiramiz
+      const toks = new Set(v.toUpperCase().replace(/[«»"'ʻʼ`‘’]/g, "").replace(/(\d)\s*[-–.]?\s*([A-ZА-ЯЁ])(?![A-ZА-ЯЁ])/g, "$1$2").split(/[^0-9A-ZА-ЯЁ]+/));
+      const hit = [...byCls.keys()].filter((k) => k && toks.has(k));
+      const k = hit.sort((a, b) => b.length - a.length)[0];
+      if (!k) { miss.add(v); return; }
+      const list = byCls.get(k), low = v.toLowerCase();
+      const c = list.find((x) => x.subject && low.includes(x.subject.toLowerCase().slice(0, 4))) || list[0];
+      out.days[d][no] = ckey(c);
+    });
+  }
+  while (out.bells.length && out.days.every((d) => !d[out.bells.length - 1])) { out.bells.pop(); out.days.forEach((d) => d.pop()); }
+  return {schedule: out, missing: [...miss]};
+}
+async function scheduleTemplate() {
+  const X = await loadXlsx(), s = sched() || schedEmpty();
+  const lbl = (k) => { const c = D.classes.find((x) => ckey(x) === k); return c ? label(c).replace(" · ", " ") : ""; };
+  const aoa = [["Soat", "Vaqt", ...WD_FULL.slice(0, 6)], ...s.bells.map((b, i) => [i + 1, b[0] ? `${b[0]}-${b[1]}` : "", ...s.days.map((d) => lbl(d[i]))])];
+  if (!sched()) aoa[1][2] = D.classes[0] ? label(D.classes[0]).replace(" · ", " ") : "6-A Matematika";
+  const ws = X.utils.aoa_to_sheet(aoa); ws["!cols"] = [{wch: 6}, {wch: 13}, ...WD_FULL.slice(0, 6).map(() => ({wch: 18}))];
+  const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, "Dars jadvali"); X.writeFile(wb, "dars_jadvali.xlsx");
+}
+function scheduleImport() {
+  const f = document.createElement("input"); f.type = "file"; f.accept = ".xls,.xlsx,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  f.onchange = async () => {
+    const file = f.files[0]; if (!file) return;
+    try {
+      const X = await loadXlsx(), wb = X.read(await file.arrayBuffer(), {type: "array"});
+      let res = null, err = null;
+      for (const n of wb.SheetNames) { try { res = parseSchedule(X.utils.sheet_to_json(wb.Sheets[n], {header: 1, raw: false, defval: ""})); if (res.schedule.days.some((d) => d.some(Boolean))) break; } catch (e) { err = e; } }
+      if (!res || !res.schedule.days.some((d) => d.some(Boolean))) throw err || new Error("Jadvalda sizning sinflaringiz topilmadi");
+      scheduleEditor(res.schedule, res.missing);
+    } catch (e) { toast("Jadvalni o'qib bo'lmadi: " + e.message); }
+  };
+  f.click();
+}
+function scheduleEditor(init, missing = []) {
+  const s = clone(init || sched() || schedEmpty());
+  const opts = (k) => `<option value="">—</option>${D.classes.map((c) => `<option value="${esc(ckey(c))}" ${ckey(c) === k ? "selected" : ""}>${esc(label(c))}</option>`).join("")}`;
+  const draw = () => `<div class="tblwrap"><table class="j sch"><tr><th>Soat</th>${WD.slice(0, 6).map((w) => `<th>${w}</th>`).join("")}</tr>
+    ${s.bells.map((b, i) => `<tr><td class="bl"><b>${i + 1}</b><input type="text" inputmode="numeric" data-bf="${i}" value="${b[0] ? `${b[0]}-${b[1]}` : ""}" placeholder="08:00-08:45" aria-label="${i + 1}-soat vaqti"></td>
+      ${s.days.map((d, k) => `<td><select data-sd="${k}|${i}">${opts(d[i])}</select></td>`).join("")}</tr>`).join("")}</table></div>`;
+  return modal(`<h2>📅 Dars jadvali</h2><div class="muted">Har bir soat va kun uchun sinfni tanlang. Saqlaganda sinflarning dars kunlari shu jadvaldan olinadi, «Bugun» sahifasi darslarni soat tartibida ko'rsatadi.</div>
+    ${missing.length ? `<div class="card hot" style="padding:10px 12px">Jurnalda topilmagan yozuvlar (e'tiborsiz qoldirildi): ${missing.slice(0, 12).map(esc).join(", ")}${missing.length > 12 ? " …" : ""}</div>` : ""}
+    <div id="schg">${draw()}</div>
+    <div class="row wrap" style="gap:8px"><button class="btn sm" data-add>＋ Soat</button><button class="btn sm" data-del>− Soat</button><span class="sp"></span>
+      <button class="btn" data-x>Bekor qilish</button><button class="btn pri" data-ok>Saqlash</button></div>`, (m, close) => {
+    const bind = () => {
+      m.querySelectorAll("[data-sd]").forEach((x) => x.onchange = () => { const [k, i] = x.dataset.sd.split("|").map(Number); s.days[k][i] = x.value; });
+      m.querySelectorAll("[data-bf]").forEach((x) => x.onchange = () => {
+        const t = x.value.match(/(\d{1,2})[:.](\d{2})\s*[-–—]\s*(\d{1,2})[:.](\d{2})/);
+        if (!t && x.value.trim()) { toast("Vaqtni 08:00-08:45 ko'rinishida yozing"); return; }
+        s.bells[+x.dataset.bf] = t ? [`${pad(+t[1])}:${t[2]}`, `${pad(+t[3])}:${t[4]}`] : ["", ""];
+      });
+    };
+    const redraw = () => { $("#schg", m).innerHTML = draw(); bind(); }; bind();
+    $("[data-add]", m).onclick = () => { s.bells.push(SCH_DEF_BELLS[s.bells.length] ? SCH_DEF_BELLS[s.bells.length].slice() : ["", ""]); s.days.forEach((d) => d.push("")); redraw(); };
+    $("[data-del]", m).onclick = () => { if (s.bells.length > 1) { s.bells.pop(); s.days.forEach((d) => d.pop()); redraw(); } };
+    $("[data-x]", m).onclick = () => close(false);
+    $("[data-ok]", m).onclick = () => {
+      D.web.schedule = s; const n = schedApplyWeekdays(); save(); close(true); render();
+      toast(`Dars jadvali saqlandi${n ? ` · ${n} ta sinfning dars kunlari yangilandi` : ""}`);
+    };
+  });
+}
 
 /* ───────── Telegram: avtomatik zaxira va qurilmalar orasida sinxronlash ───────── */
 // O'qituvchining o'z boti: token faqat shu brauzerda saqlanadi (journal.json ga yozilmaydi).
