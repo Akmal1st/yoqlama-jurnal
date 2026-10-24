@@ -75,6 +75,7 @@ h2{font-size:19px;font-weight:800;margin:0}
 .btn.sm{min-height:34px;padding:0 12px;font-size:14px}
 .btn.danger{color:var(--danger)}
 .btn:disabled{opacity:.5;cursor:default}
+a.btn{text-decoration:none;color:inherit}a.btn.pri{color:var(--acc-fg)}
 .link{border:0;background:none;color:var(--acc);font-weight:700;padding:4px}
 .chip{min-height:38px;padding:0 15px;border-radius:99px;border:1px solid var(--line);background:var(--base);font-weight:600;white-space:nowrap}
 .chip.on{background:var(--text);border-color:var(--text);color:var(--base)}
@@ -1078,6 +1079,7 @@ function welcome(sub) {
     <h1>Sinflaringizni qanday qo'shamiz?</h1>
     <p class="muted" style="margin:0">Ma'lumotlar faqat shu brauzerda saqlanadi — internet kerak emas. Vaqti-vaqti bilan «Sozlamalar → Ma'lumotlar»dan faylga saqlab qo'ying.</p>
     <button class="opt" data-w="import"><b>Kompyuterdagi dasturdan ko'chirish · tavsiya</b>Yo'qlama jurnali papkasidagi <code>journal.json</code> faylini tanlang — hamma sinflar, baholar va sozlamalar o'tadi.</button>
+    <button class="opt" data-w="emk"><b>emaktab.uz saytidan</b>emaktab'ga kirgan holda bitta bosishda barcha sinflar jurnali keladi.</button>
     <button class="opt" data-w="xls"><b>emaktab'dan (Excel)</b>emaktab'dan yuklab olingan «Fan jurnali» .xls / .xlsx fayli — o'quvchilar, baholar va yo'qlama.</button>
     <button class="opt" data-w="hand"><b>Qo'lda</b>Sinf nomini yozib, o'quvchilar ro'yxatini nusxalab qo'yasiz.</button>
     <button class="opt" data-w="demo"><b>Namuna bilan sinab ko'rish</b>Bitta to'qima sinf bilan dastur qanday ishlashini ko'ring (keyin o'chirib tashlash mumkin).</button></div>`;
@@ -1085,7 +1087,7 @@ function welcome(sub) {
 function bindWelcome(m) {
   m.querySelectorAll("[data-w]").forEach((b) => b.onclick = () => {
     const w = b.dataset.w;
-    if (w === "import") importJson(); else if (w === "xls") importExcel(); else if (w === "hand") addClassDialog(); else makeDemo();
+    if (w === "import") importJson(); else if (w === "xls") importExcel(); else if (w === "emk") emkDialog(); else if (w === "hand") addClassDialog(); else makeDemo();
   });
 }
 
@@ -1405,6 +1407,7 @@ function pageSettings(m) {
       srow("Faylga saqlash (zaxira)" + (age === null ? "" : ` <span class="muted" style="font-weight:500">· oxirgisi ${age ? age + " kun oldin" : "bugun"}</span>`), "journal.json — kompyuterdagi dastur yoki boshqa qurilmada ochish uchun. Vaqti-vaqti bilan saqlab qo'ying.", `<button class="btn pri" data-a="exp">💾 Yuklab olish</button>`) +
       srow("Fayldan yuklash", "Kompyuterdagi dasturning journal.json fayli yoki oldin saqlangan zaxira. Hozirgi ma'lumotlar almashtiriladi.", `<button class="btn" data-a="imp">📂 Faylni tanlash</button>`) +
       srow("emaktab'dan import", "emaktab «Fan jurnali» Excel fayli (.xls / .xlsx): o'quvchilar, baholar, yo'qlama va BSB/CHSB ballari mavjud jurnalga qo'shiladi", `<button class="btn" data-a="xls">📊 Excel faylni tanlash</button>`) +
+      srow("emaktab.uz saytidan to'g'ridan-to'g'ri", "emaktab'ga kirgan holda bitta bosishda barcha sinflaringiz jurnallari shu yerga keladi (fayl yuklab olish shart emas)", `<button class="btn" data-a="emk">🌐 Sozlash</button>`) +
       srow("Yangi o'quv yiliga o'tish", "Jurnal arxivlanadi, sinflar o'quvchilari bilan yangi bo'sh jurnalga o'tadi (6-A → 7-A)", `<button class="btn" data-a="roll">Boshlash</button>`) +
       srow("O'zgarishlar tarixi", `${n} ta yozuv (qo'yilgan bahoni o'zgartirish yoki o'chirish)`, `<button class="btn" data-a="hist">Ko'rish</button>`) +
       srow("Hammasini o'chirish", "Shu brauzerdagi barcha ma'lumotlar o'chadi", `<button class="btn danger" data-a="wipe">O'chirish</button>`);
@@ -1462,6 +1465,7 @@ async function settingsAction(a, i) {
   } else if (a === "ktrw") { st.auto = Object.assign({}, st.auto, {ktr_works: !ktrWorksOn()}); save(); reflowAll(); save(); render(); }
   else if (a === "inst") { if (installEvt) { installEvt.prompt(); installEvt.userChoice.finally(() => { installEvt = null; render(); }); } }
   else if (a === "xls") importExcel();
+  else if (a === "emk") emkDialog();
   else if (a === "roll") rollover();
   else if (a === "exp") exportJson();
   else if (a === "imp") importJson();
@@ -1833,11 +1837,13 @@ function ktrDialog(ci) {
 /* ───────── emaktab Excel import ───────── */
 function importExcel() {
   const f = document.createElement("input"); f.type = "file"; f.accept = ".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"; f.multiple = true;
-  f.onchange = async () => {
-    if (!f.files.length) return;
+  f.onchange = () => { if (f.files.length) importEmaktabFiles([...f.files]); };
+  f.click();
+}
+async function importEmaktabFiles(files) {
     toast("Fayl o'qilmoqda…");
     let found = [];
-    try { for (const file of f.files) found = found.concat(await readEmaktabFile(file)); }
+    try { for (const file of files) found = found.concat(await readEmaktabFile(file)); }
     catch (e) { toast("Faylni o'qib bo'lmadi: " + e.message); return; }
     if (!found.length) { toast("Faylda emaktab «Fan jurnali» topilmadi (\"Sinf:\" qatori yo'q)"); return; }
     const ok = await modal(`<h2>emaktab'dan import</h2><div class="muted">Faylda ${found.length} ta jurnal topildi:</div>
@@ -1870,9 +1876,103 @@ function importExcel() {
         studentsDialog(ci, r.absent, "Belgilanganlar emaktab faylida yo'q (boshqa sinfga o'tgan yoki maktabdan ketgan bo'lishi mumkin).");
       });
     }).then((v) => { if (v !== "rm") { S.jpage = "j"; go("journal"); } });
-  };
-  f.click();
 }
+
+/* ───────── emaktab.uz saytidan to'g'ridan-to'g'ri (xatcho'p) ─────────
+   Brauzer bu ilovaga emaktab.uz ga o'zi kirishga ruxsat bermaydi. Shuning uchun o'qituvchi emaktab'ga kirgan holda
+   xatcho'pni bosadi: emkGrab() emaktab sahifasining ichida ishlaydi, Excel jurnallarni o'sha yerdan oladi va
+   postMessage bilan shu ilovaga yuboradi. Login/parol hech qayerga uzatilmaydi. */
+function emkGrab() {
+  const APP = "__APP__", AO = new URL(APP).origin;
+  const box = document.createElement("div");
+  box.style.cssText = "position:fixed;top:12px;right:12px;z-index:2147483647;background:#fffdf8;color:#1b2a2f;border:2px solid #0b6f79;border-radius:14px;padding:12px 16px;font:15px/1.4 serif;max-width:360px;box-shadow:0 10px 30px rgba(0,0,0,.25);white-space:pre-line";
+  const say = (t) => { box.textContent = "📒 Yo'qlama jurnali\n" + t; };
+  document.body.appendChild(box);
+  if (location.hostname !== "schools.emaktab.uz") {
+    say("emaktab.uz ga kiring va «Sinflarim» sahifasida shu tugmani yana bosing.");
+    if (confirm("Yo'qlama jurnali: «Sinflarim» sahifasi ochilsinmi? Ochilgach, tugmani yana bir bor bosing.")) location.href = "https://schools.emaktab.uz/v2/myclasses";
+    setTimeout(() => box.remove(), 8000); return;
+  }
+  let ready = false;
+  addEventListener("message", (e) => { if (e.origin === AO && e.data && e.data.type === "jurnal-ready") ready = true; });
+  const w = window.open(APP + "#emaktab", "yoqlama_jurnal");
+  if (!w) { say("Brauzer yangi oynani to'sib qo'ydi. emaktab.uz uchun qalqib chiquvchi oynalarga ruxsat bering va qayta bosing."); return; }
+  const get = async (u) => { const r = await fetch(u, {credentials: "include"}); if (!r.ok) throw new Error("HTTP " + r.status); return r; };
+  const state = (html) => {
+    const i = html.indexOf("__JOURNAL__INITIAL__STATE__"); if (i < 0) return null;
+    const k = html.indexOf("{", i); let d = 0, q = false, esc = false;
+    for (let j = k; j < html.length; j++) {
+      const ch = html[j];
+      if (q) { if (esc) esc = false; else if (ch === "\\") esc = true; else if (ch === '"') q = false; }
+      else if (ch === '"') q = true; else if (ch === "{") d++; else if (ch === "}" && !--d) return JSON.parse(html.slice(k, j + 1));
+    }
+    return null;
+  };
+  (async () => {
+    say("Sinflar ro'yxati o'qilmoqda…");
+    const r0 = await get("/v2/myclasses");
+    if (/login\./.test(new URL(r0.url).hostname)) throw new Error("emaktab'ga kirilmagan — avval saytga kiring.");
+    const doc = new DOMParser().parseFromString(await r0.text(), "text/html"), root = doc.getElementById("ContentPanelTeacher") || doc;
+    const jobs = [], seen = new Set(); let cls = null;
+    for (const a of root.querySelectorAll("a[href]")) {
+      const href = new URL(a.getAttribute("href"), r0.url).href;
+      if (href.includes("/v2/class?class=")) cls = a.textContent.trim();
+      else if (cls && /\/journal\/school\/\d+\/group\/\d+\/subject\/\d+/.test(href) && !seen.has(href)) { seen.add(href); jobs.push({cls, subject: (a.title || a.textContent).trim(), url: href}); }
+    }
+    if (!jobs.length) throw new Error("«Sinflarim» sahifasida jurnal topilmadi.");
+    const files = [], errs = [];
+    for (const [n, jb] of jobs.entries()) {
+      say(`Jurnallar yuklanmoqda: ${n + 1} / ${jobs.length}\n${jb.cls} · ${jb.subject}`);
+      try {
+        const st = state(await (await get(jb.url)).text()), hd = st && st.journalHeader;
+        if (!hd) throw new Error("chorak topilmadi");
+        const [, school, group, subject] = jb.url.match(/\/school\/(\d+)\/group\/(\d+)\/subject\/(\d+)/);
+        const x = await get(`/v2/excel?action=gjsxls&school=${school}&group=${group}&subgroup=0&subject=${subject}&period=${hd.currentPeriodId}`);
+        if (/html/i.test(x.headers.get("content-type") || "")) throw new Error("Excel o'rniga sahifa keldi");
+        files.push({name: `${jb.cls}_${jb.subject}.xls`, data: await x.arrayBuffer()});
+      } catch (e) { errs.push(`${jb.cls} · ${jb.subject}: ${e.message}`); }
+    }
+    if (!files.length) throw new Error("Hech bir jurnal yuklanmadi.\n" + errs.join("\n"));
+    say("Jurnal ilovasiga yuborilmoqda…");
+    for (let t = 0; !ready && t < 100; t++) await new Promise((r) => setTimeout(r, 200));
+    if (!ready || w.closed) throw new Error("Jurnal ilovasi javob bermadi. Ilova oynasi yopilmaganini tekshirib, qayta bosing.");
+    w.postMessage({type: "emaktab-files", files}, AO, files.map((f) => f.data));
+    say(`✓ ${files.length} ta jurnal yuborildi — Jurnal oynasida tasdiqlang.` + (errs.length ? `\nYuklanmadi:\n${errs.join("\n")}` : ""));
+    try { w.focus(); } catch (e) {}
+  })().catch((e) => say("✗ " + e.message));
+}
+const appUrl = () => location.origin + location.pathname.replace(/index\.html$/, "");
+const emkCode = () => `(${emkGrab.toString().replace("__APP__", appUrl())})()`;
+function emkDialog() {
+  const web = /^https?:$/.test(location.protocol);
+  modal(`<h2>emaktab.uz saytidan import</h2>
+    ${web ? "" : `<div class="card warnbox">Bu usul faqat ilova saytdan ochilganda ishlaydi: <b>https://akmal1st.github.io/yoqlama-jurnal/</b></div>`}
+    <div class="muted">Ilova emaktab.uz ga o'zi kira olmaydi (brauzer ruxsat bermaydi). Shuning uchun bir martalik sozlash kerak — keyin har safar bitta bosish.</div>
+    <div class="col" style="gap:10px">
+      <div><b>1.</b> Quyidagi tugmani sichqoncha bilan brauzerning <b>xatcho'plar paneliga</b> sudrab olib boring (panel ko'rinmasa: Ctrl+Shift+B).</div>
+      <div><a class="btn pri" id="emkbm" href="#" onclick="return false" draggable="true">📒 emaktab → Jurnal</a></div>
+      <div><b>2.</b> emaktab.uz ga odatdagidek kiring va <b>«Sinflarim»</b> sahifasini oching.</div>
+      <div><b>3.</b> Xatcho'pdagi <b>«📒 emaktab → Jurnal»</b> ni bosing. Barcha sinflaringizning joriy chorak jurnallari shu ilovaga keladi, siz faqat tasdiqlaysiz.</div>
+      <div class="muted">Telefonda: «Kodni nusxalash»ni bosing, istalgan sahifani xatcho'pga qo'shing, xatcho'pni tahrirlab manzil o'rniga nusxalangan kodni qo'ying. emaktab'da manzil qatoriga xatcho'p nomini yozib, uni tanlang.</div>
+    </div>
+    <div class="row"><button class="btn" data-copy>📋 Kodni nusxalash</button><span class="sp"></span><button class="btn" data-x>Yopish</button></div>`, (mm, close) => {
+    $("#emkbm", mm).href = "javascript:" + encodeURIComponent(emkCode());
+    $("[data-x]", mm).onclick = () => close();
+    $("[data-copy]", mm).onclick = async () => {
+      try { await navigator.clipboard.writeText("javascript:" + emkCode()); toast("Kod nusxalandi"); }
+      catch (e) { toast("Nusxalab bo'lmadi — tugmani bosib turib «Havolani nusxalash»ni tanlang"); }
+    };
+  });
+}
+const EMK_ORIGIN = /^https:\/\/([a-z0-9-]+\.)*emaktab\.uz$/;
+function emkReady() { if (location.hash === "#emaktab" && window.opener) try { window.opener.postMessage({type: "jurnal-ready"}, "*"); } catch (e) {} }
+window.addEventListener("hashchange", emkReady);
+window.addEventListener("message", (e) => {
+  if (!EMK_ORIGIN.test(e.origin) || !e.data || e.data.type !== "emaktab-files") return;
+  if (location.hash === "#emaktab") history.replaceState(null, "", location.pathname + location.search);
+  const files = (e.data.files || []).map((f) => new File([f.data], f.name || "emaktab.xls"));
+  if (files.length) importEmaktabFiles(files);
+});
 
 /* ───────── o'quvchi kartochkasi (to'liq) ───────── */
 function growthData(c, s, rng) {
@@ -2094,7 +2194,7 @@ const isStandalone = () => matchMedia("(display-mode: standalone)").matches || n
 if (document.getElementById("app")) {
   D = load(); autoDates(); if (D.classes.some((c) => c.plan && c.plan.on)) { reflowAll(); save(); }
   if (D.web.density === "kompakt") V.mode = "quarter";
-  render();
+  render(); emkReady();
   setInterval(() => { if (S.page === "journal" && isLocked() !== $("[data-lock]")?.textContent.includes("🔒")) renderNav(); }, 30000);
 }
 </script>

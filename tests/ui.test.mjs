@@ -97,3 +97,47 @@ test("hisobotlar chop etilganda bitta varaqqa sig'adi", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("emaktab.uz saytidan xatcho'p orqali import", async () => {
+  const {readFile} = await import("node:fs/promises");
+  const XLSX = (await import("xlsx")).default;
+  const docs = fileURLToPath(new URL("../docs/", import.meta.url));
+  const lib = fileURLToPath(new URL("../node_modules/xlsx/dist/xlsx.full.min.js", import.meta.url));
+  const rows = JSON.parse(await readFile(fileURLToPath(new URL("inputs.json", import.meta.url)), "utf8")).emaktab[0].rows;
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "Matematika");
+  const xls = XLSX.write(wb, {type: "buffer", bookType: "xls"});
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const ctx = await browser.newContext({serviceWorkers: "block"});
+    const asked = [];
+    await ctx.route("https://cdnjs.cloudflare.com/**", async (r) => r.fulfill({body: await readFile(lib), contentType: "text/javascript"}));
+    await ctx.route("https://app.test/**", async (r) => {
+      const p = new URL(r.request().url()).pathname.slice(1) || "index.html";
+      try { r.fulfill({body: await readFile(docs + p), contentType: p.endsWith(".html") ? "text/html" : undefined}); } catch { r.fulfill({status: 404}); }
+    });
+    await ctx.route("https://schools.emaktab.uz/**", (r) => {
+      const u = new URL(r.request().url()); asked.push(u.pathname + u.search);
+      if (u.pathname === "/v2/myclasses") return r.fulfill({contentType: "text/html", body: `<html><body><a href="/v2/class?class=9">Boshqa menyu</a>
+        <div id="ContentPanelTeacher"><a href="/v2/class?class=1">7-B</a><a href="/v2/journal/school/11/group/22/subject/33" title="Matematika">Matematika</a></div></body></html>`});
+      if (u.pathname.startsWith("/v2/journal/")) return r.fulfill({contentType: "text/html", body: `<script>window.__JOURNAL__INITIAL__STATE__ = {"journalHeader":{"currentPeriodId":77,"t":"a \\"}\\" b"}};</script>`});
+      if (u.pathname === "/v2/excel") return r.fulfill({contentType: "application/vnd.ms-excel", body: xls});
+      return r.fulfill({status: 404});
+    });
+    const app = await ctx.newPage(); const errors = []; app.on("pageerror", (e) => errors.push(e.message));
+    await app.goto("https://app.test/");
+    const code = await app.evaluate(() => emkCode());
+    assert.match(code, /"https:\/\/app\.test\/"/);
+    const emk = await ctx.newPage(); await emk.goto("https://schools.emaktab.uz/v2/myclasses");
+    const [pop] = await Promise.all([ctx.waitForEvent("page"), emk.evaluate(code)]);
+    pop.on("pageerror", (e) => errors.push(e.message));
+    await pop.click(".modal [data-ok]", {timeout: 20000});
+    await pop.waitForSelector("text=Import yakunlandi");
+    assert.ok(asked.includes("/v2/excel?action=gjsxls&school=11&group=22&subgroup=0&subject=33&period=77"), asked.join(" "));
+    assert.ok(!asked.some((a) => a.includes("class=9")));
+    const cls = await pop.evaluate(() => D.classes.map((c) => [c.name, c.students.length]));
+    assert.deepEqual(cls.map((c) => c[0]), ["7-B"]);
+    assert.ok(cls[0][1] >= 3);
+    await emk.waitForSelector("text=jurnal yuborildi");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
