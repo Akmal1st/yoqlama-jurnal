@@ -107,13 +107,13 @@ table.j th{font-weight:700;color:var(--muted);position:sticky;top:0;background:v
 table.j th{box-shadow:0 0 0 4px var(--base),0 -14px 0 4px var(--base)}
 .dense table.j th{box-shadow:0 0 0 3px var(--base),0 -14px 0 3px var(--base)}
 table.j th.d{border-radius:0}table.j th.d.today{border-radius:8px}
-table.j th.nm{box-shadow:-8px 0 0 var(--base),4px 0 0 var(--base),0 0 0 4px var(--base),0 -14px 0 4px var(--base)}
+table.j th.nm{box-shadow:-8px 0 0 var(--base),1px 0 0 var(--base),0 4px 0 var(--base),0 -18px 0 var(--base),-8px 4px 0 var(--base),-8px -18px 0 var(--base)}
 table.j th.d{min-width:40px;text-align:center;line-height:1.15;border-radius:8px}
 table.j th.d small{display:block;font-size:11px;font-weight:600}
 table.j th.d.today{background:var(--today);color:#12303a}
 table.j th.d.x{opacity:.55}
 table.j th.d.m small{color:var(--acc);font-weight:800}
-table.j .nm{position:sticky;left:0;background:var(--base);box-shadow:-8px 0 0 var(--base),4px 0 0 var(--base);z-index:1;white-space:nowrap;font-weight:600;padding:0 8px 0 2px;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+table.j .nm{position:sticky;left:0;background:var(--base);box-shadow:-8px 0 0 var(--base),1px 0 0 var(--base);z-index:1;white-space:nowrap;font-weight:600;padding:0 8px 0 2px;max-width:240px;overflow:hidden;text-overflow:ellipsis}
 table.j th.nm{z-index:3}
 table.j .nm i{font-style:normal;color:var(--muted);font-weight:500;display:inline-block;min-width:22px}
 table.j tr.cur .nm{color:var(--acc)}
@@ -1294,15 +1294,20 @@ function pageJournal(m) {
   $("[data-two]", m).onclick = () => { S.second = !S.second; render(); if (S.second) toast("Keyingi raqam ikkinchi baho sifatida qo'shiladi"); };
 }
 // ism ustuni yopishqoq: tortish chegarasi uning o'ng chetidan boshlanadi (kenglik yozuv o'lchamiga qarab o'zgaradi)
+let snapRO = null, snapTb = null;
 function snapCols() {
   const tw = $("#tw"), d = tw && tw.querySelector("th.d"); if (!d) return;
-  const tb = d.closest("table"), sp = parseFloat(getComputedStyle(tb).borderSpacing) || 0, x = (t) => t.offsetLeft - d.offsetLeft;
-  tw.style.scrollPaddingLeft = d.offsetLeft - sp + "px";
+  const tb = d.closest("table"), sp = parseFloat(getComputedStyle(tb).borderSpacing) || 0;
+  // kasr piksellar bilan (yaxlitlash xatosi ustunni 1–2px siljitmasin); zoom bo'lsa o'z o'lchamiga qaytaramiz
+  const z = tw.getBoundingClientRect().width / tw.offsetWidth || 1, x = (t) => (t.getBoundingClientRect().left - tb.getBoundingClientRect().left) / z;
+  tw.style.scrollPaddingLeft = tb.offsetLeft + x(d) - sp + "px";
   // oxirida ham ustun chegarasida to'xtasin: kerak bo'lsa jadval o'ngiga bo'sh joy qo'shamiz
   tb.style.marginRight = "0px";
-  const max = tw.scrollWidth - tw.clientWidth; if (max <= 0) return;
-  const stop = [...tb.querySelectorAll("th:not(.nm)")].map((t) => x(t) + sp).find((v) => v >= max - 0.5);
-  if (stop != null) tb.style.marginRight = stop - max + "px";
+  const max = tw.scrollWidth - tw.clientWidth;
+  const stop = max > 0 && [...tb.querySelectorAll("th:not(.nm)")].map((t) => x(t) - x(d) + sp).find((v) => v >= max - 0.5);
+  if (stop) tb.style.marginRight = Math.ceil(stop - max) + 1 + "px";
+  // ism ustuni kengligi keyin o'zgarsa (yozuv o'lchami, ekran burilishi) qayta hisoblaymiz
+  if (typeof ResizeObserver === "function" && snapTb !== tb) { snapRO = snapRO || new ResizeObserver(() => snapCols()); snapRO.disconnect(); snapRO.observe(tb); snapTb = tb; }
 }
 window.addEventListener("resize", snapCols);
 function scrollToday() {
