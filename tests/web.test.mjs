@@ -31,7 +31,7 @@ function loadApp() {
   });
   vm.runInContext(src + `
     ;globalThis.__app = {setData: (x) => { D = normalize(x); }, get D() { return D; }, grade5, parseMark, parseScore, parsePlanText,
-      emaktabSheet, worksInQuarter, quarterResult, yearResult, readiness, reportRows, periodNow, label};`, ctx);
+      emaktabSheet, bsbStats, bsbRecs, worksInQuarter, quarterResult, yearResult, readiness, reportRows, periodNow, label};`, ctx);
   return ctx.__app;
 }
 
@@ -55,6 +55,10 @@ test("grade5: 100 ballik → 5 ballik baho", () => assert.deepEqual(norm(INPUTS.
 test("belgini o'qish (8/9, kq9, s, …)", () => assert.deepEqual(norm(INPUTS.marks.map(A.parseMark)), GOLDEN.marks));
 test("summativ ballni o'qish", () => assert.deepEqual(norm(INPUTS.scores.map(A.parseScore)), GOLDEN.scores));
 test("KTR matnini o'qish", () => assert.deepEqual(norm(INPUTS.plans.map(A.parsePlanText)), GOLDEN.plans));
+test("BSB tahlili: ko'rsatkichlar va tavsiyalar", () => {
+  INPUTS.bsb.forEach((b, i) => { const an = A.bsbStats(b.qmax, b.rows);
+    assert.deepEqual(norm(JSON.parse(JSON.stringify({stats: an, rec: A.bsbRecs(an)}))), GOLDEN.bsb[i], `${i}-holat`); });
+});
 test("emaktab Excel varag'i", () => {
   INPUTS.emaktab.forEach((e, i) => assert.deepEqual(norm(JSON.parse(JSON.stringify(A.emaktabSheet(e.rows, e.sheet)))), GOLDEN.emaktab[i], e.sheet));
 });

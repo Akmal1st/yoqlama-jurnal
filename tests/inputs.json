@@ -25,5 +25,11 @@
       [1, "Karimov Bek", 5, "н", 9],
       [2, "Ergasheva Malika", "п", 10, "б"]
     ]}
+  ],
+  "bsb": [
+    {"qmax": [2, 2, 3, 3, 5, 5], "rows": [{"name": "Aliyev Ali", "in": true, "pts": [2, 2, 3, 3, 5, 5]}, {"name": "Valiyeva Vali", "in": true, "pts": [2, 1, 2, 1, 1, 0]}, {"name": "Soliyev Soli", "in": true, "pts": [1, 2, 3, 2.5, 4, 1]}, {"name": "Qodirova Sevara", "in": false, "pts": []}, {"name": "Karimov Bek", "in": true, "pts": [0, 0, 1, 0, 0, 0]}, {"name": "Ergasheva Malika", "in": true, "pts": [2, 2, 3, 3, 4, 4]}, {"name": "Toshev Anvar", "in": true, "pts": [1, null, 2, 1, 2]}, {"name": "Rahimova Dilnoza", "in": true, "pts": [2, 2, 9, 3, 3, 2]}, {"name": "Yusupov Jasur", "in": true, "pts": [0, 1, 0, 0, 0, 0]}]},
+    {"qmax": [10, 10], "rows": [{"name": "A", "in": true, "pts": [10, 10]}, {"name": "B", "in": true, "pts": [10, 10]}, {"name": "C", "in": true, "pts": [6.5, null]}]},
+    {"qmax": [4, 4, 4], "rows": [{"name": "A", "in": false, "pts": [1, 2, 3]}]},
+    {"qmax": [5, 5, 5, 5, 5, 5, 5], "rows": [{"name": "O'quvchi 0", "in": true, "pts": [5, 5, 5, 0, 0, 0, 0]}, {"name": "O'quvchi 1", "in": true, "pts": [5, 5, 5, 2, 1, 0, 1]}, {"name": "O'quvchi 2", "in": true, "pts": [5, 5, 5, 4, 2, 0, 0]}, {"name": "O'quvchi 3", "in": true, "pts": [5, 5, 5, 0, 0, 0, 1]}, {"name": "O'quvchi 4", "in": true, "pts": [5, 5, 5, 2, 1, 0, 0]}, {"name": "O'quvchi 5", "in": true, "pts": [5, 5, 5, 4, 2, 0, 1]}, {"name": "O'quvchi 6", "in": true, "pts": [5, 5, 5, 0, 0, 0, 0]}, {"name": "O'quvchi 7", "in": true, "pts": [5, 5, 5, 2, 1, 0, 1]}, {"name": "O'quvchi 8", "in": true, "pts": [5, 5, 5, 4, 2, 0, 0]}, {"name": "O'quvchi 9", "in": true, "pts": [5, 5, 5, 0, 0, 0, 1]}, {"name": "O'quvchi 10", "in": true, "pts": [5, 5, 5, 2, 1, 0, 0]}, {"name": "O'quvchi 11", "in": true, "pts": [5, 5, 5, 4, 2, 0, 1]}]}
   ]
 }

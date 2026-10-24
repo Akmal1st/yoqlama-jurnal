@@ -193,3 +193,95 @@ test("jurnal: KQ katagiga himoya yoqilgan holda ham baho qo'yiladi", async () =>
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("jurnal: Kun rejimida yo'qlama va baho alohida kataklarda", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const t = await page.evaluate(() => { const c = D.classes[0], t = todayIso(); D.settings.method_weekday = null; c.extra_x = [];
+      if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } D.settings.protect.enabled = false; c.students[0].marks[t] = ""; delete c.students[0].marks[t]; save(); return t; });
+    await page.click(".side [data-go=journal]"); await page.click(".side [data-mode=day]");
+    assert.equal(await page.locator(`[data-c="0|${t}|a"]`).count(), 1);
+    assert.equal(await page.locator(`[data-c="0|${t}|g"]`).count(), 1);
+    assert.deepEqual(await page.$$eval("table.j th.dsp", (x) => x.map((e) => e.firstChild.textContent)), ["Yo'qlama", "Baho"]);
+    const mark = () => page.evaluate((d) => D.classes[0].students[0].marks[d] || "", t);
+    await page.click(`[data-c="0|${t}|a"]`); await page.click("[data-k=kq]");
+    await page.click(`[data-c="0|${t}|g"]`); await page.click('[data-k="8"]');
+    assert.equal(await mark(), "8kq");
+    assert.equal(await page.textContent(`[data-c="0|${t}|a"]`), "KQ");
+    assert.equal(await page.textContent(`[data-c="0|${t}|g"]`), "8");
+    await page.click(`[data-c="0|${t}|a"]`); await page.click('.keys [data-k=""]');
+    assert.equal(await mark(), "8", "⌫ yo'qlama katagida faqat KQ ni o'chiradi");
+    await page.click(`[data-c="0|${t}|g"]`); await page.keyboard.press("ArrowLeft"); await page.keyboard.press("s");
+    assert.equal(await mark(), "s");
+    // boshqa rejimlarda bitta katak
+    await page.click(".side [data-mode=week]");
+    assert.equal(await page.locator(`[data-c="0|${t}"]`).count(), 1);
+    assert.equal(await page.locator("table.j th.dsp").count(), 0);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["telefon", {width: 390, height: 844}]]) {
+  test(`${name}: BSB tahlili — ball kiritish, saqlash, eksport va summativga o'tkazish`, async () => {
+    const {readFile} = await import("node:fs/promises");
+    const XLSX = (await import("xlsx")).default;
+    const lib = fileURLToPath(new URL("../node_modules/xlsx/dist/xlsx.full.min.js", import.meta.url));
+    const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+    try {
+      const ctx = await browser.newContext({viewport, acceptDownloads: true});
+      await ctx.route("https://cdnjs.cloudflare.com/**", async (r) => r.fulfill({body: await readFile(lib), contentType: "text/javascript"}));
+      const page = await ctx.newPage();
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await page.evaluate(() => { D.settings.protect.enabled = false; window.print = () => { window.__printed = document.getElementById("pdoc").innerText; }; });
+      await page.click(`${name === "telefon" ? ".tabbar" : ".side"} [data-go=journal]`);
+      await page.click("[data-jp=bsb]"); await page.waitForSelector("table.bsa");
+      const qd = await page.evaluate(() => D.settings.quarters[0][0]);
+      await page.fill("#bt", "Kasrlar"); await page.fill("#bdt", qd); await page.dispatchEvent("#bdt", "change");
+      await page.fill("#bnq", "3"); await page.press("#bnq", "Tab"); await page.waitForSelector('[data-bx="2"]');
+      assert.equal(await page.locator("[data-bx]").count(), 3);
+      await page.fill('[data-bx="2"]', "6"); await page.press('[data-bx="2"]', "Tab");
+      const n = await page.evaluate(() => D.classes[S.ci].students.length);
+      for (let si = 0; si < n; si++) for (let i = 0; i < 3; i++) await page.fill(`[data-bp="${si}|${i}"]`, String((si + i) % (i === 2 ? 7 : 3)));
+      await page.press(`[data-bp="${n - 1}|2"]`, "Tab");
+      await page.uncheck('[data-bin="1"]');
+      assert.equal(await page.textContent('tr[data-row="1"] [data-tot]'), "—");
+      await page.click("[data-btab=an]"); await page.waitForSelector(".paper >> text=Savollar tahlili");
+      assert.ok(await page.isVisible(".paper svg.chart"));
+      await page.click("[data-bsave]");
+      const a = await page.evaluate(() => D.classes[S.ci].analyses);
+      assert.equal(a.length, 1);
+      assert.deepEqual([a[0].id, a[0].title, a[0].date, a[0].q, a[0].max], ["a1", "Kasrlar", qd, 3, [2, 2, 6]]);
+      assert.equal(Object.keys(a[0].rows).length, n); assert.equal(Object.values(a[0].rows)[1].in, false);
+      // eksport: 1) tahlil va jadval  2) header, jadval, footer
+      await page.click("[data-bexp]"); await page.click('.modal [data-v="1"]'); await page.click(".modal [data-pdf]");
+      let txt = await page.evaluate(() => window.__printed);
+      for (const s of ["BSB tahlili", "Savollar tahlili", "Yutuqlar", "Tavsiyalar", "O'quvchilar natijalari"]) assert.ok(txt.includes(s), s);
+      await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]');
+      await page.fill("#hs", "12-maktab"); await page.fill("#ht", "Karimova N."); await page.click(".modal [data-pdf]");
+      txt = await page.evaluate(() => window.__printed);
+      for (const s of ["12-maktab", "Bo'lim bo'yicha summativ baholash (BSB) natijalari", "Kasrlar", "qatnashmadi", "Qatnashdi", "direktor o'rinbosari", "Karimova N."]) assert.ok(txt.includes(s), s);
+      assert.ok(!txt.includes("Yutuqlar"));
+      assert.equal(await page.evaluate(() => D.web.bsb_hdr.school), "12-maktab", "header ma'lumoti eslab qolinadi");
+      await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]');
+      const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".modal [data-xl]")]);
+      const wb = XLSX.read(await readFile(await dl.path()));
+      const aoa = XLSX.utils.sheet_to_json(wb.Sheets.BSB, {header: 1});
+      assert.equal(aoa[0][0], "12-maktab"); assert.ok(aoa.some((r) => String(r[0]).startsWith("O'quv ishlari bo'yicha direktor")));
+      // jami ballni summativga o'tkazish (yangi BSB ishi)
+      await page.click("[data-btr]"); await page.click(".modal [data-ok]");
+      const w = await page.evaluate((d) => { const c = D.classes[S.ci], w = c.works.find((x) => x.type === "bsb" && x.date === d && x.title === "Kasrlar"); return w && [w.max, c.students.map((s) => (s.scores || {})[w.id] ?? null)]; }, qd);
+      assert.ok(w, "yangi ish yaratildi"); assert.equal(w[0], 10); assert.equal(w[1][1], null); assert.equal(w[1][0], 0 + 1 + 2);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
+      assert.deepEqual(errors, []);
+    } finally { await browser.close(); }
+  });
+}
