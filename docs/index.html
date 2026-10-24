@@ -320,6 +320,13 @@ table.r tr:hover td{background:var(--alt)}
   .foot>.muted,.foot>span:not(.sp){flex:1 1 100%}
   .foot .btn{flex:1 1 auto}
 }
+.vwside{margin-top:12px;padding:14px 0 0;border-top:1px solid rgba(255,255,255,.10);display:flex;flex-direction:column;gap:8px}
+.vwside .tag{color:var(--side-mut);padding:0 10px}
+.vseg{display:flex;flex-direction:column;gap:2px;background:rgba(255,255,255,.06);border-radius:12px;padding:4px}
+.vseg button{border:0;background:transparent;color:var(--side-fg);opacity:.85;text-align:left;padding:8px 12px;border-radius:9px;font-weight:600}
+.vseg button:hover{background:rgba(255,255,255,.10);opacity:1}
+.vseg button.on{background:rgba(255,255,255,.16);color:#fff;opacity:1}
+@media (min-width:821px){.app:not(.compact) .vw-tb{display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 @media print{
   .side,.tabbar,.noprint,.keys,.toast,.modal{display:none!important}
@@ -986,15 +993,28 @@ const ICONS = {
 };
 const NAV = [["today", "Bugun"], ["journal", "Jurnal"], ["reports", "Hisobotlar"], ["settings", "Sozlamalar"]];
 function go(p) { S.page = p; S.sel = null; render(); window.scrollTo(0, 0); }
+// jurnal ko'rinishi (davr va zichlik): kompyuterda chap panelda, telefonda jurnal tepasida
+const VIEW_MODES = [["day", "Kun"], ["week", "Hafta"], ["month", "Oy"], ["quarter", "Chorak"]];
+function bindView(root) {
+  root.querySelectorAll("[data-mode]").forEach((b) => b.onclick = () => { V.mode = b.dataset.mode; render(); scrollToday(); });
+  root.querySelectorAll("[data-den]").forEach((b) => b.onclick = () => { D.web.density = b.dataset.den; if (D.web.density === "kompakt") V.mode = "quarter"; else if (V.mode === "quarter") V.mode = "month"; save(); render(); scrollToday(); });
+}
+function sideView() {
+  if (S.page !== "journal" || S.jpage !== "j" || !D.classes.length || D.web.density === "kompakt") return "";
+  return `<div class="vwside"><div class="tag">Ko'rinish</div>
+    <div class="vseg">${VIEW_MODES.map(([k, n]) => `<button class="${V.mode === k ? "on" : ""}" data-mode="${k}">${n}</button>`).join("")}</div>
+    <div class="vseg"><button class="on" data-den="oddiy">Oddiy</button><button data-den="kompakt">Kompakt</button></div></div>`;
+}
 function renderNav() {
   const cur = S.page === "lesson" ? "journal" : S.page;
   const btns = NAV.map(([k, t]) => `<button class="nav ${cur === k ? "on" : ""}" data-go="${k}" title="${t}">${ICONS[k]}<span class="lbl">${t}</span></button>`).join("");
   const lockTxt = !D.settings.protect.enabled ? "⚠ Himoya o'chiq" : isLocked() ? "🔒 Himoyalangan" : "🔓 Ochiq — qulflash";
-  $("#side").innerHTML = `<div class="logo"><b>Y</b><span>Yo'qlama jurnali<small>web</small></span></div>${btns}<div class="grow"></div>
+  $("#side").innerHTML = `<div class="logo"><b>Y</b><span>Yo'qlama jurnali<small>web</small></span></div>${btns}${sideView()}<div class="grow"></div>
     <button class="btn sm" data-lock title="Qo'yilgan baholar himoyasi">${D.web.density === "kompakt" ? lockTxt.slice(0, 2) : lockTxt}</button>`;
   $("#tabbar").innerHTML = btns;
   document.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => go(b.dataset.go));
   const lb = $("[data-lock]"); if (lb) lb.onclick = toggleLock;
+  bindView($("#side"));
 }
 async function toggleLock() {
   const p = D.settings.protect;
@@ -1114,7 +1134,7 @@ function pageJournal(m) {
   const ds = visDates(c);
   const {rows} = reportRows(c, ds[0] || t, ds[ds.length - 1] || t);
   const [plo, phi, pq] = periodNow(); const riskNames = new Set(reportRows(c, plo, phi, pq).rows.filter((r) => r.why.some((w) => !w.startsWith("baholar soni"))).map((r) => r.name));
-  const modes = [["day", "Kun"], ["week", "Hafta"], ["month", "Oy"], ["quarter", "Chorak"]].map(([k, n]) => `<button class="${V.mode === k ? "on" : ""}" data-mode="${k}">${n}</button>`).join("");
+  const modes = VIEW_MODES.map(([k, n]) => `<button class="${V.mode === k ? "on" : ""}" data-mode="${k}">${n}</button>`).join("");
   let head = `<tr><th class="nm">O'quvchi</th>`;
   ds.forEach((d, i) => {
     const x = isNoLesson(c, d), mo = V.mode === "quarter" && (i === 0 || ds[i - 1].slice(5, 7) !== d.slice(5, 7));
@@ -1145,8 +1165,8 @@ function pageJournal(m) {
     ${classChips()}
     <div class="row" style="gap:8px">${jpSeg()}
       <button class="btn sm" data-sh="-1">‹</button><h2 style="min-width:150px;text-align:center">${esc(vTitle())}</h2><button class="btn sm" data-sh="1">›</button>
-      <button class="btn sm" data-now>Bugun</button><div class="seg">${modes}</div>
-      <div class="seg"><button class="${dense ? "" : "on"}" data-den="oddiy">Oddiy</button><button class="${dense ? "on" : ""}" data-den="kompakt">Kompakt</button></div>
+      <button class="btn sm" data-now>Bugun</button><div class="seg vw-tb">${modes}</div>
+      <div class="seg vw-tb"><button class="${dense ? "" : "on"}" data-den="oddiy">Oddiy</button><button class="${dense ? "on" : ""}" data-den="kompakt">Kompakt</button></div>
       <span class="sp"></span>${UNDO.length ? `<button class="btn" data-undo title="Bekor qilish (Ctrl+Z)">↶</button>` : ""}<button class="btn pri" data-start>▶ Darsni boshlash</button><button class="btn" data-more>Yana ▾</button></div>
     ${ds.length ? `<div class="tblwrap" id="tw"><table class="j">${head}${body}</table></div>` : `<div class="card muted">Tanlangan davrda dars sanalari yo'q. «Sozlamalar → Dars kunlari va choraklar»da choraklarni belgilang yoki «Yana → Bugunni dars kuni qilish».</div>`}
     <div class="keys"><span class="hint">${selTxt}</span>${keys}</div></div>`;
@@ -1154,8 +1174,7 @@ function pageJournal(m) {
   const ud = $("[data-undo]", m); if (ud) ud.onclick = undoLast;
   m.querySelectorAll("[data-sh]").forEach((b) => b.onclick = () => { vShift(+b.dataset.sh); render(); });
   $("[data-now]", m).onclick = () => { V.anchor = todayIso(); render(); scrollToday(); };
-  m.querySelectorAll("[data-mode]").forEach((b) => b.onclick = () => { V.mode = b.dataset.mode; render(); scrollToday(); });
-  m.querySelectorAll("[data-den]").forEach((b) => b.onclick = () => { D.web.density = b.dataset.den; if (D.web.density === "kompakt") V.mode = "quarter"; else if (V.mode === "quarter") V.mode = "month"; save(); render(); scrollToday(); });
+  bindView(m);
   $("[data-start]", m).onclick = () => startLesson(S.ci);
   $("[data-more]", m).onclick = moreMenu;
   m.querySelectorAll("td.nm[data-st]").forEach((td) => td.onclick = () => studentCard(S.ci, c.students[+td.dataset.st].name));
