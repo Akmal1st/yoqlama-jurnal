@@ -517,13 +517,114 @@ function normalize(d) {
   if (!d.v2.ranges3 && !d.web.ranges3) { st.ranges = clone(DEFAULTS.ranges); d.web.ranges3 = true; }
   return d;
 }
+/* Ma'lumot versiyasi: D.web.dv. Tuzilma o'zgarsa DATA_VER oshiriladi va MIGRATE ga [eski dv] → yangi qadam qo'shiladi.
+   Yangiroq ilovada saqlangan ma'lumotni eski ilova ustidan yozmaydi (NEWER). */
+const DATA_VER = 1;
+const MIGRATE = {
+  0: (d) => d,   // 0 → 1: versiya belgisi va saqlash vaqti qo'shildi, tuzilma o'zgarmagan
+};
+let NEWER = false;
+const tooNew = (d) => (+((d && d.web) || {}).dv || 0) > DATA_VER;
+function migrate(d) {
+  let v = +d.web.dv || 0;
+  if (v > DATA_VER) { NEWER = true; return d; }
+  while (v < DATA_VER) { d = (MIGRATE[v] || ((x) => x))(d); v++; }
+  d.web.dv = DATA_VER; return d;
+}
 function load() {
-  try { const t = localStorage.getItem(STORE_KEY); if (t) return normalize(JSON.parse(t)); } catch (e) { console.warn(e); }
-  return normalize({});
+  try { const t = localStorage.getItem(STORE_KEY); if (t) return migrate(normalize(JSON.parse(t))); } catch (e) { console.warn(e); }
+  return migrate(normalize({}));
 }
 function save() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(D)); }
-  catch (e) { toast("Saqlab bo'lmadi: brauzer xotirasi to'lgan yoki yopiq. «Sozlamalar → Ma'lumotlar»dan faylga saqlang."); }
+  if (NEWER) { toast("Bu ma'lumot ilovaning yangiroq versiyasida saqlangan — o'zgarish saqlanmadi. Sahifani yangilang."); return; }
+  D.web.dv = DATA_VER; D.web.saved = new Date().toISOString();
+  const txt = JSON.stringify(D); let ok = true;
+  try { localStorage.setItem(STORE_KEY, txt); } catch (e) { ok = false; }
+  idbSave(txt);
+  if (!ok) toast(IDB.ok ? "Brauzerning asosiy xotirasi to'lgan — ma'lumot zaxira xotiraga (IndexedDB) saqlandi. «Sozlamalar → Ma'lumotlar»dan faylga ham saqlab qo'ying."
+    : "Saqlab bo'lmadi: brauzer xotirasi to'lgan yoki yopiq. «Sozlamalar → Ma'lumotlar»dan faylga saqlang.");
+}
+
+/* ───────── IndexedDB: asosiy xotiraning nusxasi va kunlik avtomatik nusxalar ───────── */
+// "kv": main → oxirgi holat (JSON matn); "snap": YYYY-MM-DD → {at, txt} — oxirgi SNAP_DAYS kun
+const IDB = {db: null, ok: false, ready: false, pend: null, timer: null};
+const SNAP_DAYS = 14;
+function idbOpen() {
+  return new Promise((res) => {
+    if (typeof indexedDB === "undefined") return res(null);
+    try {
+      const r = indexedDB.open("yoqlama_jurnal", 1);
+      r.onupgradeneeded = () => { const db = r.result; if (!db.objectStoreNames.contains("kv")) db.createObjectStore("kv"); if (!db.objectStoreNames.contains("snap")) db.createObjectStore("snap"); };
+      r.onsuccess = () => res(r.result); r.onerror = () => res(null); r.onblocked = () => res(null);
+    } catch (e) { res(null); }
+  });
+}
+function idbReq(store, mode, fn) {
+  return new Promise((res, rej) => {
+    if (!IDB.db) return res(null);
+    try { const tx = IDB.db.transaction(store, mode), st = tx.objectStore(store), r = fn(st); tx.oncomplete = () => res(r && r.result); tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error); }
+    catch (e) { rej(e); }
+  });
+}
+function idbSave(txt) {
+  IDB.pend = txt; if (!IDB.ready) return;
+  clearTimeout(IDB.timer); IDB.timer = setTimeout(idbFlush, 300);
+}
+async function idbFlush() {
+  const txt = IDB.pend; if (txt === null || !IDB.db) return; IDB.pend = null;
+  const day = todayIso();
+  try {
+    await idbReq("kv", "readwrite", (st) => st.put(txt, "main"));
+    await idbReq("snap", "readwrite", (st) => st.put({at: new Date().toISOString(), txt}, day));
+    const keys = (await idbReq("snap", "readonly", (st) => st.getAllKeys())) || [];
+    const old = keys.sort().slice(0, Math.max(0, keys.length - SNAP_DAYS));
+    if (old.length) await idbReq("snap", "readwrite", (st) => old.forEach((k) => st.delete(k)));
+    IDB.ok = true;
+  } catch (e) { IDB.ok = false; console.warn("IndexedDB:", e); }
+}
+window.addEventListener("pagehide", () => { if (IDB.pend !== null) idbFlush(); });
+const savedAt = (d) => Date.parse((d && d.web && d.web.saved) || "") || 0;
+// ishga tushganda: localStorage bo'sh, buzilgan yoki eskiroq bo'lsa — IndexedDB'dagi nusxadan tiklash
+async function idbBoot() {
+  IDB.db = await idbOpen(); IDB.ok = !!IDB.db;
+  if (IDB.db) {
+    try {
+      const txt = await idbReq("kv", "readonly", (st) => st.get("main"));
+      const I = txt ? JSON.parse(txt) : null;
+      if (I && Array.isArray(I.classes) && (savedAt(I) > savedAt(D) || !D.classes.length && I.classes.length)) {
+        NEWER = false; D = migrate(normalize(I)); autoDates();
+        try { localStorage.setItem(STORE_KEY, JSON.stringify(D)); } catch (e) { /* to'lgan bo'lsa ham IndexedDB'da bor */ }
+        render(); toast("Ma'lumotlar zaxira xotiradan (IndexedDB) tiklandi");
+      }
+    } catch (e) { console.warn("IndexedDB:", e); }
+  }
+  IDB.ready = true;
+  if (!NEWER) idbSave(JSON.stringify(D));
+  // brauzer joy tanqisligida ma'lumotni o'chirib yubormasligi uchun
+  try { if (navigator.storage && navigator.storage.persist && !(await navigator.storage.persisted())) await navigator.storage.persist(); } catch (e) { /* qo'llab-quvvatlanmaydi */ }
+}
+async function snapsDialog() {
+  if (!IDB.db) { toast("Bu brauzerda zaxira xotira (IndexedDB) ishlamayapti"); return; }
+  await idbFlush();
+  const keys = ((await idbReq("snap", "readonly", (st) => st.getAllKeys())) || []).sort().reverse();
+  const snaps = await Promise.all(keys.map((k) => idbReq("snap", "readonly", (st) => st.get(k)).then((v) => ({k, ...v}))));
+  const info = (txt) => { try { const d = JSON.parse(txt); return `${d.classes.length} sinf · ${d.classes.reduce((a, c) => a + c.students.reduce((b, s) => b + Object.keys(s.marks || {}).length, 0), 0)} belgi`; } catch (e) { return "o'qib bo'lmadi"; } };
+  return modal(`<h2>🕒 Kunlik avtomatik nusxalar</h2>
+    <div class="muted">Ilova har kuni oxirgi holatni brauzerning zaxira xotirasiga (IndexedDB) o'zi saqlaydi — oxirgi ${SNAP_DAYS} kun. Xato qilib o'chirib yuborsangiz, kerakli kunni tiklang.</div>
+    <div class="lsns">${snaps.map((x, i) => { const a = new Date(x.at);
+      return `<div class="row" style="gap:8px;flex-wrap:nowrap"><div class="sp" style="min-width:0"><b>${fmt(x.k.slice(0, 10))}</b>${x.k.length > 10 ? " (tiklashdan oldingi holat)" : ""} <span class="muted">${pad(a.getHours())}:${pad(a.getMinutes())} · ${info(x.txt)}</span></div>
+        <button class="btn sm" data-sdl="${i}">⬇</button>${x.k === todayIso() ? `<span class="muted">hozirgi</span>` : `<button class="btn sm" data-srs="${i}">Tiklash</button>`}</div>`; }).join("") || `<div class="muted">Hali nusxa yo'q.</div>`}</div>
+    <div class="row"><span class="sp"></span><button class="btn pri" data-x>Yopish</button></div>`, (m, close) => {
+    $("[data-x]", m).onclick = () => close();
+    m.querySelectorAll("[data-sdl]").forEach((b) => b.onclick = () => { const x = snaps[+b.dataset.sdl]; download(`journal_${x.k.slice(0, 10)}_nusxa.json`, x.txt); });
+    m.querySelectorAll("[data-srs]").forEach((b) => b.onclick = async () => {
+      const x = snaps[+b.dataset.srs]; close();
+      if (!await confirmBox("Nusxadan tiklash", `Jurnal ${fmt(x.k.slice(0, 10))} kundagi holatiga qaytariladi. Hozirgi holat bugungi nusxa sifatida saqlanib qoladi — kerak bo'lsa unga qaytishingiz mumkin.`, "Tiklash")) return;
+      // tiklangan holat bugungi nusxani bosib ketadi — shuning uchun hozirgisini alohida kalit bilan saqlab qo'yamiz
+      try { const cur = JSON.stringify(D); await idbReq("snap", "readwrite", (st) => st.put({at: new Date().toISOString(), txt: cur}, todayIso() + "~")); } catch (e) { /* bo'lmasa ham davom etamiz */ }
+      D = migrate(normalize(JSON.parse(x.txt))); autoDates(); save(); S.ci = 0; go("today"); toast(`${fmt(x.k.slice(0, 10))} holati tiklandi`);
+    });
+  });
 }
 
 /* ───────── belgilar ───────── */
@@ -1209,6 +1310,7 @@ function pageToday(m) {
       <h1>${hello} ${L.length ? `Bugun ${L.length} ta darsingiz bor` : "Bugun darsingiz yo'q"}</h1></div>
       <input type="text" id="find" placeholder="🔍 O'quvchi yoki sinfni qidirish" style="max-width:320px"></header>
     ${nowd ? `<div class="card hot row"><span class="sp">📆 ${nowd} ta sinf uchun dars kunlari belgilanmagan — «Bugun» ro'yxati to'liq bo'lmasligi mumkin.</span><button class="btn" data-days>Belgilash</button></div>` : ""}
+    ${NEWER ? `<div class="card hot row"><span class="sp">⚠ Ma'lumotlar ilovaning yangiroq versiyasida saqlangan. Buzilmasligi uchun o'zgarishlar saqlanmaydi — sahifani yangilang (internetga ulanib).</span><button class="btn pri" onclick="location.reload()">Yangilash</button></div>` : ""}
     ${TG_NEW ? (() => { const w = new Date(TG_NEW.date * 1000); return `<div class="card hot row"><span class="sp">🔄 Telegram'da boshqa qurilmadan yangiroq zaxira bor (${fmt(iso(w))} ${pad(w.getHours())}:${pad(w.getMinutes())}). Shu qurilmaga yuklaysizmi?</span><button class="btn pri" data-tg="tgnew">Yuklash</button><button class="btn" data-tg="tgkeep">Yo'q, menikini saqlash</button></div>`; })() : ""}
     ${(() => { const a = backupAge(), t = tgAge(); return (a === null || a > 7) && (t === null || t > 7) ? `<div class="card row"><span class="sp">💾 ${a === null ? "Ma'lumotlar hali faylga saqlanmagan." : `Oxirgi zaxira ${a} kun oldin olingan.`} Brauzer tozalansa, ma'lumot yo'qolishi mumkin — faylga saqlab qo'ying.</span><button class="btn pri" data-backup2>Saqlash</button></div>` : ""; })()}
     ${(() => { const b = birthdays(0); return b.length ? `<div class="card row bday"><span style="font-size:28px">🎂</span><span class="sp">Bugun tug'ilgan kun: ${b.map((x) => `<button class="link" data-stud="${x.ci}|${esc(x.s.name)}"><b>${esc(x.s.name)}</b></button> (${esc(D.classes[x.ci].name)}${x.age ? `, ${x.age} yosh` : ""})`).join(", ")}. Tabriklashni unutmang!</span></div>` : ""; })()}
@@ -1717,6 +1819,7 @@ function pageSettings(m) {
           : "Ma'lumotlar har kuni o'zingizning Telegram botingizga fayl bo'lib boradi. Telefon yo'qolsa yoki brauzer tozalansa ham jurnal saqlanib qoladi.",
           on ? `<button class="btn pri" data-a="tgsend">📤 Hozir yuborish</button><button class="btn" data-a="tgload">📥 Telegram'dan yuklash</button><button class="btn" data-a="tgoff">Uzish</button>` : `<button class="btn pri" data-a="tgon">🔗 Ulash</button>`); })() +
       srow("Faylga saqlash (zaxira)" + (age === null ? "" : ` <span class="muted" style="font-weight:500">· oxirgisi ${age ? age + " kun oldin" : "bugun"}</span>`), "journal.json — kompyuterdagi dastur yoki boshqa qurilmada ochish uchun. Vaqti-vaqti bilan saqlab qo'ying.", `<button class="btn pri" data-a="exp">💾 Yuklab olish</button>`) +
+      srow("🕒 Kunlik avtomatik nusxalar", `Ilova har kuni jurnal holatini brauzerning zaxira xotirasiga o'zi saqlaydi (oxirgi ${SNAP_DAYS} kun) — xato o'chirilgan ma'lumotni qaytarish mumkin.${IDB.db ? "" : " <span class='warn'>Bu brauzerda zaxira xotira ishlamayapti.</span>"}`, `<button class="btn" data-a="snaps">Ko'rish</button>`) +
       srow("Fayldan yuklash", "Kompyuterdagi dasturning journal.json fayli yoki oldin saqlangan zaxira. Hozirgi ma'lumotlar almashtiriladi.", `<button class="btn" data-a="imp">📂 Faylni tanlash</button>`) +
       srow("emaktab'dan import", "emaktab «Fan jurnali» Excel fayli (.xls / .xlsx): o'quvchilar, baholar, yo'qlama va BSB/CHSB ballari mavjud jurnalga qo'shiladi", `<button class="btn" data-a="xls">📊 Excel faylni tanlash</button>`) +
       srow("emaktab.uz saytidan to'g'ridan-to'g'ri", "emaktab'ga kirgan holda bitta bosishda barcha sinflaringiz jurnallari shu yerga keladi (fayl yuklab olish shart emas)", `<button class="btn" data-a="emk">🌐 Sozlash</button>`) +
@@ -1794,6 +1897,7 @@ async function settingsAction(a, i) {
   else if (a === "schx") scheduleImport();
   else if (a === "scht") scheduleTemplate().catch((e) => toast(e.message));
   else if (a === "exp") exportJson();
+  else if (a === "snaps") snapsDialog();
   else if (a === "imp") importJson();
   else if (a === "hist") {
     const all = D.changelog || [], lg = all.map((e, k) => [e, k]).slice(-300).reverse();
@@ -1806,7 +1910,7 @@ async function settingsAction(a, i) {
     });
   } else if (a === "wipe") {
     if (!await confirmBox("Hammasini o'chirish", "Shu brauzerdagi barcha sinflar, baholar va sozlamalar o'chadi. Oldin faylga saqlab olganingizga ishonch hosil qiling.", "O'chirish")) return;
-    D = normalize({}); save(); go("today");
+    D = migrate(normalize({})); save(); go("today");
   }
 }
 function exportJson() {
@@ -1820,8 +1924,9 @@ function importJson() {
     try {
       const data = JSON.parse(await file.text());
       if (!data || !Array.isArray(data.classes)) throw new Error("bu jurnal fayli emas");
+      if (tooNew(data)) throw new Error("fayl ilovaning yangiroq versiyasida saqlangan — sahifani yangilang");
       if (D.classes.length && !await confirmBox("Fayldan yuklash", `Hozirgi ${D.classes.length} ta sinf o'rniga fayldagi ${data.classes.length} ta sinf yuklanadi. Davom etamizmi?`, "Yuklash")) return;
-      D = normalize(data); autoDates(); save(); S.ci = 0; go("today"); toast(`${D.classes.length} ta sinf yuklandi`);
+      D = migrate(normalize(data)); autoDates(); save(); S.ci = 0; go("today"); toast(`${D.classes.length} ta sinf yuklandi`);
     } catch (e) { toast("Faylni o'qib bo'lmadi: " + e.message); }
   };
   f.click();
@@ -3446,7 +3551,7 @@ async function tgApi(method, params, token = tgCfg().token) {
 let TG_NEW = null, tgBusy = false; // TG_NEW — boshqa qurilmadan kelgan yangiroq zaxira (Bugun sahifasida taklif qilinadi)
 async function tgBackup(force) {
   const c = tgCfg(); if (!c.token || !c.chat || tgBusy) return false;
-  const json = JSON.stringify(D), hash = djb(json);
+  const json = JSON.stringify(D), hash = djbData();
   if (!force && c.hash === hash) return false;
   tgBusy = true;
   try {
@@ -3465,12 +3570,15 @@ async function tgPinned() {
   const ch = await tgApi("getChat", {chat_id: tgCfg().chat}), pm = ch.pinned_message;
   return pm && pm.document ? pm : null;
 }
+// saqlash vaqti (web.saved) o'zgarishi «yangi ma'lumot» hisoblanmasin
+function djbData() { const w = D.web.saved; delete D.web.saved; const h = djb(JSON.stringify(D)); if (w) D.web.saved = w; return h; }
 async function tgPull(pm) {
   const f = await tgApi("getFile", {file_id: pm.document.file_id});
   const data = await (await fetch(`https://api.telegram.org/file/bot${tgCfg().token}/${f.file_path}`)).json();
   if (!data || !Array.isArray(data.classes)) throw new Error("bu jurnal fayli emas");
-  D = normalize(data); autoDates(); save(); TG_NEW = null;
-  tgSet({seen: pm.message_id, hash: djb(JSON.stringify(D)), last: new Date(pm.date * 1000).toISOString()});
+  if (tooNew(data)) throw new Error("zaxira ilovaning yangiroq versiyasida saqlangan — sahifani yangilang");
+  D = migrate(normalize(data)); autoDates(); save(); TG_NEW = null;
+  tgSet({seen: pm.message_id, hash: djbData(), last: new Date(pm.date * 1000).toISOString()});
 }
 // ilova ochilganda: avval boshqa qurilmada yangiroq zaxira bormi — bo'lsa, so'ramasdan ustidan yozmaymiz
 async function tgAuto() {
@@ -3546,7 +3654,7 @@ const isStandalone = () => matchMedia("(display-mode: standalone)").matches || n
 if (document.getElementById("app")) {
   D = load(); autoDates(); if (D.classes.some((c) => c.plan && c.plan.on)) { reflowAll(); save(); }
   if (D.web.density === "kompakt") V.mode = "quarter";
-  render(); emkReady(); tgAuto(); remSchedule();
+  render(); emkReady(); idbBoot().then(() => { tgAuto(); remSchedule(); });
   setInterval(() => { if (S.page === "journal" && isLocked() !== $("[data-lock]")?.textContent.includes("🔒")) renderNav(); }, 30000);
 }
 </script>
