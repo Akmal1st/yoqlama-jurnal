@@ -511,3 +511,33 @@ test("Dars jadvali: Excel'dan yuklash, saqlash va dars kunlari", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Bugun: «Hamma keldi» va oldingi uy vazifasi; mavzular oynasi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const prev = await page.evaluate(() => {
+      const t = todayIso(), c = D.classes[0], p = iso(addDays(pdate(t), -1));
+      for (const d of [p, t]) if (!c.dates.includes(d)) c.dates.push(d);
+      c.dates.sort(); c.extra_x = c.extra_x.filter((d) => d !== p && d !== t); c.held.push(p, t);
+      c.att_ok = c.att_ok.filter((d) => d !== t); c.students.forEach((s) => delete s.marks[t]);
+      c.lessons[p] = {topic: "Kasrlar", hw: "45-bet, 3-mashq"}; save(); S.page = "today"; render(); return p;
+    });
+    await page.waitForSelector("text=45-bet, 3-mashq");
+    await page.click('[data-allok="0"]');
+    assert.ok(await page.evaluate(() => D.classes[0].att_ok.includes(todayIso())));
+    await page.waitForSelector('[data-open="0"]');
+    // mavzular oynasi: kiritilgan qiymat saqlanadi
+    await page.evaluate(() => { S.ci = 0; S.page = "journal"; render(); lessonsDialog(0); });
+    await page.fill(`[data-lt="${prev}"]`, "Kasrlarni qo'shish"); await page.press(`[data-lt="${prev}"]`, "Tab");
+    await page.fill(`[data-lh="${prev}"]`, ""); await page.press(`[data-lh="${prev}"]`, "Tab");
+    const l = await page.evaluate((p) => D.classes[0].lessons[p], prev);
+    assert.deepEqual(l, {topic: "Kasrlarni qo'shish", hw: ""});
+    await page.click(".modal [data-x]");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});

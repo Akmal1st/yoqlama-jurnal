@@ -92,6 +92,11 @@ a.btn{text-decoration:none;color:inherit}a.btn.pri{color:var(--acc-fg)}
 .item{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--soft)}
 .av{width:38px;height:38px;border-radius:12px;background:var(--soft);color:var(--acc);display:grid;place-items:center;font-weight:800;flex:none}
 table.j .sn{display:none}
+.lsns{position:relative;display:flex;flex-direction:column;gap:6px;max-height:min(60vh,520px);overflow:auto;padding-right:2px}
+.lsn{display:grid;grid-template-columns:62px minmax(0,1.4fr) minmax(0,1fr);gap:6px;align-items:center;padding:4px;border-radius:10px}
+.lsn.today{background:var(--acc-soft)}.lsn b{line-height:1.1}.lsn b small{display:block;color:var(--muted);font-weight:600;font-size:11.5px}
+.lsn input{min-height:36px;padding:6px 9px}
+@media (max-width:560px){.lsn{grid-template-columns:52px minmax(0,1fr)}.lsn input[data-lh]{grid-column:2}}
 .tag.now{background:var(--acc);color:#fff;padding:2px 8px;border-radius:99px;margin-left:6px}
 table.sch td{padding:0}table.sch select{min-width:96px;min-height:36px;padding:4px 6px;font-size:13px}table.sch td.bl{display:flex;flex-direction:column;gap:2px;align-items:center;padding:2px 4px}table.sch td.bl input{width:104px;min-height:32px;padding:2px 6px;font-size:13px;text-align:center}
 .badge{font-size:11px;font-weight:800;color:#b42318;background:#fde8e6;padding:1px 7px;border-radius:99px;margin-left:6px;white-space:nowrap}
@@ -1174,12 +1179,13 @@ function pageToday(m) {
     const tag = slots && slots.length ? slots.map((x) => `${x.no + 1}-soat${x.from ? ` · ${x.from}–${x.to}` : ""}`).join(", ") : "BUGUN";
     const live = nextNo && slots && slots.some((x) => x.no === nextNo[1]) ? (nextNo[0] === "now" ? `<span class="tag now">HOZIR</span>` : `<span class="tag">KEYINGI</span>`) : "";
     const w = c.works.find((x) => x.date === t), topic = (c.lessons[t] || {}).topic;
+    const prev = c.dates.filter((d) => d < t && !isNoLesson(c, d)).pop(), phw = prev && c.lessons[prev] && c.lessons[prev].hw;
     const note = w ? `Bugun ${w.type.toUpperCase()}${w.max ? ` (${w.max} ball)` : ""} — natijalarni kiritish` : topic ? `Mavzu: ${esc(topic)}` : "Mavzu kiritilmagan";
     return `<article class="card ${done ? "" : "hot"} col"><div class="row"><span class="tag">${tag}</span>${live}<span class="sp"></span>
       <span class="${done ? "ok" : "warn"}">${done ? `Yo'qlama ✓ · ${n} belgi` : "Yo'qlama qilinmagan"}</span></div>
       <div class="big">${esc(c.name)}</div><div class="muted">${esc(c.subject || "Fan ko'rsatilmagan")} · ${c.students.length} o'quvchi</div>
-      <div>${note}</div><div class="sp"></div>
-      ${done ? `<button class="btn" data-open="${ci}">Jurnalni ochish</button>` : `<button class="btn pri" data-start="${ci}">▶ Darsni boshlash</button>`}</article>`;
+      <div>${note}</div>${phw ? `<div class="muted">🏠 Uyga berilgan (${fmt(prev).slice(0, 5)}): ${esc(phw)}</div>` : ""}<div class="sp"></div>
+      ${done ? `<button class="btn" data-open="${ci}">Jurnalni ochish</button>` : `<div class="row wrap" style="gap:8px"><button class="btn pri" data-start="${ci}">▶ Darsni boshlash</button><button class="btn" data-allok="${ci}" title="Hech kim qoldirmagan bo'lsa — bitta bosishda yo'qlama tugaydi">✓ Hamma keldi</button></div>`}</article>`;
   }).join("") : `<article class="card col"><b>Bugun jadvalda dars yo'q</b><div class="muted">Kerak bo'lsa, istalgan sinf jurnalini ochib baho qo'yishingiz mumkin.</div>
       <div><button class="btn" data-go2="journal">Jurnalni ochish</button></div></article>`;
   m.innerHTML = `<div class="col" style="gap:18px">
@@ -1204,6 +1210,11 @@ function pageToday(m) {
       </div></div></div>`;
   m.querySelectorAll("[data-start]").forEach((b) => b.onclick = () => startLesson(+b.dataset.start));
   m.querySelectorAll("[data-open]").forEach((b) => b.onclick = () => { S.ci = +b.dataset.open; go("journal"); });
+  // tezkor yo'qlama: hamma darsda — kelmaganlar belgisi yo'q, kun «yo'qlama qilindi» deb belgilanadi
+  m.querySelectorAll("[data-allok]").forEach((b) => b.onclick = () => {
+    const c = D.classes[+b.dataset.allok]; if (!c.att_ok.includes(t)) c.att_ok.push(t); save(); render();
+    toast(`${label(c)}: hamma keldi ✓ — kimdir kelmagan bo'lsa, «Jurnalni ochish» orqali belgilang`);
+  });
   m.querySelectorAll("[data-go2]").forEach((b) => b.onclick = () => go(b.dataset.go2));
   m.querySelectorAll("[data-stud]").forEach((b) => b.onclick = () => { const [ci, n] = b.dataset.stud.split("|"); studentCard(+ci, n); });
   const dd = $("[data-days]", m); if (dd) dd.onclick = () => { S.sec = 1; go("settings"); };
@@ -1371,6 +1382,7 @@ async function moreMenu() {
     [`⏸ Faol / faolsiz o'quvchilar${c.students_off.length ? ` (${c.students_off.length} faolsiz)` : ""}`, () => studentsDialog(S.ci)],
     S.sel && ["⭐ Kuzatuvga qo'shish / olib tashlash", () => { const s = c.students[S.sel[0]]; s.star = !s.star; save(); render(); }],
     S.sel && ["📇 O'quvchi kartochkasi", () => studentCard(S.ci, c.students[S.sel[0]].name)],
+    ["📝 Mavzular va uy vazifalari", () => lessonsDialog(S.ci)],
     ["📚 Kalendar-tematik reja (KTR)", () => ktrDialog(S.ci)],
     ["📊 BSB / CHSB ballari", () => { S.jpage = "sum"; render(); }],
     ["🔍 BSB tahlili (savollar bo'yicha)", () => { S.jpage = "bsb"; render(); }],
@@ -2765,6 +2777,45 @@ function rollover() {
   });
 }
 function backupAge() { if (!D.web.exported) return null; return Math.floor((Date.now() - Date.parse(D.web.exported)) / 864e5); }
+
+/* ───────── mavzular va uy vazifalari (har dars kuni uchun) ───────── */
+function lessonsDialog(ci) {
+  const c = D.classes[ci], t = todayIso(), q0 = quarterOf(t) || 1;
+  let q = q0, only = false;
+  const list = () => { const r = qRange(q); return c.dates.filter((d) => (!r || r[0] <= d && d <= r[1]) && !isNoLesson(c, d)); };
+  const body = () => {
+    const ds = list(), empty = ds.filter((d) => d <= t && !(c.lessons[d] || {}).topic).length;
+    const rows = ds.filter((d) => !only || d <= t && !(c.lessons[d] || {}).topic);
+    return `<div class="row wrap" style="gap:8px"><div class="seg">${[1, 2, 3, 4].map((k) => `<button class="${k === q ? "on" : ""}" data-lq="${k}">${k}-ch.</button>`).join("")}</div>
+      <label class="row" style="gap:6px"><input type="checkbox" id="lonly" ${only ? "checked" : ""} style="width:20px;height:20px"> Faqat mavzusi yo'qlar</label><span class="sp"></span>
+      <span class="${empty ? "warn" : "ok"}">${empty ? `O'tgan ${empty} ta darsda mavzu yozilmagan` : "O'tgan darslarning hammasida mavzu bor ✓"}</span></div>
+      <div class="lsns">${rows.length ? rows.map((d) => { const l = c.lessons[d] || {};
+        return `<div class="lsn ${d === t ? "today" : ""}"><b>${fmt(d).slice(0, 5)}<small>${WD[pyWd(d)]}${l.auto ? " · KTR" : ""}</small></b>
+          <input type="text" data-lt="${d}" value="${esc(l.topic || "")}" placeholder="Mavzu" aria-label="${fmt(d)} mavzu">
+          <input type="text" data-lh="${d}" value="${esc(l.hw || "")}" placeholder="Uy vazifasi" aria-label="${fmt(d)} uy vazifasi"></div>`; }).join("")
+        : `<div class="muted">Bu chorakda ${only ? "mavzusi yo'q o'tgan dars yo'q" : "dars kunlari yo'q"}.</div>`}</div>`;
+  };
+  return modal(`<h2>📝 Mavzular va uy vazifalari · ${esc(label(c))}</h2>
+    <div class="muted">Har bir dars uchun mavzu va uy vazifasi. KTR kiritilgan bo'lsa, mavzular rejadan o'zi to'ladi («KTR» belgisi) — kerak bo'lsa o'zgartiring. O'zgarish darhol saqlanadi.</div>
+    <div id="lsb" class="col" style="gap:10px">${body()}</div>
+    <div class="row"><span class="sp"></span><button class="btn pri" data-x>Yopish</button></div>`, (m, close) => {
+    const bind = () => {
+      m.querySelectorAll("[data-lq]").forEach((b) => b.onclick = () => { q = +b.dataset.lq; redraw(); });
+      $("#lonly", m).onchange = (e) => { only = e.target.checked; redraw(); };
+      const put = (d, k, v) => {
+        const l = Object.assign({}, c.lessons[d] || {}); l[k] = v.trim();
+        if (k === "topic" && l.auto) { delete l.auto; delete l.si; }
+        if (l.topic || l.hw) c.lessons[d] = l; else delete c.lessons[d];
+        save();
+      };
+      m.querySelectorAll("[data-lt]").forEach((x) => x.onchange = () => put(x.dataset.lt, "topic", x.value));
+      m.querySelectorAll("[data-lh]").forEach((x) => x.onchange = () => put(x.dataset.lh, "hw", x.value));
+      const box = $(".lsns", m), td = $(".lsn.today", m); if (box && td) box.scrollTop = td.offsetTop - box.clientHeight / 3;
+    };
+    const redraw = () => { $("#lsb", m).innerHTML = body(); bind(); }; bind();
+    $("[data-x]", m).onclick = () => { close(); render(); };
+  });
+}
 
 /* ───────── dars jadvali ───────── */
 // D.web.schedule = {bells: [["08:00","08:45"], …], days: [[jurnal kaliti | "" har soat uchun] × 6 kun (Du…Sh)]}
