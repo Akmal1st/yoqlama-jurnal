@@ -373,3 +373,30 @@ test("Sozlamalar → Baholash: baho ranglari oraliqlari aniq ko'rinadi", async (
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("jurnal: yonga surilganda sana ustuni ism ustuni ostida yarim qolmaydi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 360, height: 760}});
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    for (const fs of ["m", "xl"]) for (const den of ["oddiy", "kompakt"]) for (const mode of ["week", "month", "quarter"]) {
+      const gaps = await page.evaluate(async ([fs, den, mode]) => {
+        D.web.fsize = fs; D.web.density = den; S.page = "journal"; V.mode = mode; render();
+        const tw = $("#tw"), out = [];
+        for (const x of [37, 123, 250, 99999]) {
+          tw.scrollLeft = x; await new Promise((r) => setTimeout(r, 50));
+          const nm = tw.querySelector("th.nm").getBoundingClientRect();
+          const f = [...tw.querySelectorAll("th:not(.nm)")].map((t) => t.getBoundingClientRect()).find((q) => q.right > nm.right + 1);
+          out.push(f ? f.left - nm.right : 0);
+        }
+        return out;
+      }, [fs, den, mode]);
+      assert.ok(gaps.every((g) => g >= 0), `${fs} / ${den} / ${mode}: ${gaps}`);
+    }
+    // davr sarlavhasi tugmalar ustiga chiqmaydi
+    const over = await page.evaluate(() => { const h = $(".pernav h2").getBoundingClientRect(), nx = $(".pernav [data-sh='1']").getBoundingClientRect(); return h.right - nx.left; });
+    assert.ok(over <= 0, `sarlavha tugmaga ${over}px kirib ketgan`);
+  } finally { await browser.close(); }
+});
