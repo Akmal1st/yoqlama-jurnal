@@ -96,6 +96,7 @@ table.j .sn{display:none}
 .lsn{display:grid;grid-template-columns:62px minmax(0,1.4fr) minmax(0,1fr);gap:6px;align-items:center;padding:4px;border-radius:10px}
 .lsn.today{background:var(--acc-soft)}.lsn b{line-height:1.1}.lsn b small{display:block;color:var(--muted);font-weight:600;font-size:11.5px}
 .lsn input{min-height:36px;padding:6px 9px}
+.pmsg{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line);border-radius:12px}.pmsg textarea{min-height:110px;font-size:14px}
 @media (max-width:560px){.lsn{grid-template-columns:52px minmax(0,1fr)}.lsn input[data-lh]{grid-column:2}}
 .tag.now{background:var(--acc);color:#fff;padding:2px 8px;border-radius:99px;margin-left:6px}
 table.sch td{padding:0}table.sch select{min-width:96px;min-height:36px;padding:4px 6px;font-size:13px}table.sch td.bl{display:flex;flex-direction:column;gap:2px;align-items:center;padding:2px 4px}table.sch td.bl input{width:104px;min-height:32px;padding:2px 6px;font-size:13px;text-align:center}
@@ -1383,6 +1384,7 @@ async function moreMenu() {
     S.sel && ["⭐ Kuzatuvga qo'shish / olib tashlash", () => { const s = c.students[S.sel[0]]; s.star = !s.star; save(); render(); }],
     S.sel && ["📇 O'quvchi kartochkasi", () => studentCard(S.ci, c.students[S.sel[0]].name)],
     ["📝 Mavzular va uy vazifalari", () => lessonsDialog(S.ci)],
+    ["✉️ Ota-onalarga xabarlar (butun sinf)", () => parentBulk(S.ci)],
     ["📚 Kalendar-tematik reja (KTR)", () => ktrDialog(S.ci)],
     ["📊 BSB / CHSB ballari", () => { S.jpage = "sum"; render(); }],
     ["🔍 BSB tahlili (savollar bo'yicha)", () => { S.jpage = "bsb"; render(); }],
@@ -2598,8 +2600,21 @@ function growthSvg(g) {
   for (const [i, typ, p, d] of g.works) { const v = 1 + 9 * p / 100; s += `<rect x="${x(i) - 5}" y="${y(v) - 5}" width="10" height="10" transform="rotate(45 ${x(i)} ${y(v)})" fill="${typ === "bsb" ? "#1565c0" : "#6a1b9a"}"><title>${typ.toUpperCase()} ${fmt(d)}: ${Math.round(p)}%</title></rect>`; }
   return s + `</svg><div class="legend"><span><i style="background:var(--acc)"></i>yig'ma o'rtacha</span><span><i style="background:var(--muted)"></i>sinf o'rtachasi</span><span><i style="background:#1565c0"></i>BSB / <i style="background:#6a1b9a"></i>CHSB (%)</span><span><i style="background:${D.settings.attendance.s};opacity:.5"></i>qoldirilgan dars</span></div>`;
 }
-const PARENT_KINDS = [["att", "Davomat"], ["low", "Baholar past"], ["drop", "Baholar pasaymoqda"], ["good", "Maqtov"], ["gen", "Umumiy"]];
-function parentMessage(kind, lang, name, c, r, period) {
+const PARENT_KINDS = [["week", "Haftalik xulosa"], ["att", "Davomat"], ["low", "Baholar past"], ["drop", "Baholar pasaymoqda"], ["good", "Maqtov"], ["gen", "Umumiy"]];
+// haftalik xulosa: shu davrdagi har bir baho/qoldirish kun bilan, oxirgi uy vazifasi
+function weekDigest(c, name, lo, hi, lang) {
+  const s = c.students.find((x) => x.name === name), t = todayIso(); if (!s) return "";
+  const ds = c.dates.filter((d) => lo <= d && d <= hi && d <= t && !isNoLesson(c, d));
+  const ru = lang === "ru", AB = ru ? {s: "пропуск без ув. причины", dq: "пропуск по ув. причине", k: "болезнь", kq: "опоздание"} : {s: "sababsiz qoldirdi", dq: "sababli qoldirdi", k: "kasal", kq: "kech qoldi"};
+  const lines = ds.map((d) => { const m = s.marks[d] || "", gs = gradesOf(m), a = attPart(m), parts = [];
+    if (gs.length) parts.push((ru ? "оценка " : "baho ") + gs.join("/")); if (a && AB[a]) parts.push(AB[a]);
+    return parts.length ? `• ${fmt(d).slice(0, 5)} — ${parts.join(", ")}` : ""; }).filter(Boolean);
+  const all = ds.flatMap((d) => gradesOf(s.marks[d] || "")), avg = all.length ? (all.reduce((a, b) => a + b, 0) / all.length).toFixed(1) : null;
+  const hwd = c.dates.filter((d) => d <= t && c.lessons[d] && c.lessons[d].hw).pop();
+  return (lines.length ? lines.join("\n") + (avg ? `\n${ru ? "Средний балл" : "O'rtacha baho"}: ${avg}` : "") : (ru ? "За этот период оценок и пропусков нет." : "Bu davrda baho va qoldirish yo'q."))
+    + (hwd ? `\n${ru ? "Домашнее задание" : "Uy vazifasi"} (${fmt(hwd).slice(0, 5)}): ${c.lessons[hwd].hw}` : "");
+}
+function parentMessage(kind, lang, name, c, r, period, digest = "") {
   const avg = r && r.avg !== null ? r.avg.toFixed(1) : "—", att = r && r.att !== null ? Math.round(r.att) + "%" : "—", ab = r ? r.absent : 0;
   const [s_, dq, k] = r ? [r.s, r.dq, r.k] : [0, 0, 0], sub = c.subject || "", cl = c.name;
   if (lang === "ru") return `Здравствуйте! Ваш(а) ребёнок ${name} (${cl}${sub ? ", " + sub : ""}). Период: ${period}.\n` + ({
@@ -2607,13 +2622,13 @@ function parentMessage(kind, lang, name, c, r, period) {
     low: `Средний балл за период: ${avg}. Оценки ниже ожидаемого уровня. Просим помочь ребёнку с домашними заданиями; готов(а) провести дополнительные занятия.`,
     drop: `Оценки за период снижаются (средний балл: ${avg}). Просим обратить внимание и поговорить с ребёнком.`,
     good: `Средний балл за период: ${avg}, посещаемость: ${att}. Хороший результат — благодарю за поддержку!`,
-    gen: `Средний балл: ${avg}, посещаемость: ${att}, пропущено уроков: ${ab}.`}[kind]) + "\nС уважением, учитель.";
+    gen: `Средний балл: ${avg}, посещаемость: ${att}, пропущено уроков: ${ab}.`, week: digest}[kind]) + "\nС уважением, учитель.";
   return `Assalomu alaykum! Farzandingiz ${name} (${cl}${sub ? ", " + sub : ""}). Davr: ${period}.\n` + ({
     att: `Qoldirilgan darslar: ${ab} ta (sababsiz — ${s_}, sababli — ${dq}, kasallik — ${k}). Davomat: ${att}. Iltimos, sababini aniqlab, menga xabar bering.`,
     low: `Davr bo'yicha o'rtacha baho: ${avg}. Baholari kutilgan darajadan past. Iltimos, uy vazifalarida farzandingizga yordam bering; qo'shimcha mashg'ulot o'tkazishga tayyorman.`,
     drop: `Davr davomida baholari pasayib bormoqda (o'rtacha: ${avg}). Iltimos, e'tibor bering va farzandingiz bilan suhbatlashing.`,
     good: `Davr bo'yicha o'rtacha baho: ${avg}, davomat: ${att}. Yaxshi natija — qo'llab-quvvatlaganingiz uchun rahmat!`,
-    gen: `O'rtacha baho: ${avg}, davomat: ${att}, qoldirilgan darslar: ${ab} ta.`}[kind]) + "\nHurmat bilan, fan o'qituvchisi.";
+    gen: `O'rtacha baho: ${avg}, davomat: ${att}, qoldirilgan darslar: ${ab} ta.`, week: digest}[kind]) + "\nHurmat bilan, fan o'qituvchisi.";
 }
 function parentDefaultKind(r) {
   if (!r) return "gen"; const w = r.why.join(" ");
@@ -2651,7 +2666,7 @@ function studentCard(ci, name, tab = "sum") {
     const kind = S.pkind || parentDefaultKind(r), lang = S.plang || "uz";
     body = `<div class="row" style="gap:8px"><select id="pk" style="width:auto">${PARENT_KINDS.map(([k, n]) => `<option value="${k}" ${k === kind ? "selected" : ""}>${n}</option>`).join("")}</select>
       <div class="seg"><button class="${lang === "uz" ? "on" : ""}" data-pl="uz">O'zbekcha</button><button class="${lang === "ru" ? "on" : ""}" data-pl="ru">Ruscha</button></div></div>
-      <textarea id="pm" style="min-height:170px">${esc(parentMessage(kind, lang, name, c, r, per))}</textarea>
+      <textarea id="pm" style="min-height:170px">${esc(kind === "week" ? parentMessage("week", lang, name, c, r, weekLabel(lang), weekDigest(c, name, weekLo(), todayIso(), lang)) : parentMessage(kind, lang, name, c, r, per))}</textarea>
       <div class="row"><span class="muted sp">Matnni tahrirlab, nusxalab Telegram yoki SMS orqali yuboring.</span><button class="btn pri" data-copy>📋 Nusxalash</button>
       ${navigator.share ? `<button class="btn" data-share>Ulashish</button>` : ""}</div>`;
   }
@@ -2672,6 +2687,48 @@ function studentCard(ci, name, tab = "sum") {
     mm.querySelectorAll("[data-pl]").forEach((b) => b.onclick = () => { S.plang = b.dataset.pl; again("msg"); });
     const cp = $("[data-copy]", mm); if (cp) cp.onclick = () => copyText($("#pm", mm).value);
     const sh = $("[data-share]", mm); if (sh) sh.onclick = () => navigator.share({text: $("#pm", mm).value}).catch(() => {});
+  });
+}
+
+/* ───────── ota-onalarga xabar: butun sinf uchun ───────── */
+const weekLo = (back = 0) => { const t = pdate(todayIso()); return iso(addDays(t, -pyWd(iso(t)) - 7 * back)); };
+const weekLabel = (lang, lo = weekLo(), hi = todayIso()) => `${fmt(lo).slice(0, 5)}–${fmt(hi).slice(0, 5)}`;
+function parentBulk(ci) {
+  const c = D.classes[ci]; let per = "w", kind = "week", lang = S.plang || "uz", only = false;
+  const range = () => { const t = todayIso(); if (per === "w") return [weekLo(), t, null]; if (per === "pw") return [weekLo(1), iso(addDays(pdate(weekLo()), -1)), null]; return periodNow(); };
+  const msgs = () => {
+    const [lo, hi, q] = range(), rows = reportRows(c, lo, hi, q).rows, pl = per === "q" ? (q ? `${q}-chorak` : "joriy oy") : weekLabel(lang, lo, hi);
+    return c.students.map((s) => { const r = rows.find((x) => x.name === s.name), k = kind === "auto" ? parentDefaultKind(r) : kind;
+      return {name: s.name, r, k, text: parentMessage(k, lang, s.name, c, r, pl, k === "week" ? weekDigest(c, s.name, lo, hi, lang) : "")}; })
+      .filter((x) => !only || x.r && (x.r.why.length || x.r.s || x.r.dq || x.r.k));
+  };
+  const body = () => { const ms = msgs(); return `<div class="lsns">${ms.length ? ms.map((x, i) => `<div class="pmsg"><div class="row" style="gap:6px"><b class="sp">${esc(x.name)}</b>${x.r && x.r.why.length ? `<span class="badge">xavf</span>` : ""}</div>
+      <textarea data-pt="${i}">${esc(x.text)}</textarea>
+      <div class="row wrap" style="gap:6px"><button class="btn sm" data-pc="${i}">📋 Nusxalash</button><a class="btn sm" data-ptg="${i}" target="_blank" rel="noopener" href="https://t.me/share/url?url=%20&text=${encodeURIComponent(x.text)}">✈️ Telegram</a><a class="btn sm" data-psms="${i}" href="sms:?body=${encodeURIComponent(x.text)}">💬 SMS</a></div></div>`).join("")
+      : `<div class="muted">Bu davrda muammoli o'quvchi yo'q 👍</div>`}</div>`; };
+  const sel = (id, list, cur) => `<select id="${id}" style="width:auto">${list.map(([k, n]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${n}</option>`).join("")}</select>`;
+  return modal(`<h2>✉️ Ota-onalarga xabarlar · ${esc(label(c))}</h2>
+    <div class="muted">Har bir o'quvchi uchun tayyor matn. Tahrirlab, Telegram/SMS orqali yuboring yoki nusxalang.</div>
+    <div class="row wrap" style="gap:8px">${sel("pbp", [["w", "Shu hafta"], ["pw", "O'tgan hafta"], ["q", "Joriy chorak"]], per)}
+      ${sel("pbk", [["week", "Haftalik xulosa (baholar ro'yxati)"], ["auto", "Har biriga mosini tanlash"], ...PARENT_KINDS.filter(([k]) => k !== "week")], kind)}
+      <div class="seg"><button class="${lang === "uz" ? "on" : ""}" data-pbl="uz">O'zbekcha</button><button class="${lang === "ru" ? "on" : ""}" data-pbl="ru">Ruscha</button></div>
+      <label class="row" style="gap:6px"><input type="checkbox" id="pbo" ${only ? "checked" : ""} style="width:20px;height:20px"> Faqat muammolilar</label></div>
+    <div id="pbb">${body()}</div>
+    <div class="row"><button class="btn" data-pall>📋 Hammasini nusxalash</button><span class="sp"></span><button class="btn pri" data-x>Yopish</button></div>`, (m, close) => {
+    const bind = () => {
+      const ms = msgs(), cur = (i) => $(`[data-pt="${i}"]`, m).value;
+      m.querySelectorAll("[data-pt]").forEach((x) => x.oninput = () => { const i = x.dataset.pt, t = encodeURIComponent(x.value);
+        $(`[data-ptg="${i}"]`, m).href = `https://t.me/share/url?url=%20&text=${t}`; $(`[data-psms="${i}"]`, m).href = `sms:?body=${t}`; });
+      m.querySelectorAll("[data-pc]").forEach((b) => b.onclick = () => copyText(cur(b.dataset.pc)));
+      $("[data-pall]", m).onclick = () => copyText(ms.map((x, i) => cur(i)).join("\n\n——————\n\n"));
+    };
+    const redraw = () => { $("#pbb", m).innerHTML = body(); bind(); };
+    $("#pbp", m).onchange = (e) => { per = e.target.value; redraw(); };
+    $("#pbk", m).onchange = (e) => { kind = e.target.value; redraw(); };
+    $("#pbo", m).onchange = (e) => { only = e.target.checked; redraw(); };
+    m.querySelectorAll("[data-pbl]").forEach((b) => b.onclick = () => { lang = S.plang = b.dataset.pbl; m.querySelectorAll("[data-pbl]").forEach((x) => x.classList.toggle("on", x === b)); redraw(); });
+    $("[data-x]", m).onclick = () => close(); bind();
+    m.querySelector(".card").classList.add("wide");
   });
 }
 
