@@ -345,6 +345,12 @@ table.r tr:hover td{background:var(--alt)}
 /* hisobotni chop etishda ixcham ko'rinish (o'lchash uchun ham shu qoidalar) */
 @media print{.pfit .tiles{grid-template-columns:repeat(4,1fr)}.pfit table.r{font-size:11pt}.pfit table.r th,.pfit table.r td{padding:2px 6px}.pfit .tiles{gap:6px}.pfit .tile{padding:6px 10px}.pfit .tile div:last-child{font-size:16pt}.pfit h2{margin:0}.pfit .pill{padding:0 6px}}
 body.pmeas .noprint{display:none!important}
+/* sinf → fan */
+.clsnav{gap:8px}.clsnav .chips{gap:8px}
+.chip small{font-weight:500;opacity:.75}
+.subs{padding-left:12px;border-left:3px solid var(--acc-soft)}
+.chip.sub{min-height:32px;padding:0 13px;font-size:14px;background:var(--alt)}
+.chip.sub.on{background:var(--acc-soft);border-color:var(--acc);color:var(--acc-d);box-shadow:none}
 /* davr tanlash: ‹ sarlavha › Bugun — doim bir qatorda */
 .pernav{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0}
 .pernav h2{min-width:150px;text-align:center;white-space:nowrap}
@@ -1825,11 +1831,24 @@ const shownVal = (e, v) => e.work ? fmtNum(v) : /activate/.test(e.kind) ? v : (d
 function jpSeg() {
   return `<div class="seg">${[["j", "Kundalik"], ["sum", "BSB / CHSB"], ["bsb", "BSB tahlili"], ["year", "Yillik"]].map(([k, n]) => `<button class="${S.jpage === k ? "on" : ""}" data-jp="${k}">${n}</button>`).join("")}</div>`;
 }
+/* sinflar ikki qavatda: 1-qatorda sinflar, 2-qatorda tanlangan sinfning fanlari */
+function classGroups() {
+  const g = new Map(); D.classes.forEach((c, i) => { const k = c.name; if (!g.has(k)) g.set(k, []); g.get(k).push(i); }); return [...g];
+}
 function classChips() {
-  return `<div class="row chips" style="gap:8px">${D.classes.map((x, i) => `<button class="chip ${i === S.ci ? "on" : ""}" data-ci="${i}">${esc(label(x))}</button>`).join("")}</div>`;
+  const cur = D.classes[S.ci], groups = classGroups(), mine = (groups.find(([k]) => k === cur.name) || [, [S.ci]])[1];
+  const top = groups.map(([k, ids]) => ids.length === 1
+    ? `<button class="chip ${ids[0] === S.ci ? "on" : ""}" data-ci="${ids[0]}" title="${esc(label(D.classes[ids[0]]))}">${esc(k)}${D.classes[ids[0]].subject ? `<small> · ${esc(D.classes[ids[0]].subject)}</small>` : ""}</button>`
+    : `<button class="chip ${k === cur.name ? "on" : ""}" data-cls="${esc(k)}">${esc(k)} <small>${ids.length}</small></button>`).join("");
+  const subs = mine.length > 1 ? `<div class="row chips subs">${mine.map((i) => `<button class="chip sub ${i === S.ci ? "on" : ""}" data-ci="${i}">${esc(D.classes[i].subject || "—")}</button>`).join("")}</div>` : "";
+  return `<div class="col clsnav"><div class="row chips">${top}</div>${subs}</div>`;
 }
 function bindTop(m) {
-  m.querySelectorAll("[data-ci]").forEach((b) => b.onclick = () => { S.ci = +b.dataset.ci; S.sel = null; render(); });
+  m.querySelectorAll("[data-ci]").forEach((b) => b.onclick = () => { S.ci = +b.dataset.ci; (S.lastSub = S.lastSub || {})[D.classes[S.ci].name] = S.ci; S.sel = null; render(); });
+  m.querySelectorAll("[data-cls]").forEach((b) => b.onclick = () => {
+    const ids = classGroups().find(([k]) => k === b.dataset.cls)[1], last = (S.lastSub || {})[b.dataset.cls];
+    S.ci = ids.includes(last) ? last : ids[0]; S.sel = null; render();
+  });
   m.querySelectorAll("[data-jp]").forEach((b) => b.onclick = () => { S.jpage = b.dataset.jp; S.sel = null; render(); });
 }
 const g5pill = (g, title = "") => g ? `<span class="pill" title="${esc(title)}" style="background:${gradeColor(G5COL[g])};color:${contrast(gradeColor(G5COL[g]))}">${g}</span>` : `<span class="muted">—</span>`;
