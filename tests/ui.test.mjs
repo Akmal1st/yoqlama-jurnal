@@ -467,3 +467,47 @@ test("Telegram: ulash, avtomatik zaxira va boshqa qurilmadan yuklash (soxta bot 
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Dars jadvali: Excel'dan yuklash, saqlash va dars kunlari", async () => {
+  const {readFile, writeFile, mkdtemp} = await import("node:fs/promises");
+  const {tmpdir} = await import("node:os"); const {join} = await import("node:path");
+  const XLSX = (await import("xlsx")).default;
+  const lib = fileURLToPath(new URL("../node_modules/xlsx/dist/xlsx.full.min.js", import.meta.url));
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const ctx = await browser.newContext({viewport: {width: 390, height: 844}, acceptDownloads: true});
+    await ctx.route("https://cdnjs.cloudflare.com/**", async (r) => r.fulfill({body: await readFile(lib), contentType: "text/javascript"}));
+    const page = await ctx.newPage();
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    // maktab jadvali: kunlar ustunlarda, sinf yozuvi har xil ko'rinishda
+    const rows = [["O'qituvchi: Akmal"], ["№", "Vaqt", "Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"],
+      [1, "8:00-8:45", "6-A Matematika", "", "9 - A Geometriya", "", "7G", ""],
+      [2, "08:50 - 09:35", "9-A Algebra", "7-G", "", "9-A algebra", "6A", ""],
+      [3, "09:40-10:25", "", "8-B", "6-A", "", "", ""]];
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "Jadval");
+    const dir = await mkdtemp(join(tmpdir(), "jadval-")), file = join(dir, "jadval.xlsx");
+    await writeFile(file, XLSX.write(wb, {type: "buffer", bookType: "xlsx"}));
+    await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="1"]');
+    const [fc] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-a=schx]")]);
+    await fc.setFiles(file);
+    await page.waitForSelector("table.sch");
+    assert.ok(await page.isVisible("text=8-B"), "jurnalda yo'q sinf ko'rsatilishi kerak");
+    await page.click(".modal [data-ok]");
+    const r = await page.evaluate(() => ({s: D.web.schedule, wd: Object.fromEntries(D.classes.map((c) => [label(c), c.weekdays])),
+      mon: schedToday("2026-10-26").map((x) => `${x.no + 1} ${label(x.c)} ${x.from}-${x.to}`)}));
+    assert.deepEqual(r.s.bells, [["08:00", "08:45"], ["08:50", "09:35"], ["09:40", "10:25"]]);
+    assert.deepEqual(r.mon, ["1 6-A · Matematika 08:00-08:45", "2 9-A · Algebra 08:50-09:35"]);
+    assert.deepEqual(r.wd, {"6-A · Matematika": [0, 2, 4], "7-G · Informatika": [1, 4], "9-A · Algebra": [0, 3], "9-A · Geometriya": [2]});
+    // kunlar qatorlarda bo'lgan jadval ham o'qiladi
+    const t = await page.evaluate(() => parseSchedule([["", "1", "2"], ["Du", "6-A", "7-G"], ["Se", "", "9-A Geometriya"], ["Chor", "6-A", ""]]).schedule.days.slice(0, 3));
+    assert.deepEqual(t, [["6-A|Matematika", "7-G|Informatika"], ["", "9-A|Geometriya"], ["6-A|Matematika", ""]]);
+    // namuna Excel yuklab olinadi
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-a=scht]")]);
+    const back = XLSX.utils.sheet_to_json(XLSX.read(await readFile(await dl.path())).Sheets["Dars jadvali"], {header: 1});
+    assert.equal(back[0][2], "Dushanba"); assert.equal(back[1][2], "6-A Matematika");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
