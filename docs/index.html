@@ -101,6 +101,10 @@ table.j .sn{display:none}
 .pick{min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;padding:12px;border-radius:14px;background:var(--acc-soft)}
 .pname{font-size:30px;font-weight:800;line-height:1.15}.pick.flash{animation:pk .35s ease-out}@keyframes pk{from{transform:scale(.92);opacity:.3}to{transform:none;opacity:1}}
 .grps{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;max-height:min(55vh,480px);overflow:auto}.grp{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:3px}
+.swp{display:flex;flex-direction:column;gap:14px;max-width:460px;margin:0 auto;width:100%}.swbar{height:6px;border-radius:9px;background:var(--soft);overflow:hidden}.swbar i{display:block;height:100%;background:var(--acc)}
+.swc{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:26px 16px;border:1px solid var(--line);border-radius:18px;background:var(--base);box-shadow:0 6px 20px rgba(0,0,0,.08);touch-action:pan-y;user-select:none;transition:transform .15s,background .15s}
+.swc.yes{background:color-mix(in srgb,var(--ok) 20%,var(--base))}.swc.no{background:color-mix(in srgb,var(--danger) 20%,var(--base))}.av.big2{width:72px;height:72px;font-size:26px;border-radius:20px}
+.swb{gap:10px}.swb .btn{flex:1;min-height:56px;font-size:18px;justify-content:center}.swb .swyes,.swb .swyes:hover{background:var(--ok);border-color:var(--ok);color:var(--base)}.swb .swno,.swb .swno:hover{background:var(--danger);border-color:var(--danger);color:var(--base)}
 .tag.now{background:var(--acc);color:#fff;padding:2px 8px;border-radius:99px;margin-left:6px}
 table.sch td{padding:0}table.sch select{min-width:96px;min-height:36px;padding:4px 6px;font-size:13px}table.sch td.bl{display:flex;flex-direction:column;gap:2px;align-items:center;padding:2px 4px}table.sch td.bl input{width:104px;min-height:32px;padding:2px 6px;font-size:13px;text-align:center}
 .badge{font-size:11px;font-weight:800;color:#b42318;background:#fde8e6;padding:1px 7px;border-radius:99px;margin-left:6px;white-space:nowrap}
@@ -1437,8 +1441,21 @@ function pageLesson(m) {
   const late = c.students.filter((_, i) => attOf(c, i) === "kq").length, graded = c.students.filter((s) => gradesOf(s.marks[t] || "").length).length;
   const steps = ["1 · Yo'qlama", "2 · Baholar", "3 · Mavzu va uy vazifasi"].map((s, i) => `<button class="${i === S.step ? "on" : ""}" data-step="${i}">${s}</button>`).join("");
   let body = "";
-  if (S.step === 0) {
-    body = `<div class="row"><h1 class="sp">Kim darsda? ${n - absent} / ${n} keldi</h1><button class="btn" data-all>Hammasi keldi</button></div>
+  const card = D.web.att_mode === "card";
+  if (S.step === 0 && card) {
+    const i = Math.min(S.cur || 0, n), s = c.students[i], a = s ? attOf(c, i) : "";
+    body = `<div class="row"><h1 class="sp">Kim darsda? ${n - absent} / ${n} keldi</h1>${attModeSeg()}</div>
+      <p class="muted" style="margin:6px 0">O'ngga suring yoki «✓ Keldi», chapga suring yoki «✗ Yo'q» — keyingi o'quvchi chiqadi. Klaviatura: → / ←.</p>
+      <div class="swp"><div class="swbar"><i style="width:${100 * i / n}%"></i></div>
+      ${s ? `<div class="swc" id="swc"><span class="muted">${i + 1} / ${n}</span><div class="av big2">${esc(initials(s.name))}</div><div class="pname">${esc(s.name)}</div>
+          <div class="${a ? "warn" : "muted"}">${a ? `Belgilangan: ${ABSENT_NAMES[a]}` : "&nbsp;"}</div></div>
+        <div class="row swb"><button class="btn swno" data-sw="s">✗ Yo'q</button><button class="btn swyes" data-sw="">✓ Keldi</button></div>
+        <div class="row" style="justify-content:center;gap:6px">${OPTS.slice(2).map(([v, l]) => `<button class="btn sm" data-sw="${v}">${l}</button>`).join("")}${i ? `<button class="btn sm" data-swb>‹ Oldingi</button>` : ""}</div>`
+      : `<div class="swc"><div class="big">Hamma ko'rib chiqildi ✓</div><div>Keldi: ${n - absent} · kelmadi: ${absent}${late ? ` · kech qoldi: ${late}` : ""}</div>
+          <div class="muted">${c.students.map((x, k) => [x, attOf(c, k)]).filter(([, v]) => v).map(([x, v]) => `${esc(x.name)} — ${ABSENT_NAMES[v]}`).join("<br>") || "Hamma darsda"}</div>
+          <div class="row" style="justify-content:center"><button class="btn" data-swb>‹ Oxirgisiga qaytish</button><button class="btn" data-sw0>Boshidan</button></div></div>`}</div>`;
+  } else if (S.step === 0) {
+    body = `<div class="row"><h1 class="sp">Kim darsda? ${n - absent} / ${n} keldi</h1>${attModeSeg()}<button class="btn" data-all>Hammasi keldi</button></div>
       <p class="muted" style="margin:6px 0">Belgilanmagan o'quvchi darsda bo'lgan hisoblanadi. Faqat kelmaganlarni bosing — bitta bosish yetarli.</p>
       <div class="card" style="padding:4px 14px">${c.students.map((s, si) => {
         const a = attOf(c, si);
@@ -1478,6 +1495,11 @@ function pageLesson(m) {
     else nx = [g];
     putMark(c, si, t, buildMark(nx, lateOf(old))); keepY();
   });
+  m.querySelectorAll("[data-am]").forEach((b) => b.onclick = () => { D.web.att_mode = b.dataset.am; save(); if (b.dataset.am === "card") S.cur = 0; render(); });
+  m.querySelectorAll("[data-sw]").forEach((b) => b.onclick = () => swipeMark(c, b.dataset.sw));
+  const swb = $("[data-swb]", m); if (swb) swb.onclick = () => { S.cur = Math.max(0, Math.min(S.cur || 0, n) - 1); render(); };
+  const sw0 = $("[data-sw0]", m); if (sw0) sw0.onclick = () => { S.cur = 0; render(); };
+  const swc = $("#swc", m); if (swc) swipeDrag(swc, (dir) => swipeMark(c, dir > 0 ? "" : "s"));
   m.querySelectorAll("[data-two]").forEach((b) => b.onclick = () => { S.two = b.dataset.two === "1"; render(); });
   const all = $("[data-all]", m); if (all) all.onclick = () => { c.students.forEach((_, si) => { if (["s", "dq", "k"].includes(attOf(c, si))) putMark(c, si, t, "", true); }); keepY(); };
   $("[data-exit]", m).onclick = () => { saveTopic(); go("today"); };
@@ -1491,6 +1513,30 @@ function pageLesson(m) {
     toast(`${label(c)}: ${fmt(t)} darsi saqlandi — davomat tasdiqlandi`); S.ci = S.lesson; go("journal"); scrollToday();
   };
 }
+const attModeSeg = () => `<div class="seg"><button class="${D.web.att_mode === "card" ? "" : "on"}" data-am="list">Ro'yxat</button><button class="${D.web.att_mode === "card" ? "on" : ""}" data-am="card">Kartochka</button></div>`;
+// kartochka rejimi: joriy o'quvchiga belgi qo'yib, keyingisiga o'tish ("" — keldi, baholari saqlanadi)
+function swipeMark(c, v) {
+  const t = todayIso(), i = S.cur || 0; if (i >= c.students.length) return;
+  const old = c.students[i].marks[t] || "";
+  putMark(c, i, t, ["s", "dq", "k"].includes(v) ? v : buildMark(gradesOf(old), v === "kq"));
+  S.cur = i + 1; render();
+}
+// barmoq bilan surish: 80px dan ko'p — belgi; kam bo'lsa joyiga qaytadi
+function swipeDrag(el, done) {
+  let x0 = null, dx = 0;
+  el.addEventListener("pointerdown", (e) => { x0 = e.clientX; dx = 0; el.setPointerCapture(e.pointerId); el.style.transition = "none"; });
+  el.addEventListener("pointermove", (e) => {
+    if (x0 === null) return; dx = e.clientX - x0;
+    el.style.transform = `translateX(${dx}px) rotate(${dx / 25}deg)`;
+    el.classList.toggle("yes", dx > 40); el.classList.toggle("no", dx < -40);
+  });
+  const end = () => {
+    if (x0 === null) return; x0 = null; el.style.transition = "";
+    if (Math.abs(dx) > 80) { el.style.transform = `translateX(${dx > 0 ? 120 : -120}%)`; setTimeout(() => done(dx), 120); }
+    else { el.style.transform = ""; el.classList.remove("yes", "no"); }
+  };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+}
 function saveTopic() {
   const tp = $("#topic"), hw = $("#hw"); if (!tp) return;
   const c = D.classes[S.lesson], t = todayIso(), topic = tp.value.trim(), h2 = hw.value.trim();
@@ -1502,6 +1548,11 @@ function saveTopic() {
 document.addEventListener("keydown", (e) => {
   if (S.page !== "lesson" || S.step !== 0 || $(".modal") || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
   const c = D.classes[S.lesson], keys = {s: "s", d: "dq", k: "k", q: "kq", " ": ""};
+  if (D.web.att_mode === "card") {
+    const v = e.key === "ArrowRight" ? "" : e.key === "ArrowLeft" ? "s" : keys[e.key.toLowerCase()];
+    if (v === undefined) return;
+    e.preventDefault(); swipeMark(c, v); return;
+  }
   if (e.key === "ArrowDown") S.cur = Math.min((S.cur || 0) + 1, c.students.length - 1);
   else if (e.key === "ArrowUp") S.cur = Math.max((S.cur || 0) - 1, 0);
   else if (keys[e.key.toLowerCase()] !== undefined) {

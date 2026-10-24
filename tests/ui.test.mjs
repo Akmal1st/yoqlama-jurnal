@@ -660,3 +660,40 @@ test("Dars eslatmasi: jadval bo'yicha darsdan oldin bildirishnoma", async () => 
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Tez yoqlama: kartochkani surish bilan belgilash", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}, hasTouch: true});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const n = await page.evaluate(() => {
+      const t = todayIso(), c = D.classes[0];
+      if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } c.extra_x = c.extra_x.filter((d) => d !== t); c.held.push(t);
+      c.students.forEach((s) => delete s.marks[t]); c.students[1].marks[t] = "7"; save(); startLesson(0); return c.students.length;
+    });
+    await page.click('[data-am="card"]');
+    const swipe = async (dx) => {
+      const b = await page.locator("#swc").boundingBox(), y = b.y + b.height / 2, x = b.x + b.width / 2;
+      await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + dx / 2, y, {steps: 4}); await page.mouse.move(x + dx, y, {steps: 4}); await page.mouse.up();
+      await page.waitForTimeout(250);
+    };
+    await swipe(-150);               // 1-o'quvchi: kelmadi
+    await swipe(150);                // 2-o'quvchi: keldi (bahosi saqlanadi)
+    await swipe(30);                 // kam surildi — hech narsa o'zgarmaydi
+    await page.click('[data-sw="k"]'); // 3-o'quvchi: kasal
+    await page.click("[data-swb]");    // orqaga — yana 3-o'quvchi
+    assert.ok((await page.textContent("#swc")).includes(`3 / ${n}`));
+    await page.click('[data-sw="k"]');
+    await page.keyboard.press("ArrowLeft"); // 4-o'quvchi: kelmadi
+    const m = await page.evaluate(() => D.classes[0].students.slice(0, 4).map((s) => s.marks[todayIso()] || ""));
+    assert.deepEqual(m, ["s", "7", "k", "s"]);
+    for (let i = 4; i < n; i++) await page.click('[data-sw=""]');
+    await page.waitForSelector("text=Hamma ko'rib chiqildi");
+    assert.ok((await page.textContent(".swc")).includes("kelmadi: 3"));
+    await page.click('[data-am="list"]'); await page.waitForSelector("[data-att]");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
