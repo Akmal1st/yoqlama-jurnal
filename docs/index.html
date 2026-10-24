@@ -101,6 +101,11 @@ label.f{display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:14p
 @media (max-width:820px){.tblwrap{max-height:none}}
 table.j{border-collapse:separate;border-spacing:4px;font-size:14px}
 table.j th{font-weight:700;color:var(--muted);position:sticky;top:0;background:var(--base);z-index:2;padding:4px 0}
+/* yopishqoq sarlavha: orasidagi va ustidagi bo'shliqlardan pastki qatorlar ko'rinmasin */
+table.j th{box-shadow:0 0 0 4px var(--base),0 -14px 0 4px var(--base)}
+.dense table.j th{box-shadow:0 0 0 3px var(--base),0 -14px 0 3px var(--base)}
+table.j th.d{border-radius:0}table.j th.d.today{border-radius:8px}
+table.j th.nm{box-shadow:-8px 0 0 var(--base),4px 0 0 var(--base),0 0 0 4px var(--base),0 -14px 0 4px var(--base)}
 table.j th.d{min-width:40px;text-align:center;line-height:1.15;border-radius:8px}
 table.j th.d small{display:block;font-size:11px;font-weight:600}
 table.j th.d.today{background:var(--today);color:#12303a}
