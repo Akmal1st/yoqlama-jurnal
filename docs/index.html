@@ -108,6 +108,7 @@ table.j .sn{display:none}
 .smap{overflow:auto}.desk{margin:0 auto 10px;width:max-content;padding:4px 18px;border-radius:8px;background:var(--soft);font-weight:700;font-size:13px}
 .seats{display:grid;gap:8px 0;min-width:300px}.seat{min-height:52px;border:1px solid var(--line);background:var(--base);padding:3px;font-size:12.5px;font-weight:700;line-height:1.15;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
 .seat.l{border-radius:10px 0 0 10px;margin-left:8px}.seat.r{border-radius:0 10px 10px 0;margin-right:8px;border-left-style:dashed}.seat.empty{background:var(--soft);border-style:dashed}.seat.on{outline:3px solid var(--acc);outline-offset:-2px}.seat small{font-size:10.5px;opacity:.9}
+.bday{background:color-mix(in srgb,var(--today) 22%,var(--base));border-color:var(--today)}
 .tag.now{background:var(--acc);color:#fff;padding:2px 8px;border-radius:99px;margin-left:6px}
 table.sch td{padding:0}table.sch select{min-width:96px;min-height:36px;padding:4px 6px;font-size:13px}table.sch td.bl{display:flex;flex-direction:column;gap:2px;align-items:center;padding:2px 4px}table.sch td.bl input{width:104px;min-height:32px;padding:2px 6px;font-size:13px;text-align:center}
 .badge{font-size:11px;font-weight:800;color:#b42318;background:#fde8e6;padding:1px 7px;border-radius:99px;margin-left:6px;white-space:nowrap}
@@ -710,6 +711,7 @@ function upcoming(days = 7) {
     const left = Math.round((pdate(w.date) - pdate(t)) / 864e5);
     out.push([w.date, `${w.type.toUpperCase()} — ${label(c)} (${left === 0 ? "bugun" : left === 1 ? "ertaga" : fmt(w.date)})`]);
   }
+  for (const b of birthdays(days)) if (b.left) out.push([iso(addDays(pdate(t), b.left)), `🎂 ${b.s.name} (${D.classes[b.ci].name}) — tug'ilgan kun ${b.left === 1 ? "ertaga" : fmt(iso(addDays(pdate(t), b.left))).slice(0, 5)}${b.age ? `, ${b.age} yosh` : ""}`]);
   const q = quarterOf(t);
   if (q) { const e = qRange(q)[1]; const left = Math.round((pdate(e) - pdate(t)) / 864e5); if (left >= 0 && left <= 7) out.push([e, `${q}-chorak ${fmt(e)} da tugaydi — baholarni tekshiring`]); }
   return out.sort().map((x) => x[1]);
@@ -1209,6 +1211,7 @@ function pageToday(m) {
     ${nowd ? `<div class="card hot row"><span class="sp">📆 ${nowd} ta sinf uchun dars kunlari belgilanmagan — «Bugun» ro'yxati to'liq bo'lmasligi mumkin.</span><button class="btn" data-days>Belgilash</button></div>` : ""}
     ${TG_NEW ? (() => { const w = new Date(TG_NEW.date * 1000); return `<div class="card hot row"><span class="sp">🔄 Telegram'da boshqa qurilmadan yangiroq zaxira bor (${fmt(iso(w))} ${pad(w.getHours())}:${pad(w.getMinutes())}). Shu qurilmaga yuklaysizmi?</span><button class="btn pri" data-tg="tgnew">Yuklash</button><button class="btn" data-tg="tgkeep">Yo'q, menikini saqlash</button></div>`; })() : ""}
     ${(() => { const a = backupAge(), t = tgAge(); return (a === null || a > 7) && (t === null || t > 7) ? `<div class="card row"><span class="sp">💾 ${a === null ? "Ma'lumotlar hali faylga saqlanmagan." : `Oxirgi zaxira ${a} kun oldin olingan.`} Brauzer tozalansa, ma'lumot yo'qolishi mumkin — faylga saqlab qo'ying.</span><button class="btn pri" data-backup2>Saqlash</button></div>` : ""; })()}
+    ${(() => { const b = birthdays(0); return b.length ? `<div class="card row bday"><span style="font-size:28px">🎂</span><span class="sp">Bugun tug'ilgan kun: ${b.map((x) => `<button class="link" data-stud="${x.ci}|${esc(x.s.name)}"><b>${esc(x.s.name)}</b></button> (${esc(D.classes[x.ci].name)}${x.age ? `, ${x.age} yosh` : ""})`).join(", ")}. Tabriklashni unutmang!</span></div>` : ""; })()}
     <div id="found"></div>
     <section class="grid lessons">${cards}</section>
     <div class="grid two">
@@ -1399,6 +1402,7 @@ async function moreMenu() {
     ["🎲 Doskaga chaqirish (tasodifiy o'quvchi)", () => callDialog(S.ci)],
     ["👥 Guruhlarga bo'lish", () => groupsDialog(S.ci)],
     ["🪑 O'rindiq xaritasi", () => seatsDialog(S.ci)],
+    ["🎂 Tug'ilgan kunlar", () => bdaysDialog(S.ci)],
     ["📝 Mavzular va uy vazifalari", () => lessonsDialog(S.ci)],
     ["✉️ Ota-onalarga xabarlar (butun sinf)", () => parentBulk(S.ci)],
     ["📚 Kalendar-tematik reja (KTR)", () => ktrDialog(S.ci)],
@@ -1489,6 +1493,7 @@ function pageLesson(m) {
   m.innerHTML = `<div class="col" style="gap:12px"><div class="row"><button class="btn sm" data-exit>‹ Chiqish</button>
     <div class="col sp" style="gap:0"><h2>${esc(label(c))}</h2><span class="muted">${longDate(t)}${les.topic ? " · " + esc(les.topic) : ""}</span></div>
     <div class="steps">${steps}</div></div>
+    ${(() => { const b = birthdays(0).filter((x) => x.ci === S.lesson); return b.length ? `<div class="card row bday" style="padding:10px 14px">🎂 Bugun tug'ilgan kun: <b>${b.map((x) => esc(x.s.name)).join(", ")}</b></div>` : ""; })()}
     <div class="row wrap" style="gap:8px"><button class="btn sm" data-call>🎲 Doskaga chaqirish</button><button class="btn sm" data-grp>👥 Guruhlarga bo'lish</button></div>${body}
     <div class="foot"><span class="muted sp">Kelmagan: ${absent} · kech qolgan: ${late} · baho qo'yilgan: ${graded}</span>
       ${S.step ? `<button class="btn" data-back>‹ Orqaga</button>` : ""}<button class="btn pri" data-next>${["Saqlash va baholarga o'tish ›", "Keyingi: mavzu ›", "✓ Darsni yakunlash"][S.step]}</button></div></div>`;
@@ -2740,6 +2745,7 @@ function studentCard(ci, name, tab = "sum") {
       <div class="tile"><div class="muted">Davomat</div><div>${r.att !== null ? Math.round(r.att) + "%" : "—"}</div></div>
       <div class="tile"><div class="muted">Baholar</div><div>${r.n}</div></div><div class="tile"><div class="muted">Sababsiz</div><div>${r.s}</div></div></div>
       <div>S ${r.s} · DQ ${r.dq} · K ${r.k} · KQ ${r.kq}</div>
+      ${s.bday ? `<div>🎂 Tug'ilgan kun: ${fmtBday(s.bday)}</div>` : ""}
       ${r.why.length ? `<div class="warn">⚠ ${esc(r.why.join("; "))}</div>` : `<div class="ok">✓ Xavf belgilari yo'q</div>`}
       <div class="row" style="gap:4px">${last.map((d) => { const col = markColors(s.marks[d]); return `<span class="pill" title="${fmt(d)}" style="${col ? `background:${col[0]};color:${col[1]}` : ""}">${displayMark(s.marks[d])}</span>`; }).join("") || '<span class="muted">Hali belgi yo\'q</span>'}</div>
       ${qw.length ? `<div><b>${q}-chorak summativ:</b> ${qw.map((w) => `${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)}: ${esc(fmtNum(sc[w.id] ?? "—"))}/${fmtNum(w.max)}`).join(" · ")}<br>Jami: ${fmtNum(qr.total)} / 100 ${qr.grade ? "→ " + g5pill(qr.grade) : ""}</div>` : ""}`;
@@ -3193,6 +3199,69 @@ function seatsDialog(ci) {
     bind();
     $("[data-sa]", m).onclick = () => { seatAuto(c, s); sel = null; save(); redraw(); };
     $("[data-s0]", m).onclick = () => { s.at = {}; sel = null; save(); redraw(); };
+    $("[data-x]", m).onclick = () => { close(); render(); };
+  });
+}
+
+/* ───────── tug'ilgan kunlar ───────── */
+// s.bday = "YYYY-MM-DD" (yil noma'lum bo'lsa "0000-MM-DD"); kompyuter dasturi o'quvchidagi qo'shimcha kalitlarni saqlab qoladi
+// matndan sana: 12.03.2013, 12/03/2013, 2013-03-12, 12.03
+function parseBday(txt) {
+  const t = String(txt || "").trim(); let m;
+  if ((m = t.match(/(\d{4})-(\d{1,2})-(\d{1,2})/))) return bdayOk(+m[1], +m[2], +m[3]);
+  if ((m = t.match(/(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?/))) { let y = m[3] ? +m[3] : 0; if (m[3] && m[3].length === 2) y += y > 30 ? 1900 : 2000; return bdayOk(y, +m[2], +m[1]); }
+  return null;
+}
+function bdayOk(y, mo, d) {
+  if (mo < 1 || mo > 12 || d < 1 || d > [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][mo - 1]) return null;
+  return `${String(y).padStart(4, "0")}-${pad(mo)}-${pad(d)}`;
+}
+const fmtBday = (b) => b ? `${b.slice(8, 10)}.${b.slice(5, 7)}${b.startsWith("0000") ? "" : "." + b.slice(0, 4)}` : "";
+// days kun ichidagi tug'ilgan kunlar: [{ci, s, left, age}]
+function birthdays(days = 7, now = todayIso()) {
+  const t0 = pdate(now), out = [];
+  D.classes.forEach((c, ci) => c.students.forEach((s) => {
+    if (!s.bday) return;
+    const mo = +s.bday.slice(5, 7), d = +s.bday.slice(8, 10);
+    for (const y of [t0.getFullYear(), t0.getFullYear() + 1]) {
+      // 29-fevral kabisa bo'lmagan yilda 28-fevralda nishonlanadi
+      let day = new Date(y, mo - 1, d); if (day.getMonth() !== mo - 1) day = new Date(y, mo - 1, d - 1);
+      const left = Math.round((day - t0) / 864e5);
+      if (left >= 0 && left <= days) { out.push({ci, s, left, age: s.bday.startsWith("0000") ? null : y - +s.bday.slice(0, 4)}); break; }
+    }
+  }));
+  const seen = new Set();   // bir o'quvchi bir necha fanda — bir marta
+  return out.sort((a, b) => a.left - b.left || a.s.name.localeCompare(b.s.name)).filter((x) => { const k = normName(x.s.name) + "|" + D.classes[x.ci].name; if (seen.has(k)) return false; seen.add(k); return true; });
+}
+function bdaysDialog(ci) {
+  const c = D.classes[ci];
+  const body = () => `<div class="lsns">${c.students.map((s, si) => `<div class="row" style="gap:8px;flex-wrap:nowrap"><span class="sp" style="min-width:0">${esc(s.name)}</span>
+      <input type="text" data-bd="${si}" value="${fmtBday(s.bday)}" placeholder="kk.oo.yyyy" inputmode="numeric" style="width:130px;flex:none"></div>`).join("")}</div>`;
+  return modal(`<h2>🎂 Tug'ilgan kunlar · ${esc(label(c))}</h2>
+    <div class="muted">Sanani 12.03.2013 ko'rinishida yozing (yilsiz ham bo'ladi: 12.03). Tug'ilgan kun «Bugun» sahifasida va dars boshlanganda eslatiladi. Shu ism bilan boshqa fan jurnallarida ham saqlanadi.</div>
+    <details><summary><b>Ro'yxatdan qo'yish</b> (masalan, Excel yoki emaktabdan nusxalab)</summary>
+      <div class="col" style="gap:6px;margin-top:6px"><textarea id="bdp" placeholder="Abdullayev Sardor 12.03.2013&#10;Aliyeva Madina	05.11.2012"></textarea><button class="btn" data-bdp>Matndan to'ldirish</button></div></details>
+    <div id="bdb">${body()}</div>
+    <div class="row"><span class="sp"></span><button class="btn pri" data-x>Yopish</button></div>`, (m, close) => {
+    // bir xil ismli o'quvchi barcha jurnallarda (fanlarda) bir xil tug'ilgan kunga ega
+    const setAll = (name, v) => { const k = normName(name); D.classes.forEach((x) => x.students.concat(x.students_off).forEach((s) => { if (normName(s.name) === k) { if (v) s.bday = v; else delete s.bday; } })); };
+    const bind = () => m.querySelectorAll("[data-bd]").forEach((x) => x.onchange = () => {
+      const s = c.students[+x.dataset.bd], v = x.value.trim() ? parseBday(x.value) : "";
+      if (v === null) { toast("Sanani 12.03.2013 ko'rinishida yozing"); x.value = fmtBday(s.bday); return; }
+      setAll(s.name, v); save(); x.value = fmtBday(v);
+    });
+    bind();
+    $("[data-bdp]", m).onclick = () => {
+      let n = 0; const miss = [];
+      for (const line of $("#bdp", m).value.split(/\n/)) {
+        const v = parseBday(line); if (!v) continue;
+        const nm = normName(line.replace(/\d{1,4}[./-]\d{1,2}(?:[./-]\d{2,4})?/, " ").replace(/[\t;,]+/g, " "));
+        const s = c.students.find((x) => normName(x.name) === nm) || c.students.find((x) => nm && (nm.startsWith(normName(x.name)) || normName(x.name).startsWith(nm)));
+        if (s) { setAll(s.name, v); n++; } else miss.push(line.trim());
+      }
+      save(); $("#bdb", m).innerHTML = body(); bind();
+      toast(`${n} ta tug'ilgan kun qo'yildi${miss.length ? ` · topilmadi: ${miss.length} qator` : ""}`);
+    };
     $("[data-x]", m).onclick = () => { close(); render(); };
   });
 }

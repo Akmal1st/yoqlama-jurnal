@@ -1,0 +1,10 @@
+import {chromium} from "playwright";
+const b = await chromium.launch(); const p = await b.newPage({viewport: {width: 390, height: 844}});
+await p.clock.setFixedTime(new Date(2026, 9, 26, 9, 0));
+await p.goto("file:///home/claude/yoqlama-jurnal/docs/index.html");
+const [ch] = await Promise.all([p.waitForEvent("filechooser"), p.click("[data-w=import]")]);
+await ch.setFiles("/home/claude/yoqlama-jurnal/tests/fixtures/journal.json"); await p.waitForSelector("text=Xayrli");
+await p.evaluate(() => { D.classes[0].students[0].bday = "2014-10-26"; D.classes[1].students[2].bday = "2013-10-28"; save(); go("today"); document.querySelectorAll(".toast").forEach((e) => e.remove()); });
+await p.screenshot({path: process.argv[2] + "/bd.png", fullPage: true});
+await p.evaluate(() => bdaysDialog(0)); await p.screenshot({path: process.argv[2] + "/bdd.png"});
+await b.close();
