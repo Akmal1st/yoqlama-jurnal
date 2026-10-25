@@ -1001,3 +1001,31 @@ test("Funksiyalarni yoqish/o'chirish: menyu, dars va «Bugun»dan yashirinadi", 
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Sinf hisoboti: saralash, xavf filtri, sifat/o'zlashtirish va Excel", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 900}, acceptDownloads: true});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => { S.rep = {ci: 0, per: "cur", kind: "cls"}; go("reports"); });
+    const avgs = () => page.$$eval("table.rcls tr", (tr) => tr.slice(1).map((r) => parseFloat(r.cells[2].textContent)).filter((x) => !isNaN(x)));
+    await page.click('th[data-rs="avg"]');
+    let a = await avgs(); assert.deepEqual(a, a.slice().sort((x, y) => y - x), "kamayish tartibida");
+    await page.click('th[data-rs="avg"]');
+    a = await avgs(); assert.deepEqual(a, a.slice().sort((x, y) => x - y), "o'sish tartibida");
+    const nRisk = await page.evaluate(() => { const [lo, hi] = repRange("cur"); return reportRows(D.classes[0], lo, hi).rows.filter((r) => r.risk).length; });
+    await page.click('[data-rf="risk"]');
+    assert.equal(await page.$$eval("table.rcls tr", (tr) => tr.length - 1), nRisk);
+    // sifat va o'zlashtirish: chorak bahosi 4–5 va 3–5 ulushi
+    const ql = await page.evaluate(() => qualityOf([{q: {complete: true, grade: 5}}, {q: {complete: true, grade: 3}}, {q: {complete: true, grade: 2}}, {q: {complete: false}}]));
+    assert.equal(ql.n, 3); assert.equal(Math.round(ql.q), 33); assert.equal(Math.round(ql.u), 67);
+    // kutubxona yuklanmasa — CSV
+    await page.evaluate(() => { window.loadXlsx = () => Promise.reject(new Error("offline")); });
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-xlsx]")]);
+    assert.ok(dl.suggestedFilename().endsWith(".csv"), dl.suggestedFilename());
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
