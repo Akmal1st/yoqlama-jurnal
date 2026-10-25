@@ -1504,3 +1504,38 @@ test("Jurnal: o'tgan darslar, sana menyusi, qidiruv va saralash", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("jurnal: sana dars kunlari bo'yicha qo'shiladi; yon panel yig'iladi; ixcham dizaynda yozuv tugmadan chiqmaydi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1280, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => { D.classes[0].weekdays = [0, 3]; D.settings.method_weekday = null; D.settings.holidays = []; S.ci = 0; save(); });
+    await page.click(".side [data-go=journal]"); await page.click("[data-more]"); await page.click(".modal >> text=Sana qo'shish");
+    const before = await page.evaluate(() => D.classes[0].dates.length);
+    await page.click(".modal [data-n='4']");
+    assert.match(await page.textContent("#adp"), /^4 ta sana/);
+    await page.click(".modal [data-ok]");
+    const added = await page.evaluate((n) => D.classes[0].dates.slice(n), before);
+    assert.equal(added.length, 4);
+    assert.ok(await page.evaluate((a) => a.every((d) => [0, 3].includes(pyWd(d))), added), `faqat Du va Pa: ${added}`);
+    // yon panel: kichraytirish — sinflar ro'yxati o'rniga ☰
+    await page.click("[data-sidet]");
+    assert.ok(await page.evaluate(() => $("#app").classList.contains("compact") && D.web.sidemin));
+    assert.equal(await page.locator(".clsside").count(), 0);
+    assert.equal(await page.locator("[data-cpick]:visible").count(), 1);
+    await page.click("[data-sidet]");
+    assert.equal(await page.locator(".clsside").count(), 1);
+    // ixcham dizayn: hamma tugma bir qatorda, yozuv tugma ichida
+    await page.click(".side [data-go=settings]"); await page.click('[data-sec="3"]'); await page.click("[data-den=kompakt]");
+    for (const pg of ["journal", "settings", "today"]) {
+      await page.evaluate((p) => { S.page = p; render(); }, pg);
+      const bad = await page.evaluate(() => [...document.querySelectorAll(".btn")].filter((b) => b.offsetParent && b.scrollHeight > b.clientHeight + 2).map((b) => b.textContent.trim()));
+      assert.deepEqual(bad, [], pg);
+    }
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
