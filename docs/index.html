@@ -197,6 +197,11 @@ table.j td.s.a{color:var(--muted);font-weight:600}
 .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.tile.wide2{grid-column:span 2}.qby{display:flex;gap:14px;flex-wrap:wrap;font-size:20px}.qby span{white-space:nowrap}
 .bands{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.bnd{border-radius:999px;padding:4px 12px;font-size:14px}
 table.attm{border-collapse:collapse;font-size:13px;width:100%}table.attm th,table.attm td{border:1px solid var(--line);padding:3px 4px;text-align:center;min-width:24px}table.attm th{font-weight:600;background:var(--alt)}table.attm th small{font-weight:400;color:var(--muted)}table.attm .an{text-align:left;white-space:nowrap;min-width:150px}table.attm td.ac{font-weight:700;font-size:11px;padding:3px 1px}table.attm tr.tot td{font-weight:700;background:var(--alt)}
+.psheets{display:flex;flex-direction:column;gap:12px}.psheet{border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:var(--base)}
+.psheet .pnm{font-size:18px}.pq{text-align:center;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:10px;padding:4px 10px}.pq b{display:block;font-size:24px;color:var(--text)}
+.pst{display:flex;flex-wrap:wrap;gap:6px 18px}.pst b{padding:0 6px;border-radius:6px}.pg{display:inline-flex;flex-direction:column;align-items:center;border:1px solid var(--line);border-radius:6px;padding:0 5px;margin:2px;font-weight:700;line-height:1.2}.pg small{font-weight:400;font-size:10px;color:var(--muted)}
+.psig{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:auto;padding-top:10px}
+@media print{.psheet{border:1px solid #999}table.attm td.ac,.pst b,.bnd{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 table.r th.srt{cursor:pointer;user-select:none}table.r th.srt:hover{color:var(--text)}
 @media(max-width:820px){.row.chips.repk{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}.row.chips.repk .chip{flex:0 0 auto}.qby{font-size:17px}}
 @media (max-width:820px){.tiles{grid-template-columns:repeat(2,1fr)}}
@@ -1854,12 +1859,13 @@ function pageReports(m) {
   const R = S.rep; R.ci = Math.min(R.ci, D.classes.length - 1); R.kind = R.kind || "cls";
   const c = D.classes[R.ci], [lo, hi] = repRange(R.per), rq = /^q\d$/.test(R.per) ? +R.per[1] : R.per === "cur" ? periodNow()[2] : null, {rows, lessons} = reportRows(c, lo, hi, rq);
   const pers = [["cur", "Joriy chorak / oy"], ...[1, 2, 3, 4].filter(qRange).map((q) => [`q${q}`, `${q}-chorak`]), ["month", "Shu oy"], ["week", "Shu hafta"], ["all", "Butun yil"]];
-  const kinds = [["cls", "Sinf hisoboti"], ["stats", "📈 Grafik va statistika"], ["att", "📅 Davomat varag'i"], ["ready", "Chorakka tayyorlik"], ["cmp", "Sinflarni solishtirish"], ["blank", "Bo'sh yo'qlama varag'i"]];
-  const needCls = R.kind !== "cmp", needPer = R.kind === "cls" || R.kind === "cmp" || R.kind === "stats";
+  const kinds = [["cls", "Sinf hisoboti"], ["stats", "📈 Grafik va statistika"], ["att", "📅 Davomat varag'i"], ["par", "👪 Ota-onalar majlisi"], ["ready", "Chorakka tayyorlik"], ["cmp", "Sinflarni solishtirish"], ["blank", "Bo'sh yo'qlama varag'i"]];
+  const needCls = R.kind !== "cmp", needPer = ["cls", "cmp", "stats", "par"].includes(R.kind);
   let sec;
   if (R.kind === "cls") sec = repClass(c, lo, hi, rows, lessons, rq);
   else if (R.kind === "stats") sec = `<div class="row"><h2 class="sp">${esc(label(c))} · ${fmt(lo)} – ${fmt(hi)}</h2><button class="btn pri noprint" data-print>Chop etish / PDF</button></div>${repStats(c, lo, hi, rows)}`;
   else if (R.kind === "att") sec = repAtt(c);
+  else if (R.kind === "par") sec = repPar(c, lo, hi, rows, rq);
   else if (R.kind === "ready") sec = `<div class="row noprint"><span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button></div>${repReady(c)}`;
   else if (R.kind === "cmp") sec = `<div class="row noprint"><span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button><button class="btn" data-ccsv>📊 Excel</button></div>${repCompare(lo, hi)}`;
   else sec = `<div class="row noprint"><span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button></div>${repBlank(c)}`;
@@ -1877,6 +1883,7 @@ function pageReports(m) {
   m.querySelectorAll("[data-card]").forEach((b) => b.onclick = () => studentCard(R.ci, b.dataset.card));
   m.querySelectorAll("[data-rq]").forEach((b) => b.onclick = () => { S.rq = +b.dataset.rq; render(); });
   m.querySelectorAll("[data-bm]").forEach((b) => b.onclick = () => { S.bmode = b.dataset.bm; render(); });
+  m.querySelectorAll("[data-pf]").forEach((b) => b.onclick = () => { S.pfilt = b.dataset.pf; render(); });
   const am = $("#amon", m); if (am) am.onchange = () => { S.amon = am.value; render(); };
   const ax = $("[data-axlsx]", m); if (ax) ax.onclick = () => {
     const A = attMonth(c, S.amon), codes = {s: "S", dq: "DQ", k: "K", kq: "KQ", ch: "CH"};
@@ -3111,7 +3118,7 @@ function compareRows(lo, hi) {
 function fitPrint() {
   const sec = $("main section.card"), kind = S.rep && S.rep.kind;
   let st = document.getElementById("pfit-css"); if (st) st.remove();
-  if (S.page !== "reports" || !sec || kind === "blank") return;
+  if (S.page !== "reports" || !sec || kind === "blank" || kind === "par") return;
   const land = kind !== "ready", mm = 96 / 25.4, pw = (land ? 277 : 190) * mm, ph = (land ? 190 : 277) * mm;
   sec.classList.add("pfit"); document.body.classList.add("pmeas");
   const old = sec.style.width; sec.style.setProperty("--pz", "1");
@@ -3283,6 +3290,32 @@ function repAtt(c) {
       <tr class="tot"><td></td><td class="an">Kelmaganlar</td>${A.dayAbs.map((n) => `<td class="n">${n || ""}</td>`).join("")}<td class="n">${A.tot.s}</td><td class="n">${A.tot.dq}</td><td class="n">${A.tot.k}</td><td class="n">${A.tot.kq}</td><td class="n">${A.att ?? "—"}</td></tr></table></div>
       <div class="muted" style="font-size:13px">S — sababsiz, DQ — sababli, K — kasal, KQ — kech qoldi${A.rows.some((r) => r.cells.includes("ch")) ? ", CH — chet elda" : ""}. Bo'sh katak — darsda bo'lgan.</div>`
     : `<div class="muted">Bu oyda o'tilgan dars kunlari yo'q.</div>`}`;
+}
+// ota-onalar majlisi: har o'quvchiga alohida varaq (A4 da ikkitadan), chop etib qo'lga beriladi
+function repPar(c, lo, hi, rows, rq) {
+  const filt = S.pfilt === "risk" ? "risk" : "all", list = rows.map((r, i) => [r, c.students[i]]).filter(([r]) => filt === "all" || r.risk);
+  const tch = ((D.web.bsb_hdr || {}).teacher || "").trim();
+  const sheet = ([r, s]) => {
+    const ds = c.dates.filter((d) => lo <= d && d <= hi && !isNoLesson(c, d) && gradesOf(s.marks[d] || "").length);
+    const ws = c.works.filter((w) => lo <= w.date && w.date <= hi).sort((a, b) => a.date < b.date ? -1 : 1);
+    const h = feat("hw") ? hwStat(s, lo, hi) : {n: 0}, debts = feat("debts") ? debtsOf(c, s, lo, hi).filter((d) => !d.done) : [];
+    const col = r.avg !== null ? gradeColor(r.avg) : null;
+    return `<article class="psheet"><div class="row"><div class="sp"><b class="pnm">${esc(s.name)}</b><div class="muted">${esc(label(c))} · ${fmt(lo)} – ${fmt(hi)}</div></div>
+        ${rq && r.q && r.q.complete ? `<div class="pq">${rq}-chorak bahosi<b>${r.q.grade}</b></div>` : ""}</div>
+      <div class="pst"><span>O'rtacha baho <b ${col ? `style="background:${col};color:${contrast(col)}"` : ""}>${r.avg !== null ? r.avg.toFixed(2) : "—"}</b></span><span>Baholar <b>${r.n}</b></span>
+        <span>Davomat <b>${r.att !== null ? r.att.toFixed(0) + "%" : "—"}</b></span><span>Qoldirgan <b>${r.absent}</b>${r.absent ? ` <small>(${[["s", "sababsiz"], ["dq", "sababli"], ["k", "kasal"]].filter(([k]) => r[k]).map(([k, n]) => `${n} ${r[k]}`).join(", ")})</small>` : ""}</span>${r.kq ? `<span>Kech qolgan <b>${r.kq}</b></span>` : ""}</div>
+      ${ds.length ? `<div><span class="muted">Baholar:</span> ${ds.map((d) => `<span class="pg">${gradesOf(s.marks[d]).join("/")}<small>${fmt(d).slice(0, 5)}</small></span>`).join("")}</div>` : ""}
+      ${ws.length ? `<div><span class="muted">BSB / CHSB:</span> ${ws.map((w) => { const v = (s.scores || {})[w.id]; return `${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)} — <b>${isNum(v) ? `${v} / ${w.max}` : "topshirilmagan"}</b>`; }).join("; ")}</div>` : ""}
+      ${h.n ? `<div><span class="muted">Uy vazifasi:</span> ${h.ok} / ${h.n} bajarilgan</div>` : ""}
+      ${debts.length ? `<div class="warn"><span class="muted">Qayta topshirish kerak:</span> ${esc(debts.map((d) => d.what).join("; "))}</div>` : ""}
+      ${r.why.length ? `<div class="warn"><span class="muted">E'tibor bering:</span> ${esc(r.why.join("; "))}</div>` : `<div class="ok">Ko'rsatkichlar me'yorda.</div>`}
+      <div class="psig"><span>O'qituvchi: ${tch ? esc(tch) : "________________"}</span><span>Ota-ona imzosi: ________________</span></div></article>`;
+  };
+  return `<style>@media print{@page{size:A4 portrait;margin:10mm}.psheet{break-inside:avoid;page-break-inside:avoid;min-height:132mm;margin:0 0 6mm}.psheet:nth-child(2n){margin-bottom:0}}</style>
+    <div class="row wrap noprint" style="gap:8px"><div class="seg"><button class="${filt === "all" ? "on" : ""}" data-pf="all">Hamma o'quvchi (${rows.length})</button><button class="${filt === "risk" ? "on" : ""}" data-pf="risk">Faqat xavf ostidagilar (${rows.filter((r) => r.risk).length})</button></div>
+      <span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button></div>
+    <p class="muted noprint" style="margin:0">Har o'quvchiga alohida varaq — bir A4 sahifaga ikkitadan chiqadi. Majlisda ota-onalarga qo'lga berish uchun.${tch ? "" : " O'qituvchi ismi «BSB tahlili» sahifasidagi sarlavhadan olinadi."}</p>
+    <div class="psheets">${list.map(sheet).join("") || `<div class="muted">Xavf ostida o'quvchi yo'q. 👍</div>`}</div>`;
 }
 function repCompare(lo, hi) {
   const rows = compareRows(lo, hi), f = (v, d = 1, s = "") => v === null ? "—" : v.toFixed(d) + s;

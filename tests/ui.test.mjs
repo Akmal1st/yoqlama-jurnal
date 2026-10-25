@@ -1057,3 +1057,27 @@ test("Davomat varag'i: oy bo'yicha belgilar, jamilar va Excel", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Ota-onalar majlisi: har o'quvchiga varaq, xavf filtri, A4 da ikkitadan", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => { D.web.bsb_hdr = {teacher: "Karimov A."}; S.rep = {ci: 0, per: "cur", kind: "par"}; go("reports"); });
+    const n = await page.evaluate(() => D.classes[0].students.length);
+    assert.equal(await page.$$eval(".psheet", (x) => x.length), n);
+    assert.ok((await page.textContent(".psheet")).includes("O'qituvchi: Karimov A."));
+    await page.click('[data-pf="risk"]');
+    const nr = await page.evaluate(() => { const [lo, hi] = repRange("cur"); return reportRows(D.classes[0], lo, hi).rows.filter((r) => r.risk).length; });
+    assert.equal(await page.$$eval(".psheet", (x) => x.length), nr);
+    await page.click('[data-pf="all"]');
+    await page.emulateMedia({media: "print"});
+    const pdf = (await page.pdf({preferCSSPageSize: true})).toString("latin1");
+    const pages = (pdf.match(/\/Type\s*\/Page[^s]/g) || []).length;
+    assert.ok(pages <= Math.ceil(n / 2) + 1, `${pages} sahifa, ${n} o'quvchi`);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
