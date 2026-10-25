@@ -1369,6 +1369,12 @@ test("emaktab: yil boshidan barcha choraklar, ilova oynasi ochilmasa — fayl or
     await app.evaluate(() => { document.querySelectorAll(".modal").forEach((x) => x.remove()); emkDialog("pc"); });
     assert.equal(await app.locator(".modal [data-et]").count(), 3);
     assert.ok(await app.isVisible(".modal [data-copyc]"));
+    // telefon: xatcho'p manzili bir qatorli (telefon qator o'tkazishni o'chiradi) va to'g'ri JS; nusxalab bo'lmasa maydonda ko'rinadi
+    await app.evaluate(() => { document.querySelectorAll(".modal").forEach((x) => x.remove()); navigator.clipboard.writeText = () => Promise.reject(new Error("no")); emkDialog("phone"); });
+    await app.click(".modal [data-copy]");
+    const bmk = await app.inputValue(".modal #emkta");
+    assert.ok(bmk.startsWith("javascript:") && !/[\r\n\s]/.test(bmk), "bir qatorli, bo'shliqsiz");
+    assert.equal(await app.evaluate((u) => { try { new Function(decodeURIComponent(u.slice(11).replace(/\n/g, ""))); return "ok"; } catch (e) { return e.message; } }, bmk), "ok");
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });

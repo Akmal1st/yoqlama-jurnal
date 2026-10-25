@@ -3315,6 +3315,8 @@ function emkGrab() {
 }
 const appUrl = () => location.origin + location.pathname.replace(/index\.html$/, "");
 const emkCode = () => `(${emkGrab.toString().replace("__APP__", appUrl())})()`;
+// xatcho'p manzili: kodlangan (telefon manzil maydoni qator o'tkazishni o'chiradi — «//» izohlar qolgan kodni yutib yuborardi)
+const emkBookmark = () => "javascript:" + encodeURIComponent(emkCode());
 function emkDialog(tab = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? "phone" : "pc") {
   const web = /^https?:$/.test(location.protocol);
   const T = [["pc", "💻 Kompyuter"], ["phone", "📱 Telefon"], ["file", "📂 Fayl orqali"]];
@@ -3327,7 +3329,9 @@ function emkDialog(tab = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)
       <div><button class="btn" data-copyc>📋 Konsol uchun kodni nusxalash</button></div></div>`,
     phone: `<div class="col" style="gap:10px">
       <div><b>1.</b> «Kodni nusxalash»ni bosing.</div><div><button class="btn pri" data-copy>📋 Kodni nusxalash</button></div>
-      <div><b>2.</b> Istalgan sahifani xatcho'pga qo'shing (☆), xatcho'pni tahrirlang: nomini <b>emaktab</b> deb, manzil o'rniga nusxalangan kodni qo'ying.</div>
+      <textarea id="emkta" readonly rows="3" style="display:none;width:100%;font:12px monospace"></textarea>
+      <div><b>2.</b> Istalgan sahifani xatcho'pga qo'shing (☆), xatcho'pni tahrirlang: nomini <b>emaktab</b> deb, manzildagi hamma narsani o'chirib, nusxalangan kodni qo'ying va saqlang.</div>
+      <div class="muted">Eski xatcho'p ishlamagan bo'lsa — uni o'chirib, kodni qaytadan nusxalang (avvalgi kod telefonda buzilib qolardi).</div>
       <div><b>3.</b> emaktab.uz da «Sinflarim»ni oching, manzil qatoriga <b>emaktab</b> deb yozing va ro'yxatdan ⭐ xatcho'pni tanlang.</div>
       <div class="muted">Telefon yangi oynani ochmasa, xatcho'p «💾 Faylga saqlash» tugmasini ko'rsatadi: faylni saqlab, keyin shu oynaning «Fayl orqali» bo'limidan yuklaysiz.</div></div>`,
     file: `<div class="col" style="gap:10px">
@@ -3341,11 +3345,15 @@ function emkDialog(tab = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)
     <div class="seg tabs">${T.map(([k, n]) => `<button class="${k === tab ? "on" : ""}" data-et="${k}">${n}</button>`).join("")}</div>
     ${body[tab]}
     <div class="row"><span class="sp"></span><button class="btn" data-x>Yopish</button></div>`, (mm, close) => {
-    const bm = $("#emkbm", mm); if (bm) bm.href = "javascript:" + encodeURIComponent(emkCode());
+    const bm = $("#emkbm", mm); if (bm) bm.href = emkBookmark();
     $("[data-x]", mm).onclick = () => close();
     mm.querySelectorAll("[data-et]").forEach((b) => b.onclick = () => { close(); emkDialog(b.dataset.et); });
-    const cp = async (t, ok) => { try { await navigator.clipboard.writeText(t); toast(ok); } catch (e) { toast("Nusxalab bo'lmadi — brauzer ruxsat bermadi"); } };
-    const c1 = $("[data-copy]", mm); if (c1) c1.onclick = () => cp("javascript:" + emkCode(), "Kod nusxalandi");
+    // nusxalab bo'lmasa — kodni maydonda ko'rsatamiz, qo'lda belgilab nusxalanadi
+    const cp = async (t, ok) => {
+      try { await navigator.clipboard.writeText(t); toast(ok); }
+      catch (e) { const ta = $("#emkta", mm); ta.style.display = ""; ta.value = t; ta.focus(); ta.select(); toast("Avtomatik nusxalab bo'lmadi — maydondagi kodni belgilab, «Nusxalash»ni bosing"); }
+    };
+    const c1 = $("[data-copy]", mm); if (c1) c1.onclick = () => cp(emkBookmark(), "Kod nusxalandi");
     const c2 = $("[data-copyc]", mm); if (c2) c2.onclick = () => cp(emkCode(), "Kod nusxalandi — emaktab'da F12 → Console ga qo'ying");
     const pk = $("[data-pick]", mm); if (pk) pk.onclick = () => { close(); importExcel(); };
   });
