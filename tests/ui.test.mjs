@@ -808,3 +808,37 @@ test("Zaxira xotira (IndexedDB): tiklash, kunlik nusxalar va ma'lumot versiyasi"
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Uy vazifasi tekshiruvi: darsda belgilash, kartochka va «E'tibor talab qiladi»", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const name = await page.evaluate(() => {
+      const t = todayIso(), c = D.classes[0], p = iso(addDays(pdate(t), -1));
+      for (const d of [p, t]) if (!c.dates.includes(d)) c.dates.push(d);
+      c.dates.sort(); c.extra_x = c.extra_x.filter((d) => d !== p && d !== t); c.held.push(p, t);
+      c.students.forEach((s) => { delete s.marks[t]; delete s.hwd; }); c.students[2].marks[t] = "s";
+      c.lessons[p] = {topic: "Kasrlar", hw: "45-bet, 3-mashq"};
+      // oldin ikki marta bajarmagan
+      const [lo] = periodNow(); c.students[0].hwd = {[lo]: 0, [p]: 0};
+      save(); startLesson(0); S.step = 1; render(); return c.students[0].name;
+    });
+    await page.waitForSelector("text=45-bet, 3-mashq");
+    await page.click('[data-hw="0"]'); await page.click('[data-hw="0"]');   // ✗
+    await page.click('[data-hw="1"]');                                       // ✓
+    assert.equal(await page.locator('[data-hw="2"]').count(), 0, "kelmagan o'quvchida UV tugmasi yo'q");
+    await page.click("[data-hwall]");
+    const h = await page.evaluate(() => D.classes[0].students.map((s) => (s.hwd || {})[todayIso()]));
+    assert.equal(h[0], 0); assert.equal(h[1], 1); assert.equal(h[2], undefined); assert.ok(h.slice(3).every((x) => x === 1));
+    assert.ok((await page.textContent(".foot")).includes("UV bajarmagan: 1"));
+    await page.evaluate(() => go("today"));
+    assert.deepEqual(await page.evaluate(() => hwOverview().map((x) => [x.name, x.why[0]])), [[name, "uy vazifasini 3 marta bajarmagan"]]);
+    await page.evaluate((n) => { studentCard(0, n); }, name);
+    assert.ok((await page.textContent(".modal")).includes("3 marta bajarmagan"));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
