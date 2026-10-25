@@ -526,6 +526,33 @@ body.pmeas .noprint{display:none!important}
   .keys .hint small{display:inline}
   .perpop{width:min(340px,calc(100vw - 16px))}
 }
+/* yon panelni yig'ish */
+.sbot{display:flex;gap:6px}.sbot [data-lock]{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.sidet{flex:none;width:40px;padding:0!important;font-size:18px}
+.compact .sbot{flex-direction:column}.compact .sidet{width:100%}
+.compact .logo{justify-content:center;padding:0 0 18px}
+@media screen and (min-width:821px){.compact .jpick{display:grid;place-items:center}}
+/* ixcham dizayn: kichik tugma va oraliqlar, sig'magan yozuv «…» */
+body.ixcham{--side:204px}
+.ixcham main{padding:18px 22px 32px}
+.ixcham .card{padding:14px 16px}
+.ixcham h1{font-size:24px}.ixcham h2{font-size:18px}
+.ixcham .btn{display:inline-block;height:34px;min-height:34px;line-height:32px;padding:0 11px;font-size:14px;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;max-width:100%;vertical-align:middle;text-align:center}
+.ixcham .btn[hidden]{display:none}
+.ixcham .btn.sm{height:30px;min-height:30px;line-height:28px;padding:0 9px;font-size:13px}
+.ixcham .chip,.ixcham .seg button,.ixcham .vseg button,.ixcham .jtabs button,.ixcham .nav .lbl,.ixcham .cs span{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.ixcham .chip{min-height:30px;padding:0 11px;font-size:13.5px}
+.ixcham .seg button{min-height:28px;padding:0 9px;font-size:13.5px}
+.ixcham .side{padding:16px 10px 12px}.ixcham .side .nav{padding:8px 12px;font-size:15px}
+.ixcham .vseg button{padding:6px 10px;font-size:14px}
+.ixcham .jhead{gap:8px}
+.ixcham .jtt b{font-size:20px}.ixcham .jtt small{font-size:12.5px}
+.ixcham .jr1>.btn,.ixcham .pernav>.btn.sm{height:38px;min-height:38px;line-height:36px}
+.ixcham .perbtn,.ixcham .jpick{min-height:38px;height:38px}.ixcham .perbtn h2{font-size:15px}
+.ixcham .key{min-width:34px;height:34px;font-size:14px}
+.ixcham .mgrid .btn{text-align:left}
+.ixcham input,.ixcham select{min-height:36px;font-size:14px}
+.ixcham .da,.ixcham .dg{height:30px}.ixcham .drow{padding:5px 0}
 /* «Kun» ko'rinishi: sana tasmasi, o'quvchilar ro'yxati, dars kartasi */
 .dstrip{display:flex;gap:6px;align-items:stretch;flex:1 1 420px;min-width:0}
 .dstrip>.btn{min-height:0;padding:0 10px;font-size:18px}
@@ -912,15 +939,21 @@ function holidaySet(y) {
   for (let h of D.settings.holidays || []) { h = String(h).trim(); if (/^\d{2}-\d{2}$/.test(h)) out.add(`${y}-${h}`); else if (/^\d{4}-\d{2}-\d{2}$/.test(h)) out.add(h); }
   return out;
 }
+const lessonWds = (c) => c.weekdays && c.weekdays.length ? c.weekdays : D.settings.lesson_weekdays;
+// lo..hi oralig'idagi dars kunlarini (hafta kunlari bo'yicha) jurnalga qo'shadi; bayramlar X bo'ladi
+function lessonDays(c, lo, hi, wds = lessonWds(c)) {
+  const have = new Set(c.dates), out = [];
+  for (let d = pdate(lo); iso(d) <= hi; d = addDays(d, 1)) { const s = iso(d); if (wds.includes(pyWd(s)) && !have.has(s)) out.push(s); }
+  return out;
+}
+function addLessonDays(c, lo, hi, wds) {
+  const fresh = lessonDays(c, lo, hi, wds);
+  for (const s of fresh) if (holidaySet(+s.slice(0, 4)).has(s) && !c.held.includes(s) && !c.extra_x.includes(s)) c.extra_x.push(s);
+  c.dates = [...c.dates, ...fresh].sort(); return fresh;
+}
 function genQuarter(q, classes) {
   const r = qRange(q); if (!r) return 0; let added = 0;
-  for (const c of classes || D.classes) {
-    const wds = c.weekdays && c.weekdays.length ? c.weekdays : D.settings.lesson_weekdays;
-    const have = new Set(c.dates); const fresh = [];
-    for (let d = pdate(r[0]); iso(d) <= r[1]; d = addDays(d, 1)) { const s = iso(d); if (wds.includes(pyWd(s)) && !have.has(s)) fresh.push(s); }
-    for (const s of fresh) if (holidaySet(+s.slice(0, 4)).has(s) && !c.held.includes(s) && !c.extra_x.includes(s)) c.extra_x.push(s);
-    c.dates = [...have, ...fresh].sort(); added += fresh.length;
-  }
+  for (const c of classes || D.classes) added += addLessonDays(c, r[0], r[1]).length;
   return added;
 }
 function autoDates() {             // joriy chorak boshlanganda dars kunlari o'zi yaratiladi (har sinf uchun bir marta)
@@ -1644,12 +1677,17 @@ function toast(msg) {
   const el = h(`<div class="toast">${esc(msg)}</div>`); document.body.append(el);
   clearTimeout(toastT); toastT = setTimeout(() => el.remove(), 3500);
 }
+// ixcham dizaynda qisqargan tugma yozuvi — sichqoncha ustiga borganda to'liq ko'rinadi
+function fitTitles(root) {
+  if (D.web.density !== "kompakt") return;
+  root.querySelectorAll("button").forEach((b) => { if (!b.title && b.scrollWidth > b.clientWidth + 1) b.title = b.textContent.trim(); });
+}
 function modal(inner, onMount) {
   return new Promise((res) => {
     const m = h(`<div class="modal"><div class="card">${inner}</div></div>`);
     const close = (v) => { m.remove(); res(v); };
     m.addEventListener("click", (e) => { if (e.target === m) close(null); });
-    document.body.append(m); labelTables(m); onMount && onMount(m, close);
+    document.body.append(m); labelTables(m); onMount && onMount(m, close); fitTitles(m);
   });
 }
 function ask(title, text, val = "", type = "text") {
@@ -1689,7 +1727,7 @@ function bindView(root) {
 }
 // jurnal sahifasida chap panelda sinflar ro'yxati (telefonda ☰ — pastdan chiquvchi ro'yxat)
 function sideView() {
-  if (S.page !== "journal" || !D.classes.length) return "";
+  if (S.page !== "journal" || !D.classes.length || D.web.sidemin) return "";
   const today = new Set(lessonsToday().map((x) => x.ci));
   return `<div class="clsside" aria-label="Sinflar"><div class="tag">Sinflar</div>${D.classes.length > 8 ? `<input type="search" class="csq" placeholder="🔍 Sinf qidirish" aria-label="Sinf qidirish">` : ""}
     <div class="csl">${classGroups().map(([k, ids]) => `<div class="cg" data-cg="${esc(normName(k + " " + ids.map((i) => D.classes[i].subject || "").join(" ")))}"><div class="cgn">${esc(k)}</div><div class="vseg">${ids.map((i) =>
@@ -1702,11 +1740,13 @@ function renderNav() {
   const lockTxt = !D.settings.protect.enabled ? "⚠ Himoya o'chiq" : isLocked() ? "🔒 Himoyalangan" : "🔓 Ochiq — qulflash";
   const hb = `<button class="nav hlp" data-help title="Shu sahifa bo'yicha qo'llanma">${ICONS.help}<span class="lbl">Yordam</span></button>`;
   $("#side").innerHTML = `<div class="logo"><b>Y</b><span>Yo'qlama jurnali<small>web</small></span></div>${btns}${hb}${sideView()}<div class="grow"></div>
-    <button class="btn sm" data-lock title="Qo'yilgan baholar himoyasi">${lockTxt}</button>`;
+    <div class="sbot"><button class="btn sm" data-lock title="Qo'yilgan baholar himoyasi: ${lockTxt.slice(2)}">${D.web.sidemin ? lockTxt.slice(0, 2) : lockTxt}</button>
+    <button class="btn sm sidet" data-sidet title="${D.web.sidemin ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}" aria-label="${D.web.sidemin ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}">${D.web.sidemin ? "»" : "«"}</button></div>`;
   $("#tabbar").innerHTML = btns + hb;
   document.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => go(b.dataset.go));
   document.querySelectorAll("[data-help]").forEach((b) => b.onclick = () => helpDialog());
   const lb = $("[data-lock]"); if (lb) lb.onclick = toggleLock;
+  $("[data-sidet]").onclick = () => { D.web.sidemin = !D.web.sidemin; save(); render(); };
   $("#side").querySelectorAll("[data-ci]").forEach((b) => b.onclick = () => pickClass(+b.dataset.ci));
   const q = $("#side .csq"); if (q) q.oninput = () => { const v = normName(q.value); $("#side").querySelectorAll(".cg").forEach((g) => g.hidden = !!v && !g.dataset.cg.includes(v)); };
   const on = $("#side .cs.on"); if (on) on.scrollIntoView({block: "nearest"});
@@ -1770,8 +1810,11 @@ function applyTheme() {
   const css = designCss(D.web); if (dc.textContent !== css) dc.textContent = css;
   const t = D.web.theme; document.documentElement.dataset.theme = t === "auto" ? "" : t;
   if (t === "auto") delete document.documentElement.dataset.theme;
-  // Chorak ko'rinishida kataklar kichik — butun chorak bitta ekranga sig'adi
-  document.body.classList.toggle("dense", S.page === "journal" && S.jpage === "j" && V.mode === "quarter");
+  // Chorak ko'rinishida (yoki ixcham dizaynda) kataklar kichik — butun chorak bitta ekranga sig'adi
+  const ix = D.web.density === "kompakt";
+  document.body.classList.toggle("dense", ix || (S.page === "journal" && S.jpage === "j" && V.mode === "quarter"));
+  document.body.classList.toggle("ixcham", ix);
+  $("#app").classList.toggle("compact", !!D.web.sidemin);
 }
 // telefonda hisobot jadvali kartochka bo'lib chiqadi: har katakka ustun nomini yozib qo'yamiz
 function labelTables(root) {
@@ -1791,7 +1834,7 @@ function render() {
   const m = $("#main");
   ({today: pageToday, journal: pageJournal, lesson: pageLesson, reports: pageReports, settings: pageSettings})[S.page](m);
   const pp = $(".perpop"); if (pp) pp.remove();
-  labelTables(m); snapCols();
+  labelTables(m); snapCols(); fitTitles(document.body);
 }
 
 /* ───────── 1. Bugun ───────── */
@@ -2012,7 +2055,7 @@ function pageJournal(m) {
   const tools = ds.length ? jTools(c) : "";
   m.innerHTML = `<div class="col" style="gap:12px">
     ${jHead(perNav(), "", tools)}
-    ${ds.length ? `<div class="tblwrap" id="tw"><table class="j">${head}${body}</table></div>` : `<div class="card muted">Tanlangan davrda dars sanalari yo'q. «Sozlamalar → Dars kunlari va choraklar»da choraklarni belgilang yoki «Yana → Bugunni dars kuni qilish».</div>`}
+    ${ds.length ? `<div class="tblwrap" id="tw"><table class="j">${head}${body}</table></div>` : `<div class="card muted">Tanlangan davrda dars sanalari yo'q. «⋯ → Sana qo'shish (dars kunlari bo'yicha)» yoki «Sozlamalar → Dars kunlari va choraklar».</div>`}
     <div class="keys" role="group" aria-label="Belgi qo'yish"><span class="hint">${selTxt}</span>${keys}</div></div>`;
   bindJHead(m);
   m.querySelectorAll("[data-sh]").forEach((b) => b.onclick = () => { vShift(+b.dataset.sh); render(); });
@@ -2284,6 +2327,7 @@ async function moreMenu() {
     ]],
     ["Jurnal", [
       UNDO.length && ["↶ Oxirgi o'zgarishni bekor qilish", undoLast],
+      ["📅 Sana qo'shish (dars kunlari bo'yicha)", () => addDatesDialog(S.ci)],
       !c.dates.includes(t) && ["📅 Bugunni dars kuni qilish", () => { c.dates.push(t); c.dates.sort(); save(); V.anchor = t; render(); }],
       ["✎ Sinf nomi va fani", () => editClass(S.ci)],
     ]],
@@ -2659,6 +2703,7 @@ function pageSettings(m) {
       `<div class="srow"><div><b>Asosiy rang</b><div class="muted">Tugmalar, yon panel va ajratilgan elementlar rangi</div></div>
         <div class="accs">${Object.entries(ACCENTS).map(([k, a]) => `<button class="acc ${w.accent === k ? "on" : ""}" data-accent="${k}" title="${a[0]}"><i style="background:linear-gradient(135deg,${a[1]} 50%,${a[6]} 50%)"></i>${a[0]}</button>`).join("")}</div></div>` +
       srow("Burchaklar", "Kartochka va jadvallar burchagi", seg("rad", [["round", "Yumaloq"], ["sharp", "To'g'ri"]], w.radius)) +
+      srow("Ixcham dizayn", "Kichikroq tugmalar, oraliqlar va kataklar — ekranga ko'proq sig'adi. Tugmaga sig'magan yozuv «…» bilan qisqaradi (ustiga olib borilsa to'liq ko'rinadi).", seg("den", [["oddiy", "Oddiy"], ["kompakt", "Ixcham"]], w.density === "kompakt" ? "kompakt" : "oddiy")) +
       srow("Standart dizayn", "Uslub, shrift, rang, o'lcham va burchaklarni boshlang'ich holatga qaytaradi", `<button class="btn" data-a="dreset">↺ Qaytarish</button>`));
   } else if (S.sec === 4) {
     const p = st.protect;
@@ -2822,6 +2867,39 @@ function addClassDialog() {
       const c = normalize({classes: [{name, subject, weekdays, dates: [], students: studs.map((n) => ({name: n, marks: {}}))}]}).classes[0];
       D.classes.push(c); const q = quarterOf(todayIso()); if (q && weekdays.length) genQuarter(q, [c]);
       save(); S.ci = D.classes.length - 1; close(); go("journal"); toast(`«${label(c)}» qo'shildi: ${studs.length} o'quvchi`);
+    };
+  });
+}
+// jurnalga yangi sanalar: faqat tanlangan hafta kunlariga to'g'ri kelganlari qo'shiladi
+function addDatesDialog(ci) {
+  const c = D.classes[ci], t = todayIso(), q = quarterOf(t), qr = q && qRange(q);
+  const last = c.dates.length ? c.dates[c.dates.length - 1] : iso(addDays(pdate(t), -1)), from0 = iso(addDays(pdate(last), 1));
+  let wds = lessonWds(c).slice();
+  modal(`<h2>Sana qo'shish — ${esc(label(c))}</h2>
+    <div class="muted">Sanalar shu sinfning dars kunlari bo'yicha qo'shiladi. Bayram kunlari «dars yo'q» (X) bo'lib tushadi.</div>
+    <div class="col"><b>Dars kunlari</b><div class="days" id="adw">${WD.slice(0, 6).map((w, k) => `<button class="${wds.includes(k) ? "on" : ""}" data-wk="${k}">${w}</button>`).join("")}</div></div>
+    <div class="row wrap" id="adq"><button class="btn sm" data-n="1">Keyingi dars</button><button class="btn sm" data-n="4">Keyingi 4 ta</button><button class="btn sm" data-n="8">Keyingi 8 ta</button>${qr && qr[1] > last ? `<button class="btn sm" data-n="q">Chorak oxirigacha</button>` : ""}</div>
+    <div class="row wrap"><label class="col f">Dan<input type="date" id="adf" value="${from0}"></label><label class="col f">Gacha<input type="date" id="adt" value="${qr && qr[1] > last ? qr[1] : iso(addDays(pdate(from0), 27))}"></label></div>
+    <div class="muted" id="adp"></div>
+    <div class="row wrap"><label class="row" style="gap:6px"><input type="checkbox" id="ads" ${c.weekdays && c.weekdays.length ? "" : "checked"}> Dars kunlarini sinfga saqlash</label><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn pri" data-ok>Qo'shish</button></div>`, (mm, close) => {
+    const f = $("#adf", mm), to = $("#adt", mm), pv = $("#adp", mm);
+    const list = () => f.value && to.value && f.value <= to.value ? lessonDays(c, f.value, to.value, wds) : [];
+    const draw = () => {
+      const l = list(); $("[data-ok]", mm).disabled = !l.length;
+      pv.textContent = !wds.length ? "Avval dars kunlarini belgilang." : l.length ? `${l.length} ta sana qo'shiladi: ${l.slice(0, 8).map((d) => `${fmt(d).slice(0, 5)} ${WD[pyWd(d)]}`).join(", ")}${l.length > 8 ? " …" : ""}` : "Bu oraliqda yangi dars kuni yo'q.";
+    };
+    mm.querySelectorAll("[data-wk]").forEach((b) => b.onclick = () => { const k = +b.dataset.wk; wds = wds.includes(k) ? wds.filter((x) => x !== k) : [...wds, k].sort(); b.classList.toggle("on"); $("#ads", mm).checked = true; draw(); });
+    mm.querySelectorAll("[data-n]").forEach((b) => b.onclick = () => {
+      f.value = from0; if (b.dataset.n === "q") { to.value = qr[1]; return draw(); }
+      const n = +b.dataset.n, out = []; for (let d = pdate(from0); out.length < n && out.length < 400 && iso(d) < "2100"; d = addDays(d, 1)) if (wds.includes(pyWd(iso(d)))) out.push(iso(d));
+      if (out.length) to.value = out[out.length - 1]; draw();
+    });
+    f.onchange = to.onchange = draw; draw();
+    $("[data-x]", mm).onclick = () => close();
+    $("[data-ok]", mm).onclick = () => {
+      if ($("#ads", mm).checked && wds.length) c.weekdays = wds.slice();
+      const fresh = addLessonDays(c, f.value, to.value, wds); if (!fresh.length) return;
+      save(); close(); V.anchor = fresh[0]; render(); toast(`${fresh.length} ta dars sanasi qo'shildi`);
     };
   });
 }
