@@ -878,3 +878,32 @@ test("Ota-onalar kontaktlari: kiritish, matndan to'ldirish va xabar tugmalari", 
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Chorak yakuni eslatmasi: «Bugun»da kamchiliklar va darsda «baho kam» belgisi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const info = await page.evaluate(() => {
+      D.settings.quarters[0] = ["2026-09-02", "2026-10-29"]; const c = D.classes[0], t = todayIso();
+      if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } c.extra_x = c.extra_x.filter((d) => d !== t); c.held.push(t);
+      // birinchi o'quvchining choraklik formativ baholarini o'chiramiz
+      const [lo] = qRange(1); for (const d of Object.keys(c.students[0].marks)) if (d >= lo) delete c.students[0].marks[d];
+      save(); go("today"); return {qe: quarterEnd(), name: c.students[0].name, low: quarterGaps(c, 1).low.map((x) => x.name)};
+    });
+    assert.deepEqual(info.qe, {q: 1, end: "2026-10-29", left: 9});
+    assert.ok(info.low.includes(info.name));
+    await page.waitForSelector(".qend");
+    assert.ok((await page.textContent(".qend")).includes("1-chorak tugashiga 9 kun qoldi"));
+    await page.click('[data-qready="0"]');
+    await page.waitForSelector("text=bahosiga tayyorlik");
+    assert.equal(await page.evaluate(() => S.rep.kind), "ready");
+    await page.evaluate(() => { startLesson(0); S.step = 1; render(); });
+    assert.ok((await page.textContent(".lrow")).includes("baho kam: 0/"));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});

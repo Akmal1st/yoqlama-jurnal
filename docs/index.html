@@ -806,6 +806,24 @@ const hasMarks = (c, s) => c.students.some((st) => st.marks[s]);
 /* uy vazifasi tekshiruvi: s.hwd[sana] = 1 (bajardi) | 0 (bajarmadi); sana — tekshirilgan dars kuni */
 const prevHw = (c, t = todayIso()) => { const d = c.dates.filter((x) => x < t && !isNoLesson(c, x)).pop(); return d && c.lessons[d] && c.lessons[d].hw ? [d, c.lessons[d].hw] : null; };
 function hwStat(s, lo, hi) { const v = Object.entries(s.hwd || {}).filter(([d]) => lo <= d && d <= hi).map(([, x]) => x); return {n: v.length, ok: v.filter((x) => x === 1).length, no: v.filter((x) => x === 0).length}; }
+/* chorak yakuni eslatmasi: chorak tugashiga QEND_DAYS kun qolganda — kimda formativ baho kam, qaysi BSB/CHSB balli kiritilmagan */
+const QEND_DAYS = 14;
+function quarterEnd(t = todayIso()) {
+  const q = quarterOf(t); if (!q) return null;
+  const end = qRange(q)[1], left = Math.round((pdate(end) - pdate(t)) / 864e5);
+  return left >= 0 && left <= QEND_DAYS ? {q, end, left} : null;
+}
+function quarterGaps(c, q, t = todayIso()) {
+  const works = worksInQuarter(c, q), past = works.filter((w) => w.date <= t), low = [], noScore = [];
+  for (const s of c.students) {
+    const r = quarterResult(c, s, q, works);
+    if (r.n_fb < fbMin()) low.push({name: s.name, n: r.n_fb});
+    const miss = past.filter((w) => !isNum((s.scores || {})[w.id]));
+    if (miss.length) noScore.push({name: s.name, works: miss.map((w) => `${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)}`)});
+  }
+  const left = c.dates.filter((d) => t < d && d <= qRange(q)[1] && !isNoLesson(c, d)).length;
+  return {low, noScore, left};
+}
 const HW_WARN = 3;   // davrda shuncha marta bajarmasa — «E'tibor talab qiladi»
 function hwOverview() {
   const [lo, hi] = periodNow(), out = [];
@@ -1330,6 +1348,11 @@ function pageToday(m) {
     ${TG_NEW ? (() => { const w = new Date(TG_NEW.date * 1000); return `<div class="card hot row"><span class="sp">🔄 Telegram'da boshqa qurilmadan yangiroq zaxira bor (${fmt(iso(w))} ${pad(w.getHours())}:${pad(w.getMinutes())}). Shu qurilmaga yuklaysizmi?</span><button class="btn pri" data-tg="tgnew">Yuklash</button><button class="btn" data-tg="tgkeep">Yo'q, menikini saqlash</button></div>`; })() : ""}
     ${(() => { const a = backupAge(), t = tgAge(); return (a === null || a > 7) && (t === null || t > 7) ? `<div class="card row"><span class="sp">💾 ${a === null ? "Ma'lumotlar hali faylga saqlanmagan." : `Oxirgi zaxira ${a} kun oldin olingan.`} Brauzer tozalansa, ma'lumot yo'qolishi mumkin — faylga saqlab qo'ying.</span><button class="btn pri" data-backup2>Saqlash</button></div>` : ""; })()}
     ${(() => { const b = birthdays(0); return b.length ? `<div class="card row bday"><span style="font-size:28px">🎂</span><span class="sp">Bugun tug'ilgan kun: ${b.map((x) => `<button class="link" data-stud="${x.ci}|${esc(x.s.name)}"><b>${esc(x.s.name)}</b></button> (${esc(D.classes[x.ci].name)}${x.age ? `, ${x.age} yosh` : ""})`).join(", ")}. Tabriklashni unutmang!</span></div>` : ""; })()}
+    ${(() => { const qe = quarterEnd(); if (!qe) return "";
+      const rows = D.classes.map((c, ci) => ({c, ci, g: quarterGaps(c, qe.q)})).filter((x) => x.g.low.length || x.g.noScore.length);
+      return `<section class="card col qend"><h2>📋 ${qe.q}-chorak tugashiga ${qe.left ? `${qe.left} kun` : "bugun"} qoldi (${fmt(qe.end)})</h2>
+        ${rows.length ? rows.map(({c, ci, g}) => `<div class="row" style="gap:8px;flex-wrap:nowrap"><div class="sp" style="min-width:0"><b>${esc(label(c))}</b><div class="muted">${[g.low.length ? `${g.low.length} o'quvchida formativ baho kam (kamida ${fbMin()} ta kerak)` : "", g.noScore.length ? `${g.noScore.length} o'quvchida BSB/CHSB balli yo'q` : "", `qolgan darslar: ${g.left}`].filter(Boolean).join(" · ")}</div></div>
+          <button class="btn sm" data-qready="${ci}">Ko'rish</button></div>`).join("") : `<div class="ok">✓ Hamma sinflarda baholar va ballar yetarli — chorak bahosini qo'yishga tayyor.</div>`}</section>`; })()}
     <div id="found"></div>
     <section class="grid lessons">${cards}</section>
     <div class="grid two">
@@ -1351,6 +1374,7 @@ function pageToday(m) {
     toast(`${label(c)}: hamma keldi ✓ — kimdir kelmagan bo'lsa, «Jurnalni ochish» orqali belgilang`);
   });
   m.querySelectorAll("[data-go2]").forEach((b) => b.onclick = () => go(b.dataset.go2));
+  m.querySelectorAll("[data-qready]").forEach((b) => b.onclick = () => { S.rep.ci = +b.dataset.qready; S.rep.kind = "ready"; S.rq = quarterEnd().q; go("reports"); });
   m.querySelectorAll("[data-stud]").forEach((b) => b.onclick = () => { const [ci, n] = b.dataset.stud.split("|"); studentCard(+ci, n); });
   const dd = $("[data-days]", m); if (dd) dd.onclick = () => { S.sec = 1; go("settings"); };
   $("[data-backup]", m).onclick = exportJson;
@@ -1598,14 +1622,16 @@ function pageLesson(m) {
       }).join("")}</div>`;
   } else if (S.step === 1) {
     const ph = prevHw(c), hwOn = !!ph || c.students.some((x) => x.hwd && t in x.hwd);
+    const qe = quarterEnd(), lowN = qe ? Object.fromEntries(quarterGaps(c, qe.q).low.map((x) => [x.name, x.n])) : {};
     const hwBtn = (x, si) => { const v = (x.hwd || {})[t]; return `<button class="hwb ${v === 1 ? "ok" : v === 0 ? "no" : ""}" data-hw="${si}" title="Uy vazifasi: bosib belgilang">${v === 1 ? "UV ✓" : v === 0 ? "UV ✗" : "UV"}</button>`; };
     body = (hwOn ? `<div class="card row hwcard"><span class="sp">🏠 <b>Uy vazifasi</b>${ph ? ` (${fmt(ph[0]).slice(0, 5)}): ${esc(ph[1])}` : ""}<br><span class="muted">Har o'quvchidagi «UV» tugmasi: bir bosish — bajardi ✓, ikki — bajarmadi ✗, uch — belgisiz.</span></span>
         <button class="btn sm" data-hwall>Qolganlar bajardi ✓</button></div>` : "") +
     `<div class="row"><h1 class="sp">Baholar (ixtiyoriy)</h1><div class="seg"><button class="${S.two ? "" : "on"}" data-two="0">Bitta baho</button><button class="${S.two ? "on" : ""}" data-two="1">Ikkita baho</button></div></div>
+      ${Object.keys(lowN).length ? `<p class="warn" style="margin:6px 0">📋 Chorak tugashiga ${qe.left} kun qoldi: ${Object.keys(lowN).length} o'quvchida baho kam («baho kam» belgisi) — imkon bo'lsa, ulardan so'rang.</p>` : ""}
       <p class="muted" style="margin:6px 0">Kimdan so'ragan bo'lsangiz — bahosini bosing. Qayta bosilsa o'chadi.${S.two ? " «Ikkita baho» rejimida ikkinchi bosilgan baho qo'shiladi (masalan 8/9)." : ""}</p>
       <div class="card" style="padding:4px 14px">${c.students.map((s, si) => {
         const a = attOf(c, si), ab = ["s", "dq", "k"].includes(a), gs = gradesOf(s.marks[t] || "");
-        return `<div class="lrow"><span class="n">${si + 1}</span><span class="who ${ab ? "dim" : ""} ${hwOn && !ab ? "hwn" : ""}">${esc(s.name)}${ab ? ` (${ABSENT_NAMES[a]})` : ""}</span>${hwOn && !ab ? hwBtn(s, si) : ""}<span class="row" style="gap:4px">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((g) =>
+        return `<div class="lrow"><span class="n">${si + 1}</span><span class="who ${ab ? "dim" : ""} ${hwOn && !ab ? "hwn" : ""}">${esc(s.name)}${ab ? ` (${ABSENT_NAMES[a]})` : ""}${s.name in lowN && !ab ? ` <span class="badge" title="Chorak tugashiga ${qe.left} kun: formativ baholar ${lowN[s.name]} ta, kamida ${fbMin()} ta kerak">baho kam: ${lowN[s.name]}/${fbMin()}</span>` : ""}</span>${hwOn && !ab ? hwBtn(s, si) : ""}<span class="row" style="gap:4px">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((g) =>
           `<button class="gb" data-gr="${si}|${g}" ${ab ? "disabled" : ""} style="${gs.includes(g) ? `background:${gradeColor(g)};border:2px solid var(--text);color:#12303a` : ""}">${g}</button>`).join("")}</span></div>`;
       }).join("")}</div>`;
   } else {
