@@ -842,3 +842,39 @@ test("Uy vazifasi tekshiruvi: darsda belgilash, kartochka va «E'tibor talab qil
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Ota-onalar kontaktlari: kiritish, matndan to'ldirish va xabar tugmalari", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const n = await page.evaluate(() => [normPhone("90 123-45-67"), normPhone("+998 (93) 555 44 33"), normPhone("12"), normTg("@ali_ota"), normTg("https://t.me/ali_ota"), normTg("a b")]);
+    assert.deepEqual(n, ["+998901234567", "+998935554433", null, "ali_ota", "ali_ota", null]);
+    const names = await page.evaluate(() => { S.ci = 0; S.page = "journal"; render(); parentsDialog(0); return D.classes[0].students.map((s) => s.name); });
+    await page.fill('[data-pp="0"]', "90 123 45 67"); await page.press('[data-pp="0"]', "Tab");
+    assert.equal(await page.inputValue('[data-pp="0"]'), "+998 90 123-45-67");
+    await page.click("summary");
+    await page.fill("#pcp", `${names[1]}\tKarimova Dilfuza\t+998 93 555-44-33 @dilfuza_k\n${names[2]} 97 111 22 33`);
+    await page.click("[data-pcp]");
+    const p = await page.evaluate(() => D.classes[0].students.slice(0, 3).map((s) => s.par));
+    assert.deepEqual(p, [{phone: "+998901234567"}, {phone: "+998935554433", tg: "dilfuza_k", name: "Karimova Dilfuza"}, {phone: "+998971112233"}]);
+    await page.click(".modal [data-x]");
+    // ommaviy xabarlarda to'g'ridan-to'g'ri havolalar
+    await page.evaluate(() => { parentBulk(0); });
+    await page.waitForSelector(".pmsg");
+    assert.equal(await page.getAttribute('[data-ctg="1"]', "href"), "https://t.me/dilfuza_k");
+    assert.ok((await page.getAttribute('[data-psms="0"]', "href")).startsWith("sms:+998901234567?body="));
+    assert.ok((await page.getAttribute('[data-pwa="2"]', "href")).startsWith("https://wa.me/998971112233?text="));
+    await page.fill('[data-pt="0"]', "Salom");
+    assert.equal(await page.getAttribute('[data-psms="0"]', "href"), "sms:+998901234567?body=Salom");
+    // o'quvchi kartochkasi
+    await page.evaluate((nm) => { studentCard(0, nm, "msg"); }, names[1]);
+    assert.ok((await page.getAttribute('[data-psms="c"]', "href")).startsWith("sms:+998935554433?body=Assalomu"));
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});

@@ -112,10 +112,13 @@ table.j .sn{display:none}
 .hwb{min-height:32px;padding:0 10px;border-radius:8px;border:1px dashed var(--line);background:var(--base);font-weight:700;font-size:12.5px;color:var(--muted)}
 .hwb.ok{background:var(--ok);border:1px solid var(--ok);color:var(--base)}.hwb.no{background:var(--danger);border:1px solid var(--danger);color:var(--base)}.hwcard{margin:6px 0;padding:10px 14px}
 @media (max-width:560px){.lrow .who.hwn{flex:1 1 calc(100% - 130px)}}
+.pcon{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.9fr);gap:6px;align-items:center;padding:4px}.pcon input{min-height:36px;padding:6px 9px}
+.pcon.one{grid-template-columns:auto minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);padding:0}
+@media (max-width:560px){.pcon{grid-template-columns:1fr 1fr;border-bottom:1px solid var(--soft);padding-bottom:8px}.pcon b{grid-column:1/-1}.pcon input[data-pn]{grid-column:1/-1}.pcon.one{grid-template-columns:1fr 1fr}.pcon.one span,.pcon.one #cpn{grid-column:1/-1}}
 .tag.now{background:var(--acc);color:#fff;padding:2px 8px;border-radius:99px;margin-left:6px}
 table.sch td{padding:0}table.sch select{min-width:96px;min-height:36px;padding:4px 6px;font-size:13px}table.sch td.bl{display:flex;flex-direction:column;gap:2px;align-items:center;padding:2px 4px}table.sch td.bl input{width:104px;min-height:32px;padding:2px 6px;font-size:13px;text-align:center}
 .badge{font-size:11px;font-weight:800;color:#b42318;background:#fde8e6;padding:1px 7px;border-radius:99px;margin-left:6px;white-space:nowrap}
-input[type=text],input[type=date],input[type=password],input[type=number],select,textarea{background:var(--base);border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-height:40px;width:100%}
+input[type=text],input[type=tel],input[type=date],input[type=password],input[type=number],select,textarea{background:var(--base);border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-height:40px;width:100%}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:-1px}
 textarea{min-height:120px;resize:vertical}
 label.f{display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:14px}
@@ -285,7 +288,7 @@ h2{font-size:21px;font-weight:700;letter-spacing:-.005em}
 .seg{background:var(--soft);border-radius:12px}
 .seg button{border-radius:9px;transition:background .15s,color .15s}
 .seg button.on{box-shadow:0 1px 3px rgba(60,45,20,.18)}
-input[type=text],input[type=date],input[type=password],input[type=number],select,textarea{border-radius:12px;transition:border-color .15s,box-shadow .15s}
+input[type=text],input[type=tel],input[type=date],input[type=password],input[type=number],select,textarea{border-radius:12px;transition:border-color .15s,box-shadow .15s}
 input:focus,select:focus,textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
 .av{border-radius:50%;background:var(--acc-soft);color:var(--acc);font-size:14px;letter-spacing:.02em}
 .item{border-top-color:var(--soft)}
@@ -1520,6 +1523,7 @@ async function moreMenu() {
     ["🎂 Tug'ilgan kunlar", () => bdaysDialog(S.ci)],
     ["📝 Mavzular va uy vazifalari", () => lessonsDialog(S.ci)],
     ["✉️ Ota-onalarga xabarlar (butun sinf)", () => parentBulk(S.ci)],
+    ["👪 Ota-onalar kontaktlari", () => parentsDialog(S.ci)],
     ["📚 Kalendar-tematik reja (KTR)", () => ktrDialog(S.ci)],
     ["📊 BSB / CHSB ballari", () => { S.jpage = "sum"; render(); }],
     ["🔍 BSB tahlili (savollar bo'yicha)", () => { S.jpage = "bsb"; render(); }],
@@ -2875,6 +2879,7 @@ function studentCard(ci, name, tab = "sum") {
       <div class="tile"><div class="muted">Baholar</div><div>${r.n}</div></div><div class="tile"><div class="muted">Sababsiz</div><div>${r.s}</div></div></div>
       <div>S ${r.s} · DQ ${r.dq} · K ${r.k} · KQ ${r.kq}</div>
       ${s.bday ? `<div>🎂 Tug'ilgan kun: ${fmtBday(s.bday)}</div>` : ""}
+      ${s.par ? `<div>👪 ${esc(s.par.name || "Ota-ona")}${s.par.phone ? ` · <a href="tel:${s.par.phone}">${fmtPhone(s.par.phone)}</a>` : ""}${s.par.tg ? ` · <a href="https://t.me/${s.par.tg}" target="_blank" rel="noopener">@${esc(s.par.tg)}</a>` : ""}</div>` : ""}
       ${(() => { const h = hwStat(s, lo, hi); return h.n ? `<div class="${h.no >= HW_WARN ? "warn" : ""}">🏠 Uy vazifasi (${per}): ${h.ok} / ${h.n} bajarilgan${h.no ? ` · ${h.no} marta bajarmagan` : ""}</div>` : ""; })()}
       ${r.why.length ? `<div class="warn">⚠ ${esc(r.why.join("; "))}</div>` : `<div class="ok">✓ Xavf belgilari yo'q</div>`}
       <div class="row" style="gap:4px">${last.map((d) => { const col = markColors(s.marks[d]); return `<span class="pill" title="${fmt(d)}" style="${col ? `background:${col[0]};color:${col[1]}` : ""}">${displayMark(s.marks[d])}</span>`; }).join("") || '<span class="muted">Hali belgi yo\'q</span>'}</div>
@@ -2892,8 +2897,9 @@ function studentCard(ci, name, tab = "sum") {
     body = `<div class="row" style="gap:8px"><select id="pk" style="width:auto">${PARENT_KINDS.map(([k, n]) => `<option value="${k}" ${k === kind ? "selected" : ""}>${n}</option>`).join("")}</select>
       <div class="seg"><button class="${lang === "uz" ? "on" : ""}" data-pl="uz">O'zbekcha</button><button class="${lang === "ru" ? "on" : ""}" data-pl="ru">Ruscha</button></div></div>
       <textarea id="pm" style="min-height:170px">${esc(kind === "week" ? parentMessage("week", lang, name, c, r, weekLabel(lang), weekDigest(c, name, weekLo(), todayIso(), lang)) : parentMessage(kind, lang, name, c, r, per))}</textarea>
-      <div class="row"><span class="muted sp">Matnni tahrirlab, nusxalab Telegram yoki SMS orqali yuboring.</span><button class="btn pri" data-copy>📋 Nusxalash</button>
-      ${navigator.share ? `<button class="btn" data-share>Ulashish</button>` : ""}</div>`;
+      <div class="row wrap" style="gap:6px"><button class="btn pri sm" data-copy>📋 Nusxalash</button>${contactBtns(s, "", "c")}
+      ${navigator.share ? `<button class="btn sm" data-share>Ulashish</button>` : ""}</div>
+      <div class="pcon one"><span class="muted">👪 Ota-ona:</span><input type="text" id="cpn" value="${esc((s.par || {}).name || "")}" placeholder="Ism"><input type="tel" id="cpp" value="${esc((s.par || {}).phone ? fmtPhone(s.par.phone) : "")}" placeholder="+998 90 123-45-67"><input type="text" id="cpt" value="${esc((s.par || {}).tg ? "@" + s.par.tg : "")}" placeholder="@telegram"></div>`;
   }
   document.querySelectorAll(".modal").forEach((x) => x.remove());
   modal(`<div class="row"><div class="col sp" style="gap:0"><span class="tag">${esc(label(c))} · ${per}</span><h2>${s.star ? "⭐ " : ""}${esc(name)}</h2></div>
@@ -2911,6 +2917,9 @@ function studentCard(ci, name, tab = "sum") {
     const pk = $("#pk", mm); if (pk) pk.onchange = () => { S.pkind = pk.value; again("msg"); };
     mm.querySelectorAll("[data-pl]").forEach((b) => b.onclick = () => { S.plang = b.dataset.pl; again("msg"); });
     const cp = $("[data-copy]", mm); if (cp) cp.onclick = () => copyText($("#pm", mm).value);
+    const pm = $("#pm", mm); if (pm) { const upd = bindContactBtns(mm, s, "c", () => pm.value); pm.oninput = upd; upd(); }
+    const cpc = (id, k, norm, bad) => { const x = $(id, mm); if (x) x.onchange = () => { const v = x.value.trim() ? norm(x.value) : ""; if (v === null) { toast(bad); return; } const p = Object.assign({}, s.par || {}); if (v) p[k] = v; else delete p[k]; setStudentAll(s.name, "par", Object.keys(p).length ? p : null); save(); again("msg"); }; };
+    cpc("#cpn", "name", (v) => v.trim(), ""); cpc("#cpp", "phone", normPhone, "Telefon raqamini +998 90 123-45-67 ko'rinishida yozing"); cpc("#cpt", "tg", normTg, "Telegram nomini @username ko'rinishida yozing");
     const sh = $("[data-share]", mm); if (sh) sh.onclick = () => navigator.share({text: $("#pm", mm).value}).catch(() => {});
   });
 }
@@ -2924,12 +2933,12 @@ function parentBulk(ci) {
   const msgs = () => {
     const [lo, hi, q] = range(), rows = reportRows(c, lo, hi, q).rows, pl = per === "q" ? (q ? `${q}-chorak` : "joriy oy") : weekLabel(lang, lo, hi);
     return c.students.map((s) => { const r = rows.find((x) => x.name === s.name), k = kind === "auto" ? parentDefaultKind(r) : kind;
-      return {name: s.name, r, k, text: parentMessage(k, lang, s.name, c, r, pl, k === "week" ? weekDigest(c, s.name, lo, hi, lang) : "")}; })
+      return {name: s.name, s, r, k, text: parentMessage(k, lang, s.name, c, r, pl, k === "week" ? weekDigest(c, s.name, lo, hi, lang) : "")}; })
       .filter((x) => !only || x.r && (x.r.why.length || x.r.s || x.r.dq || x.r.k));
   };
   const body = () => { const ms = msgs(); return `<div class="lsns">${ms.length ? ms.map((x, i) => `<div class="pmsg"><div class="row" style="gap:6px"><b class="sp">${esc(x.name)}</b>${x.r && x.r.why.length ? `<span class="badge">xavf</span>` : ""}</div>
       <textarea data-pt="${i}">${esc(x.text)}</textarea>
-      <div class="row wrap" style="gap:6px"><button class="btn sm" data-pc="${i}">📋 Nusxalash</button><a class="btn sm" data-ptg="${i}" target="_blank" rel="noopener" href="https://t.me/share/url?url=%20&text=${encodeURIComponent(x.text)}">✈️ Telegram</a><a class="btn sm" data-psms="${i}" href="sms:?body=${encodeURIComponent(x.text)}">💬 SMS</a></div></div>`).join("")
+      <div class="row wrap" style="gap:6px"><button class="btn sm" data-pc="${i}">📋 Nusxalash</button>${contactBtns(x.s, x.text, i)}</div>${x.s.par && (x.s.par.name || x.s.par.phone) ? `<div class="muted" style="font-size:13px">👪 ${esc([x.s.par.name, x.s.par.phone && fmtPhone(x.s.par.phone)].filter(Boolean).join(" · "))}</div>` : ""}</div>`).join("")
       : `<div class="muted">Bu davrda muammoli o'quvchi yo'q 👍</div>`}</div>`; };
   const sel = (id, list, cur) => `<select id="${id}" style="width:auto">${list.map(([k, n]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${n}</option>`).join("")}</select>`;
   return modal(`<h2>✉️ Ota-onalarga xabarlar · ${esc(label(c))}</h2>
@@ -2942,8 +2951,7 @@ function parentBulk(ci) {
     <div class="row"><button class="btn" data-pall>📋 Hammasini nusxalash</button><span class="sp"></span><button class="btn pri" data-x>Yopish</button></div>`, (m, close) => {
     const bind = () => {
       const ms = msgs(), cur = (i) => $(`[data-pt="${i}"]`, m).value;
-      m.querySelectorAll("[data-pt]").forEach((x) => x.oninput = () => { const i = x.dataset.pt, t = encodeURIComponent(x.value);
-        $(`[data-ptg="${i}"]`, m).href = `https://t.me/share/url?url=%20&text=${t}`; $(`[data-psms="${i}"]`, m).href = `sms:?body=${t}`; });
+      ms.forEach((x, i) => { const upd = bindContactBtns(m, x.s, i, () => cur(i)); $(`[data-pt="${i}"]`, m).oninput = upd; });
       m.querySelectorAll("[data-pc]").forEach((b) => b.onclick = () => copyText(cur(b.dataset.pc)));
       $("[data-pall]", m).onclick = () => copyText(ms.map((x, i) => cur(i)).join("\n\n——————\n\n"));
     };
@@ -3391,6 +3399,78 @@ function bdaysDialog(ci) {
       }
       save(); $("#bdb", m).innerHTML = body(); bind();
       toast(`${n} ta tug'ilgan kun qo'yildi${miss.length ? ` · topilmadi: ${miss.length} qator` : ""}`);
+    };
+    $("[data-x]", m).onclick = () => { close(); render(); };
+  });
+}
+
+/* ───────── ota-onalar kontaktlari: s.par = {name, phone, tg} ───────── */
+// telefon: «90 123-45-67», «+998 (90) 1234567» → «+998901234567»; noto'g'ri bo'lsa null
+function normPhone(t) {
+  const d = String(t || "").replace(/\D/g, "");
+  if (d.length === 9) return "+998" + d;
+  if (d.length === 12 && d.startsWith("998")) return "+" + d;
+  return d.length >= 10 && d.length <= 15 ? "+" + d : null;
+}
+const normTg = (t) => { const m = String(t || "").trim().match(/^(?:https?:\/\/)?(?:t\.me\/|@)?([A-Za-z][A-Za-z0-9_]{3,31})$/); return m ? m[1] : null; };
+const fmtPhone = (p) => /^\+998\d{9}$/.test(p) ? `+998 ${p.slice(4, 6)} ${p.slice(6, 9)}-${p.slice(9, 11)}-${p.slice(11)}` : p;
+// shu ismli o'quvchiga barcha fan jurnallarida yozish
+function setStudentAll(name, key, v) {
+  const k = normName(name);
+  D.classes.forEach((x) => x.students.concat(x.students_off).forEach((s) => { if (normName(s.name) === k) { if (v) s[key] = v; else delete s[key]; } }));
+}
+// xabar yuborish tugmalari: kontakt bo'lsa — to'g'ridan-to'g'ri o'sha odamga
+function contactBtns(s, text, i = "") {
+  const p = s.par || {}, t = encodeURIComponent(text), out = [];
+  if (p.tg) out.push(`<a class="btn sm" data-ctg="${i}" target="_blank" rel="noopener" href="https://t.me/${p.tg}" title="Matn nusxalanadi — chatga qo'ying">✈️ @${esc(p.tg)}</a>`);
+  else out.push(`<a class="btn sm" data-ptg="${i}" target="_blank" rel="noopener" href="https://t.me/share/url?url=%20&text=${t}">✈️ Telegram</a>`);
+  out.push(`<a class="btn sm" data-psms="${i}" href="sms:${p.phone || ""}?body=${t}">💬 SMS</a>`);
+  if (p.phone) out.push(`<a class="btn sm" data-pwa="${i}" target="_blank" rel="noopener" href="https://wa.me/${p.phone.slice(1)}?text=${t}">WhatsApp</a><a class="btn sm" href="tel:${p.phone}">📞</a>`);
+  return out.join("");
+}
+// matn o'zgarganda havolalarni yangilash; Telegram'ga (username) bosilganda matn nusxalanadi
+function bindContactBtns(root, s, i, getText) {
+  const q = (a) => $(`[${a}="${i}"]`, root), p = s.par || {};
+  const upd = () => { const t = encodeURIComponent(getText());
+    const tg = q("data-ptg"); if (tg) tg.href = `https://t.me/share/url?url=%20&text=${t}`;
+    const sm = q("data-psms"); if (sm) sm.href = `sms:${p.phone || ""}?body=${t}`;
+    const wa = q("data-pwa"); if (wa) wa.href = `https://wa.me/${(p.phone || "").slice(1)}?text=${t}`; };
+  const ct = q("data-ctg"); if (ct) ct.addEventListener("click", () => copyText(getText()));
+  return upd;
+}
+function parentsDialog(ci) {
+  const c = D.classes[ci];
+  const body = () => `<div class="lsns">${c.students.map((s, si) => { const p = s.par || {};
+    return `<div class="pcon"><b>${esc(s.name)}</b><input type="text" data-pn="${si}" value="${esc(p.name || "")}" placeholder="Ota-onasi (ism)">
+      <input type="tel" data-pp="${si}" value="${esc(p.phone ? fmtPhone(p.phone) : "")}" placeholder="+998 90 123-45-67"><input type="text" data-pt="${si}" value="${esc(p.tg ? "@" + p.tg : "")}" placeholder="@telegram"></div>`; }).join("")}</div>`;
+  return modal(`<h2>👪 Ota-onalar kontaktlari · ${esc(label(c))}</h2>
+    <div class="muted">Telefon va Telegram yozilsa, «Ota-onaga xabar»dagi tugmalar to'g'ridan-to'g'ri o'sha odamga ochiladi (SMS, WhatsApp, qo'ng'iroq). Shu ismli o'quvchiga boshqa fan jurnallarida ham yoziladi. Ma'lumot faqat shu qurilmada va zaxira faylida turadi.</div>
+    <details><summary><b>Ro'yxatdan qo'yish</b> (Excel yoki sinf chatidan nusxalab)</summary>
+      <div class="col" style="gap:6px;margin-top:6px"><textarea id="pcp" placeholder="Abdullayev Sardor  +998 90 123 45 67  @sardor_ota&#10;Aliyeva Madina	93 555-44-33"></textarea><button class="btn" data-pcp>Matndan to'ldirish</button></div></details>
+    <div id="pcb">${body()}</div>
+    <div class="row"><span class="sp"></span><button class="btn pri" data-x>Yopish</button></div>`, (m, close) => {
+    const put = (si, k, v) => { const s = c.students[si], p = Object.assign({}, s.par || {}); if (v) p[k] = v; else delete p[k]; setStudentAll(s.name, "par", Object.keys(p).length ? p : null); save(); };
+    const bind = () => {
+      m.querySelectorAll("[data-pn]").forEach((x) => x.onchange = () => put(+x.dataset.pn, "name", x.value.trim()));
+      m.querySelectorAll("[data-pp]").forEach((x) => x.onchange = () => { const v = x.value.trim() ? normPhone(x.value) : ""; if (v === null) { toast("Telefon raqamini +998 90 123-45-67 ko'rinishida yozing"); return; } put(+x.dataset.pp, "phone", v); x.value = v ? fmtPhone(v) : ""; });
+      m.querySelectorAll("[data-pt]").forEach((x) => x.onchange = () => { const v = x.value.trim() ? normTg(x.value) : ""; if (v === null) { toast("Telegram nomini @username ko'rinishida yozing"); return; } put(+x.dataset.pt, "tg", v); x.value = v ? "@" + v : ""; });
+    };
+    bind();
+    $("[data-pcp]", m).onclick = () => {
+      let n = 0, miss = 0;
+      for (const line of $("#pcp", m).value.split(/\n/)) {
+        const ph = line.match(/(?:\+?998[\s-]*)?\(?\d{2}\)?[\s-]*\d{3}[\s-]*\d{2}[\s-]*\d{2}/), tg = line.match(/@([A-Za-z][A-Za-z0-9_]{3,31})/);
+        if (!ph && !tg) continue;
+        const rest = normName(line.replace(ph ? ph[0] : "", " ").replace(tg ? tg[0] : "", " ").replace(/[\t;,|]+/g, " "));
+        const s = c.students.find((x) => normName(x.name) === rest) || c.students.find((x) => rest && rest.startsWith(normName(x.name)));
+        if (!s) { miss++; continue; }
+        const p = Object.assign({}, s.par || {}), pv = ph && normPhone(ph[0]);
+        if (pv) p.phone = pv; if (tg) p.tg = tg[1];
+        const pn = rest.slice(normName(s.name).length).trim(); if (pn && !p.name) p.name = pn.replace(/(^|\s)\S/g, (x) => x.toUpperCase());
+        setStudentAll(s.name, "par", p); n++;
+      }
+      save(); $("#pcb", m).innerHTML = body(); bind();
+      toast(`${n} ta o'quvchiga kontakt qo'yildi${miss ? ` · topilmadi: ${miss} qator` : ""}`);
     };
     $("[data-x]", m).onclick = () => { close(); render(); };
   });
