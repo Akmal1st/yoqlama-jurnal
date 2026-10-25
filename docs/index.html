@@ -210,6 +210,7 @@ table.attm{border-collapse:collapse;font-size:13px;width:100%}table.attm th,tabl
 @media(max-width:560px){.rkinds{grid-template-columns:1fr 1fr;gap:6px}.rk{padding:8px 10px;gap:8px}.rk small{display:none}.rk .ic{font-size:18px}.rk b{font-size:13.5px}.rbar label.f{flex:1 1 140px}.rbar .row{width:100%}.rbar .row .btn{flex:1}}
 @media screen{table.rcls td:nth-child(2) .nmlink{white-space:nowrap}}
 table.attm .an{position:sticky;left:0;z-index:1;background:var(--base)}table.attm th.an,table.attm tr.tot .an{background:var(--alt)}
+.gaps{gap:10px}.hitem{border-left:3px solid var(--acc);padding:4px 0 4px 12px}.hitem b{display:block;margin-bottom:2px}.nav.hlp{opacity:.8}.kprog{display:flex;flex-direction:column;gap:6px}.kbar{position:relative;height:10px;border-radius:99px;background:var(--soft);overflow:visible}.kbar i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--acc)}.kbar u{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--text);opacity:.6}
 table.r th.srt{cursor:pointer;user-select:none}table.r th.srt:hover{color:var(--text)}
 @media(max-width:820px){.row.chips.repk{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}.row.chips.repk .chip{flex:0 0 auto}.qby{font-size:17px}}
 @media (max-width:820px){.tiles{grid-template-columns:repeat(2,1fr)}}
@@ -903,6 +904,21 @@ function lessonsToday() {
   const at = (ci) => sc.filter((x) => x.ci === ci);
   return L.map((x) => ({...x, slots: at(x.ci)})).sort((a, b) => (a.slots[0] ? a.slots[0].no : 99) - (b.slots[0] ? b.slots[0].no : 99));
 }
+// to'ldirilmagan darslar: o'tgan dars kunlarida yo'qlama belgilanmagan yoki (mavzu yozib boradigan sinfda) mavzu yo'q
+const GAP_DAYS = 14;
+function lessonGaps(upto = iso(addDays(new Date(), -1)), days = GAP_DAYS) {
+  const lo = iso(addDays(pdate(upto), -days + 1)), out = [];
+  D.classes.forEach((c, ci) => {
+    // mavzu faqat oxirgi 30 kunda kamida bitta mavzu yozilgan sinflarda so'raladi
+    const usesTopic = Object.entries(c.lessons || {}).some(([d, l]) => l && l.topic && d >= iso(addDays(pdate(upto), -30)));
+    for (const d of c.dates) {
+      if (d < lo || d > upto || isNoLesson(c, d)) continue;
+      const noAtt = !hasMarks(c, d) && !c.att_ok.includes(d), noTopic = usesTopic && !((c.lessons[d] || {}).topic);
+      if (noAtt || noTopic) out.push({ci, c, d, noAtt, noTopic});
+    }
+  });
+  return out.sort((a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : a.ci - b.ci);
+}
 function upcoming(days = 7) {
   const t = todayIso(), hi = iso(addDays(new Date(), days)), out = [];
   for (const c of D.classes) for (const w of c.works) if (t <= w.date && w.date <= hi) {
@@ -1033,6 +1049,31 @@ function planSlots(plan) {
   const slots = [];
   (plan.topics || []).forEach((t, i) => { const h = Math.max(1, +t.h || 1); for (let k = 0; k < h; k++) slots.push({text: h === 1 ? t.t : `${t.t} (${k + 1}/${h})`, q: t.q ?? null, i}); });
   return slots;
+}
+// KTR bajarilishi: o'tilgan darslardagi mavzular rejaga qanchalik mos; reja bo'yicha shu kungacha nechtasi o'tilishi kerak edi
+function ktrProgress(c, t = todayIso()) {
+  const plan = c.plan; if (!plan || !plan.topics || !plan.topics.length) return null;
+  const slots = planSlots(plan), held = c.dates.filter((d) => !isNoLesson(c, d)).sort();
+  const left = new Map(); for (const sl of slots) left.set(sl.text, (left.get(sl.text) || 0) + 1);
+  const doneIn = new Map(); let done = 0;
+  for (const d of held) { if (d > t) break; const tp = (c.lessons[d] || {}).topic; if (tp && left.get(tp)) { left.set(tp, left.get(tp) - 1); done++; const q = quarterOf(d); doneIn.set(q, (doneIn.get(q) || 0) + 1); } }
+  // reja bo'yicha: har chorak mavzulari shu chorak darslariga teng taqsimlanadi
+  let expect = 0;
+  const qs = [...new Set(slots.map((sl) => sl.q))];
+  for (const q of qs) {
+    const n = slots.filter((sl) => sl.q === q).length, rng = q ? qRange(q) : (held.length ? [held[0], held[held.length - 1]] : null);
+    if (!rng) continue;
+    const ds = held.filter((d) => rng[0] <= d && d <= rng[1]), past = ds.filter((d) => d <= t).length;
+    expect += ds.length ? Math.min(n, Math.round(n * past / ds.length)) : (rng[1] < t ? n : 0);
+  }
+  // joriy chorak oxirigacha darslar yetadimi
+  const cq = quarterOf(t), hasQ = qs.some((q) => q !== null), rng = hasQ && cq ? qRange(cq) : null;
+  const needQ = hasQ ? (cq ? slots.filter((sl) => sl.q === cq).length - (doneIn.get(cq) || 0) : 0) : slots.length - done;
+  const daysQ = held.filter((d) => d > t && (!rng || d <= rng[1])).length;
+  return {total: slots.length, done, expect, behind: Math.max(0, expect - done), short: Math.max(0, needQ - daysQ), q: hasQ ? cq : null};
+}
+function ktrLine(k) {
+  return `O'tildi ${k.done} / ${k.total} soat · reja bo'yicha shu kungacha ${k.expect}${k.behind >= 2 ? ` · <b class="warn">${k.behind} soat orqada</b>` : k.done >= k.expect ? ` · <span class="ok">reja bo'yicha ✓</span>` : ""}${k.short ? ` · <span class="warn">${k.q ? `${k.q}-chorak oxirigacha` : "yil oxirigacha"} ${k.short} mavzuga dars yetmaydi</span>` : ""}`;
 }
 function workOfTopic(text) {
   const m = String(text).match(/^\s*(?:\d+\s*-?\s*)?(CHSB|BSB)\b(?:\s*[-№#]?\s*\d+)?\s*(?:\(\s*(\d+(?:[.,]\d+)?)\s*ball\s*\))?/i);
@@ -1318,6 +1359,7 @@ const ICONS = {
   reports: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11M10 20V5M16 20v-7M2 20h20"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
 };
+ICONS.help = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></svg>';
 const NAV = [["today", "Bugun"], ["journal", "Jurnal"], ["reports", "Hisobotlar"], ["settings", "Sozlamalar"]];
 function go(p) { S.page = p; S.sel = null; render(); window.scrollTo(0, 0); }
 // jurnal ko'rinishi (davr va zichlik): kompyuterda chap panelda, telefonda jurnal tepasida
@@ -1336,12 +1378,63 @@ function renderNav() {
   const cur = S.page === "lesson" ? "journal" : S.page;
   const btns = NAV.map(([k, t]) => `<button class="nav ${cur === k ? "on" : ""}" data-go="${k}" title="${t}">${ICONS[k]}<span class="lbl">${t}</span></button>`).join("");
   const lockTxt = !D.settings.protect.enabled ? "⚠ Himoya o'chiq" : isLocked() ? "🔒 Himoyalangan" : "🔓 Ochiq — qulflash";
-  $("#side").innerHTML = `<div class="logo"><b>Y</b><span>Yo'qlama jurnali<small>web</small></span></div>${btns}${sideView()}<div class="grow"></div>
+  const hb = `<button class="nav hlp" data-help title="Shu sahifa bo'yicha qo'llanma">${ICONS.help}<span class="lbl">Yordam</span></button>`;
+  $("#side").innerHTML = `<div class="logo"><b>Y</b><span>Yo'qlama jurnali<small>web</small></span></div>${btns}${hb}${sideView()}<div class="grow"></div>
     <button class="btn sm" data-lock title="Qo'yilgan baholar himoyasi">${D.web.density === "kompakt" ? lockTxt.slice(0, 2) : lockTxt}</button>`;
-  $("#tabbar").innerHTML = btns;
+  $("#tabbar").innerHTML = btns + hb;
   document.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => go(b.dataset.go));
+  document.querySelectorAll("[data-help]").forEach((b) => b.onclick = () => helpDialog());
   const lb = $("[data-lock]"); if (lb) lb.onclick = toggleLock;
   bindView($("#side"));
+}
+/* ───────── qo'llanma: har sahifa bo'yicha qisqa yordam ───────── */
+const HELP = [
+  ["today", "🏠 Bugun", [
+    ["Bugungi darslar", "Jadval yoki dars kunlari bo'yicha bugungi darslar soat tartibida chiqadi. «▶ Darsni boshlash» — yo'qlama, baho va mavzu uch qadamda. Hech kim qoldirmagan bo'lsa — «✓ Hamma keldi» bitta bosishda yo'qlamani tugatadi."],
+    ["E'tibor talab qiladi", "O'rtacha bahosi past, ko'p qoldirgan yoki baholari kam o'quvchilar. «Ko'rish» — o'quvchi kartochkasi (baholar o'sishi, izohlar, ota-onaga xabar)."],
+    ["To'ldirilmagan darslar", "Oxirgi 2 haftada yo'qlama belgilanmagan yoki mavzu yozilmagan darslar. «To'ldirish» o'sha kunga olib boradi. Kechqurun eslatma: Sozlamalar → Dars kunlari → «Kechki eslatma»."],
+    ["Qidiruv", "Yuqoridagi maydonga o'quvchi yoki sinf nomini yozing — kartochkasini ochish mumkin."],
+  ]],
+  ["journal", "📒 Jurnal", [
+    ["Baho qo'yish", "Katakni bosing, pastdagi tugmalardan baho yoki S/DQ/K/KQ ni tanlang. Klaviatura: 1–9, 0 (=10), S, D, K, Q; o'qlar bilan yuring. Xato bo'lsa — ↶ (Ctrl+Z)."],
+    ["Ko'rinish", "Kun / Hafta / Oy / Chorak. «Kompakt» — butun chorak bitta ekranda. Telefonda ismlar qisqa chiqadi."],
+    ["«Yana ▾» menyusi", "Barcha qo'shimcha amallar bo'limlarga ajratilgan, tepada qidiruv bor. Keraksizlarini Sozlamalar → «🧩 Funksiyalar»dan yashirish mumkin."],
+    ["BSB / CHSB va Yillik", "Yuqoridagi «BSB / CHSB» sahifasida summativ ishlar ballari, «BSB tahlili»da savollar bo'yicha tahlil, «Yillik»da chorak va yillik baholar."],
+    ["Himoya", "Qo'yilgan bahoni o'zgartirish uchun qulfni ochish kerak (yon paneldagi tugma). Parol Sozlamalar → Himoya'da."],
+  ]],
+  ["lesson", "▶ Darsni boshlash", [
+    ["1 · Yo'qlama", "Faqat kelmaganlarni bosing — belgilanmagan o'quvchi darsda hisoblanadi. Rejimlar: Ro'yxat, Kartochka (o'ngga surish — keldi, chapga — yo'q), Xarita (o'rindiq bo'yicha)."],
+    ["2 · Baholar", "Kimdan so'ragan bo'lsangiz — bahosini bosing. «UV» — uy vazifasini bajardi/bajarmadi. «baho kam» belgisi — chorak oxirida bahosi yetishmayotganlar."],
+    ["3 · Mavzu", "Mavzu va uy vazifasi. KTR kiritilgan bo'lsa, mavzu rejadan o'zi chiqadi."],
+  ]],
+  ["reports", "📊 Hisobotlar", [
+    ["Hisobot turini tanlang", "Kartochkalardan birini bosing, keyin sinf va davrni tanlang. «🖨 Chop etish» — PDF yoki printer (varaqqa o'zi sig'diriladi), «📊 Excel» — .xlsx fayl."],
+    ["Sinf hisoboti", "O'rtacha baho, davomat, xavf sabablari. Chorak tanlansa — chorak bahosi, sifat (4 va 5) va o'zlashtirish (3–5). «Saralash» va «Xavf ostida» filtri."],
+    ["Davomat varag'i", "Oy bo'yicha kunma-kun S/DQ/K/KQ va har o'quvchining davomat foizi."],
+    ["Ota-onalar majlisi", "Har o'quvchiga alohida varaq — A4 ga ikkitadan. Majlisda qo'lga berish uchun."],
+    ["Chorakka tayyorlik", "Chorak bahosini qo'yishdan oldin nima yetishmasligi: ballar, formativ baholar."],
+  ]],
+  ["settings", "⚙ Sozlamalar", [
+    ["Sinflar", "Sinf qo'shish, o'quvchilar ro'yxati, faolsizlantirish (ketgan o'quvchi baholari saqlanadi)."],
+    ["Dars kunlari", "Dars jadvali (Excel'dan ham), choraklar, metod kuni, bayramlar, dars eslatmasi va kechki eslatma."],
+    ["Funksiyalar", "Ishlatmaydigan funksiyalarni o'chirib qo'ying — menyu va sahifalar soddalashadi, ma'lumot o'chmaydi."],
+    ["Ma'lumotlar", "Faylga zaxira, Telegram'ga avtomatik zaxira (boshqa qurilma bilan almashish), kunlik nusxalar, emaktab'dan import, yangi o'quv yili."],
+  ]],
+];
+function helpTopic() {
+  if (S.page === "lesson") return "lesson";
+  return HELP.some(([k]) => k === S.page) ? S.page : "today";
+}
+function helpDialog(topic = helpTopic()) {
+  const body = (k) => { const h = HELP.find(([x]) => x === k) || HELP[0]; return h[2].map(([t, d]) => `<div class="hitem"><b>${t}</b><div>${d}</div></div>`).join(""); };
+  modal(`<h2>❓ Qo'llanma</h2>
+    <div class="row chips" style="gap:6px">${HELP.map(([k, n]) => `<button class="chip ${k === topic ? "on" : ""}" data-ht="${k}">${n}</button>`).join("")}</div>
+    <div id="hb" class="col" style="gap:10px">${body(topic)}</div>
+    <div class="row"><span class="sp"></span><button class="btn pri" data-x>Yopish</button></div>`, (m, close) => {
+    $(".card", m).classList.add("wide");
+    m.querySelectorAll("[data-ht]").forEach((b) => b.onclick = () => { m.querySelectorAll("[data-ht]").forEach((x) => x.classList.toggle("on", x === b)); $("#hb", m).innerHTML = body(b.dataset.ht); });
+    $("[data-x]", m).onclick = () => close();
+  });
 }
 async function toggleLock() {
   const p = D.settings.protect;
@@ -1419,6 +1512,13 @@ function pageToday(m) {
           <button class="btn sm" data-qready="${ci}">Ko'rish</button></div>`).join("") : `<div class="ok">✓ Hamma sinflarda baholar va ballar yetarli — chorak bahosini qo'yishga tayyor.</div>`}</section>`; })()}
     <div id="found"></div>
     <section class="grid lessons">${cards}</section>
+    ${(() => { if (!feat("gaps")) return ""; const g = lessonGaps(); if (!g.length) return "";
+      return `<section class="card col gaps"><div class="row"><h2 class="sp">📝 To'ldirilmagan darslar — ${g.length} ta</h2><span class="muted">oxirgi ${GAP_DAYS} kun</span></div>
+        ${g.slice(0, 5).map((x) => `<div class="row wrap" style="gap:8px"><div class="sp" style="flex:1 1 200px;min-width:0"><b>${esc(label(x.c))}</b> · ${fmt(x.d).slice(0, 5)} ${WD[pyWd(x.d)]}<div class="muted">${[x.noAtt ? "yo'qlama belgilanmagan" : "", x.noTopic ? "mavzu yozilmagan" : ""].filter(Boolean).join(", ")}</div></div>
+          ${x.noAtt ? `<button class="btn sm" data-gapok="${x.ci}|${x.d}" title="Hech kim qoldirmagan bo'lsa">✓ Hamma keldi</button>` : ""}<button class="btn sm" data-gap="${x.ci}|${x.d}|${x.noAtt ? 1 : 0}">To'ldirish</button></div>`).join("")}
+        ${g.length > 5 ? `<div class="muted">va yana ${g.length - 5} ta</div>` : ""}</section>`; })()}
+    ${(() => { if (!feat("ktr")) return ""; const ks = D.classes.map((c, ci) => ({c, ci, k: ktrProgress(c)})).filter((x) => x.k && (x.k.behind >= 2 || x.k.short));
+      return ks.length ? `<section class="card col gaps"><h2>📚 KTR: rejadan orqada</h2>${ks.map(({c, ci, k}) => `<div class="row" style="gap:8px;flex-wrap:nowrap"><div class="sp" style="min-width:0"><b>${esc(label(c))}</b><div class="muted">${ktrLine(k)}</div></div><button class="btn sm" data-ktr="${ci}">Reja</button></div>`).join("")}</section>` : ""; })()}
     <div class="grid two">
       <section class="card"><div class="row"><h2 class="sp">E'tibor talab qiladi${risk.length ? ` — ${risk.length} o'quvchi` : ""}</h2>${risk.length ? `<button class="link" data-go2="reports">Hammasi</button>` : ""}</div>
         ${risk.length ? risk.slice(0, 6).map((r) => `<div class="item"><div class="av">${esc(initials(r.name))}</div><div class="sp"><b>${esc(r.name)}</b> <span class="muted">· ${esc(label(D.classes[r.ci]))}</span><div class="muted">${esc(r.why.slice(0, 2).join("; "))}</div></div>
@@ -1438,6 +1538,13 @@ function pageToday(m) {
     toast(`${label(c)}: hamma keldi ✓ — kimdir kelmagan bo'lsa, «Jurnalni ochish» orqali belgilang`);
   });
   m.querySelectorAll("[data-go2]").forEach((b) => b.onclick = () => go(b.dataset.go2));
+  m.querySelectorAll("[data-ktr]").forEach((b) => b.onclick = () => ktrDialog(+b.dataset.ktr));
+  m.querySelectorAll("[data-gapok]").forEach((b) => b.onclick = () => { const [ci, d] = b.dataset.gapok.split("|"), c = D.classes[+ci]; if (!c.att_ok.includes(d)) c.att_ok.push(d); save(); render(); toast(`${label(c)} · ${fmt(d)}: hamma keldi ✓`); });
+  m.querySelectorAll("[data-gap]").forEach((b) => b.onclick = () => {
+    const [ci, d, na] = b.dataset.gap.split("|"); S.ci = +ci; V.anchor = d;
+    if (na === "1") { S.page = "journal"; S.jpage = "j"; S.sel = [0, d]; go("journal"); toast(`${fmt(d)}: kelmaganlarni belgilang`); }
+    else lessonsDialog(+ci, d);
+  });
   m.querySelectorAll("[data-qready]").forEach((b) => b.onclick = () => { S.rep.ci = +b.dataset.qready; S.rep.kind = "ready"; S.rq = quarterEnd().q; go("reports"); });
   m.querySelectorAll("[data-stud]").forEach((b) => b.onclick = () => { const [ci, n] = b.dataset.stud.split("|"); studentCard(+ci, n); });
   const dd = $("[data-days]", m); if (dd) dd.onclick = () => { S.sec = 1; go("settings"); };
@@ -1607,7 +1714,8 @@ const FEATS = [
   ["qend", "📋 Chorak yakuni eslatmasi", "Chorak tugashiga 2 hafta qolganda kamchiliklar va «baho kam» belgisi"],
   ["debts", "📌 Qarzdorlar", "Past baho va topshirilmagan ishlarni qayta topshirish"],
   ["parents", "👪 Ota-onalar", "Kontaktlar va butun sinfga xabarlar (menyuda)"],
-  ["ktr", "📚 KTR", "Kalendar-tematik reja (menyuda)"],
+  ["ktr", "📚 KTR", "Kalendar-tematik reja, mavzular bo'yicha bajarilishi"],
+  ["gaps", "📝 To'ldirilmagan darslar", "«Bugun»da va kechqurun eslatma: yo'qlama yoki mavzu kiritilmagan darslar"],
 ];
 const SIMPLE_OFF = ["call", "groups", "seats", "attmodes", "debts"];
 function feat(id) { return !(D.web.off || {})[id]; }
@@ -1948,6 +2056,8 @@ function pageSettings(m) {
         return srow("🔔 Dars eslatmasi", `Jadvaldagi har bir darsdan oldin telefonga/kompyuterga bildirishnoma keladi: soat, sinf, mavzu va oldingi uy vazifasi.${r.on && perm !== "granted" ? " <span class='warn'>Bildirishnomaga ruxsat yo'q — eslatma faqat ilova ichida chiqadi.</span>" : ""} Ilova ochiq yoki fonda turganda ishlaydi.`,
           `<select id="remm" style="width:auto" ${r.on ? "" : "disabled"}>${[0, 2, 5, 10, 15].map((k) => `<option value="${k}" ${r.min === k ? "selected" : ""}>${k ? `${k} daqiqa oldin` : "Dars boshlanganda"}</option>`).join("")}</select>
           <button class="btn ${r.on ? "" : "pri"}" data-a="rem">${r.on ? "O'chirish" : "Yoqish"}</button>${r.on ? `<button class="btn" data-a="remt">Sinab ko'rish</button>` : ""}`); })() +
+      (feat("gaps") ? srow("📝 Kechki eslatma", "Kechqurun shu vaqtda bugungi darslardan yo'qlama yoki mavzu kiritilmaganlari bo'lsa, bildirishnoma keladi. Dars jadvali shart emas.",
+        `<select id="eve" style="width:auto"><option value="">O'chiq</option>${["16:00", "17:00", "18:00", "19:00", "20:00", "21:00"].map((k) => `<option ${D.web.eve === k ? "selected" : ""}>${k}</option>`).join("")}</select>`) : "") +
       `<div class="srow"><div><b>Har bir sinfning dars kunlari</b><div class="muted">Bosib belgilang. Saqlangach joriy chorak sanalari o'zi yaratiladi.</div></div></div>` +
       D.classes.map((c, i) => `<div class="srow"><div><b>${esc(label(c))}</b></div><div class="days">${WD.slice(0, 6).map((w, k) => `<button class="${(c.weekdays || []).includes(k) ? "on" : ""}" data-wd="${i}|${k}">${w}</button>`).join("")}</div></div>`).join("") +
       `<div class="srow"><div><b>Choraklar</b><div class="muted">Boshlanish va tugash sanalari — hamma sinflar uchun umumiy.</div><div class="col" style="margin-top:10px">${qs}</div></div>
@@ -2026,6 +2136,11 @@ function pageSettings(m) {
     const [q, k] = inp.dataset.q.split("|").map(Number); const r = st.quarters[q - 1] || ["", ""]; r[k] = inp.value;
     st.quarters[q - 1] = r[0] || r[1] ? r : null; save();
   });
+  const eve = $("#eve", m); if (eve) eve.onchange = async () => {
+    D.web.eve = eve.value; save();
+    if (eve.value && "Notification" in window && Notification.permission === "default") { try { await Notification.requestPermission(); } catch (e) {} }
+    remSchedule(); toast(eve.value ? `Kechki eslatma: har kuni ${eve.value}` : "Kechki eslatma o'chirildi");
+  };
   const remm = $("#remm", m); if (remm) remm.onchange = () => { D.web.remind = Object.assign(remCfg(), {min: +remm.value}); save(); remSchedule(); toast("Eslatma vaqti saqlandi"); };
   const mw = $("#mw", m); if (mw) mw.onchange = () => { const v = +mw.value; st.method_weekday = v < 0 ? null : v; save(); toast("Metod kuni saqlandi"); };
   const hol = $("#hol", m); if (hol) hol.onchange = () => { st.holidays = hol.value.split(/[,\s]+/).filter(Boolean); save(); toast("Bayramlar saqlandi"); };
@@ -2453,6 +2568,7 @@ function ktrDialog(ci) {
     <div class="muted">Har qatorda bitta mavzu. Chorak sarlavhasi: <code>== 2-chorak</code>. Bir necha soatlik mavzu: <code>Kasrlar | 3</code>. «BSB» yoki «CHSB (40 ball)» bilan boshlangan mavzu summativ ish sifatida o'zi qo'shiladi.</div>
     <textarea id="kt" style="min-height:260px" placeholder="== 1-chorak&#10;Natural sonlar | 2&#10;Kasrlar&#10;BSB №1 (25 ball)">${esc(planToText(plan))}</textarea>
     <label class="row" style="gap:8px;font-weight:600"><input type="checkbox" id="kon" ${plan.on || !plan.topics.length ? "checked" : ""} style="width:20px;height:20px"> Mavzularni dars kunlariga avtomatik taqsimlash</label>
+    ${(() => { const k = ktrProgress(c); return k ? `<div class="kprog"><div class="kbar"><i style="width:${Math.min(100, 100 * k.done / k.total)}%"></i><u style="left:${Math.min(100, 100 * k.expect / k.total)}%" title="Reja bo'yicha shu kungacha"></u></div><div>${ktrLine(k)}</div></div>` : ""; })()}
     <div class="muted" id="kinfo">Bugundan keyin ${free} ta dars kuni bor.</div>
     <div class="row"><button class="btn" data-file>📂 Fayldan (.txt)</button><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn pri" data-ok>Saqlash</button></div>`, (mm, close) => {
     const ta = $("#kt", mm), info = $("#kinfo", mm);
@@ -3406,9 +3522,9 @@ function rollover() {
 function backupAge() { if (!D.web.exported) return null; return Math.floor((Date.now() - Date.parse(D.web.exported)) / 864e5); }
 
 /* ───────── mavzular va uy vazifalari (har dars kuni uchun) ───────── */
-function lessonsDialog(ci) {
-  const c = D.classes[ci], t = todayIso(), q0 = quarterOf(t) || 1;
-  let q = q0, only = false;
+function lessonsDialog(ci, focus = null) {
+  const c = D.classes[ci], t = todayIso(), q0 = quarterOf(focus || t) || 1;
+  let q = q0, only = !!focus;
   const list = () => { const r = qRange(q); return c.dates.filter((d) => (!r || r[0] <= d && d <= r[1]) && !isNoLesson(c, d)); };
   const body = () => {
     const ds = list(), empty = ds.filter((d) => d <= t && !(c.lessons[d] || {}).topic).length;
@@ -3437,6 +3553,7 @@ function lessonsDialog(ci) {
       };
       m.querySelectorAll("[data-lt]").forEach((x) => x.onchange = () => put(x.dataset.lt, "topic", x.value));
       m.querySelectorAll("[data-lh]").forEach((x) => x.onchange = () => put(x.dataset.lh, "hw", x.value));
+      const f = focus && m.querySelector(`[data-lt="${focus}"]`); if (f) { f.scrollIntoView({block: "center"}); f.focus(); focus = null; }
       const box = $(".lsns", m), td = $(".lsn.today", m); if (box && td) box.scrollTop = td.offsetTop - box.clientHeight / 3;
     };
     const redraw = () => { $("#lsb", m).innerHTML = body(); bind(); }; bind();
@@ -3882,8 +3999,9 @@ async function remShow(p) {
 }
 function remSchedule() {
   REM.timers.forEach(clearTimeout); REM.timers = [];
-  if (!remCfg().on) return;
   const now = new Date();
+  eveSchedule(now);
+  if (!remCfg().on) { REM.timers.push(setTimeout(remSchedule, new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 1) - now)); return; }
   for (const p of remPlan(now)) {
     const ms = p.at - now;
     if (ms <= 0) remShow(p);   // eslatma vaqti o'tgan, lekin dars hali boshlanmagan — darhol
@@ -3892,6 +4010,14 @@ function remSchedule() {
   // yarim tunda ertangi kun uchun qayta rejalashtirish
   const mid = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 1);
   REM.timers.push(setTimeout(remSchedule, mid - now));
+}
+// kechki eslatma: D.web.eve = "18:00" (bo'sh — o'chiq); bugungi to'ldirilmagan darslar bo'lsa bildirishnoma
+function eveSchedule(now = new Date()) {
+  const e = D.web.eve; if (!e || !feat("gaps")) return;
+  const [hh, mm] = e.split(":").map(Number), at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm), t = iso(now);
+  const fire = () => { const g = lessonGaps(t, 1); if (g.length) remShow({key: "eve" + t, ci: g[0].ci, title: `📝 Bugun ${g.length} ta dars to'ldirilmagan`, body: g.map((x) => `${label(x.c)}: ${[x.noAtt ? "yo'qlama" : "", x.noTopic ? "mavzu" : ""].filter(Boolean).join(", ")}`).join("\n")}); };
+  if (at > now) REM.timers.push(setTimeout(fire, at - now));
+  else if (now - at < 3 * 36e5) fire();   // ilova kechroq ochilsa ham (3 soat ichida) eslatadi
 }
 async function remToggle() {
   const c = remCfg();
