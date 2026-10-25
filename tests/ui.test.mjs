@@ -1442,7 +1442,7 @@ test("Dizayn: uslublar va kompyuterdagi shriftlar", async () => {
     assert.equal(await page.locator(".stys [data-sty]").count(), 5);
     const win = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--win").trim());
     const before = await win();
-    for (const st of ["minimal", "shisha", "yumshoq", "brutal"]) {
+    for (const st of ["daftar", "gazeta", "bento", "kosmos"]) {
       await page.click(`[data-sty="${st}"]`);
       assert.equal(await page.evaluate(() => D.web.style), st);
       assert.notEqual(await win(), before, `${st}: fon o'zgarishi kerak`);
