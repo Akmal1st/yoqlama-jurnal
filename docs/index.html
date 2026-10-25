@@ -145,6 +145,11 @@ table.j .nm{position:sticky;left:0;background:var(--base);box-shadow:-8px 0 0 va
 table.j th.nm{z-index:3}
 table.j .nm i{font-style:normal;color:var(--muted);font-weight:500;display:inline-block;min-width:22px}
 table.j tr.cur .nm{color:var(--acc)}
+table.j tr.risk td{background:color-mix(in srgb,var(--danger) 10%,var(--base))}
+table.j tr.risk .nm{box-shadow:-8px 0 0 color-mix(in srgb,var(--danger) 10%,var(--base)),1px 0 0 var(--base),inset 3px 0 0 var(--danger)}
+table.j tr.risk .nm i{background:var(--danger);color:var(--base);border-radius:6px;text-align:center;font-weight:800;padding:1px 3px;margin-right:4px}
+table.j tr.risk .cell:not([style*="background"]){background:color-mix(in srgb,var(--danger) 16%,var(--base))}
+table.j tr.risk .cell.t:not([style*="background"]){background:color-mix(in srgb,var(--danger) 14%,var(--today-cell))}
 table.j td.c{padding:0}
 .cell{width:100%;min-width:40px;height:36px;border:0;border-radius:7px;font-weight:700;font-size:15px;background:var(--alt);color:var(--text);padding:0;line-height:1}
 .cell.t{background:var(--today-cell)}
@@ -364,7 +369,6 @@ table.r tr:hover td{background:var(--alt)}
   table.j .nm .fn,table.attm .an .fn{display:none}table.j .nm .sn,table.attm .an .sn{display:inline}
   table.j .nm i{min-width:18px}
   /* «xavf» belgisi telefonda qizil nuqta (to'liq so'z kartochkada) */
-  table.j .nm .badge{display:inline-block;width:8px;height:8px;padding:0;margin:0 0 1px 5px;font-size:0;background:#d92d20;vertical-align:middle}
   /* hisobot jadvallari telefonda kartochka ko'rinishida — har qiymat yonida nomi */
   body:not(.pmeas) table.r,body:not(.pmeas) table.r tbody,body:not(.pmeas) table.r tr,body:not(.pmeas) table.r td{display:block}
   body:not(.pmeas) table.r tr:first-child{display:none}
@@ -1684,7 +1688,7 @@ function pageJournal(m) {
   const c = D.classes[S.ci], t = todayIso(), dense = D.web.density === "kompakt";
   const ds = visDates(c);
   const {rows} = reportRows(c, ds[0] || t, ds[ds.length - 1] || t);
-  const [plo, phi, pq] = periodNow(); const riskNames = new Set(reportRows(c, plo, phi, pq).rows.filter((r) => r.why.some((w) => !w.startsWith("baholar soni"))).map((r) => r.name));
+  const [plo, phi, pq] = periodNow(); const riskWhy = new Map(reportRows(c, plo, phi, pq).rows.filter((r) => r.why.some((w) => !w.startsWith("baholar soni"))).map((r) => [r.name, r.why]));
   const modes = VIEW_MODES.map(([k, n]) => `<button class="${V.mode === k ? "on" : ""}" data-mode="${k}">${n}</button>`).join("");
   // Kun rejimida yo'qlama va baho alohida kataklarda (bir kundagi belgi baribir bitta: masalan «8kq»)
   const split = V.mode === "day";
@@ -1701,7 +1705,9 @@ function pageJournal(m) {
   let body = "";
   c.students.forEach((s, si) => {
     const r = rows[si];
-    body += `<tr class="${S.sel && S.sel[0] === si ? "cur" : ""}"><td class="nm" data-st="${si}" title="${esc(s.name)} — kartochkani ochish"><i>${si + 1}</i>${s.star ? "⭐ " : ""}${nmHtml(s.name)}${riskNames.has(s.name) ? '<span class="badge">xavf</span>' : ""}</td>`;
+    // xavf ostidagi o'quvchi: tartib raqami qizil, butun qator och qizil fonda
+    const rw = riskWhy.get(s.name);
+    body += `<tr class="${S.sel && S.sel[0] === si ? "cur" : ""} ${rw ? "risk" : ""}"><td class="nm" data-st="${si}" title="${esc(s.name)}${rw ? ` — ⚠ xavf: ${esc(rw.join("; "))}` : ""} — kartochkani ochish"><i>${si + 1}</i>${s.star ? "⭐ " : ""}${nmHtml(s.name)}</td>`;
     ds.forEach((d, di) => {
       if (split && !isNoLesson(c, d)) {
         const mk = s.marks[d] || "", ap = attPart(mk), gs = gradesOf(mk), ac = markColors(ap), gc = gs.length ? markColors(buildMark(gs, false)) : null;
