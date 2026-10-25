@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>O'quvchi natijasi</title>
+<style>
+:root{--bg:#f4f1ea;--base:#fffdf8;--text:#1d2b30;--muted:#5d6b70;--line:#d9d3c7;--soft:#ece7dc;--acc:#0b6f79;--ok:#2f7a3a;--warn:#b8322a}
+@media (prefers-color-scheme:dark){:root{--bg:#121a1c;--base:#1a2427;--text:#e6ece9;--muted:#9aa8ab;--line:#33433f;--soft:#24302f;--acc:#3fb8c2;--ok:#72c27a;--warn:#f07a70}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 Georgia,"Times New Roman",serif}
+main{max-width:640px;margin:0 auto;padding:20px 16px 40px;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--base);border:1px solid var(--line);border-radius:14px;padding:16px}
+h1{font-size:26px;margin:2px 0 4px;line-height:1.2}h2{font-size:18px;margin:0 0 10px}
+.muted{color:var(--muted)}.small{font-size:14px}
+.tag{font:700 12px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.tile{background:var(--base);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:12px;padding:10px 14px}
+.tile b{display:block;font-size:24px}.tile span{font:12px system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.marks{display:flex;flex-wrap:wrap;gap:6px}
+.mk{display:flex;flex-direction:column;align-items:center;min-width:46px;border:1px solid var(--line);border-radius:9px;overflow:hidden;font-family:system-ui,sans-serif}
+.mk i{font-style:normal;font-size:11px;color:var(--muted);padding:2px 4px}.mk b{display:block;width:100%;text-align:center;padding:3px 6px;font-size:15px}
+table{border-collapse:collapse;width:100%;font-size:15px}td,th{padding:7px 6px;border-bottom:1px solid var(--soft);text-align:left}th{color:var(--muted);font-weight:600;font-size:13px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font:13px system-ui,sans-serif;color:var(--muted);margin-top:10px}.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.ok{color:var(--ok)}.warn{color:var(--warn)}
+footer{font-size:13px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+// O'quvchi natijasi: ma'lumot havolaning # qismida (serverga yuborilmaydi), o'qituvchi ilovasi yaratadi
+(function () {
+  const app = document.getElementById("app");
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+  function decode(h) {
+    const b = h.replace(/-/g, "+").replace(/_/g, "/"), bin = atob(b + "===".slice((b.length + 3) % 4));
+    const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+  let P = null;
+  try { P = decode(location.hash.slice(1)); if (!P || P.v !== 1) P = null; } catch (e) { P = null; }
+  if (!P) {
+    app.innerHTML = `<div class="card"><h1>Havola ochilmadi</h1><p class="muted">Havola noto'g'ri yoki to'liq nusxalanmagan. O'qituvchidan qayta yuborishni so'rang.</p><p class="muted">Ссылка повреждена или скопирована не полностью. Попросите учителя отправить её ещё раз.</p></div>`;
+    return;
+  }
+  const ru = P.l === "ru";
+  document.documentElement.lang = ru ? "ru" : "uz";
+  const T = ru ? {title: "Результаты ученика", avg: "Средний балл", att: "Посещаемость", n: "Оценок", ab: "Пропущено", marks: "Оценки и посещаемость", none: "За этот период отметок нет.",
+      works: "Суммативные работы (БСБ / ЧСБ)", work: "Работа", date: "Дата", score: "Балл", notyet: "не сдано", q: "Оценка за четверть", pts: "балл", hw: "Домашнее задание", teacher: "Учитель",
+      per: "Период", qn: "-четверть", gen: "Данные на", priv: "Данные хранятся только в этой ссылке и никуда не отправляются.", s: "без ув. причины", dq: "по ув. причине", k: "болезнь", kq: "опоздание", ch: "освобождён"}
+    : {title: "O'quvchi natijasi", avg: "O'rtacha baho", att: "Davomat", n: "Baholar", ab: "Qoldirgan", marks: "Baholar va davomat", none: "Bu davrda belgi yo'q.",
+      works: "Summativ ishlar (BSB / CHSB)", work: "Ish", date: "Sana", score: "Ball", notyet: "topshirmagan", q: "Chorak bahosi", pts: "ball", hw: "Uy vazifasi", teacher: "O'qituvchi",
+      per: "Davr", qn: "-chorak", gen: "Ma'lumot holati", priv: "Ma'lumot faqat shu havolaning o'zida — hech qayerga yuborilmaydi.", s: "sababsiz", dq: "sababli", k: "kasal", kq: "kech qoldi", ch: "ozod"};
+  const fmt = (d) => d ? `${d.slice(8)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : "";
+  const y = (P.lo || "").slice(0, 4), full = (md) => (md >= (P.lo || "").slice(5) ? y : String(+y + 1)) + "-" + md;
+  const gradeColor = (v) => { let c = null; for (const [min, col] of P.rg || []) if (v >= min) c = col; return c; };
+  const ink = (hex) => { if (!hex || hex[0] !== "#") return "inherit"; const n = parseInt(hex.slice(1), 16); return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) > 150 ? "#12303a" : "#ffffff"; };
+  const grades = (m) => { const g = m.endsWith("kq") ? m.slice(0, -2) : m; const p = g ? g.split("/") : []; return p.length && p.every((x) => /^\d+$/.test(x)) ? p.map(Number) : []; };
+  const AC = P.ac || {};
+  const cell = (md, m) => {
+    const gs = grades(m), late = m.endsWith("kq"), a = gs.length ? (late ? "kq" : "") : m;
+    const bg = gs.length ? gradeColor(gs.reduce((s, x) => s + x, 0) / gs.length) : AC[a];
+    const txt = gs.length ? gs.join("/") + (late ? " · KQ" : "") : (a || "").toUpperCase();
+    return `<span class="mk" title="${esc(T[a] || "")}"><i>${esc(md.slice(3))}.${esc(md.slice(0, 2))}</i><b style="background:${bg || "transparent"};color:${ink(bg)}">${esc(txt)}</b></span>`;
+  };
+  const ab = P.ab || [0, 0, 0, 0], abN = ab[0] + ab[1] + ab[2];
+  const per = (P.q ? P.q + T.qn + " · " : "") + `${fmt(P.lo).slice(0, 5)} – ${fmt(P.hi)}`;
+  const used = new Set((P.m || []).map(([, m]) => grades(m).length ? (m.endsWith("kq") ? "kq" : "") : m).filter(Boolean));
+  app.innerHTML = `
+    <div class="card">${P.sc ? `<div class="tag">${esc(P.sc)}</div>` : `<div class="tag">${T.title}</div>`}
+      <h1>${esc(P.n)}</h1>
+      <div class="muted">${esc(P.c)}${P.f ? " · " + esc(P.f) : ""}</div>
+      <div class="muted small">${T.per}: ${esc(per)}${P.t ? ` · ${T.teacher}: ${esc(P.t)}` : ""}</div></div>
+    <div class="tiles">
+      <div class="tile"><span>${T.avg}</span><b>${P.a != null ? Number(P.a).toFixed(1) : "—"}</b></div>
+      <div class="tile"><span>${T.att}</span><b>${P.d != null ? Math.round(P.d) + "%" : "—"}</b></div>
+      <div class="tile"><span>${T.n}</span><b>${(P.m || []).reduce((s, [, m]) => s + grades(m).length, 0)}</b></div>
+      <div class="tile"><span>${T.ab}</span><b>${abN}</b></div></div>
+    ${abN || ab[3] ? `<div class="card small">${[[ab[0], T.s], [ab[1], T.dq], [ab[2], T.k], [ab[3], T.kq]].filter(([n]) => n).map(([n, l], i) => `${i ? l : l[0].toUpperCase() + l.slice(1)}: <b>${n}</b>`).join(" · ")}</div>` : ""}
+    ${P.qg ? `<div class="card"><b>${T.q}: ${P.qg}</b>${P.qt != null ? ` <span class="muted">(${P.qt} ${T.pts})</span>` : ""}</div>` : ""}
+    <div class="card"><h2>${T.marks}</h2>${(P.m || []).length ? `<div class="marks">${P.m.map(([md, m]) => cell(md, m)).join("")}</div>
+      ${used.size ? `<div class="legend">${[...used].map((a) => `<span><i style="background:${AC[a] || "transparent"}"></i>${a.toUpperCase()} — ${esc(T[a] || a)}</span>`).join("")}</div>` : ""}` : `<div class="muted">${T.none}</div>`}</div>
+    ${(P.w || []).length ? `<div class="card"><h2>${T.works}</h2><table><tr><th>${T.work}</th><th>${T.date}</th><th>${T.score}</th></tr>
+      ${P.w.map(([tp, md, v, mx]) => `<tr><td>${esc(String(tp).toUpperCase())}</td><td>${esc(fmt(full(md)).slice(0, 5))}</td><td>${v == null || v === "" ? `<span class="warn">${T.notyet}</span>` : `<b>${esc(v)}</b>${mx ? ` / ${esc(mx)}` : ""}`}</td></tr>`).join("")}</table></div>` : ""}
+    ${P.hw ? `<div class="card"><h2>${T.hw}</h2><div class="muted small">${esc(fmt(full(P.hw[0])).slice(0, 5))}</div><div>${esc(P.hw[1])}</div></div>` : ""}
+    <footer>${T.gen}: ${esc(fmt(P.g))}<br>${T.priv}</footer>`;
+  document.title = `${P.n} — ${T.title}`;
+})();
+</script>
+</body>
+</html>
