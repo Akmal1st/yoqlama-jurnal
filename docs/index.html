@@ -194,7 +194,10 @@ table.j td.s.a{color:var(--muted);font-weight:600}
 .days{display:flex;gap:6px;flex-wrap:wrap}
 .days button{min-width:46px;min-height:38px;border-radius:9px;border:1px solid var(--line);background:var(--base);font-weight:700}
 .days button.on{background:var(--acc);border-color:var(--acc);color:var(--acc-fg)}
-.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.tile.wide2{grid-column:span 2}.qby{display:flex;gap:14px;flex-wrap:wrap;font-size:20px}.qby span{white-space:nowrap}
+.bands{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.bnd{border-radius:999px;padding:4px 12px;font-size:14px}
+table.r th.srt{cursor:pointer;user-select:none}table.r th.srt:hover{color:var(--text)}
+@media(max-width:820px){.row.chips.repk{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}.row.chips.repk .chip{flex:0 0 auto}.qby{font-size:17px}}
 @media (max-width:820px){.tiles{grid-template-columns:repeat(2,1fr)}}
 .tile{background:var(--alt);border-radius:12px;padding:12px 14px}.tile div:last-child{font-size:22px;font-weight:800}
 table.r{border-collapse:collapse;width:100%;font-size:14px}
@@ -1343,7 +1346,7 @@ function applyTheme() {
 function labelTables(root) {
   root.querySelectorAll("table.r").forEach((t) => {
     if (!t.rows.length) return;
-    const hs = [...t.rows[0].cells].map((c) => c.textContent.trim());
+    const hs = [...t.rows[0].cells].map((c) => c.dataset.h || c.textContent.trim());
     let hd = hs[0] === "№" ? 1 : 0;
     [...t.rows].slice(1).forEach((r) => [...r.cells].forEach((td, j) => {
       if (hs[j] === "№") td.classList.add("no");
@@ -1853,27 +1856,14 @@ function pageReports(m) {
   const kinds = [["cls", "Sinf hisoboti"], ["stats", "📈 Grafik va statistika"], ["ready", "Chorakka tayyorlik"], ["cmp", "Sinflarni solishtirish"], ["blank", "Bo'sh yo'qlama varag'i"]];
   const needCls = R.kind !== "cmp", needPer = R.kind === "cls" || R.kind === "cmp" || R.kind === "stats";
   let sec;
-  if (R.kind === "cls") {
-    const gr = rows.filter((r) => r.avg !== null), avg = gr.length ? gr.reduce((a, r) => a + r.avg * r.n, 0) / gr.reduce((a, r) => a + r.n, 0) : null;
-    const atts = rows.filter((r) => r.att !== null), att = atts.length ? atts.reduce((a, r) => a + r.att, 0) / atts.length : null;
-    sec = `<div class="row"><h2 class="sp">${esc(label(c))} · ${fmt(lo)} – ${fmt(hi)}</h2>
-        <button class="btn pri noprint" data-print>Chop etish / PDF</button><button class="btn noprint" data-csv>Excel (CSV)</button></div>
-      <div class="tiles"><div class="tile"><div class="muted">O'rtacha baho</div><div>${avg !== null ? avg.toFixed(2) : "—"}</div></div>
-        <div class="tile"><div class="muted">Davomat</div><div>${att !== null ? att.toFixed(1) + "%" : "—"}</div></div>
-        <div class="tile"><div class="muted">Dars kunlari</div><div>${lessons}</div></div>
-        <div class="tile"><div class="muted">Xavf ostida</div><div>${rows.filter((r) => r.risk).length} / ${rows.length}</div></div></div>
-      <div style="overflow:auto"><table class="r"><tr><th>№</th><th>O'quvchi</th><th>O'rtacha</th><th>Baholar</th><th>Davomat</th><th>S</th><th>DQ</th><th>K</th><th>KQ</th><th>Izoh</th></tr>
-      ${rows.map((r, i) => { const col = r.avg !== null ? gradeColor(r.avg) : null; return `<tr><td>${i + 1}</td><td><button class="link nmlink" data-card="${esc(r.name)}">${esc(r.name)}</button></td>
-        <td>${r.avg !== null ? `<span class="pill" style="background:${col};color:${contrast(col)}">${r.avg.toFixed(2)}</span>` : "—"}</td><td class="n">${r.n}</td>
-        <td>${r.att !== null ? r.att.toFixed(1) + "%" : "—"}</td><td class="n">${r.s || ""}</td><td class="n">${r.dq || ""}</td><td class="n">${r.k || ""}</td><td class="n">${r.kq || ""}</td>
-        <td class="${r.risk ? "warn" : "muted"}" style="font-weight:600">${esc(r.why.join("; ")) || "—"}</td></tr>`; }).join("")}</table></div>`;
-  } else if (R.kind === "stats") sec = `<div class="row"><h2 class="sp">${esc(label(c))} · ${fmt(lo)} – ${fmt(hi)}</h2><button class="btn pri noprint" data-print>Chop etish / PDF</button></div>${repStats(c, lo, hi, rows)}`;
+  if (R.kind === "cls") sec = repClass(c, lo, hi, rows, lessons, rq);
+  else if (R.kind === "stats") sec = `<div class="row"><h2 class="sp">${esc(label(c))} · ${fmt(lo)} – ${fmt(hi)}</h2><button class="btn pri noprint" data-print>Chop etish / PDF</button></div>${repStats(c, lo, hi, rows)}`;
   else if (R.kind === "ready") sec = `<div class="row noprint"><span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button></div>${repReady(c)}`;
-  else if (R.kind === "cmp") sec = `<div class="row noprint"><span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button><button class="btn" data-ccsv>Excel (CSV)</button></div>${repCompare(lo, hi)}`;
+  else if (R.kind === "cmp") sec = `<div class="row noprint"><span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button><button class="btn" data-ccsv>📊 Excel</button></div>${repCompare(lo, hi)}`;
   else sec = `<div class="row noprint"><span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button></div>${repBlank(c)}`;
   m.innerHTML = `<div class="col" style="gap:16px">
     <div class="row noprint"><div class="col sp" style="gap:2px"><h1>Hisobotlar</h1><span class="muted">Hisobot turini, sinf va davrni tanlang — chop etish yoki Excel uchun saqlash mumkin.</span></div></div>
-    <div class="row chips noprint" style="gap:8px">${kinds.map(([k, n]) => `<button class="chip ${R.kind === k ? "on" : ""}" data-kind="${k}">${n}</button>`).join("")}</div>
+    <div class="row chips repk noprint" style="gap:8px">${kinds.map(([k, n]) => `<button class="chip ${R.kind === k ? "on" : ""}" data-kind="${k}">${n}</button>`).join("")}</div>
     <div class="row noprint">${needCls ? `<label class="f">Sinf<select id="rc">${D.classes.map((x, i) => `<option value="${i}" ${i === R.ci ? "selected" : ""}>${esc(label(x))}</option>`).join("")}</select></label>` : ""}
       ${needPer ? `<label class="f">Davr<select id="rp">${pers.map(([k, n]) => `<option value="${k}" ${k === R.per ? "selected" : ""}>${n}</option>`).join("")}</select></label>` : ""}</div>
     <section class="card col" style="gap:14px">${sec}</section></div>`;
@@ -1885,17 +1875,19 @@ function pageReports(m) {
   m.querySelectorAll("[data-rq]").forEach((b) => b.onclick = () => { S.rq = +b.dataset.rq; render(); });
   m.querySelectorAll("[data-bm]").forEach((b) => b.onclick = () => { S.bmode = b.dataset.bm; render(); });
   const bd = $("#bday", m); if (bd) bd.onchange = () => { S.bday = bd.value || null; render(); };
-  const q = (x) => `"${String(x ?? "").replace(/"/g, '""')}"`, num2 = (v, d) => v === null ? "" : v.toFixed(d).replace(".", ",");
-  const csv = $("[data-csv]", m); if (csv) csv.onclick = () => {
-    const lines = [["№", "O'quvchi", "O'rtacha", "Baholar", "Davomat %", "S", "DQ", "K", "KQ", "Izoh"].map(q).join(";")]
-      .concat(rows.map((r, i) => [i + 1, r.name, num2(r.avg, 2), r.n, r.att !== null ? String(r.att).replace(".", ",") : "", r.s, r.dq, r.k, r.kq, r.why.join("; ")].map(q).join(";")));
-    download(`${label(c)} ${lo} ${hi}.csv`, "﻿" + lines.join("\r\n"), "text/csv");
+  m.querySelectorAll("[data-rs]").forEach((th) => th.onclick = () => { const k = th.dataset.rs, o = S.rsort || {}; S.rsort = {k, dir: o.k === k ? -(o.dir || 1) : (k === "name" ? 1 : -1)}; render(); });
+  m.querySelectorAll("[data-rf]").forEach((b) => b.onclick = () => { S.rfilt = b.dataset.rf; render(); });
+  const xl = $("[data-xlsx]", m); if (xl) xl.onclick = () => {
+    const hd = ["№", "O'quvchi", "O'rtacha", "Baholar", "Davomat %", "S", "DQ", "K", "KQ"].concat(rq ? ["Chorak balli", "Chorak bahosi"] : [], ["Izoh"]);
+    const body = rows.map((r, i) => [i + 1, r.name, r.avg, r.n, r.att, r.s, r.dq, r.k, r.kq].concat(rq ? [r.q ? Math.round(r.q.total * 10) / 10 : null, r.q && r.q.complete ? r.q.grade : null] : [], [r.why.join("; ")]));
+    saveTable(`${label(c)} ${lo} ${hi}`, [[`${label(c)} · ${fmt(lo)} – ${fmt(hi)}`], [], hd, ...body], [5, 28, 9, 8, 10, 5, 5, 5, 5].concat(rq ? [11, 12] : [], [50]));
   };
   const cc = $("[data-ccsv]", m); if (cc) cc.onclick = () => {
-    const lines = [["Sinf", "O'quvchi", "Darslar", "O'rtacha", "Davomat %", "Xavf ostida", "BSB %", "CHSB %"].map(q).join(";")]
-      .concat(compareRows(lo, hi).map((r) => [label(r.c), r.n, r.lessons, num2(r.avg, 2), num2(r.att, 1), r.risk, num2(r.bsb, 0), num2(r.chsb, 0)].map(q).join(";")));
-    download(`sinflar ${lo} ${hi}.csv`, "﻿" + lines.join("\r\n"), "text/csv");
+    const r2 = (v, d) => v === null ? null : +v.toFixed(d);
+    saveTable(`sinflar ${lo} ${hi}`, [[`Sinflarni solishtirish · ${fmt(lo)} – ${fmt(hi)}`], [], ["Sinf", "O'quvchi", "Darslar", "O'rtacha", "Davomat %", "Xavf ostida", "BSB %", "CHSB %"],
+      ...compareRows(lo, hi).map((r) => [label(r.c), r.n, r.lessons, r2(r.avg, 2), r2(r.att, 1), r.risk, r2(r.bsb, 0), r2(r.chsb, 0)])], [22, 10, 9, 10, 11, 12, 8, 8]);
   };
+
 }
 
 /* ───────── 5. Sozlamalar ───────── */
@@ -3202,6 +3194,54 @@ function repStats(c, lo, hi, rows) {
         <div><h3>Eng past o'rtacha</h3>${low.length ? `<ol>${low.map((r) => li(r, r.avg.toFixed(2))).join("")}</ol>` : `<div class="muted">—</div>`}</div>
         <div><h3>Eng yaxshi o'rtacha</h3>${best.length ? `<ol>${best.map((r) => li(r, r.avg.toFixed(2))).join("")}</ol>` : `<div class="muted">—</div>`}</div></div></section>
     </div>`;
+}
+// Excel (.xlsx) — SheetJS internetdan bir marta yuklanadi; bo'lmasa CSV
+async function saveTable(name, aoa, cols) {
+  const fn = name.replace(/[^\p{L}\p{N}_ .-]+/gu, "_");
+  try {
+    const X = await loadXlsx(), ws = X.utils.aoa_to_sheet(aoa), wb = X.utils.book_new();
+    ws["!cols"] = cols.map((w) => ({wch: w})); X.utils.book_append_sheet(wb, ws, "Hisobot"); X.writeFile(wb, fn + ".xlsx");
+  } catch (e) {
+    const q = (x) => `"${String(x ?? "").replace(/"/g, '""')}"`;
+    download(fn + ".csv", "﻿" + aoa.map((r) => r.map((v) => q(typeof v === "number" ? String(v).replace(".", ",") : v)).join(";")).join("\r\n"), "text/csv");
+    toast("Excel kutubxonasi yuklanmadi — CSV fayl saqlandi");
+  }
+}
+// sifat — chorak bahosi 4 va 5; o'zlashtirish — 3, 4 va 5 (faqat bahosi to'liq chiqqanlar orasida)
+function qualityOf(rows) {
+  const g = rows.map((r) => r.q && r.q.complete ? r.q.grade : null).filter((x) => x !== null);
+  return g.length ? {n: g.length, q: 100 * g.filter((x) => x >= 4).length / g.length, u: 100 * g.filter((x) => x >= 3).length / g.length, by: [5, 4, 3, 2].map((k) => g.filter((x) => x === k).length)} : null;
+}
+function repClass(c, lo, hi, rows, lessons, rq) {
+  const gr = rows.filter((r) => r.avg !== null), avg = gr.length ? gr.reduce((a, r) => a + r.avg * r.n, 0) / gr.reduce((a, r) => a + r.n, 0) : null;
+  const atts = rows.filter((r) => r.att !== null), att = atts.length ? atts.reduce((a, r) => a + r.att, 0) / atts.length : null;
+  const nRisk = rows.filter((r) => r.risk).length, ql = rq ? qualityOf(rows) : null;
+  const bands = ranges().map((b, i, a) => ({b, n: gr.filter((r) => r.avg >= b.min && (i + 1 >= a.length || r.avg < a[i + 1].min)).length}));
+  const so = S.rsort || {}, filt = S.rfilt === "risk" ? "risk" : "all";
+  const key = {name: (r) => r.name, avg: (r) => r.avg, n: (r) => r.n, att: (r) => r.att, s: (r) => r.s, dq: (r) => r.dq, k: (r) => r.k, kq: (r) => r.kq, qt: (r) => r.q ? r.q.total : null, why: (r) => r.why.length}[so.k];
+  let list = rows.map((r, i) => [r, i]);
+  if (filt === "risk") list = list.filter(([r]) => r.risk);
+  if (key) list.sort(([a], [b]) => { const x = key(a), y = key(b); if (x === null || x === undefined) return 1; if (y === null || y === undefined) return -1; return (typeof x === "string" ? x.localeCompare(y, "uz") : x - y) * so.dir; });
+  const th = (k, n) => `<th data-rs="${k}" data-h="${n}" class="srt" title="Saralash">${n}${so.k === k ? `<span class="sa"> ${so.dir > 0 ? "▲" : "▼"}</span>` : ""}</th>`;
+  return `<div class="row wrap"><h2 class="sp" style="flex:1 1 260px">${esc(label(c))} · ${fmt(lo)} – ${fmt(hi)}</h2>
+      <button class="btn pri noprint" data-print>Chop etish / PDF</button><button class="btn noprint" data-xlsx>📊 Excel</button></div>
+    <div class="tiles"><div class="tile"><div class="muted">O'rtacha baho</div><div>${avg !== null ? avg.toFixed(2) : "—"}</div></div>
+      <div class="tile"><div class="muted">Davomat</div><div>${att !== null ? att.toFixed(1) + "%" : "—"}</div></div>
+      <div class="tile"><div class="muted">Dars kunlari</div><div>${lessons}</div></div>
+      <div class="tile"><div class="muted">Xavf ostida</div><div>${nRisk} / ${rows.length}</div></div>
+      ${ql ? `<div class="tile"><div class="muted">Sifat (4 va 5)</div><div>${ql.q.toFixed(0)}%</div></div>
+      <div class="tile"><div class="muted">O'zlashtirish (3–5)</div><div>${ql.u.toFixed(0)}%</div></div>
+      <div class="tile wide2"><div class="muted">Chorak baholari (${ql.n} o'quvchi)</div><div class="qby">${["5", "4", "3", "2"].map((k, i) => `<span><b>${k}</b> — ${ql.by[i]}</span>`).join("")}</div></div>` : ""}</div>
+    ${gr.length ? `<div class="bands" title="O'rtacha baho bo'yicha">${bands.map(({b, n}) => `<span class="bnd" style="background:${b.color};color:${contrast(b.color)}">${esc(b.name)}: <b>${n}</b></span>`).join("")}<span class="muted">o'quvchi (o'rtacha baho bo'yicha)</span></div>` : ""}
+    <div class="row noprint" style="gap:8px"><div class="seg"><button class="${filt === "all" ? "on" : ""}" data-rf="all">Hammasi (${rows.length})</button><button class="${filt === "risk" ? "on" : ""}" data-rf="risk">Xavf ostida (${nRisk})</button></div>
+      <span class="muted">Ustun nomini bosib saralang.</span></div>
+    <div style="overflow:auto"><table class="r rcls"><tr><th>№</th>${th("name", "O'quvchi")}${th("avg", "O'rtacha")}${th("n", "Baholar")}${th("att", "Davomat")}${th("s", "S")}${th("dq", "DQ")}${th("k", "K")}${th("kq", "KQ")}${rq ? th("qt", "Chorak") : ""}${th("why", "Izoh")}</tr>
+    ${list.map(([r, i]) => { const col = r.avg !== null ? gradeColor(r.avg) : null; return `<tr><td>${i + 1}</td><td><button class="link nmlink" data-card="${esc(r.name)}">${esc(r.name)}</button></td>
+      <td>${r.avg !== null ? `<span class="pill" style="background:${col};color:${contrast(col)}">${r.avg.toFixed(2)}</span>` : "—"}</td><td class="n">${r.n}</td>
+      <td>${r.att !== null ? r.att.toFixed(1) + "%" : "—"}</td><td class="n">${r.s || ""}</td><td class="n">${r.dq || ""}</td><td class="n">${r.k || ""}</td><td class="n">${r.kq || ""}</td>
+      ${rq ? `<td class="n">${r.q ? `${pyFixed(r.q.total, 1)}${r.q.complete ? ` · <b>${r.q.grade}</b>` : ` <span class="muted" title="Hali to'liq emas">…</span>`}` : "—"}</td>` : ""}
+      <td class="${r.risk ? "warn" : "muted"}" style="font-weight:600">${esc(r.why.join("; ")) || "—"}</td></tr>`; }).join("")}</table></div>
+    ${list.length ? "" : `<div class="muted">Xavf ostida o'quvchi yo'q. 👍</div>`}`;
 }
 function repCompare(lo, hi) {
   const rows = compareRows(lo, hi), f = (v, d = 1, s = "") => v === null ? "—" : v.toFixed(d) + s;
