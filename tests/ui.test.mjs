@@ -23,9 +23,9 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       await page.waitForSelector("text=Xayrli");
       await nav("journal");
       // ko'rinish: kompyuterda chap panelda, telefonda jurnal tepasida
-      await page.click(`${name === "telefon" ? "main" : ".side"} [data-mode=week]`);
+      await page.click("[data-per]"); await page.click(".perpop [data-mode=week]");
       assert.equal(await page.evaluate(() => V.mode), "week");
-      await page.click(`${name === "telefon" ? "main" : ".side"} [data-mode=month]`);
+      await page.click("[data-per]"); await page.click(".perpop [data-mode=month]");
       await page.click("[data-jp=sum]"); await page.waitForSelector("table.sum");
       await page.click("[data-jp=year]"); await page.waitForSelector("table.sum");
       await page.click("[data-jp=j]"); await page.click('td.nm[data-st="0"]');
@@ -64,7 +64,7 @@ test("o'quvchini faolsizlantirish va qayta faollashtirish", async () => {
     // hisobot va xavf ro'yxatida ham yo'q
     const inReport = await page.evaluate((g) => { const c = D.classes[1], [lo, hi, q] = periodNow(); return reportRows(c, lo, hi, q).rows.some((r) => g.includes(r.name)); }, gone);
     assert.equal(inReport, false, "hisobotda ko'rinmasligi kerak");
-    await page.click(".tabbar [data-go=journal]"); await page.click('[data-ci="1"]');
+    await page.click(".tabbar [data-go=journal]"); await page.click("[data-cpick]"); await page.click('.modal [data-pci="1"]');
     assert.equal(await page.locator(`td.nm:has-text("${gone[0]}")`).count(), 0);
     // qayta faollashtirish: o'z joyiga, baholari bilan
     await page.evaluate(() => studentsDialog(1));
@@ -239,7 +239,7 @@ test("jurnal: Kun ko'rinishi, katak yonidagi belgi oynasi, sinf tanlash", async 
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     const t = await page.evaluate(() => { const c = D.classes[0], t = todayIso(); D.settings.method_weekday = null; c.extra_x = [];
       if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } D.settings.protect.enabled = false; c.students[0].marks[t] = ""; delete c.students[0].marks[t]; save(); return t; });
-    await page.click(".side [data-go=journal]"); await page.click(".side [data-mode=day]");
+    await page.click(".side [data-go=journal]"); await page.click("[data-per]"); await page.click(".perpop [data-mode=day]");
     assert.equal(await page.locator("table.j").count(), 0, "Kun — jadval emas, ro'yxat");
     assert.equal(await page.locator(`.dday.on[data-dd="${t}"]`).count(), 1);
     const mark = () => page.evaluate((d) => D.classes[0].students[0].marks[d] || "", t);
@@ -257,20 +257,21 @@ test("jurnal: Kun ko'rinishi, katak yonidagi belgi oynasi, sinf tanlash", async 
     // mavzu shu yerda saqlanadi
     await page.fill("#dmt", "Kvadrat tenglamalar"); await page.press("#dmt", "Tab");
     assert.equal(await page.evaluate((d) => D.classes[0].lessons[d].topic, t), "Kvadrat tenglamalar");
-    // boshqa rejimlarda jadval; katak tanlansa belgi oynasi katak yonida chiqadi
-    await page.click(".side [data-mode=week]");
+    // davr oynasi: Hafta — jadval; belgilar paneli bir qatorda
+    await page.click("[data-per]"); await page.click(".perpop [data-mode=week]");
+    assert.equal(await page.locator(".perpop").count(), 0);
     assert.equal(await page.locator(`[data-c="0|${t}"]`).count(), 1);
-    assert.equal(await page.locator(".keys:visible").count(), 0, "katak tanlanmaguncha belgi oynasi yo'q");
     await page.click(`[data-c="0|${t}"]`);
-    const [c, k] = await page.evaluate(() => [$(".cell.sel").getBoundingClientRect().toJSON(), $(".keys.pop").getBoundingClientRect().toJSON()]);
-    assert.ok(Math.abs((k.left > c.left ? k.left - c.right : c.left - k.right) - 10) < 2, "oyna katak yonida");
-    assert.ok(k.height < 260, `oyna ixcham: ${k.height}`);
+    assert.equal(new Set(await page.$$eval(".keys .key", (x) => x.map((e) => Math.round(e.getBoundingClientRect().top)))).size, 1, "kalitlar bir qatorda");
     await page.click('[data-k="7"]'); assert.equal(await mark(), "7");
-    await page.keyboard.press("Escape");
-    assert.equal(await page.locator(".keys:visible").count(), 0);
-    // sinf tanlash oynasi
-    await page.click("[data-pick]"); await page.click(".modal [data-pci='1']");
+    // taqvimdagi sana — o'sha dars «Kun»da ochiladi; Esc oynani yopadi
+    await page.click("[data-per]"); await page.keyboard.press("Escape"); assert.equal(await page.locator(".perpop").count(), 0);
+    await page.click("[data-per]"); await page.click(`.perpop [data-day="${t}"]`);
+    assert.equal(await page.evaluate(() => V.mode), "day");
+    // sinflar chap panelda; Oddiy/Kompakt yo'q
+    await page.click(".side .cs[data-ci='1']");
     assert.equal(await page.evaluate(() => S.ci), 1);
+    assert.equal(await page.locator("[data-den]").count(), 0);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
@@ -376,7 +377,7 @@ test("jurnal: bo'sh va to'ldirilgan kataklar bir chiziqda", async () => {
   } finally { await browser.close(); }
 });
 
-test("jurnal: sinflar 1-qatorda, tanlangan sinfning fanlari 2-qatorda", async () => {
+test("jurnal: telefonda sinf ☰ ro'yxatdan tanlanadi", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     const page = await browser.newPage({viewport: {width: 390, height: 844}});
@@ -385,18 +386,17 @@ test("jurnal: sinflar 1-qatorda, tanlangan sinfning fanlari 2-qatorda", async ()
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     await page.click(".tabbar [data-go=journal]");
+    // telefonda ☰ — sinflar fan bo'yicha guruhlangan ro'yxat
     const names = await page.evaluate(() => D.classes.map((c) => c.name));
     const multi = names.find((n, i) => names.indexOf(n) !== i);
     assert.ok(multi, "fixture'da bir sinfning 2 ta fani bor");
-    assert.equal(await page.locator(`.clsnav [data-cls="${multi}"]`).count(), 1);
-    await page.click(`[data-cls="${multi}"]`);
-    const subs = page.locator(".subs [data-ci]");
-    assert.equal(await subs.count(), names.filter((n) => n === multi).length);
-    await subs.last().click();
-    const ci = await page.evaluate(() => S.ci);
-    await page.click(".clsnav [data-ci]:not(.sub)"); await page.click(`[data-cls="${multi}"]`);
-    assert.equal(await page.evaluate(() => S.ci), ci, "oxirgi tanlangan fan eslab qolinadi");
-    for (const jp of ["sum", "bsb", "year"]) { await page.click(`[data-jp=${jp}]`); assert.equal(await page.locator(".clsnav").count(), 1); }
+    await page.click("[data-cpick]");
+    assert.equal(await page.locator(".modal [data-pci]").count(), names.length);
+    const last = names.lastIndexOf(multi);
+    await page.click(`.modal [data-pci="${last}"]`);
+    assert.equal(await page.evaluate(() => S.ci), last);
+    assert.ok((await page.textContent(".jtt b")).startsWith(multi));
+    for (const jp of ["sum", "bsb", "year"]) { await page.click(`[data-jp=${jp}]`); assert.equal(await page.locator("[data-cpick]:visible").count(), 1); }
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
