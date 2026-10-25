@@ -254,6 +254,22 @@ table.r th,table.r td{padding:8px 8px;border-bottom:1px solid var(--soft);text-a
 table.r th{color:var(--muted);font-weight:700}
 table.r td.n{text-align:center}
 /* to'garak va pullik ta'lim */
+.gband{--gc:#7a3e9d;background:var(--gc);color:#fff;border-radius:var(--r);padding:16px 20px;display:flex;flex-direction:column;gap:10px}.gband.club,.gbandc.club{--gc:#2f6e3a}.gbandc{--gc:#7a3e9d}
+.gband h1{margin:0;color:#fff;font-size:30px;-webkit-text-fill-color:#fff;background:none;text-decoration:none;border:0;padding:0}.gb1{gap:8px;align-items:center;flex-wrap:nowrap}
+.gband .btn{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.28);color:#fff;box-shadow:none}.gband .btn:hover{background:rgba(255,255,255,.26)}
+.gband .gstart{background:#fff;color:var(--gc);border-color:#fff;font-weight:800}.gkind{background:rgba(255,255,255,.2);border-radius:99px;padding:2px 10px;font-size:12.5px;font-weight:700}.gwd{font-size:13px;opacity:.85}
+.gstats{display:flex;gap:10px;flex-wrap:wrap}.gstats div{background:rgba(255,255,255,.14);border-radius:12px;padding:8px 14px;min-width:120px}.gstats small{display:block;font-size:12px;opacity:.85}.gstats b{font-size:20px}
+.ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
+.gcard{background:var(--base);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--sh)}
+.gbandc{background:var(--gc);color:#fff;border:0;text-align:left;padding:14px 18px;display:flex;flex-direction:column;gap:3px;font:inherit}.gbandc small{font-size:11.5px;font-weight:700;letter-spacing:.08em;opacity:.9}.gbandc b{font-size:20px}.gbandc span{font-size:13px;opacity:.9}
+.gcb{padding:14px 18px;display:flex;flex-direction:column;gap:8px}
+.mgrid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.mcard{background:var(--base);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--sh)}
+.mcard .av{width:40px;height:40px;flex:none}.mname{font-weight:700;font-size:15.5px;text-align:left;padding:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}.msub{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gdots{display:flex;flex-wrap:wrap;gap:5px;min-height:14px}.gd{width:14px;height:14px;border-radius:50%;background:transparent;border:2px solid var(--line);box-sizing:border-box}.gd.yes{background:var(--ok);border-color:var(--ok)}.gd.no{background:var(--danger);border-color:var(--danger)}.gd.late{background:var(--today);border-color:var(--today)}.gd.t{outline:2px solid var(--acc);outline-offset:1px}
+.gpay{border-radius:8px;padding:3px 9px;font-size:12.5px;font-weight:700;background:var(--soft);color:var(--muted);white-space:nowrap}.gpay.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}.gpay.no{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}
+.mtog{flex:none;font-weight:700}.mtog.yes{color:var(--ok)}.mtog.no{background:color-mix(in srgb,var(--danger) 14%,var(--base));color:var(--danger);border-color:transparent}
+@media (max-width:820px){.gback .lg{display:none}.gband h1{font-size:24px}.gstats div{min-width:0;flex:1 1 40%}.gwd{display:none}}
 .ktag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;font-size:10.5px;font-weight:700;line-height:1.5;vertical-align:middle;background:var(--acc-soft);color:var(--acc);white-space:nowrap}
 .ktag.paid{background:color-mix(in srgb,var(--today) 18%,transparent);color:var(--text)}
 .cs .ktag{flex:none;width:auto;margin-left:4px;font-size:9.5px;padding:0 4px}table.mem select.mi{min-width:140px}
@@ -387,7 +403,7 @@ table.r tr:hover td{background:var(--alt)}
   .tabbar{background:color-mix(in srgb,var(--base) 86%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);box-shadow:0 -8px 24px -18px rgba(0,0,0,.35)}
   .tabbar .nav{color:var(--muted);border-radius:14px;opacity:1}
   .tabbar .nav.on{background:transparent;color:var(--acc)}
-  .tabbar .nav svg{border-radius:99px;padding:3px 14px;width:52px;height:28px;box-sizing:border-box;transition:background .15s}
+  .tabbar .nav svg{border-radius:99px;padding:3px 10px;width:44px;height:28px;box-sizing:border-box;transition:background .15s}
   .tabbar .nav.on svg{background:var(--acc-soft)}
   .card{padding:18px}
 }
@@ -636,10 +652,10 @@ table.j td{vertical-align:middle}
 .sw{display:flex;gap:4px;height:46px;border-radius:8px;padding:5px;margin-bottom:4px;overflow:hidden}
 .sw b{width:16px;border-radius:4px;background:var(--acc)}.sw u{flex:1;border-radius:5px;background:#fff}
 .sw-klassik{background:#f5f1e8}.sw-klassik b{background:linear-gradient(175deg,#0c5d66,#083f46)}.sw-klassik u{border:1px solid #e4dccb;background:#fffdf8}
-.sw-daftar{background:repeating-linear-gradient(180deg,#fdfeff 0 7px,#cfdaec 7px 8px)}.sw-daftar b{background:#24418f}.sw-daftar u{border:1px solid #cfdaec;border-radius:2px;box-shadow:1px 2px 0 #d3ddef}
-.sw-gazeta{background:#f6f4ee}.sw-gazeta b{background:#fffefa;border-right:1px solid #141413;border-radius:0}.sw-gazeta u{background:transparent;border-top:3px solid #141413;border-radius:0}
-.sw-bento{background:#eceef2}.sw-bento b{background:#fff;border-radius:8px}.sw-bento u{border-radius:10px}.sw-bento u+u{background:#dbeafe}
-.sw-kosmos{background:linear-gradient(135deg,#f4f2fb,#e4dcfb)}.sw-kosmos b{background:linear-gradient(180deg,#2b1660,#120a2e)}.sw-kosmos u{box-shadow:0 4px 10px -4px rgba(76,47,170,.4)}
+.sw-rasmiy{background:#f2f4f7;flex-direction:column}.sw-rasmiy b{width:auto;height:9px;background:#1f3f7a;border-radius:1px}.sw-rasmiy u{border:1px solid #d3d9e3;border-radius:1px}
+.sw-ilova{background:#f2f2f7}.sw-ilova b{background:#f9f9fb;border:1px solid #e5e5ea;border-radius:6px}.sw-ilova u{border-radius:9px}
+.sw-rangli{background:#fffaf2}.sw-rangli b{background:#ffe7a3;border-radius:6px}.sw-rangli u{background:#c9f0dc;border-radius:10px}.sw-rangli u+u{background:#d8e3ff}
+.sw-qorongi{background:#0f1115}.sw-qorongi b{background:#0b0d10;border:1px solid #22262e}.sw-qorongi u{background:#14171c;border:1px solid #22262e}
 .fsys{border-style:dashed;justify-content:center}
 .flist{display:flex;flex-direction:column;max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:12px}
 .flist button{display:flex;justify-content:space-between;align-items:baseline;gap:10px;border:0;border-bottom:1px solid var(--soft);background:transparent;padding:9px 12px;text-align:left;font-size:18px}
@@ -732,48 +748,51 @@ const LIGHT_SIDE = `.logo{border-bottom-color:var(--line)}.logo b{background:var
     .clsside{border-top-color:var(--line)}.vseg{background:var(--soft)}.vseg button:hover{background:color-mix(in srgb,var(--acc) 8%,transparent)}.vseg button.on{background:var(--base);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}`;
 const STYLES = {
   klassik: ["Klassik", "Qog'oz fon, to'q yon panel", "", "", ""],
-  daftar: ["Daftar", "Chiziqli daftar varag'i, siyoh rang, marker bilan belgilangan bo'lim",
-    "--win:#eef2f9;--base:#fdfeff;--alt:#f5f8fd;--soft:#e7eef9;--line:#cfdaec;--text:#1d2b53;--muted:#5a6a8e;--side-bg:#24418f;--side-fg:#eef3ff;--side-mut:#aebde6;--sh:2px 3px 0 #d3ddef;--sh-lg:4px 6px 0 #c4d1ea;--today-cell:#fff6c9;",
-    "--win:#0e1630;--base:#152044;--alt:#18254d;--soft:#1e2c59;--line:#2c3c70;--text:#e8edff;--muted:#9eabd6;--side-bg:#0a1126;--side-fg:#e8edff;--side-mut:#8f9cc8;--sh:2px 3px 0 #0a1024;--sh-lg:4px 6px 0 #070c1c;",
-    `body{background-color:var(--win);background-image:repeating-linear-gradient(180deg,transparent 0 31px,color-mix(in srgb,var(--line) 70%,transparent) 31px 32px)}
-    @media (min-width:821px){main{background:linear-gradient(90deg,transparent 18px,rgba(226,84,84,.35) 18px,rgba(226,84,84,.35) 20px,transparent 20px) left top/100% 100% no-repeat}}
-    .card,.tblwrap,.tile,.opt,.keys{border-radius:6px;border:1px solid var(--line)}.tile::before{display:none}.btn{border-radius:6px;box-shadow:none}.btn.pri{background:var(--acc);box-shadow:2px 2px 0 color-mix(in srgb,var(--acc) 45%,#000)}
-    h1,h2{letter-spacing:0}h1{text-decoration:underline;text-decoration-color:rgba(226,84,84,.55);text-decoration-thickness:3px;text-underline-offset:7px}
-    .side .nav.on{background:none;box-shadow:none}.side .nav.on .lbl{background:linear-gradient(transparent 62%,rgba(255,216,77,.5) 62%);color:#fff}.side .nav.on::before{background:#ffd84d}
-    .jtabs button.on{border-bottom-color:#e25454}.tabbar .nav.on{background:var(--soft)}`],
-  gazeta: ["Gazeta", "Oq-qora gazeta sahifasi: ingichka chiziqlar, katta sarlavhalar, burchaksiz",
-    "--win:#f6f4ee;--base:#fffefa;--alt:#faf8f2;--soft:#eeebe2;--line:#1d1d1b;--text:#141413;--muted:#5d5b55;--side-bg:#fffefa;--side-fg:#141413;--side-mut:#5d5b55;--sh:none;--sh-lg:0 0 0 1px #141413,8px 8px 0 rgba(0,0,0,.08);--today-cell:#f3ead0;",
-    "--win:#121211;--base:#191917;--alt:#1d1d1b;--soft:#262623;--line:#d9d6cc;--text:#f0ede4;--muted:#a9a59a;--side-bg:#121211;--side-fg:#f0ede4;--side-mut:#a9a59a;--sh:none;--sh-lg:0 0 0 1px #d9d6cc;",
-    LIGHT_SIDE + `.card,.tblwrap,.tile,.opt,.keys,.btn,.chip,.seg,.seg button,input,select,textarea,.modal .card,.sty{border-radius:0!important}
-    .card,.tblwrap,.opt{border:0;border-top:3px solid var(--line);box-shadow:none;background:transparent}.tile{border:0;border-left:1px solid var(--line);background:transparent;box-shadow:none}.tile::before{display:none}
-    .modal .card{background:var(--base);border:1px solid var(--line)}.keys{background:var(--base);border:1px solid var(--line)}
-    h1{font-size:40px;font-weight:900;letter-spacing:-.03em;border-bottom:1px solid var(--line);padding-bottom:6px}h2{text-transform:uppercase;letter-spacing:.08em;font-size:15px}
-    .btn{box-shadow:none;border-color:var(--line);background:transparent;text-transform:uppercase;letter-spacing:.06em;font-size:13px}.btn:hover{background:var(--soft)}.btn.pri,.btn.pri:hover{background:var(--text);border-color:var(--text);color:var(--base);box-shadow:none}.keys{box-shadow:none}
-    .side{border-right:1px solid var(--line)}.side .nav.on{background:var(--text);color:var(--base)}.side .nav.on::before{display:none}.vseg button.on{background:var(--text);color:var(--base)}
-    table.r th,table.j th{text-transform:uppercase;letter-spacing:.06em;font-size:11.5px}.jtabs button.on{border-bottom-color:var(--text)}.tabbar{border-top:1px solid var(--line)}`],
-  bento: ["Bento", "Yumaloq bloklar, suzuvchi yon panel, rangli plitalar",
-    "--win:#eceef2;--base:#ffffff;--alt:#f6f7f9;--soft:#eef0f4;--line:#e3e6ec;--text:#16181d;--muted:#6b7280;--side-bg:#ffffff;--side-fg:#16181d;--side-mut:#6b7280;--sh:0 1px 2px rgba(16,24,40,.04);--sh-lg:0 24px 48px -20px rgba(16,24,40,.28);",
-    "--win:#0c0d10;--base:#17191e;--alt:#1b1d23;--soft:#22252c;--line:#2a2e36;--text:#f3f4f6;--muted:#9ca3af;--side-bg:#17191e;--side-fg:#f3f4f6;--side-mut:#9ca3af;--sh:none;--sh-lg:0 24px 48px -20px rgba(0,0,0,.8);",
-    LIGHT_SIDE + `.side{margin:12px 0 12px 12px;height:calc(100vh - 24px);top:12px;border-radius:26px;box-shadow:var(--sh);border:1px solid var(--line)}
-    .card,.tblwrap,.opt{border-color:transparent;border-radius:26px}.btn{border-radius:14px;box-shadow:none}.btn.pri{background:var(--text);border-color:var(--text);color:var(--base);box-shadow:none}
-    .tile{border-radius:22px;border:0;box-shadow:none}.tile::before{display:none}.tiles .tile:nth-child(4n+1){background:#dbeafe;color:#10264d}.tiles .tile:nth-child(4n+2){background:#dcfce7;color:#0f3a20}.tiles .tile:nth-child(4n+3){background:#fef3c7;color:#4a3305}.tiles .tile:nth-child(4n+4){background:#fce7f3;color:#4c0f2f}
-    .side .nav{border-radius:14px}.side .nav.on{background:var(--text);color:var(--base)}.side .nav.on::before{display:none}.keys{border-radius:22px}h1{font-weight:800;letter-spacing:-.035em}
-    .jtabs{border-bottom:0;gap:6px}.jtabs button{border:0;border-radius:999px;padding:7px 14px;margin:0}.jtabs button.on{background:var(--text);color:var(--base)}`],
-  kosmos: ["Kosmos", "Chuqur binafsha, porloq gradient tugmalar, yulduzli tun rejimi",
-    "--win:#f4f2fb;--base:#ffffff;--alt:#f8f6fd;--soft:#ece8f8;--line:#ddd6f2;--text:#1c1633;--muted:#6b6489;--side-bg:linear-gradient(180deg,#2b1660 0%,#120a2e 100%);--side-fg:#efeaff;--side-mut:#b4a8dc;--sh:0 8px 30px -14px rgba(76,47,170,.28);--sh-lg:0 22px 50px -18px rgba(76,47,170,.45);",
-    "--win:#08061a;--base:#120f2a;--alt:#151133;--soft:#1d1842;--line:#2b2556;--text:#efeaff;--muted:#a59dcc;--side-bg:linear-gradient(180deg,#160d3a 0%,#07051a 100%);--side-fg:#efeaff;--side-mut:#9d92cc;--sh:0 0 0 1px #2b2556,0 10px 34px -16px rgba(124,92,255,.45);--sh-lg:0 0 0 1px #3a3270,0 24px 60px -20px rgba(124,92,255,.6);",
-    `body{background:radial-gradient(60vmax 40vmax at 100% -10%,color-mix(in srgb,#8b5cf6 22%,transparent),transparent 70%),radial-gradient(50vmax 40vmax at -10% 110%,color-mix(in srgb,var(--acc) 18%,transparent),transparent 70%),var(--win);background-attachment:fixed}
-    .btn.pri{background:linear-gradient(120deg,var(--acc),#8b5cf6);border:0;color:#fff;box-shadow:0 8px 22px -10px #8b5cf6}.btn.pri:hover{filter:brightness(1.08)}
-    h1{background:linear-gradient(90deg,var(--text) 30%,#8b5cf6);-webkit-background-clip:text;background-clip:text;color:transparent}
-    .tile::before{background:linear-gradient(180deg,var(--acc),#8b5cf6)}.side .nav.on::before{background:linear-gradient(180deg,#f0abfc,#8b5cf6)}.jtabs button.on{border-image:linear-gradient(90deg,var(--acc),#8b5cf6) 1}
-    :root[data-theme="dark"] body{background-image:radial-gradient(1px 1px at 20% 30%,#fff8,transparent),radial-gradient(1px 1px at 70% 80%,#fff6,transparent),radial-gradient(1.5px 1.5px at 85% 15%,#fff9,transparent),radial-gradient(1px 1px at 40% 70%,#fff5,transparent),radial-gradient(60vmax 40vmax at 100% -10%,rgba(139,92,246,.30),transparent 70%),radial-gradient(50vmax 40vmax at -10% 110%,color-mix(in srgb,var(--acc) 20%,transparent),transparent 70%)}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) body{background-image:radial-gradient(1px 1px at 20% 30%,#fff8,transparent),radial-gradient(1px 1px at 70% 80%,#fff6,transparent),radial-gradient(1.5px 1.5px at 85% 15%,#fff9,transparent),radial-gradient(1px 1px at 40% 70%,#fff5,transparent),radial-gradient(60vmax 40vmax at 100% -10%,rgba(139,92,246,.30),transparent 70%),radial-gradient(50vmax 40vmax at -10% 110%,color-mix(in srgb,var(--acc) 20%,transparent),transparent 70%)}}`]};
+  rasmiy: ["Rasmiy maktab", "Yuqorida gorizontal menyu, oq fon, to'g'ri burchaklar, aniq jadval chiziqlari",
+    "--win:#f2f4f7;--base:#ffffff;--alt:#f7f9fc;--soft:#e8edf5;--line:#d3d9e3;--text:#1d2330;--muted:#5b6475;--side-bg:#1f3f7a;--side-fg:#ffffff;--side-mut:#c9d5ee;--sh:none;--sh-lg:0 10px 30px -12px rgba(16,32,64,.3);--today-cell:#fff4cc;",
+    "--win:#0f141c;--base:#161d28;--alt:#1a2230;--soft:#202a3a;--line:#2e3a4e;--text:#e6ebf3;--muted:#9aa7bb;--side-bg:#15284d;--side-fg:#ffffff;--side-mut:#9fb2d8;--sh:none;--sh-lg:0 10px 30px -12px rgba(0,0,0,.7);",
+    `.card,.tblwrap,.tile,.opt,.keys,.btn,.chip,.seg,.seg button,input,select,textarea,.modal .card,.cell,.perbtn,.jpick,.gband,.gcard,.mcard{border-radius:4px!important}
+    .card,.tblwrap,.tile,.opt{box-shadow:none;border:1px solid var(--line)}.card.hot{border-top:3px solid var(--acc)}.tile::before{display:none}.tile{border-top:3px solid var(--acc)}
+    .btn{box-shadow:none}.btn.pri{background:var(--side-bg);border-color:var(--side-bg);color:#fff;box-shadow:none}h1{font-size:26px;letter-spacing:0}h2{font-size:18px}
+    table.r th,table.r td,table.j td.c,table.j th{border:1px solid var(--line)}table.r th,table.j th{background:var(--soft)}table.r tr:nth-child(even) td{background:var(--alt)}
+    @media (min-width:821px){.app{flex-direction:column}.side,.app.compact .side{width:auto;height:56px;flex-direction:row;align-items:center;gap:2px;padding:0 18px;position:sticky;top:0;z-index:30;box-shadow:0 2px 8px -4px rgba(0,0,0,.3)}
+      .logo{padding:0 22px 0 0;margin:0;border:0}.logo b{width:32px;height:32px;font-size:17px;border-radius:4px}.logo small{display:none}.side .nav{padding:8px 12px;border-radius:4px;font-size:15px;opacity:.85}.side .nav.on{background:rgba(255,255,255,.12);box-shadow:none}
+      .side .nav.on::before{left:12px;right:12px;top:auto;bottom:-10px;width:auto;height:3px;border-radius:0;background:#fff}.compact .side .lbl,.compact .logo span{display:inline}.side .grow{flex:1}.clsside,.sidet{display:none}.sbot{flex-direction:row}.sbot .btn{width:auto}
+      .jpick{display:grid;place-items:center}main{margin:0 auto;width:100%;box-sizing:border-box}}`],
+  ilova: ["Telefon ilovasi", "Katta sarlavha, guruhlangan ro'yxatlar, yumaloq tugmalar (iPhone uslubida)",
+    "--win:#f2f2f7;--base:#ffffff;--alt:#f9f9fb;--soft:#efeff4;--line:#e5e5ea;--text:#111111;--muted:#8a8a8e;--side-bg:#f9f9fb;--side-fg:#111111;--side-mut:#8a8a8e;--sh:none;--sh-lg:0 20px 50px -20px rgba(0,0,0,.35);",
+    "--win:#000000;--base:#1c1c1e;--alt:#1f1f22;--soft:#2c2c2e;--line:#38383a;--text:#ffffff;--muted:#98989f;--side-bg:#111113;--side-fg:#ffffff;--side-mut:#98989f;--sh:none;--sh-lg:0 20px 50px -20px rgba(0,0,0,.9);",
+    LIGHT_SIDE + `body{font-family:-apple-system,"SF Pro Text",system-ui,"Segoe UI",Roboto,sans-serif}.side{border-right:1px solid var(--line)}
+    .card,.tblwrap,.tile,.opt,.gcard,.mcard{border:0;border-radius:14px;box-shadow:none}.tile::before{display:none}.keys{border:0;border-radius:18px}
+    .btn{border-radius:999px;box-shadow:none}.btn.pri{background:var(--acc);border-color:var(--acc);box-shadow:none}.side .nav{border-radius:10px}.side .nav.on{background:var(--acc);color:var(--acc-fg)}.side .nav.on::before{display:none}
+    h1{font-size:34px;font-weight:800;letter-spacing:-.02em}.tag,table.r th{color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
+    .jtabs{border-bottom:0;background:var(--soft);border-radius:10px;padding:3px;gap:2px;flex:0 1 auto}.jtabs button{border:0;border-radius:8px;padding:6px 14px;margin:0}.jtabs button.on{background:var(--base);box-shadow:0 1px 3px rgba(0,0,0,.12)}`],
+  rangli: ["Rangli sinflar", "Har sinfning o'z rangi: yon panelda, darslar kartochkasida va jurnal sarlavhasida",
+    "--win:#fffaf2;--base:#ffffff;--alt:#fffdf8;--soft:#fbf1e2;--line:#f0e2cc;--text:#1e1b2e;--muted:#6b6680;--side-bg:#fffaf2;--side-fg:#1e1b2e;--side-mut:#6b6680;--sh:none;--sh-lg:0 18px 44px -18px rgba(60,40,10,.3);",
+    "--win:#17151f;--base:#211e2b;--alt:#252232;--soft:#2c2839;--line:#3a3549;--text:#f3f0fa;--muted:#aaa4bd;--side-bg:#17151f;--side-fg:#f3f0fa;--side-mut:#aaa4bd;--sh:none;--sh-lg:0 18px 44px -18px rgba(0,0,0,.8);",
+    LIGHT_SIDE + `.card,.tblwrap,.tile,.opt,.gcard,.mcard{border-radius:22px}.tile::before{display:none}.btn{border-radius:999px;box-shadow:none}.btn.pri{background:var(--text);border-color:var(--text);color:var(--base);box-shadow:none}
+    .side .nav{border-radius:14px}.side .nav.on{background:var(--text);color:var(--base)}.side .nav.on::before{display:none}.vseg{background:transparent;gap:6px;padding:0}
+    .cs,.cpi{background:var(--cc,var(--soft))!important;color:#1e1b2e!important;border-radius:14px}.cs.on,.cpi.on{box-shadow:0 0 0 2px var(--text)!important}
+    .lessons .card[style*="--cc"]{background:var(--cc);border-color:transparent;color:#1e1b2e}.lessons .card[style*="--cc"] .muted{color:#4a4560}.lessons .card[style*="--cc"] .btn:not(.pri){background:#fff;color:#1e1b2e}
+    .jhead[style*="--cc"] .jtitle{background:var(--cc);color:#1e1b2e;border-radius:18px;padding:6px 16px 6px 6px}.jhead[style*="--cc"] .jtitle small{color:#4a4560}`],
+  qorongi: ["Qorong'i, jiddiy", "Doim qorong'i fon, ingichka chiziqlar, kam rang — faqat holat ranglari ajralib turadi",
+    "--win:#0f1115;--base:#14171c;--alt:#171a20;--soft:#1c2027;--line:#22262e;--text:#e6e8ec;--muted:#8b93a1;--side-bg:#0b0d10;--side-fg:#e6e8ec;--side-mut:#8b93a1;--sh:none;--sh-lg:0 20px 50px -20px rgba(0,0,0,.9);--today-cell:#2a2616;--acc-soft:#1d2433;",
+    "--win:#0f1115;--base:#14171c;--alt:#171a20;--soft:#1c2027;--line:#22262e;--text:#e6e8ec;--muted:#8b93a1;--side-bg:#0b0d10;--side-fg:#e6e8ec;--side-mut:#8b93a1;--sh:none;--sh-lg:0 20px 50px -20px rgba(0,0,0,.9);--today-cell:#2a2616;--acc-soft:#1d2433;",
+    `:root{color-scheme:dark}.card,.tblwrap,.tile,.opt,.keys,.gcard,.mcard{border:1px solid var(--line);border-radius:10px;box-shadow:none;background:var(--base)}.tile::before{display:none}
+    .btn{border-radius:7px;box-shadow:none;background:var(--soft);border-color:var(--line)}.btn.pri{box-shadow:none}.side{border-right:1px solid var(--line)}.side .nav{border-radius:7px;font-size:15px}.side .nav.on{background:var(--soft);box-shadow:none}.side .nav.on::before{background:var(--acc)}
+    .logo{border-bottom-color:var(--line)}h1{font-size:26px;font-weight:600;letter-spacing:-.01em}h2{font-weight:600}.tag,table.r th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase}
+    input,select,textarea{background:var(--alt);border-color:var(--line);color:var(--text)}.vseg{background:var(--soft)}`]};
+// «Rangli sinflar» uslubi uchun sinf ranglari (har sinf o'z rangida)
+const CLS_COLORS = ["#ffe7a3", "#c9f0dc", "#d8e3ff", "#ffd6e0", "#ead9ff", "#ffdcc2", "#cdeff5", "#e6f0b8"];
+const ccOf = (i) => `--cc:${CLS_COLORS[i % CLS_COLORS.length]}`;
 // kompyuterdagi shrift nomi CSS ga xavfsiz tushishi uchun
 const cleanFont = (n) => String(n || "").replace(/["'\\;{}<>()]/g, "").replace(/\s+/g, " ").trim().slice(0, 80);
 function designCss(w) {
   const cf = cleanFont(w.cfont), f = w.font === "custom" && cf ? `"${cf}",system-ui,sans-serif` : (FONTS.find((x) => x[0] === w.font) || FONTS[0])[2], z = (FSIZES.find((x) => x[0] === w.fsize) || FSIZES[1])[2], a = ACCENTS[w.accent] || ACCENTS.teal;
   const st = STYLES[w.style] || STYLES.klassik;
-  const light = `--acc:${a[1]};--acc-d:${a[2]};--acc-soft:${a[3]};--side-bg:linear-gradient(175deg,${a[4]} 0%,${a[5]} 100%);${st[2]}`;
+  let light = `--acc:${a[1]};--acc-d:${a[2]};--acc-soft:${a[3]};--side-bg:linear-gradient(175deg,${a[4]} 0%,${a[5]} 100%);${st[2]}`;
   const dark = `--acc:${a[6]};--acc-d:${a[7]};--acc-soft:${a[8]};--side-bg:linear-gradient(175deg,${a[9]} 0%,${a[10]} 100%);${st[3]}`;
+  if (w.style === "qorongi") light = dark;   // doim qorong'i: kunduzgi mavzuda ham tungi ranglar
   return `:root{${light}--r:${w.radius === "sharp" ? "6px" : "18px"}}:root[data-theme="dark"]{${dark}}
     @media (prefers-color-scheme: dark){:root:not([data-theme="light"]):not([data-theme="dark"]){${dark}}}
     body,button,input,select,textarea{font-family:${f}}@media screen{main{zoom:${z}}${st[4]}}`;
@@ -1747,8 +1766,9 @@ const ICONS = {
   reports: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11M10 20V5M16 20v-7M2 20h20"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
 };
+ICONS.groups = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M16 14.2c2.9.2 5 2.6 5 5.8"/></svg>';
 ICONS.help = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></svg>';
-const NAV = [["today", "Bugun"], ["journal", "Jurnal"], ["reports", "Hisobotlar"], ["settings", "Sozlamalar"]];
+const NAV = [["today", "Bugun"], ["journal", "Jurnal"], ["groups", "Guruhlar"], ["reports", "Hisobotlar"], ["settings", "Sozlamalar"]];
 function go(p) { S.page = p; S.sel = null; render(); window.scrollTo(0, 0); }
 // jurnal davri: Kun / Hafta / Oy / Chorak — sarlavhadagi «📅» tugmasi oynasida
 const VIEW_MODES = [["day", "Kun"], ["week", "Hafta"], ["month", "Oy"], ["quarter", "Chorak"]];
@@ -1757,15 +1777,16 @@ function bindView(root) {
 }
 // jurnal sahifasida chap panelda sinflar ro'yxati (telefonda ☰ — pastdan chiquvchi ro'yxat)
 function sideView() {
-  if (S.page !== "journal" || !D.classes.length || D.web.sidemin) return "";
+  if (S.page !== "journal" || !D.classes.length || D.web.sidemin || isGrp(D.classes[S.ci])) return "";
   const today = new Set(lessonsToday().map((x) => x.ci));
   return `<div class="clsside" aria-label="Sinflar"><div class="tag">Sinflar</div>${D.classes.length > 8 ? `<input type="search" class="csq" placeholder="🔍 Sinf qidirish" aria-label="Sinf qidirish">` : ""}
     <div class="csl">${classGroups().map(([k, ids]) => `<div class="cg" data-cg="${esc(normName(k + " " + ids.map((i) => D.classes[i].subject || "").join(" ")))}"><div class="cgn">${esc(k)}</div><div class="vseg">${ids.map((i) =>
-      `<button class="cs ${i === S.ci ? "on" : ""}" data-ci="${i}" title="${esc(label(D.classes[i]))}"><span>${esc(D.classes[i].subject || k)}</span>${kindTag(D.classes[i])}${today.has(i) ? `<small>bugun</small>` : ""}</button>`).join("")}</div></div>`).join("")}</div></div>`;
+      `<button class="cs ${i === S.ci ? "on" : ""}" style="${ccOf(i)}" data-ci="${i}" title="${esc(label(D.classes[i]))}"><span>${esc(D.classes[i].subject || k)}</span>${kindTag(D.classes[i])}${today.has(i) ? `<small>bugun</small>` : ""}</button>`).join("")}</div></div>`).join("")}</div></div>`;
 }
 function pickClass(i) { S.ci = i; S.sel = null; S.jq = ""; render(); }
 function renderNav() {
-  const cur = S.page === "lesson" ? "journal" : S.page;
+  const inGrp = (S.page === "journal" && isGrp(D.classes[S.ci])) || (S.page === "lesson" && isGrp(D.classes[S.lesson]));
+  const cur = inGrp ? "groups" : S.page === "lesson" ? "journal" : S.page;
   const btns = NAV.map(([k, t]) => `<button class="nav ${cur === k ? "on" : ""}" data-go="${k}" title="${t}">${ICONS[k]}<span class="lbl">${t}</span></button>`).join("");
   const lockTxt = !D.settings.protect.enabled ? "⚠ Himoya o'chiq" : isLocked() ? "🔒 Himoyalangan" : "🔓 Ochiq — qulflash";
   const hb = `<button class="nav hlp" data-help title="Shu sahifa bo'yicha qo'llanma">${ICONS.help}<span class="lbl">Yordam</span></button>`;
@@ -1773,7 +1794,11 @@ function renderNav() {
     <div class="sbot"><button class="btn sm sidet" data-sidet title="${D.web.sidemin ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}" aria-label="${D.web.sidemin ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}">${D.web.sidemin ? "»" : "« Yig'ish"}</button>
     <button class="btn sm" data-lock title="Qo'yilgan baholar himoyasi: ${lockTxt.slice(2)}">${D.web.sidemin ? lockTxt.slice(0, 2) : lockTxt}</button></div>`;
   $("#tabbar").innerHTML = btns + hb;
-  document.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => go(b.dataset.go));
+  document.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => {
+    // «Jurnal» — faqat sinflar; guruhdan o'tilsa birinchi sinf ochiladi
+    if (b.dataset.go === "journal" && isGrp(D.classes[S.ci])) { const r = D.classes.findIndex((c) => !isGrp(c)); if (r < 0) return go("groups"); S.ci = r; S.jpage = "j"; }
+    go(b.dataset.go);
+  });
   document.querySelectorAll("[data-help]").forEach((b) => b.onclick = () => helpDialog());
   const lb = $("[data-lock]"); if (lb) lb.onclick = toggleLock;
   $("[data-sidet]").onclick = () => { D.web.sidemin = !D.web.sidemin; save(); render(); };
@@ -1800,6 +1825,12 @@ const HELP = [
     ["1 · Yo'qlama", "Faqat kelmaganlarni bosing — belgilanmagan o'quvchi darsda hisoblanadi. Rejimlar: Ro'yxat, Kartochka (o'ngga surish — keldi, chapga — yo'q), Xarita (o'rindiq bo'yicha)."],
     ["2 · Baholar", "Kimdan so'ragan bo'lsangiz — bahosini bosing. «UV» — uy vazifasini bajardi/bajarmadi. «baho kam» belgisi — chorak oxirida bahosi yetishmayotganlar."],
     ["3 · Mavzu", "Mavzu va uy vazifasi. KTR kiritilgan bo'lsa, mavzu rejadan o'zi chiqadi."],
+  ]],
+  ["groups", "👥 Guruhlar", [
+    ["Guruhlar", "To'garak va pullik ta'lim sinf jurnallaridan alohida turadi. «＋ To'garak» yoki «＋ Pullik guruh» bilan yangi guruh oching; a'zolarni «Ism, sinfi, telefon» qatorlari bilan kiriting."],
+    ["O'quvchilar (A'zolar)", "Har o'quvchi kartochkada: oy davomati nuqtalari (yashil — keldi, qizil — kelmadi), to'lov yoki yutuq holati. Dars kuni «✓ keldi» tugmasi bilan bugungi davomatni belgilaysiz."],
+    ["To'lovlar", "Narx har o'quvchiga: maktabda — oylik, uyida — har o'tilgan dars uchun. «＋ To'lov» kvitansiya raqami bilan yoziladi; qarz o'zi hisoblanadi. Parol qo'yilgan bo'lsa summalar yopiq turadi."],
+    ["Yutuqlar", "To'garakda tanlov va musobaqa natijalari hamda oyda bir marta ko'nikma bahosi («Ro'yxat» bo'limida)."],
   ]],
   ["reports", "📊 Hisobotlar", [
     ["Hisobot turini tanlang", "Kartochkalardan birini bosing, keyin sinf va davrni tanlang. «🖨 Chop etish» — PDF yoki printer (varaqqa o'zi sig'diriladi), «📊 Excel» — .xlsx fayl."],
@@ -1862,7 +1893,7 @@ function labelTables(root) {
 function render() {
   clearPrintDoc(); applyTheme(); renderNav();
   const m = $("#main");
-  ({today: pageToday, journal: pageJournal, lesson: pageLesson, reports: pageReports, settings: pageSettings})[S.page](m);
+  ({today: pageToday, journal: pageJournal, groups: pageGroups, lesson: pageLesson, reports: pageReports, settings: pageSettings})[S.page](m);
   const pp = $(".perpop"); if (pp) pp.remove();
   labelTables(m); snapCols(); fitTitles(document.body);
 }
@@ -1887,7 +1918,7 @@ function pageToday(m) {
     const w = c.works.find((x) => x.date === t), topic = (c.lessons[t] || {}).topic;
     const prev = c.dates.filter((d) => d < t && !isNoLesson(c, d)).pop(), phw = prev && c.lessons[prev] && c.lessons[prev].hw;
     const note = w ? `Bugun ${w.type.toUpperCase()}${w.max ? ` (${w.max} ball)` : ""} — natijalarni kiritish` : topic ? `Mavzu: ${esc(topic)}` : "Mavzu kiritilmagan";
-    return `<article class="card ${done ? "" : "hot"} col"><div class="row"><span class="tag">${tag}</span>${live}<span class="sp"></span>
+    return `<article class="card ${done ? "" : "hot"} col" style="${ccOf(ci)}"><div class="row"><span class="tag">${tag}</span>${live}<span class="sp"></span>
       <span class="${done ? "ok" : "warn"}">${done ? `Yo'qlama ✓ · ${n} belgi` : "Yo'qlama qilinmagan"}</span></div>
       <div class="big">${esc(c.name)}</div><div class="muted">${esc(c.subject || "Fan ko'rsatilmagan")} · ${c.students.length} o'quvchi</div>
       <div>${note}</div>${phw ? `<div class="muted">🏠 Uyga berilgan (${fmt(prev).slice(0, 5)}): ${esc(phw)}</div>` : ""}<div class="sp"></div>
@@ -2046,8 +2077,8 @@ const monthOf = (d) => d.slice(0, 7);
 const monthName = (m) => `${MONTHS[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}`;
 const shiftMonth = (m, n) => iso(new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + n, 1)).slice(0, 7);
 function grpTabs(c) {
-  return c.kind === "club" ? [["j", "Davomat"], ["mem", "A'zolar"], ["ach", "Yutuqlar"]]
-    : c.kind === "paid" ? [["j", "Davomat"], ["pay", "To'lovlar"], ["mem", "O'quvchilar"]] : null;
+  return c.kind === "club" ? [["cards", "A'zolar"], ["j", "Davomat"], ["ach", "Yutuqlar"], ["mem", "Ro'yxat"]]
+    : c.kind === "paid" ? [["cards", "O'quvchilar"], ["j", "Davomat"], ["pay", "To'lovlar"], ["mem", "Ro'yxat"]] : null;
 }
 // narx: har o'quvchi bilan kelishiladi — maktabda oylik, uyida kunlik (o'tilgan dars × narx)
 function planOf(c, s) { const p = s.plan || {}, t = p.t === "day" ? "day" : "month"; return {t, sum: +p.sum || +(c.fee || {})[t] || 0}; }
@@ -2133,7 +2164,7 @@ function pageAch(m) {
   const by = ACH_LVL.map((l) => [l, all.filter((x) => x.a.lvl === l).length]).filter(([, n]) => n);
   m.innerHTML = `<div class="col" style="gap:12px">${jHead("", "")}
     <div class="card col"><h2>Yangi yutuq</h2><div class="row wrap achf">
-      <label class="f">A'zo<select id="aw">${c.students.map((s, si) => `<option value="${si}">${esc(s.name)}</option>`).join("")}</select></label>
+      <label class="f">A'zo<select id="aw">${c.students.map((s, si) => `<option value="${si}" ${S.achSel === si ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label>
       <label class="f">Sana<input type="date" id="ad" value="${todayIso()}"></label>
       <label class="f" style="flex:2 1 220px">Tanlov / musobaqa<input type="text" id="at" placeholder="Matematika olimpiadasi"></label>
       <label class="f">Daraja<select id="al">${ACH_LVL.map((l) => `<option>${l}</option>`).join("")}</select></label>
@@ -2249,11 +2280,101 @@ function payCard() {
     <button class="btn sm" data-payci="${ci}">Ko'rish</button></div>`).join("")}</section>`;
 }
 
+/* «Guruhlar» bo'limi: to'garak va pullik guruhlar sinf jurnallaridan alohida */
+const grpIdx = () => D.classes.map((c, i) => isGrp(c) ? i : -1).filter((i) => i >= 0);
+function grpAtt(c, mo, t = todayIso()) {   // shu oy qatnashuv foizi (o'tgan, yo'qlama qilingan darslar bo'yicha)
+  const ds = c.dates.filter((d) => d.startsWith(mo) && d <= t && !isNoLesson(c, d) && taken(c, d));
+  const n = ds.length * c.students.length; if (!n) return null;
+  return Math.round(100 * (n - ds.reduce((a, d) => a + c.students.filter((s) => absentMark(s.marks[d])).length, 0)) / n);
+}
+const taken = (c, d) => c.att_ok.includes(d) || c.students.some((s) => s.marks[d]);
+const wdTxt = (c) => (c.weekdays || []).map((k) => WD[k]).join(" · ");
+function grpOpen(ci, jp = "cards") { S.ci = ci; S.jpage = jp; S.sel = null; S.pm = monthOf(todayIso()); go("journal"); }
+function pageGroups(m) {
+  const t = todayIso(), mo = monthOf(t), G = grpIdx(), lk = moneyLocked(), today = new Set(lessonsToday().map((x) => x.ci));
+  const paid = G.filter((i) => D.classes[i].kind === "paid").map((i) => D.classes[i]);
+  const income = paid.reduce((a, c) => a + c.students.reduce((b, s) => b + paidIn(s, mo), 0), 0);
+  const debt = paid.reduce((a, c) => a + c.students.reduce((b, s) => b + Math.max(0, debtOf(c, s, t)), 0), 0);
+  const tile = (k, v, cls = "") => `<div class="tile"><div>${k}</div><div class="${cls}">${v}</div></div>`;
+  const card = (ci) => {
+    const c = D.classes[ci], att = grpAtt(c, mo, t), un = c.kind === "paid" ? unpaidNow(c, t).length : 0;
+    const ach = c.students.reduce((a, s) => a + (s.ach || []).length, 0);
+    return `<article class="gcard"><button class="gbandc ${c.kind}" data-gopen="${ci}"><small>${KINDS[c.kind][0].toUpperCase()}${today.has(ci) ? " · BUGUN" : ""}</small><b>${esc(label(c))}</b><span>${esc(wdTxt(c) || "dars kunlari belgilanmagan")}</span></button>
+      <div class="gcb"><div class="row"><span class="muted sp">${c.kind === "club" ? "A'zolar" : "O'quvchilar"}</span><b>${c.students.length}</b></div>
+        <div class="row"><span class="muted sp">Qatnashuv · ${MONTHS[+mo.slice(5) - 1]}</span><b>${att === null ? "—" : att + "%"}</b></div>
+        <div class="row"><span class="muted sp">${c.kind === "paid" ? "Shu oy to'lamagan" : "Yutuqlar"}</span><b class="${un ? "warn" : ""}">${c.kind === "paid" ? `${un} kishi` : `${ach} ta`}</b></div>
+        <div class="row" style="gap:8px"><button class="btn pri sp" data-gopen="${ci}|j">Davomat</button><button class="btn sp" data-gopen="${ci}|${c.kind === "paid" ? "pay" : "ach"}">${c.kind === "paid" ? "To'lovlar" : "Yutuqlar"}</button></div></div></article>`;
+  };
+  m.innerHTML = `<div class="col" style="gap:18px">
+    <header class="row wrap"><div class="col sp" style="gap:4px;flex:1 1 260px"><h1>Guruhlar</h1><span class="muted">To'garaklar va pullik ta'lim — sinf jurnallaridan alohida</span></div>
+      <div class="row" style="gap:8px"><button class="btn" data-gadd="club">＋ To'garak</button><button class="btn pri" data-gadd="paid">＋ Pullik guruh</button></div></header>
+    ${G.length ? `<div class="tiles">${paid.length ? tile("Shu oy tushum", lk ? "🔒" : som(income)) + tile("Qarz", lk ? "🔒" : som(debt), debt && !lk ? "warn" : "") : ""}${tile("Bugun mashg'ulot", `${G.filter((i) => today.has(i)).length} ta`)}${tile("Jami a'zolar", G.reduce((a, i) => a + D.classes[i].students.length, 0))}</div>
+      <div class="ggrid">${G.map(card).join("")}</div>`
+      : `<div class="card col" style="align-items:flex-start"><h2>Hali guruh yo'q</h2><div class="muted">To'garak — baho qo'yilmaydi: davomat, a'zolar, yutuqlar. Pullik ta'lim — davomat, narx (maktabda oylik, uyida har dars), to'lovlar va qarz.</div></div>`}</div>`;
+  m.querySelectorAll("[data-gadd]").forEach((b) => b.onclick = () => addClassDialog(b.dataset.gadd));
+  m.querySelectorAll("[data-gopen]").forEach((b) => b.onclick = () => { const [ci, jp] = b.dataset.gopen.split("|"); grpOpen(+ci, jp || "cards"); });
+}
+// guruh sarlavhasi: rangli lenta (turi, nomi, ko'rsatkichlar) + bo'limlar
+function gHead(per, row2, tools) {
+  const c = D.classes[S.ci], t = todayIso(), mo = monthOf(t), att = grpAtt(c, mo, t), lk = moneyLocked();
+  const st = [[c.kind === "club" ? "A'zolar" : "O'quvchilar", c.students.length], ["Qatnashuv", att === null ? "—" : att + "%"]];
+  if (c.kind === "paid") { const u = unpaidNow(c, t).length; st.push(["Shu oy to'ladi", `${c.students.length - u} / ${c.students.length}`], ["Umumiy qarz", lk ? "🔒" : som(c.students.reduce((a, s) => a + Math.max(0, debtOf(c, s, t)), 0))]); }
+  else st.push(["Yutuqlar", c.students.reduce((a, s) => a + (s.ach || []).length, 0)]);
+  return `<div class="jhead ghead"><div class="gband ${c.kind}">
+      <div class="row gb1"><button class="btn sm gback" data-gback aria-label="Guruhlar">‹<span class="lg">&nbsp;Guruhlar</span></button><span class="gkind">${KINDS[c.kind][0]}</span><span class="gwd">${esc(wdTxt(c))}</span><span class="sp"></span>
+        ${UNDO.length ? `<button class="btn sm" data-undo title="Bekor qilish (Ctrl+Z)">↶</button>` : ""}<button class="btn gstart" data-start>▶ Davomat</button><button class="btn sm more" data-more title="Yana: boshqa amallar" aria-label="Yana">⋯</button></div>
+      <h1>${esc(label(c))}</h1>
+      <div class="gstats">${st.map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join("")}</div></div>
+    ${row2 ? `<div class="row jr2">${row2}</div>` : ""}
+    <div class="row jr3">${jpSeg()}<span class="sp"></span>${per}${tools}</div></div>`;
+}
+// guruh ichi: har o'quvchi kartochkada — oy davomati, to'lov yoki yutuq holati, bugungi belgi
+function pageCards(m) {
+  const c = D.classes[S.ci], t = todayIso(), mo = S.pm = S.pm || monthOf(t), paid = c.kind === "paid", lk = paid && moneyLocked();
+  const ds = c.dates.filter((d) => d.startsWith(mo) && !isNoLesson(c, d)), tOk = c.dates.includes(t) && !isNoLesson(c, t) && canEdit(t);
+  const dot = (s, d) => { const mk = s.marks[d] || "", a = attPart(mk);
+    const k = d > t || !(taken(c, d) || mk) ? "" : absentMark(mk) ? "no" : a === "kq" ? "late" : "yes";
+    return `<i class="gd ${k} ${d === t ? "t" : ""}" title="${fmt(d)}: ${{yes: "keldi", no: ABSENT_NAMES[a] || "kelmadi", late: "kech qoldi", "": d > t ? "hali bo'lmagan" : "belgilanmagan"}[k]}"></i>`; };
+  const cards = c.students.map((s, si) => {
+    let badge = "", acts = "";
+    if (paid) {
+      const ch = chargeOf(c, s, mo, t), pd = paidIn(s, mo), dbt = debtOf(c, s, t);
+      badge = lk ? `<span class="gpay">🔒</span>` : ch && pd >= ch ? `<span class="gpay ok">✓ ${MONTHS[+mo.slice(5) - 1]} to'langan</span>` : dbt > 0 ? `<span class="gpay no">Qarz: ${som(dbt)}</span>` : pd ? `<span class="gpay ok">✓ ${som(pd)} to'langan</span>` : `<span class="gpay">To'lov yo'q</span>`;
+      acts = `<button class="btn sm" data-cpay="${si}">＋ To'lov</button>${!lk && dbt > 0 ? `<button class="btn sm" data-crem="${si}" title="Ota-onaga eslatma" aria-label="Ota-onaga eslatma">✉</button>` : ""}`;
+    } else {
+      const sk = (s.skill || {})[mo], n = (s.ach || []).length;
+      badge = `<span class="gpay">${sk ? `Ko'nikma: ${sk}` : "Ko'nikma: —"}</span>${n ? `<span class="gpay ok">🏆 ${n}</span>` : ""}`;
+      acts = `<button class="btn sm" data-cach="${si}">＋ Yutuq</button>`;
+    }
+    const ab = absentMark(s.marks[t]);
+    return `<article class="mcard"><div class="row" style="gap:10px;flex-wrap:nowrap"><span class="av">${esc(initials(s.name))}</span>
+        <div class="sp" style="min-width:0"><button class="link mname" data-st="${si}">${esc(s.name)}</button><div class="muted msub">${esc([s.cls, paid ? planTxt(c, s) : "", fmtPhone((s.par || {}).phone || "")].filter(Boolean).join(" · ") || "—")}</div></div>
+        ${tOk ? `<button class="btn sm mtog ${ab ? "no" : "yes"}" data-tog="${si}" title="Bugungi davomat: bosib almashtiring">${ab ? "✗ kelmadi" : "✓ keldi"}</button>` : ""}</div>
+      <div class="gdots" aria-label="${MONTHS[+mo.slice(5) - 1]} davomati">${ds.map((d) => dot(s, d)).join("") || `<span class="muted">bu oyda dars yo'q</span>`}</div>
+      <div class="row" style="gap:6px">${badge}<span class="sp"></span>${acts}</div></article>`;
+  }).join("");
+  m.innerHTML = `<div class="col" style="gap:14px">
+    ${jHead(`<div class="pernav"><button class="btn sm" data-pm="-1" aria-label="Oldingi oy">‹</button><span class="perbtn" style="cursor:default"><h2>${monthName(mo)}</h2></span><button class="btn sm" data-pm="1" aria-label="Keyingi oy">›</button>${mo !== monthOf(t) ? `<button class="btn sm today" data-pm="0">Shu oy</button>` : ""}</div>`, "", `<button class="btn" data-addm>＋ ${paid ? "O'quvchi" : "A'zo"}</button>`)}
+    ${c.students.length ? `<div class="mgrid2">${cards}</div><p class="muted" style="margin:0">Nuqtalar — ${MONTHS_GEN[+mo.slice(5) - 1]} darslari: yashil — keldi, qizil — kelmadi, sariq — kech qoldi, bo'sh — hali bo'lmagan yoki belgilanmagan.${tOk ? " «✓ keldi» tugmasi — bugungi davomat." : ""}</p>`
+      : `<div class="card muted">Hali ${paid ? "o'quvchi" : "a'zo"} yo'q. «＋ ${paid ? "O'quvchi" : "A'zo"}» tugmasini bosing.</div>`}</div>`;
+  bindJHead(m);
+  m.querySelectorAll("[data-pm]").forEach((b) => b.onclick = () => { const n = +b.dataset.pm; S.pm = n ? shiftMonth(mo, n) : monthOf(t); render(); });
+  m.querySelectorAll("[data-st]").forEach((b) => b.onclick = () => studentCard(S.ci, c.students[+b.dataset.st].name));
+  m.querySelectorAll("[data-cpay]").forEach((b) => b.onclick = () => payDialog(S.ci, +b.dataset.cpay, mo));
+  m.querySelectorAll("[data-crem]").forEach((b) => b.onclick = () => payRemind(S.ci, +b.dataset.crem));
+  m.querySelectorAll("[data-cach]").forEach((b) => b.onclick = () => { S.achSel = +b.dataset.cach; S.jpage = "ach"; render(); });
+  m.querySelectorAll("[data-tog]").forEach((b) => b.onclick = () => {
+    const si = +b.dataset.tog, old = c.students[si].marks[t] || "", y = window.scrollY;
+    if (putMark(c, si, t, absentMark(old) ? (lateOf(old) ? "kq" : "") : "s")) { if (!c.att_ok.includes(t)) c.att_ok.push(t); save(); render(); window.scrollTo(0, y); }
+  });
+  $("[data-addm]", m).onclick = () => addMembers(S.ci);
+}
 function pageJournal(m) {
   if (!D.classes.length) { go("today"); return; }
   S.ci = Math.min(S.ci, D.classes.length - 1);
   const gt = grpTabs(D.classes[S.ci]);
-  if (gt && !gt.some(([k]) => k === S.jpage)) S.jpage = "j";
+  if (gt && !gt.some(([k]) => k === S.jpage)) S.jpage = "cards";
+  if (S.jpage === "cards") return pageCards(m);
   if (S.jpage === "mem") return pageMem(m);
   if (S.jpage === "ach") return pageAch(m);
   if (S.jpage === "pay") return pagePay(m);
@@ -2322,7 +2443,8 @@ function pageJournal(m) {
 }
 /* jurnal sarlavhasi: 1-qator sinf va amallar, 2-qator davr, 3-qator bo'limlar + qidiruv */
 function jHead(per, row2 = "", tools = "") {
-  return `<div class="jhead">
+  if (isGrp(D.classes[S.ci])) return gHead(per, row2, tools);
+  return `<div class="jhead" style="${ccOf(S.ci)}">
     <div class="row jr1">${classChips()}<span class="sp"></span>${per}${UNDO.length ? `<button class="btn" data-undo title="Bekor qilish (Ctrl+Z)">↶</button>` : ""}<button class="btn pri" data-start>▶ <span class="lg">Darsni boshlash</span><span class="sh">Dars</span></button><button class="btn more" data-more title="Yana: boshqa amallar" aria-label="Yana">⋯</button></div>
     ${row2 ? `<div class="row jr2">${row2}</div>` : ""}
     <div class="row jr3">${jpSeg()}<span class="sp"></span>${tools}</div></div>`;
@@ -2335,6 +2457,7 @@ function bindJHead(m) {
   bindTop(m);
   const ud = $("[data-undo]", m); if (ud) ud.onclick = undoLast;
   $("[data-start]", m).onclick = () => startLesson(S.ci);
+  const gb = $("[data-gback]", m); if (gb) gb.onclick = () => go("groups");
   $("[data-more]", m).onclick = moreMenu;
   const pb = $("[data-per]", m); if (pb) pb.onclick = () => perPop(pb);
 }
@@ -2379,7 +2502,7 @@ function classPicker() {
   const today = new Set(lessonsToday().map((x) => x.ci));
   modal(`<h2>Sinfni tanlang</h2><div class="cpick">${classGroups().map(([k, ids]) => `<div class="tag">${esc(k)}</div>${ids.map((i) => {
     const c = D.classes[i];
-    return `<button class="cpi ${i === S.ci ? "on" : ""}" data-pci="${i}"><b>${esc(c.subject || k)}</b>${kindTag(c)}<span class="sp"></span><small>${today.has(i) ? "bugun dars bor · " : ""}${c.students.length} ${c.kind === "club" ? "a'zo" : "o'quvchi"}</small></button>`;
+    return `<button class="cpi ${i === S.ci ? "on" : ""}" style="${ccOf(i)}" data-pci="${i}"><b>${esc(c.subject || k)}</b>${kindTag(c)}<span class="sp"></span><small>${today.has(i) ? "bugun dars bor · " : ""}${c.students.length} ${c.kind === "club" ? "a'zo" : "o'quvchi"}</small></button>`;
   }).join("")}`).join("")}</div>
     <div class="row"><button class="btn" data-add>＋ Jurnal qo'shish</button><span class="sp"></span><button class="btn" data-cl>Yopish</button></div>`, (mm, close) => {
     mm.querySelectorAll("[data-pci]").forEach((b) => b.onclick = () => { close(); pickClass(+b.dataset.pci); });
@@ -3136,7 +3259,7 @@ function addClassDialog(kind = "") {
       const studs = kind ? parseMembers($("#cl", mm).value, base) : $("#cl", mm).value.split(/\r?\n/).map((s) => s.replace(/^\s*\d+[.)]?\s*/, "").trim()).filter(Boolean).map((n) => ({name: n, marks: {}}));
       const c = normalize({classes: [{name, subject, weekdays, dates: [], ...base, students: studs}]}).classes[0];
       D.classes.push(c); const q = quarterOf(todayIso()); if (q && weekdays.length) genQuarter(q, [c]);
-      save(); S.ci = D.classes.length - 1; S.jpage = kind ? "mem" : "j"; close(); go("journal"); toast(`«${label(c)}» qo'shildi: ${studs.length} ${kind === "club" ? "a'zo" : "o'quvchi"}`);
+      save(); S.ci = D.classes.length - 1; S.jpage = kind ? "cards" : "j"; close(); go("journal"); toast(`«${label(c)}» qo'shildi: ${studs.length} ${kind === "club" ? "a'zo" : "o'quvchi"}`);
     };
   });
 }
@@ -3357,7 +3480,7 @@ function jpSeg() {
   return `<div class="jtabs" role="tablist">${(grpTabs(D.classes[S.ci]) || [["j", "Kundalik"], ["sum", "BSB / CHSB"], ["bsb", "BSB tahlili"], ["year", "Yillik"]]).map(([k, n]) => `<button role="tab" aria-selected="${S.jpage === k}" class="${S.jpage === k ? "on" : ""}" data-jp="${k}">${n}</button>`).join("")}</div>`;
 }
 function classGroups() {
-  const g = new Map(); D.classes.forEach((c, i) => { const k = c.name; if (!g.has(k)) g.set(k, []); g.get(k).push(i); }); return [...g];
+  const g = new Map(); D.classes.forEach((c, i) => { if (isGrp(c)) return; const k = c.name; if (!g.has(k)) g.set(k, []); g.get(k).push(i); }); return [...g];
 }
 // jurnal sarlavhasi: sinf nomi va qisqa ma'lumot (telefonda ☰ — sinflar ro'yxati)
 function classChips() {
