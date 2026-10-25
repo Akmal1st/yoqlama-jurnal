@@ -1174,3 +1174,55 @@ test("To'ldirilmagan darslar, KTR bajarilishi va qo'llanma", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Haftalik xulosa, faollik belgilari va ota-onaga natija havolasi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date("2026-10-23T10:00:00"));   // juma
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    // haftalik xulosa: juma kuni «Bugun»da karta; sonlar jurnal bilan mos
+    await page.waitForSelector(".wkc");
+    const w = await page.evaluate(() => { const W = weekSummary("2026-10-19", "2026-10-23"), c = D.classes[0], x = W[0];
+      const ds = c.dates.filter((d) => d >= "2026-10-19" && d < "2026-10-23" && !isNoLesson(c, d));
+      return {x: {planned: x.planned, grades: x.grades}, grades: c.students.reduce((a, s) => a + ds.concat(c.dates.includes("2026-10-23") && hasMarks(c, "2026-10-23") ? ["2026-10-23"] : []).reduce((b, d) => b + gradesOf(s.marks[d] || "").length, 0), 0)}; });
+    assert.equal(w.x.grades, w.grades);
+    await page.click(".wkc [data-wk]"); await page.waitForSelector(".modal table.wk");
+    assert.ok((await page.textContent(".modal")).includes("Hafta xulosasi · 19.10–23.10"));
+    await page.click('.modal [data-wk="1"]'); await page.waitForSelector(".modal >> text=12.10–18.10");
+    await page.click(".modal [data-x]");
+    await page.click(".wkc [data-wkx]"); assert.equal(await page.locator(".wkc").count(), 0);
+    assert.equal(await page.evaluate(() => D.web.wk_seen), "2026-10-19");
+    assert.equal(await page.evaluate(() => JSON.stringify([weekCardRange("2026-10-21"), weekCardRange("2026-10-26")])), JSON.stringify([null, ["2026-10-19", "2026-10-25", 1]]));
+    // faollik: 3 ta «+» → «⭐ baho» tugmasi, baho qo'yilgach to'plam nolga tushadi
+    await page.evaluate(() => { S.lesson = 1; S.ci = 1; S.step = 1; go("lesson"); });
+    for (let i = 0; i < 3; i++) await page.click('[data-act="0|0"]');
+    await page.click('[data-act="1|1"]');
+    assert.equal((await page.textContent('[data-actu="0"]')).trim(), "+3");
+    await page.click('[data-actg="0"]'); await page.click('.modal [data-ag="9"]');
+    const a = await page.evaluate(() => { const s = D.classes[1].students; return {m: gradesOf(s[0].marks[todayIso()] || ""), bank: actBank(s[0]), minus: s[1].act[todayIso()]}; });
+    assert.ok(a.m.includes(9)); assert.equal(a.bank, 0); assert.deepEqual(a.minus, [0, 1]);
+    assert.equal(await page.locator('[data-actg="0"]').count(), 0);
+    await page.click('[data-actu="1"]'); assert.equal(await page.evaluate(() => !D.classes[1].students[1].act[todayIso()]), true);
+    // ota-onaga havola: xabarga qo'shiladi, natija.html ma'lumotni havoladan ko'rsatadi
+    const nm = await page.evaluate(() => { D.web.bsb_hdr = {school: "12-maktab", teacher: ""}; S.pkind = "gen"; const n = D.classes[0].students[3].name; studentCard(0, n, "msg"); return n; });
+    await page.click("[data-rlink]");
+    const url = await page.getAttribute("[data-rprev]", "href");
+    assert.ok((await page.inputValue("#pm")).includes(url) && url.includes("natija.html#"));
+    const p2 = await browser.newPage({viewport: {width: 390, height: 844}}); p2.on("pageerror", (e) => errors.push(e.message));
+    await p2.goto(new URL("../docs/natija.html", APP).href + url.slice(url.indexOf("#")));
+    assert.equal((await p2.textContent("h1")).trim(), nm);
+    assert.ok((await p2.textContent("body")).includes("12-maktab"));
+    assert.ok(await p2.locator(".mk").count() > 0);
+    const p3 = await browser.newPage(); await p3.goto(new URL("../docs/natija.html", APP).href + "#buzilgan");
+    assert.ok((await p3.textContent("h1")).includes("Havola ochilmadi"));
+    // butun sinf xabarlari: belgilansa har xabarga havola qo'shiladi
+    await page.evaluate(() => { document.querySelectorAll(".modal").forEach((x) => x.remove()); parentBulk(0); });
+    await page.check("#pbl");
+    assert.ok((await page.inputValue('[data-pt="0"]')).includes("natija.html#"));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
