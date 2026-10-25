@@ -2381,6 +2381,7 @@ function importJson() {
     const file = f.files[0]; if (!file) return;
     try {
       const data = JSON.parse(await file.text());
+      if (data && data.type === "emaktab-bundle") { importEmaktabFiles(bundleFiles(data)); return; }
       if (!data || !Array.isArray(data.classes)) throw new Error("bu jurnal fayli emas");
       if (tooNew(data)) throw new Error("fayl ilovaning yangiroq versiyasida saqlangan — sahifani yangilang");
       if (D.classes.length && !await confirmBox("Fayldan yuklash", `Hozirgi ${D.classes.length} ta sinf o'rniga fayldagi ${data.classes.length} ta sinf yuklanadi. Davom etamizmi?`, "Yuklash")) return;
@@ -3104,14 +3105,27 @@ async function baTransfer(c, B) {
 
 /* ───────── emaktab Excel import ───────── */
 function importExcel() {
-  const f = document.createElement("input"); f.type = "file"; f.accept = ".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"; f.multiple = true;
+  const f = document.createElement("input"); f.type = "file"; f.accept = ".xls,.xlsx,.json,application/json,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"; f.multiple = true;
   f.onchange = () => { if (f.files.length) importEmaktabFiles([...f.files]); };
   f.click();
+}
+// xatcho'p saqlagan «emaktab_jurnallar.json» ichidagi Excel fayllar
+function bundleFiles(data) {
+  return (data.files || []).map((f) => { const bin = atob(f.b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new File([u], f.name || "emaktab.xls"); });
+}
+async function expandFiles(files) {
+  const out = [];
+  for (const f of files) {
+    if (!/\.json$/i.test(f.name)) { out.push(f); continue; }
+    let d = null; try { d = JSON.parse(await f.text()); } catch (e) { /* jurnal fayli emas */ }
+    if (d && d.type === "emaktab-bundle") out.push(...bundleFiles(d)); else throw new Error(`«${f.name}» emaktab fayli emas`);
+  }
+  return out;
 }
 async function importEmaktabFiles(files) {
     toast("Fayl o'qilmoqda…");
     let found = [];
-    try { for (const file of files) found = found.concat(await readEmaktabFile(file)); }
+    try { files = await expandFiles(files); for (const file of files) found = found.concat(await readEmaktabFile(file)); }
     catch (e) { toast("Faylni o'qib bo'lmadi: " + e.message); return; }
     if (!found.length) { toast("Faylda emaktab «Fan jurnali» topilmadi (\"Sinf:\" qatori yo'q)"); return; }
     const ok = await modal(`<h2>emaktab'dan import</h2><div class="muted">Faylda ${found.length} ta jurnal topildi:</div>
@@ -3163,8 +3177,20 @@ function emkGrab() {
   }
   let ready = false;
   addEventListener("message", (e) => { if (e.origin === AO && e.data && e.data.type === "jurnal-ready") ready = true; });
-  const w = window.open(APP + "#emaktab", "yoqlama_jurnal");
-  if (!w) { say("Brauzer yangi oynani to'sib qo'ydi. emaktab.uz uchun qalqib chiquvchi oynalarga ruxsat bering va qayta bosing."); return; }
+  // ilova oynasi ochilmasa ham (qalqib chiquvchi oyna to'silgan, telefon) jurnallar faylga saqlab beriladi
+  let w = null; try { w = window.open(APP + "#emaktab", "yoqlama_jurnal"); } catch (e) { w = null; }
+  const btns = (opts) => new Promise((res) => {
+    const row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-top:10px";
+    opts.forEach(([k, l], i) => { const b = document.createElement("button"); b.textContent = l; b.dataset.emk = k;
+      b.style.cssText = `font:inherit;font-size:14px;padding:8px 12px;border-radius:9px;border:1px solid #0b6f79;cursor:pointer;background:${i ? "#fff;color:#0b6f79" : "#0b6f79;color:#fff"}`;
+      b.onclick = () => { row.remove(); res(k); }; row.append(b); });
+    box.append(row);
+  });
+  const b64 = (buf) => { const u = new Uint8Array(buf); let x = ""; for (let i = 0; i < u.length; i += 32768) x += String.fromCharCode.apply(null, u.subarray(i, i + 32768)); return btoa(x); };
+  const saveFile = (files) => {
+    const blob = new Blob([JSON.stringify({type: "emaktab-bundle", v: 1, files: files.map((f) => ({name: f.name, b64: b64(f.data)}))})], {type: "application/json"});
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "emaktab_jurnallar.json"; document.body.append(a); a.click(); a.remove();
+  };
   const get = async (u) => { const r = await fetch(u, {credentials: "include"}); if (!r.ok) throw new Error("HTTP " + r.status); return r; };
   const state = (html) => {
     const i = html.indexOf("__JOURNAL__INITIAL__STATE__"); if (i < 0) return null;
@@ -3188,50 +3214,89 @@ function emkGrab() {
       else if (cls && /\/journal\/school\/\d+\/group\/\d+\/subject\/\d+/.test(href) && !seen.has(href)) { seen.add(href); jobs.push({cls, subject: (a.title || a.textContent).trim(), url: href}); }
     }
     if (!jobs.length) throw new Error("«Sinflarim» sahifasida jurnal topilmadi.");
+    // choraklar: birinchi jurnal holatidan; «Yil boshidan» — joriy chorakkacha hammasi
+    const perOf = (hd) => { const ps = ((hd.periods || {})[hd.currentGroupId] || {}).periods || []; const cur = ps.find((p) => p.id === hd.currentPeriodId); return {ps, cur}; };
+    const first = state(await (await get(jobs[0].url)).text()), fp = first && first.journalHeader ? perOf(first.journalHeader) : {ps: []};
+    let all = false;
+    if (fp.cur && fp.ps.some((p) => p.number < fp.cur.number)) {
+      say(`${jobs.length} ta jurnal topildi. Qaysi chorak(lar) olinsin?`);
+      all = await btns([["cur", `Joriy chorak (${fp.cur.name})`], ["all", "Yil boshidan (barcha choraklar)"]]) === "all";
+    }
     const files = [], errs = [];
     for (const [n, jb] of jobs.entries()) {
       say(`Jurnallar yuklanmoqda: ${n + 1} / ${jobs.length}\n${jb.cls} · ${jb.subject}`);
       try {
-        const st = state(await (await get(jb.url)).text()), hd = st && st.journalHeader;
+        const st = n ? state(await (await get(jb.url)).text()) : first, hd = st && st.journalHeader;
         if (!hd) throw new Error("chorak topilmadi");
         const [, school, group, subject] = jb.url.match(/\/school\/(\d+)\/group\/(\d+)\/subject\/(\d+)/);
-        const x = await get(`/v2/excel?action=gjsxls&school=${school}&group=${group}&subgroup=0&subject=${subject}&period=${hd.currentPeriodId}`);
-        if (/html/i.test(x.headers.get("content-type") || "")) throw new Error("Excel o'rniga sahifa keldi");
-        files.push({name: `${jb.cls}_${jb.subject}.xls`, data: await x.arrayBuffer()});
+        const {ps, cur} = perOf(hd), want = all && cur ? ps.filter((p) => p.number <= cur.number).sort((a, b) => a.number - b.number) : [{id: hd.currentPeriodId, name: ""}];
+        for (const p of want) {
+          const x = await get(`/v2/excel?action=gjsxls&school=${school}&group=${group}&subgroup=0&subject=${subject}&period=${p.id}`);
+          if (/html/i.test(x.headers.get("content-type") || "")) throw new Error("Excel o'rniga sahifa keldi");
+          files.push({name: `${jb.cls}_${jb.subject}${p.name ? "_" + p.name : ""}.xls`, data: await x.arrayBuffer()});
+        }
       } catch (e) { errs.push(`${jb.cls} · ${jb.subject}: ${e.message}`); }
     }
     if (!files.length) throw new Error("Hech bir jurnal yuklanmadi.\n" + errs.join("\n"));
-    say("Jurnal ilovasiga yuborilmoqda…");
-    for (let t = 0; !ready && t < 100; t++) await new Promise((r) => setTimeout(r, 200));
-    if (!ready || w.closed) throw new Error("Jurnal ilovasi javob bermadi. Ilova oynasi yopilmaganini tekshirib, qayta bosing.");
-    w.postMessage({type: "emaktab-files", files}, AO, files.map((f) => f.data));
-    say(`✓ ${files.length} ta jurnal yuborildi — Jurnal oynasida tasdiqlang.` + (errs.length ? `\nYuklanmadi:\n${errs.join("\n")}` : ""));
-    try { w.focus(); } catch (e) {}
+    const bad = errs.length ? `\nYuklanmadi:\n${errs.join("\n")}` : "";
+    if (w) { say("Jurnal ilovasiga yuborilmoqda…"); for (let t = 0; !ready && t < 75; t++) await new Promise((r) => setTimeout(r, 200)); }
+    if (w && ready && !w.closed) {
+      w.postMessage({type: "emaktab-files", files}, AO);
+      say(`✓ ${files.length} ta jurnal yuborildi — Jurnal oynasida tasdiqlang.` + bad);
+      try { w.focus(); } catch (e) {}
+      if (await btns([["ok", "Yopish"], ["save", "💾 Faylga ham saqlash"]]) === "save") saveFile(files);
+      box.remove(); return;
+    }
+    // ilova oynasi yo'q — fayl orqali
+    say(`✓ ${files.length} ta jurnal olindi, lekin Jurnal ilovasi oynasi ochilmadi.\nFaylga saqlang, so'ng ilovada «emaktab'dan import» → «Fayl orqali» bo'limida shu faylni tanlang.` + bad);
+    if (await btns([["save", "💾 Faylga saqlash"], ["x", "Bekor qilish"]]) === "save") { saveFile(files); say("✓ «emaktab_jurnallar.json» saqlandi (Yuklab olinganlar papkasi). Endi uni Jurnal ilovasida tanlang."); }
+    else box.remove();
   })().catch((e) => say("✗ " + e.message));
 }
 const appUrl = () => location.origin + location.pathname.replace(/index\.html$/, "");
 const emkCode = () => `(${emkGrab.toString().replace("__APP__", appUrl())})()`;
-function emkDialog() {
+function emkDialog(tab = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? "phone" : "pc") {
   const web = /^https?:$/.test(location.protocol);
-  modal(`<h2>emaktab.uz saytidan import</h2>
-    ${web ? "" : `<div class="card warnbox">Bu usul faqat ilova saytdan ochilganda ishlaydi: <b>https://akmal1st.github.io/yoqlama-jurnal/</b></div>`}
-    <div class="muted">Ilova emaktab.uz ga o'zi kira olmaydi (brauzer ruxsat bermaydi). Shuning uchun bir martalik sozlash kerak — keyin har safar bitta bosish.</div>
-    <div class="col" style="gap:10px">
-      <div><b>1.</b> Quyidagi tugmani sichqoncha bilan brauzerning <b>xatcho'plar paneliga</b> sudrab olib boring (panel ko'rinmasa: Ctrl+Shift+B).</div>
+  const T = [["pc", "💻 Kompyuter"], ["phone", "📱 Telefon"], ["file", "📂 Fayl orqali"]];
+  const body = {
+    pc: `<div class="col" style="gap:10px">
+      <div><b>1-usul · xatcho'p.</b> Quyidagi tugmani sichqoncha bilan brauzerning <b>xatcho'plar paneliga</b> sudrab olib boring (panel ko'rinmasa: Ctrl+Shift+B).</div>
       <div><a class="btn pri" id="emkbm" href="#" onclick="return false" draggable="true">📒 emaktab → Jurnal</a></div>
-      <div><b>2.</b> emaktab.uz ga odatdagidek kiring va <b>«Sinflarim»</b> sahifasini oching.</div>
-      <div><b>3.</b> Xatcho'pdagi <b>«📒 emaktab → Jurnal»</b> ni bosing. Barcha sinflaringizning joriy chorak jurnallari shu ilovaga keladi, siz faqat tasdiqlaysiz.</div>
-      <div class="muted">Telefonda: «Kodni nusxalash»ni bosing, istalgan sahifani xatcho'pga qo'shing, xatcho'pni tahrirlab manzil o'rniga nusxalangan kodni qo'ying. emaktab'da manzil qatoriga xatcho'p nomini yozib, uni tanlang.</div>
-    </div>
-    <div class="row"><button class="btn" data-copy>📋 Kodni nusxalash</button><span class="sp"></span><button class="btn" data-x>Yopish</button></div>`, (mm, close) => {
-    $("#emkbm", mm).href = "javascript:" + encodeURIComponent(emkCode());
+      <div>So'ng emaktab.uz ga kiring, <b>«Sinflarim»</b> sahifasini oching va xatcho'pni bosing. Joriy chorak yoki yil boshidan barcha choraklarni tanlaysiz — jurnallar shu ilovaga keladi.</div>
+      <div><b>2-usul · konsol</b> (xatcho'p qo'yib bo'lmasa). emaktab'da «Sinflarim» sahifasida <b>F12</b> ni bosing → <b>Console</b> bo'limi → kodni qo'yib <b>Enter</b>. (Brauzer «allow pasting» deb yozishni so'rasa — yozing.)</div>
+      <div><button class="btn" data-copyc>📋 Konsol uchun kodni nusxalash</button></div></div>`,
+    phone: `<div class="col" style="gap:10px">
+      <div><b>1.</b> «Kodni nusxalash»ni bosing.</div><div><button class="btn pri" data-copy>📋 Kodni nusxalash</button></div>
+      <div><b>2.</b> Istalgan sahifani xatcho'pga qo'shing (☆), xatcho'pni tahrirlang: nomini <b>emaktab</b> deb, manzil o'rniga nusxalangan kodni qo'ying.</div>
+      <div><b>3.</b> emaktab.uz da «Sinflarim»ni oching, manzil qatoriga <b>emaktab</b> deb yozing va ro'yxatdan ⭐ xatcho'pni tanlang.</div>
+      <div class="muted">Telefon yangi oynani ochmasa, xatcho'p «💾 Faylga saqlash» tugmasini ko'rsatadi: faylni saqlab, keyin shu oynaning «Fayl orqali» bo'limidan yuklaysiz.</div></div>`,
+    file: `<div class="col" style="gap:10px">
+      <div>Quyidagilardan birini tanlang (bir nechtasini birga ham bo'ladi):</div>
+      <div>• xatcho'p saqlagan <b>emaktab_jurnallar.json</b> fayli;<br>• emaktab'dan yuklab olingan <b>«Fan jurnali» Excel</b> fayllari (.xls / .xlsx).</div>
+      <div><button class="btn pri" data-pick>📂 Fayllarni tanlash</button></div>
+      <div class="muted">Kompyuterda fayllarni ilova oynasiga sichqoncha bilan sudrab tashlasangiz ham bo'ladi.</div></div>`};
+  modal(`<h2>emaktab.uz saytidan import</h2>
+    ${web ? "" : `<div class="card warnbox">Xatcho'p va konsol usuli faqat ilova saytdan ochilganda ishlaydi: <b>https://akmal1st.github.io/yoqlama-jurnal/</b></div>`}
+    <div class="muted">Ilova emaktab.uz ga o'zi kira olmaydi (brauzer ruxsat bermaydi), shuning uchun jurnallarni emaktab sahifasining o'zida turib olamiz. Login va parol hech qayerga yuborilmaydi.</div>
+    <div class="seg tabs">${T.map(([k, n]) => `<button class="${k === tab ? "on" : ""}" data-et="${k}">${n}</button>`).join("")}</div>
+    ${body[tab]}
+    <div class="row"><span class="sp"></span><button class="btn" data-x>Yopish</button></div>`, (mm, close) => {
+    const bm = $("#emkbm", mm); if (bm) bm.href = "javascript:" + encodeURIComponent(emkCode());
     $("[data-x]", mm).onclick = () => close();
-    $("[data-copy]", mm).onclick = async () => {
-      try { await navigator.clipboard.writeText("javascript:" + emkCode()); toast("Kod nusxalandi"); }
-      catch (e) { toast("Nusxalab bo'lmadi — tugmani bosib turib «Havolani nusxalash»ni tanlang"); }
-    };
+    mm.querySelectorAll("[data-et]").forEach((b) => b.onclick = () => { close(); emkDialog(b.dataset.et); });
+    const cp = async (t, ok) => { try { await navigator.clipboard.writeText(t); toast(ok); } catch (e) { toast("Nusxalab bo'lmadi — brauzer ruxsat bermadi"); } };
+    const c1 = $("[data-copy]", mm); if (c1) c1.onclick = () => cp("javascript:" + emkCode(), "Kod nusxalandi");
+    const c2 = $("[data-copyc]", mm); if (c2) c2.onclick = () => cp(emkCode(), "Kod nusxalandi — emaktab'da F12 → Console ga qo'ying");
+    const pk = $("[data-pick]", mm); if (pk) pk.onclick = () => { close(); importExcel(); };
   });
 }
+// fayllarni ilova oynasiga sudrab tashlash: emaktab Excel yoki xatcho'p fayli
+window.addEventListener("dragover", (e) => { if ([...(e.dataTransfer.types || [])].includes("Files")) e.preventDefault(); });
+window.addEventListener("drop", (e) => {
+  const fs = [...(e.dataTransfer.files || [])].filter((f) => /\.(xlsx?|json)$/i.test(f.name)); if (!e.dataTransfer.files.length) return;
+  e.preventDefault(); if (!fs.length) { toast("Faqat emaktab Excel (.xls/.xlsx) yoki emaktab_jurnallar.json fayllari"); return; }
+  document.querySelectorAll(".modal").forEach((x) => x.remove()); importEmaktabFiles(fs);
+});
 const EMK_ORIGIN = /^https:\/\/([a-z0-9-]+\.)*emaktab\.uz$/;
 function emkReady() { if (location.hash === "#emaktab" && window.opener) try { window.opener.postMessage({type: "jurnal-ready"}, "*"); } catch (e) {} }
 window.addEventListener("hashchange", emkReady);

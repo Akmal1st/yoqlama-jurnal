@@ -1282,3 +1282,58 @@ test("KTR: Excel faylidan choraklari bilan yuklash, «BSB tahlili» summativ ish
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("emaktab: yil boshidan barcha choraklar, ilova oynasi ochilmasa — fayl orqali", async () => {
+  const {readFile} = await import("node:fs/promises");
+  const XLSX = (await import("xlsx")).default;
+  const docs = fileURLToPath(new URL("../docs/", import.meta.url));
+  const lib = fileURLToPath(new URL("../node_modules/xlsx/dist/xlsx.full.min.js", import.meta.url));
+  const rows = JSON.parse(await readFile(fileURLToPath(new URL("inputs.json", import.meta.url)), "utf8")).emaktab[0].rows;
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "Matematika");
+  const xls = XLSX.write(wb, {type: "buffer", bookType: "xls"});
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const ctx = await browser.newContext({serviceWorkers: "block", acceptDownloads: true});
+    const asked = [];
+    await ctx.route("https://cdnjs.cloudflare.com/**", async (r) => r.fulfill({body: await readFile(lib), contentType: "text/javascript"}));
+    await ctx.route("https://app.test/**", async (r) => {
+      const p = new URL(r.request().url()).pathname.slice(1) || "index.html";
+      try { r.fulfill({body: await readFile(docs + p), contentType: p.endsWith(".html") ? "text/html" : undefined}); } catch { r.fulfill({status: 404}); }
+    });
+    const hdr = {currentPeriodId: 78, currentGroupId: 5, periods: {5: {periods: [{id: 77, number: 0, name: "I chorak"}, {id: 78, number: 1, name: "II chorak"}, {id: 79, number: 2, name: "III chorak"}]}}};
+    await ctx.route("https://schools.emaktab.uz/**", (r) => {
+      const u = new URL(r.request().url()); asked.push(u.pathname + u.search);
+      if (u.pathname === "/v2/myclasses") return r.fulfill({contentType: "text/html", body: `<div id="ContentPanelTeacher"><a href="/v2/class?class=1">7-B</a><a href="/v2/journal/school/11/group/22/subject/33" title="Matematika">Matematika</a></div>`});
+      if (u.pathname.startsWith("/v2/journal/")) return r.fulfill({contentType: "text/html", body: `<script>window.__JOURNAL__INITIAL__STATE__ = ${JSON.stringify({journalHeader: hdr})};</script>`});
+      if (u.pathname === "/v2/excel") return r.fulfill({contentType: "application/vnd.ms-excel", body: xls});
+      return r.fulfill({status: 404});
+    });
+    const app = await ctx.newPage(); const errors = []; app.on("pageerror", (e) => errors.push(e.message));
+    await app.goto("https://app.test/");
+    const code = await app.evaluate(() => emkCode());
+    const emk = await ctx.newPage(); emk.on("pageerror", (e) => errors.push(e.message));
+    await emk.goto("https://schools.emaktab.uz/v2/myclasses");
+    await emk.evaluate(() => { window.open = () => null; });   // qalqib chiquvchi oyna to'silgan
+    await emk.evaluate(code);
+    await emk.click('[data-emk="all"]');
+    const [dl] = await Promise.all([emk.waitForEvent("download"), emk.click('[data-emk="save"]')]);
+    assert.equal(dl.suggestedFilename(), "emaktab_jurnallar.json");
+    assert.ok(asked.includes("/v2/excel?action=gjsxls&school=11&group=22&subgroup=0&subject=33&period=77"));
+    assert.ok(asked.includes("/v2/excel?action=gjsxls&school=11&group=22&subgroup=0&subject=33&period=78"));
+    assert.ok(!asked.some((a) => a.includes("period=79")), "kelajakdagi chorak olinmaydi");
+    const path = await dl.path(), bundle = JSON.parse(await readFile(path, "utf8"));
+    assert.deepEqual(bundle.files.map((f) => f.name), ["7-B_Matematika_I chorak.xls", "7-B_Matematika_II chorak.xls"]);
+    // ilovada: emaktab oynasining «Fayl orqali» bo'limidan
+    await app.evaluate(() => { emkDialog("file"); });
+    const [ch] = await Promise.all([app.waitForEvent("filechooser"), app.click(".modal [data-pick]")]);
+    await ch.setFiles({name: "emaktab_jurnallar.json", mimeType: "application/json", buffer: await readFile(path)});
+    await app.click(".modal [data-ok]", {timeout: 20000});
+    await app.waitForSelector("text=Import yakunlandi");
+    assert.deepEqual(await app.evaluate(() => D.classes.map((c) => c.name)), ["7-B"]);
+    // dialog: uchta bo'lim
+    await app.evaluate(() => { document.querySelectorAll(".modal").forEach((x) => x.remove()); emkDialog("pc"); });
+    assert.equal(await app.locator(".modal [data-et]").count(), 3);
+    assert.ok(await app.isVisible(".modal [data-copyc]"));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
