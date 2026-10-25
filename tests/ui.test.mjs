@@ -80,6 +80,41 @@ test("o'quvchini faolsizlantirish va qayta faollashtirish", async () => {
   } finally { await browser.close(); }
 });
 
+test("o'quvchi boshqa fanlarda ham faolsizlantiriladi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const has = (ci, n) => page.evaluate(([ci, n]) => D.classes[ci].students.some((s) => s.name === n), [ci, n]);
+    const nm = "Rahimova Nilufar", ai = await page.evaluate((n) => D.classes[2].students.findIndex((s) => s.name === n), nm);
+    // dialog: «Boshqa fanlarda ham» belgisi chiqadi (9-A Geometriya)
+    await page.evaluate(() => { studentsDialog(2); });
+    assert.equal(await page.locator(".modal #oth").isVisible(), false);
+    await page.check(`[data-rm="${ai}"]`);
+    assert.equal(await page.locator(".modal #oth").isVisible(), true);
+    assert.equal(await page.textContent(".modal #othl"), "Geometriya");
+    await page.click(".modal [data-ok]");
+    assert.equal(await has(2, nm), false); assert.equal(await has(3, nm), false, "Geometriyada ham faolsiz");
+    assert.equal(await has(1, nm), true, "boshqa sinf (7-G) o'zgarmaydi");
+    // bitta ↶ ikkala fanda qaytaradi
+    await page.evaluate(() => { undoLast(); });
+    assert.equal(await has(2, nm), true); assert.equal(await has(3, nm), true);
+    // belgi olib tashlansa — faqat shu fanda
+    await page.evaluate(() => { studentsDialog(2); });
+    await page.check(`[data-rm="${ai}"]`); await page.uncheck(".modal #othc"); await page.click(".modal [data-ok]");
+    assert.equal(await has(2, nm), false); assert.equal(await has(3, nm), true);
+    // faollashtirishda boshqa fan so'raladi
+    await page.evaluate(() => { deactivate(D.classes[3], [D.classes[3].students.findIndex((s) => s.name === "Rahimova Nilufar")]); studentsDialog(2); });
+    await page.click('.modal [data-on="0"]');
+    await page.click(".modal [data-ok]");
+    assert.equal(await has(2, nm), true); assert.equal(await has(3, nm), true, "Geometriyada ham faollashdi");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
 test("hisobotlar chop etilganda bitta varaqqa sig'adi", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
