@@ -465,6 +465,20 @@ table.j td{vertical-align:middle}
 .dside b{width:34px;height:34px;border-radius:10px;background:#fff;color:var(--acc);display:grid;place-items:center}
 .dmain{flex:1;background:var(--win);padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
 .dtitle{font-size:18px;font-weight:700}
+.stys{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;flex:1 1 100%}
+.sty{border:2px solid var(--line);background:var(--base);border-radius:12px;padding:8px;text-align:left;display:flex;flex-direction:column;gap:2px}
+.sty span{font-size:12.5px;color:var(--muted);line-height:1.3}.sty.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.sw{display:flex;gap:4px;height:46px;border-radius:8px;padding:5px;margin-bottom:4px;overflow:hidden}
+.sw b{width:16px;border-radius:4px;background:var(--acc)}.sw u{flex:1;border-radius:5px;background:#fff}
+.sw-klassik{background:#f5f1e8}.sw-klassik b{background:linear-gradient(175deg,#0c5d66,#083f46)}.sw-klassik u{border:1px solid #e4dccb;background:#fffdf8}
+.sw-minimal{background:#f6f6f7}.sw-minimal b{background:#fff;border:1px solid #e4e4e7}.sw-minimal u{border:1px solid #e4e4e7}
+.sw-shisha{background:radial-gradient(circle at 10% 0,color-mix(in srgb,var(--acc) 55%,transparent),transparent 60%),radial-gradient(circle at 100% 100%,#ec819788,transparent 60%),#dfe6f3}.sw-shisha u{background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8)}.sw-shisha b{opacity:.85}
+.sw-yumshoq{background:color-mix(in srgb,var(--acc) 10%,#fff)}.sw-yumshoq b{background:color-mix(in srgb,var(--acc) 30%,#fff);border-radius:10px}.sw-yumshoq u{border-radius:12px}
+.sw-brutal{background:#fff4e0}.sw-brutal b{border:2px solid #111}.sw-brutal u{border:2px solid #111;box-shadow:2px 2px 0 #111;border-radius:3px}
+.fsys{border-style:dashed;justify-content:center}
+.flist{display:flex;flex-direction:column;max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:12px}
+.flist button{display:flex;justify-content:space-between;align-items:baseline;gap:10px;border:0;border-bottom:1px solid var(--soft);background:transparent;padding:9px 12px;text-align:left;font-size:18px}
+.flist button small{font:12px system-ui,sans-serif;color:var(--muted);white-space:nowrap}.flist button:hover,.flist button.on{background:var(--acc-soft)}
 .fonts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;flex:1 1 100%}
 .fopt{border:2px solid var(--line);background:var(--base);border-radius:12px;padding:8px 12px;text-align:left;display:flex;flex-direction:column;gap:2px}
 .fopt span{font-size:20px;color:var(--muted)}
@@ -534,7 +548,7 @@ const clone = (o) => JSON.parse(JSON.stringify(o));
 let D = null;
 
 /* ───────── dizayn: shrift, mavzu, rang, o'lcham (D.web da saqlanadi) ───────── */
-const DESIGN_DEF = {font: "lserif", fsize: "m", accent: "teal", radius: "round"};
+const DESIGN_DEF = {font: "lserif", fsize: "m", accent: "teal", radius: "round", style: "klassik"};
 const FONTS = [["lserif", "Liberation Serif", `"Liberation Serif","Times New Roman",Tinos,Times,serif`], ["times", "Times New Roman", `"Times New Roman",Times,"Liberation Serif",serif`],
   ["georgia", "Georgia", `Georgia,"DejaVu Serif",serif`], ["lsans", "Liberation Sans", `"Liberation Sans",Arial,Helvetica,sans-serif`],
   ["verdana", "Verdana", `Verdana,"DejaVu Sans",Geneva,sans-serif`], ["system", "Tizim shrifti", `system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif`]];
@@ -546,13 +560,40 @@ const ACCENTS = {teal: ["Firuza", "#0b6f79", "#08525a", "#e1efee", "#0c5d66", "#
   violet: ["Binafsha", "#6a3fa0", "#52307d", "#efe7f8", "#5a3589", "#3c2160", "#b08ae6", "#c7aaf0", "#2c2142", "#1e1630", "#130e1f"],
   wine: ["To'q qizil", "#9c2f45", "#7a2436", "#f7e4e8", "#862a3d", "#5c1a29", "#ec8197", "#f2a5b5", "#41202a", "#2c151c", "#1c0d12"],
   brown: ["Jigarrang", "#8a5a2b", "#6b4520", "#f4ebe0", "#76502a", "#523619", "#d7a46e", "#e4bf95", "#3a2a1b", "#281d13", "#19120c"]};
+/* uslublar: [nomi, tavsif, och fon o'zgaruvchilari, tungi, qo'shimcha CSS] — rang (ACCENTS) va shrift ustidan ishlaydi */
+const STYLES = {
+  klassik: ["Klassik", "Qog'oz fon, to'q yon panel", "", "", ""],
+  minimal: ["Minimal", "Oq-kulrang, toza chiziqlar, soyasiz", "--win:#f6f6f7;--base:#ffffff;--alt:#fafafa;--soft:#f1f1f3;--line:#e4e4e7;--text:#18181b;--muted:#71717a;--side-bg:#fbfbfb;--side-fg:#27272a;--side-mut:#71717a;--sh:0 1px 2px rgba(0,0,0,.04);--sh-lg:0 12px 32px -12px rgba(0,0,0,.18);--today-cell:#fdf6dc;",
+    "--win:#09090b;--base:#111113;--alt:#17171a;--soft:#1e1e22;--line:#27272a;--text:#fafafa;--muted:#a1a1aa;--side-bg:#0c0c0e;--side-fg:#e4e4e7;--side-mut:#a1a1aa;--sh:none;--sh-lg:0 16px 40px -16px rgba(0,0,0,.8);",
+    `.side{border-right:1px solid var(--line);box-shadow:none}.logo{border-bottom-color:var(--line)}.logo b{background:var(--acc);color:var(--acc-fg);box-shadow:none}
+    .side .nav:hover{background:var(--soft)}.side .nav.on{background:var(--soft);color:var(--text);box-shadow:none}.side .nav.on::before{background:var(--acc)}
+    .side .btn{background:var(--base);border-color:var(--line);color:var(--text)}.btn.pri{background:var(--acc);box-shadow:none}.card,.tblwrap,.tile,.opt{box-shadow:none}
+    .tile::before{display:none}h1{letter-spacing:-.025em}.chip.on{box-shadow:none}.vwside{border-top-color:var(--line)}.vseg{background:var(--soft)}.vseg button:hover{background:color-mix(in srgb,var(--acc) 8%,transparent)}.vseg button.on{background:var(--base);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}`],
+  shisha: ["Shisha", "Shaffof kartochkalar, rangli fon (glassmorphism)", "--win:#e9edf5;--base:#fbfcff;--alt:#f4f6fb;--soft:#e9edf6;--line:#dde3ee;--gl:rgba(255,255,255,.58);--gl-b:rgba(255,255,255,.75);--sh:0 8px 32px -12px rgba(31,38,135,.20);--sh-lg:0 20px 50px -18px rgba(31,38,135,.32);",
+    "--win:#0b1020;--base:#141a2b;--alt:#182036;--soft:#1f2840;--line:#2a3450;--gl:rgba(24,31,52,.55);--gl-b:rgba(255,255,255,.09);--sh:0 8px 32px -12px rgba(0,0,0,.6);--sh-lg:0 20px 50px -18px rgba(0,0,0,.8);",
+    `body{background:radial-gradient(42vmax 42vmax at 6% 0%,color-mix(in srgb,var(--acc) 34%,transparent),transparent 70%),radial-gradient(40vmax 40vmax at 100% 25%,rgba(236,129,151,.30),transparent 70%),radial-gradient(48vmax 48vmax at 45% 110%,rgba(106,167,239,.32),transparent 70%),var(--win);background-attachment:fixed}
+    .card,.tile,.opt,.tabbar{background:var(--gl);border-color:var(--gl-b);-webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6)}
+    .tblwrap{border:1px solid var(--gl-b)}.side{-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);opacity:.96}.btn{background:color-mix(in srgb,var(--base) 70%,transparent)}`],
+  yumshoq: ["Yumshoq", "Rangga moslashgan tonlar, dumaloq tugmalar (Material You)", "--win:color-mix(in srgb,var(--acc) 7%,#fdfcff);--base:#ffffff;--alt:color-mix(in srgb,var(--acc) 4%,#fff);--soft:color-mix(in srgb,var(--acc) 11%,#fff);--line:color-mix(in srgb,var(--acc) 16%,#e6e6ea);--side-bg:color-mix(in srgb,var(--acc) 13%,#fff);--side-fg:#1b1d22;--side-mut:#5d6470;--sh:none;--sh-lg:0 18px 44px -18px rgba(0,0,0,.28);",
+    "--win:color-mix(in srgb,var(--acc) 7%,#101215);--base:color-mix(in srgb,var(--acc) 7%,#1a1c20);--alt:color-mix(in srgb,var(--acc) 9%,#1d1f23);--soft:color-mix(in srgb,var(--acc) 16%,#1f2125);--line:color-mix(in srgb,var(--acc) 18%,#2b2e34);--side-bg:color-mix(in srgb,var(--acc) 12%,#15171a);--side-fg:#e3e5ea;--side-mut:#9aa1ad;--sh:none;--sh-lg:0 18px 44px -18px rgba(0,0,0,.8);",
+    `.btn,.chip,.seg,.seg button,.nav,.acc{border-radius:999px}.btn.pri{background:var(--acc);box-shadow:none}.card,.tile{border-color:transparent;box-shadow:none}.tblwrap{box-shadow:none}
+    .side .nav.on{background:color-mix(in srgb,var(--acc) 24%,transparent);color:var(--side-fg);box-shadow:none}.side .nav.on::before{display:none}.side .nav:hover{background:color-mix(in srgb,var(--acc) 10%,transparent)}
+    .side .btn{background:var(--base);border-color:var(--line);color:var(--side-fg)}.logo{border-bottom-color:var(--line)}.logo b{background:var(--acc);color:var(--acc-fg)}.tile::before{display:none}.tabbar .nav.on{background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--text)}.vwside{border-top-color:var(--line)}.vseg{background:var(--soft)}.vseg button:hover{background:color-mix(in srgb,var(--acc) 8%,transparent)}.vseg button.on{background:var(--base);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}`],
+  brutal: ["Neo-brutal", "Qalin chiziqlar, keskin soyalar, yorqin", "--win:#fff4e0;--base:#ffffff;--alt:#fffaf0;--soft:#ffeccc;--line:#d9c8a6;--text:#111111;--muted:#4a4a4a;--bb:#111111;--sh:4px 4px 0 #111;--sh-lg:7px 7px 0 #111;",
+    "--win:#121212;--base:#1c1c1c;--alt:#222222;--soft:#2a2a2a;--line:#3a3a3a;--text:#f5f5f5;--muted:#c4c4c4;--bb:#f2f2f2;--sh:4px 4px 0 var(--acc);--sh-lg:7px 7px 0 var(--acc);",
+    `.card,.tblwrap,.tile,.opt,.btn,.chip,.seg,.fopt,.acc,.modal .card,.toast,.keys{border:2px solid var(--bb)}.card,.tblwrap,.tile,.opt{box-shadow:var(--sh)}
+    .btn{box-shadow:3px 3px 0 var(--bb);font-weight:800}.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--bb)}.btn.pri{background:var(--acc);box-shadow:3px 3px 0 var(--bb)}
+    h1{font-weight:900;letter-spacing:-.02em}.side{border-right:3px solid var(--bb)}.tile::before{display:none}.chip.on{box-shadow:2px 2px 0 var(--bb)}.cell:not(.ro):hover{box-shadow:2px 2px 0 var(--bb)}`]};
+// kompyuterdagi shrift nomi CSS ga xavfsiz tushishi uchun
+const cleanFont = (n) => String(n || "").replace(/["'\\;{}<>()]/g, "").replace(/\s+/g, " ").trim().slice(0, 80);
 function designCss(w) {
-  const f = (FONTS.find((x) => x[0] === w.font) || FONTS[0])[2], z = (FSIZES.find((x) => x[0] === w.fsize) || FSIZES[1])[2], a = ACCENTS[w.accent] || ACCENTS.teal;
-  const light = `--acc:${a[1]};--acc-d:${a[2]};--acc-soft:${a[3]};--side-bg:linear-gradient(175deg,${a[4]} 0%,${a[5]} 100%);`;
-  const dark = `--acc:${a[6]};--acc-d:${a[7]};--acc-soft:${a[8]};--side-bg:linear-gradient(175deg,${a[9]} 0%,${a[10]} 100%);`;
+  const cf = cleanFont(w.cfont), f = w.font === "custom" && cf ? `"${cf}",system-ui,sans-serif` : (FONTS.find((x) => x[0] === w.font) || FONTS[0])[2], z = (FSIZES.find((x) => x[0] === w.fsize) || FSIZES[1])[2], a = ACCENTS[w.accent] || ACCENTS.teal;
+  const st = STYLES[w.style] || STYLES.klassik;
+  const light = `--acc:${a[1]};--acc-d:${a[2]};--acc-soft:${a[3]};--side-bg:linear-gradient(175deg,${a[4]} 0%,${a[5]} 100%);${st[2]}`;
+  const dark = `--acc:${a[6]};--acc-d:${a[7]};--acc-soft:${a[8]};--side-bg:linear-gradient(175deg,${a[9]} 0%,${a[10]} 100%);${st[3]}`;
   return `:root{${light}--r:${w.radius === "sharp" ? "6px" : "18px"}}:root[data-theme="dark"]{${dark}}
     @media (prefers-color-scheme: dark){:root:not([data-theme="light"]):not([data-theme="dark"]){${dark}}}
-    body,button,input,select,textarea{font-family:${f}}@media screen{main{zoom:${z}}}`;
+    body,button,input,select,textarea{font-family:${f}}@media screen{main{zoom:${z}}${st[4]}}`;
 }
 function normalize(d) {
   d = d && typeof d === "object" ? d : {};
@@ -2274,14 +2315,17 @@ function pageSettings(m) {
         <div class="row" style="gap:6px"><span class="cell" style="width:38px;display:grid;place-items:center;background:${gradeColor(9)};color:${contrast(gradeColor(9))}">9</span><span class="cell" style="width:38px;display:grid;place-items:center;background:${D.settings.attendance.s};color:#fff">S</span><span class="cell t" style="width:38px;display:grid;place-items:center">—</span><button class="btn pri sm">▶ Darsni boshlash</button></div>
         <div class="muted">Aa Bb Oʻoʻ Gʻgʻ 0123456789 — «Yozuv namunasi»</div></div></div>` +
       sgroup("Ko'rinish", srow("Mavzu", "Kunduzgi — och fon; Tungi — qorong'i fon, kechqurun ko'zni charchatmaydi; Avto — telefon/kompyuter sozlamasiga qarab", seg("th", [["light", "☀ Kunduzgi"], ["dark", "🌙 Tungi"], ["auto", "Avto"]], w.theme)) +
+      `<div class="srow"><div><b>Uslub</b><div class="muted">Ilovaning umumiy ko'rinishi. Rang, shrift va mavzu (kunduzgi/tungi) har bir uslubda ishlaydi</div></div>
+        <div class="stys">${Object.entries(STYLES).map(([k, [n, d]]) => `<button class="sty ${(w.style || "klassik") === k ? "on" : ""}" data-sty="${k}"><i class="sw sw-${k}"><b></b><u></u><u></u></i><b>${n}</b><span>${d}</span></button>`).join("")}</div></div>` +
       `<div class="srow"><div><b>Yozuv turi</b><div class="muted">Butun ilova, hisobotlar va chop etiladigan hujjatlar shu shriftda chiqadi</div></div>
-        <div class="fonts">${FONTS.map(([k, n, ff]) => `<button class="fopt ${w.font === k ? "on" : ""}" data-font="${k}" style="font-family:${esc(ff)}"><b>${n}</b><span>Aa Oʻoʻ 123</span></button>`).join("")}</div></div>` +
+        <div class="fonts">${FONTS.map(([k, n, ff]) => `<button class="fopt ${w.font === k ? "on" : ""}" data-font="${k}" style="font-family:${esc(ff)}"><b>${n}</b><span>Aa Oʻoʻ 123</span></button>`).join("")}${cleanFont(w.cfont) ? `<button class="fopt ${w.font === "custom" ? "on" : ""}" data-font="custom" style="font-family:&quot;${esc(cleanFont(w.cfont))}&quot;,system-ui"><b>${esc(cleanFont(w.cfont))}</b><span>Aa Oʻoʻ 123</span></button>` : ""}
+        <button class="fopt fsys" data-a="sysfont"><b>🖥 Kompyuterdagi shriftlar…</b><span style="font-size:13px">Tizimga o'rnatilgan istalgan shrift</span></button></div></div>` +
       srow("Yozuv o'lchami", "Ekrandagi yozuv va kataklar kattaligi", seg("fs", FSIZES.map(([k, n]) => [k, n]), w.fsize)) +
       `<div class="srow"><div><b>Asosiy rang</b><div class="muted">Tugmalar, yon panel va ajratilgan elementlar rangi</div></div>
         <div class="accs">${Object.entries(ACCENTS).map(([k, a]) => `<button class="acc ${w.accent === k ? "on" : ""}" data-accent="${k}" title="${a[0]}"><i style="background:linear-gradient(135deg,${a[1]} 50%,${a[6]} 50%)"></i>${a[0]}</button>`).join("")}</div></div>` +
       srow("Burchaklar", "Kartochka va jadvallar burchagi", seg("rad", [["round", "Yumaloq"], ["sharp", "To'g'ri"]], w.radius)) +
       srow("Ko'rinish zichligi", "Oddiy — katta kataklar; Kompakt — butun chorak bitta ekranda", seg("den", [["oddiy", "Oddiy"], ["kompakt", "Kompakt"]], w.density === "kompakt" ? "kompakt" : "oddiy")) +
-      srow("Standart dizayn", "Shrift, rang, o'lcham va burchaklarni boshlang'ich holatga qaytaradi", `<button class="btn" data-a="dreset">↺ Qaytarish</button>`));
+      srow("Standart dizayn", "Uslub, shrift, rang, o'lcham va burchaklarni boshlang'ich holatga qaytaradi", `<button class="btn" data-a="dreset">↺ Qaytarish</button>`));
   } else if (S.sec === 4) {
     const p = st.protect;
     body = sgroup("", srow("Qo'yilgan baholarni himoyalash", "Mavjud bahoni o'zgartirishdan oldin qulfni ochish kerak (bo'sh katakka baho qo'yish erkin)", swt('data-a="prot"', p.enabled)) +
@@ -2343,7 +2387,7 @@ function pageSettings(m) {
   m.querySelectorAll("[data-rk]").forEach((x) => x.onchange = () => { st.risk[x.dataset.rk] = +x.value; save(); toast("Saqlandi"); });
   m.querySelectorAll("[data-th]").forEach((b) => b.onclick = () => { D.web.theme = b.dataset.th; save(); render(); });
   m.querySelectorAll("[data-den]").forEach((b) => b.onclick = () => { D.web.density = b.dataset.den; save(); render(); });
-  for (const [attr, key] of [["font", "font"], ["fs", "fsize"], ["accent", "accent"], ["rad", "radius"]])
+  for (const [attr, key] of [["font", "font"], ["fs", "fsize"], ["accent", "accent"], ["rad", "radius"], ["sty", "style"]])
     m.querySelectorAll(`[data-${attr}]`).forEach((b) => b.onclick = () => { D.web[key] = b.dataset[attr]; save(); render(); });
   const fbm = $("#fbm", m); if (fbm) fbm.onchange = () => { st.fb_min = Math.max(1, +fbm.value || 4); save(); toast("Saqlandi"); };
   const alm = $("#alm", m); if (alm) alm.onchange = () => { st.protect.auto_lock_min = Math.max(1, +alm.value); save(); };
@@ -2352,6 +2396,7 @@ async function settingsAction(a, i) {
   const st = D.settings;
   if (a === "addc") addClassDialog();
   else if (a === "dreset") { Object.assign(D.web, DESIGN_DEF); save(); render(); toast("Standart dizayn tiklandi"); }
+  else if (a === "sysfont") fontDialog();
   else if (a === "stud") addStudents(i);
   else if (a === "rmst") studentsDialog(i);
   else if (a === "edit") editClass(i);
@@ -3319,6 +3364,50 @@ const emkCode = () => `(${emkGrab.toString().replace("__APP__", appUrl())})()`;
 const emkBookmark = () => "javascript:" + encodeURIComponent(emkCode());
 // telefon uchun qisqa xatcho'p: manzil maydoni uzun kodni sig'dirmaydi — to'liq kod saytdagi emk.js dan yuklanadi
 const emkLoader = () => "javascript:" + encodeURIComponent(`(function(){var s=document.createElement("script");s.src="${appUrl()}emk.js?"+Date.now();s.onerror=function(){alert("Yo'qlama jurnali: kod yuklanmadi. Internetni tekshirib, qayta bosing.")};document.body.appendChild(s)})()`);
+/* ───────── kompyuterdagi (tizim) shriftlari ─────────
+   Chrome/Edge kompyuterda queryLocalFonts() barcha o'rnatilgan shriftlar ro'yxatini beradi (ruxsat so'raydi).
+   Boshqa brauzerlarda mashhur shriftlar o'lchab tekshiriladi va nomini qo'lda yozish ham mumkin. */
+const COMMON_FONTS = ["Arial", "Arial Narrow", "Bahnschrift", "Book Antiqua", "Bookman Old Style", "Calibri", "Cambria", "Candara", "Century Gothic", "Comic Sans MS", "Consolas", "Constantia", "Corbel",
+  "Courier New", "DejaVu Sans", "DejaVu Serif", "Franklin Gothic Medium", "Garamond", "Georgia", "Gill Sans", "Helvetica", "Helvetica Neue", "Impact", "Inter", "Lato", "Liberation Mono", "Liberation Sans",
+  "Liberation Serif", "Lucida Grande", "Lucida Sans Unicode", "Montserrat", "Noto Sans", "Noto Serif", "Open Sans", "Palatino", "Palatino Linotype", "PT Sans", "PT Serif", "Roboto", "Roboto Slab",
+  "Segoe UI", "SF Pro Text", "Source Sans Pro", "Sylfaen", "Tahoma", "Times New Roman", "Trebuchet MS", "Ubuntu", "Verdana"];
+function fontAvail(n) {
+  const c = fontAvail.c || (fontAvail.c = document.createElement("canvas").getContext("2d")), t = "mmmmmwwwwlliI Oʻoʻ 0123 Жж";
+  return ["monospace", "serif", "sans-serif"].some((g) => { c.font = `40px ${g}`; const w0 = c.measureText(t).width; c.font = `40px "${cleanFont(n)}",${g}`; return c.measureText(t).width !== w0; });
+}
+function fontDialog() {
+  const can = typeof window.queryLocalFonts === "function";
+  let list = COMMON_FONTS.filter(fontAvail), full = false;
+  const pick = (n) => { n = cleanFont(n); if (!n) return; D.web.font = "custom"; D.web.cfont = n; save(); applyTheme(); render(); toast(`Shrift: ${n}`); };
+  modal(`<h2>Kompyuterdagi shriftlar</h2>
+    <div class="muted" id="fsinfo">${can ? "«Barcha shriftlar» tugmasi kompyuterga o'rnatilgan hamma shriftlarni ko'rsatadi (brauzer ruxsat so'raydi)." : "Bu brauzer o'rnatilgan shriftlar ro'yxatini bermaydi — quyida qurilmada topilgan mashhur shriftlar. Boshqasini nomini yozib tanlashingiz mumkin."}</div>
+    <div class="row" style="gap:8px">${can ? `<button class="btn pri" data-all>🖥 Barcha shriftlar</button>` : ""}<input type="search" id="fsq" placeholder="Qidirish yoki shrift nomi…" style="flex:1;min-width:160px"><button class="btn" data-use>Qo'llash</button></div>
+    <div class="flist" id="fsl"></div>
+    <div class="row"><span class="muted" style="font-size:13px">Shrift faqat shu qurilmada ko'rinadi: boshqa telefon/kompyuterda u bo'lmasa, oddiy shrift chiqadi.</span><span class="sp"></span><button class="btn" data-x>Yopish</button></div>`, (mm, close) => {
+    const q = $("#fsq", mm), box = $("#fsl", mm), cur = D.web.font === "custom" ? cleanFont(D.web.cfont) : "";
+    const draw = () => {
+      const k = q.value.trim().toLowerCase(), L = list.filter((n) => n.toLowerCase().includes(k)).slice(0, 400);
+      box.innerHTML = L.map((n) => `<button data-fn="${esc(n)}" class="${n === cur ? "on" : ""}" style="font-family:&quot;${esc(cleanFont(n))}&quot;,sans-serif"><span>${esc(n)} — Aa Oʻoʻ 123</span><small>${esc(n)}</small></button>`).join("")
+        || `<div class="muted" style="padding:12px">Topilmadi${k ? " — «Qo'llash» tugmasi shu nomni sinab ko'radi" : ""}.</div>`;
+      box.querySelectorAll("[data-fn]").forEach((b) => b.onclick = () => { close(); pick(b.dataset.fn); });
+    };
+    q.oninput = draw; draw();
+    $("[data-x]", mm).onclick = () => close();
+    $("[data-use]", mm).onclick = () => {
+      const n = cleanFont(q.value); if (!n) { q.focus(); return; }
+      if (!full && !list.includes(n) && !fontAvail(n)) { toast(`«${n}» bu qurilmada topilmadi — nomini tekshiring`); return; }
+      close(); pick(n);
+    };
+    q.onkeydown = (e) => { if (e.key === "Enter") $("[data-use]", mm).click(); };
+    const all = $("[data-all]", mm); if (all) all.onclick = async () => {
+      try {
+        const fs = await window.queryLocalFonts();
+        list = [...new Set(fs.map((f) => f.family))].sort((a, b) => a.localeCompare(b)); full = true;
+        $("#fsinfo", mm).textContent = `${list.length} ta shrift topildi. Bittasini tanlang.`; all.remove(); draw();
+      } catch (e) { $("#fsinfo", mm).textContent = "Brauzer shriftlar ro'yxatiga ruxsat bermadi. Quyidagi ro'yxatdan tanlang yoki nomini yozing."; }
+    };
+  });
+}
 function emkDialog(tab = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? "phone" : "pc") {
   const web = /^https?:$/.test(location.protocol);
   const T = [["pc", "💻 Kompyuter"], ["phone", "📱 Telefon"], ["file", "📂 Fayl orqali"]];

@@ -1407,3 +1407,41 @@ test("Sozlamalar: bo'limlar guruhlangan, kalitlar holatni ko'rsatadi, telefonda 
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Dizayn: uslublar va kompyuterdagi shriftlar", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => { S.sec = 3; go("settings"); });
+    assert.equal(await page.locator(".stys [data-sty]").count(), 5);
+    const win = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--win").trim());
+    const before = await win();
+    for (const st of ["minimal", "shisha", "yumshoq", "brutal"]) {
+      await page.click(`[data-sty="${st}"]`);
+      assert.equal(await page.evaluate(() => D.web.style), st);
+      assert.notEqual(await win(), before, `${st}: fon o'zgarishi kerak`);
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1, `${st}: ekrandan chiqmasin`);
+    }
+    await page.click('[data-a="dreset"]');
+    assert.equal(await page.evaluate(() => D.web.style), "klassik");
+    // shriftlar: ro'yxatdan tanlash, qo'lda yozish, mavjud bo'lmagani rad etiladi
+    await page.click('[data-a="sysfont"]');
+    const first = await page.getAttribute(".flist [data-fn]", "data-fn");
+    assert.ok(first, "qurilmada kamida bitta mashhur shrift topilishi kerak");
+    await page.fill("#fsq", "Yo'q Bunday Shrift 123"); await page.click(".modal [data-use]");
+    await page.waitForSelector("text=bu qurilmada topilmadi");
+    assert.notEqual(await page.evaluate(() => D.web.font), "custom");
+    await page.fill("#fsq", ""); await page.click(`.flist [data-fn="${first}"]`);
+    assert.deepEqual(await page.evaluate(() => [D.web.font, D.web.cfont]), ["custom", first]);
+    assert.ok((await page.evaluate(() => getComputedStyle(document.body).fontFamily)).includes(first));
+    assert.ok(await page.isVisible('.fonts [data-font="custom"].on'));
+    // xavfli belgilar CSS ga tushmaydi
+    await page.evaluate(() => { D.web.cfont = 'X";}body{display:none}'; applyTheme(); });
+    assert.equal(await page.evaluate(() => getComputedStyle(document.body).display), "block");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
