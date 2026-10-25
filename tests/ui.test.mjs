@@ -1132,3 +1132,45 @@ test("Hisobotlar: tur kartochkalari, telefonda saralash, solishtirishdan sinfga 
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("To'ldirilmagan darslar, KTR bajarilishi va qo'llanma", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    // o'tgan dars kunida yo'qlama yo'q — ro'yxatda chiqadi, «Hamma keldi» bilan yo'qoladi
+    const d = await page.evaluate(() => {
+      const c = D.classes[2], t = todayIso(), d = c.dates.filter((x) => x < t && !isNoLesson(c, x)).pop();
+      c.students.forEach((s) => { delete s.marks[d]; }); c.att_ok = c.att_ok.filter((x) => x !== d); save(); go("today"); return d;
+    });
+    assert.ok(await page.evaluate((d) => lessonGaps().some((x) => x.ci === 2 && x.d === d && x.noAtt), d));
+    await page.click(`[data-gapok="2|${d}"]`);
+    assert.ok(await page.evaluate((d) => D.classes[2].att_ok.includes(d) && !lessonGaps().some((x) => x.ci === 2 && x.d === d && x.noAtt), d));
+    // mavzu yozib boriladigan sinfda mavzusiz kun — «To'ldirish» mavzular oynasini o'sha kunda ochadi
+    const d0 = await page.evaluate(() => { const g = lessonGaps().find((x) => x.noTopic && !x.noAtt); return g && `${g.ci}|${g.d}`; });
+    if (d0) { await page.click(`[data-gap="${d0}|0"]`); await page.waitForSelector(`.modal [data-lt="${d0.split("|")[1]}"]`); assert.equal(await page.evaluate(() => document.activeElement.dataset.lt), d0.split("|")[1]); await page.click(".modal [data-x]"); }
+    // KTR: oxirgi 4 ta o'tgan darsda mavzu yo'q → 4 soat orqada
+    const k = await page.evaluate(() => {
+      const c = D.classes[0], t = todayIso(), held = c.dates.filter((x) => !isNoLesson(c, x)), past = held.filter((x) => x <= t);
+      // chorak sarlavhasiz reja: har dars kuniga bitta mavzu
+      c.plan = {on: false, topics: parsePlanText(Array.from({length: held.length}, (_, i) => "Mavzu " + (i + 1)).join("\n"))};
+      past.forEach((x, i) => { c.lessons[x] = {topic: i < past.length - 4 ? "Mavzu " + (i + 1) : ""}; });
+      save(); go("today"); return ktrProgress(c);
+    });
+    assert.equal(k.expect - k.done, 4); assert.equal(k.behind, 4);
+    await page.click('[data-ktr="0"]'); await page.waitForSelector(".modal .kprog");
+    assert.ok((await page.textContent(".modal .kprog")).includes("4 soat orqada"));
+    await page.click(".modal [data-x]");
+    // kechki eslatma sozlamasi va bildirishnoma matni
+    await page.evaluate(() => { S.sec = 1; go("settings"); }); await page.selectOption("#eve", "19:00");
+    assert.equal(await page.evaluate(() => D.web.eve), "19:00");
+    // qo'llanma: tabbar'dagi «Yordam» shu sahifa bo'limini ochadi
+    await page.click(".tabbar [data-help]");
+    assert.ok((await page.textContent(".modal [data-ht].on")).includes("Sozlamalar"));
+    await page.click('.modal [data-ht="reports"]'); assert.ok((await page.textContent("#hb")).includes("Ota-onalar majlisi"));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
