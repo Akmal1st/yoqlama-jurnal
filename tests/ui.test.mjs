@@ -1539,3 +1539,74 @@ test("jurnal: sana dars kunlari bo'yicha qo'shiladi; yon panel yig'iladi; ixcham
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqlar, PIN", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1280, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => { window.print = () => {}; });
+    // pullik ta'lim: «Ism, sinfi, telefon» qatorlari, narx — maktabda oylik
+    await page.click(".side [data-go=settings]"); await page.click('[data-sec="0"]'); await page.click("[data-a=addpaid]");
+    await page.fill(".modal #cn", "Ingliz tili kursi");
+    await page.fill(".modal #cl", "Aliyev Sardor, 7-B, 90 123 45 67\nKarimova Madina, 8-A");
+    await page.click(".modal #cw [data-k='0']"); await page.click(".modal [data-ok]");
+    const ci = await page.evaluate(() => D.classes.length - 1);
+    let c = await page.evaluate((i) => D.classes[i], ci);
+    assert.equal(c.kind, "paid"); assert.deepEqual(c.fee, {month: 360000, day: 50000});
+    assert.equal(c.students[0].cls, "7-B"); assert.equal(c.students[0].par.phone, "+998901234567");
+    assert.deepEqual(c.students[1].plan, {t: "month", sum: 360000});
+    assert.equal(await page.evaluate(() => S.jpage), "mem");
+    await page.selectOption("[data-mf='1|pt']", "day");
+    assert.deepEqual(await page.evaluate((i) => D.classes[i].students[1].plan, ci), {t: "day", sum: 50000});
+    // hisob: oylik — oyda dars bo'lsa; kunlik — qatnashgan darslar × narx; sababli qoldirilgani hisoblanmaydi
+    const calc = await page.evaluate((i) => {
+      const c = D.classes[i]; c.dates = ["2026-03-02", "2026-03-04", "2026-03-09"]; c.students.forEach((s) => delete s.joined);
+      c.students[1].marks = {"2026-03-04": "s"}; c.students[0].pays = [{id: "a", no: 1, d: "2026-03-05", m: "2026-03", sum: 200000}];
+      const t = "2026-03-31", [a, b] = c.students;
+      return [chargeOf(c, a, "2026-03", t), chargeOf(c, b, "2026-03", t), debtOf(c, a, t), debtOf(c, b, t), unpaidNow(c, t).length];
+    }, ci);
+    assert.deepEqual(calc, [360000, 100000, 160000, 100000, 2]);
+    // davomat: baho yo'q
+    await page.evaluate(() => { D.classes[D.classes.length - 1].dates.push(todayIso()); save(); render(); });
+    await page.click("[data-jp=j]");
+    assert.equal(await page.locator("table.j th", {hasText: "O'rt."}).count(), 0);
+    assert.equal(await page.locator(".keys [data-k='5']").count(), 0);
+    assert.equal(await page.locator(".keys [data-k='s']").count(), 1);
+    // to'lov yozish va hisobot
+    await page.click("[data-jp=pay]");
+    await page.click("[data-pay='1']"); await page.fill(".modal #ps", "50000"); await page.click(".modal [data-ok]");
+    c = await page.evaluate((i) => D.classes[i], ci);
+    assert.equal(c.students[1].pays.length, 1); assert.equal(c.students[1].pays[0].no, 1); assert.equal(c.rc, 1);
+    await page.click("[data-prep]");
+    assert.match(await page.textContent("#pdoc"), /To'lovlar hisoboti/);
+    // «Bugun»: shu oy to'lamaganlar
+    await page.click(".side [data-go=today]");
+    await page.waitForSelector("text=uchun to'lamaganlar");
+    await page.click(`[data-payci='${ci}']`);
+    assert.equal(await page.evaluate(() => S.jpage), "pay");
+    // PIN qo'yilgan va qulf yopiq — summalar ko'rinmaydi
+    await page.evaluate(() => { D.settings.protect.pin = "x"; unlockedUntil = 0; render(); });
+    assert.equal(await page.locator("table.pay").count(), 0);
+    await page.waitForSelector("text=To'lovlar himoyalangan");
+    await page.evaluate(() => { D.settings.protect.pin = null; render(); });
+    // darsni boshlash: baholar qadami yo'q
+    await page.evaluate((i) => startLesson(i), ci);
+    await page.click("[data-next]");
+    assert.equal(await page.evaluate(() => S.step), 2);
+    // to'garak: yutuq va ko'nikma bahosi
+    await page.evaluate(() => addClassDialog("club"));
+    await page.fill(".modal #cn", "Robototexnika"); await page.fill(".modal #cl", "Aliyev Sardor, 7-B"); await page.click(".modal [data-ok]");
+    const k = await page.evaluate(() => D.classes.length - 1);
+    assert.equal(await page.locator(".jtabs [data-jp]").allTextContents().then((x) => x.join("|")), "Davomat|A'zolar|Yutuqlar");
+    await page.selectOption("[data-mf='0|skill']", "8");
+    await page.click("[data-jp=ach]"); await page.fill("#at", "Robototexnika tanlovi"); await page.selectOption("#al", "Tuman"); await page.click("[data-adda]");
+    const st = await page.evaluate((i) => D.classes[i].students[0], k);
+    assert.equal(st.ach.length, 1); assert.equal(st.ach[0].lvl, "Tuman"); assert.equal(Object.values(st.skill)[0], 8);
+    assert.ok(await page.evaluate((i) => riskOverview().every((r) => r.ci !== i), k));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
