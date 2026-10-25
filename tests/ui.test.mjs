@@ -1081,3 +1081,26 @@ test("Ota-onalar majlisi: har o'quvchiga varaq, xavf filtri, A4 da ikkitadan", a
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Chop etish: telefonda ham hisobot kompyuterdagidek o'lchamda (mayda emas)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const zs = {};
+    for (const [n, viewport] of [["pc", {width: 1300, height: 900}], ["ph", {width: 390, height: 844}]]) {
+      const page = await browser.newPage({viewport});
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      zs[n] = await page.evaluate(() => {
+        // 30 o'quvchili sinf
+        const c = D.classes[0]; while (c.students.length < 30) c.students.push(Object.assign(clone(c.students[c.students.length % 14]), {name: "Qo'shimcha O'quvchi " + c.students.length}));
+        S.rep = {ci: 0, per: "cur", kind: "cls"}; go("reports"); return fitPrint();
+      });
+      // o'lchashdan keyin telefon ko'rinishi joyiga qaytadi
+      if (n === "ph") assert.equal(await page.$eval("table.r tr:nth-child(2)", (e) => getComputedStyle(e).display), "flex");
+      await page.close();
+    }
+    assert.ok(Math.abs(zs.pc - zs.ph) < 0.05, JSON.stringify(zs));
+    assert.ok(zs.ph > 0.6, JSON.stringify(zs));
+  } finally { await browser.close(); }
+});

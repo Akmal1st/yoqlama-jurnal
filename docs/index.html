@@ -355,17 +355,17 @@ table.r tr:hover td{background:var(--alt)}
   /* «xavf» belgisi telefonda qizil nuqta (to'liq so'z kartochkada) */
   table.j .nm .badge{display:inline-block;width:8px;height:8px;padding:0;margin:0 0 1px 5px;font-size:0;background:#d92d20;vertical-align:middle}
   /* hisobot jadvallari telefonda kartochka ko'rinishida — har qiymat yonida nomi */
-  table.r,table.r tbody,table.r tr,table.r td{display:block}
-  table.r tr:first-child{display:none}
-  table.r tr{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px;background:var(--base)}
-  table.r tr:hover td{background:transparent}
-  table.r td{border:0;padding:0;font-size:14px}
-  table.r td:empty{display:none}
-  table.r td[data-l]::before{content:attr(data-l) ": ";color:var(--muted);font-size:12.5px;font-weight:400}
-  table.r td.hd{flex:1 1 60%;font-weight:700;font-size:15.5px}
-  table.r td.hd::before,table.r td.no::before{content:none}
-  table.r td.no{color:var(--muted);font-weight:700}
-  table.r td.wide{flex-basis:100%}
+  body:not(.pmeas) table.r,body:not(.pmeas) table.r tbody,body:not(.pmeas) table.r tr,body:not(.pmeas) table.r td{display:block}
+  body:not(.pmeas) table.r tr:first-child{display:none}
+  body:not(.pmeas) table.r tr{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px;background:var(--base)}
+  body:not(.pmeas) table.r tr:hover td{background:transparent}
+  body:not(.pmeas) table.r td{border:0;padding:0;font-size:14px}
+  body:not(.pmeas) table.r td:empty{display:none}
+  body:not(.pmeas) table.r td[data-l]::before{content:attr(data-l) ": ";color:var(--muted);font-size:12.5px;font-weight:400}
+  body:not(.pmeas) table.r td.hd{flex:1 1 60%;font-weight:700;font-size:15.5px}
+  body:not(.pmeas) table.r td.hd::before,body:not(.pmeas) table.r td.no::before{content:none}
+  body:not(.pmeas) table.r td.no{color:var(--muted);font-weight:700}
+  body:not(.pmeas) table.r td.wide{flex-basis:100%}
   .lrow .who{flex:1 1 calc(100% - 44px)}
   .foot>.muted,.foot>span:not(.sp){flex:1 1 100%}
   .foot .btn{flex:1 1 auto}
@@ -3119,13 +3119,19 @@ function fitPrint() {
   const sec = $("main section.card"), kind = S.rep && S.rep.kind;
   let st = document.getElementById("pfit-css"); if (st) st.remove();
   if (S.page !== "reports" || !sec || kind === "blank" || kind === "par") return;
-  const land = kind !== "ready", mm = 96 / 25.4, pw = (land ? 277 : 190) * mm, ph = (land ? 190 : 277) * mm;
+  const mm = 96 / 25.4;
   sec.classList.add("pfit"); document.body.classList.add("pmeas");
   const old = sec.style.width; sec.style.setProperty("--pz", "1");
   // zoom kichraysa, sahifa kengligi CSS pikselda kattalashadi va matn kamroq bo'linadi — shuning uchun ikkilik qidiruv
-  const fits = (z) => { sec.style.width = pw / z + "px"; return sec.scrollHeight * z <= ph * 0.95 && sec.scrollWidth <= pw / z + 1; };
-  let z = 1;
-  if (!fits(1)) { let a = 0.2, b = 1; for (let i = 0; i < 12; i++) { const mid = (a + b) / 2; if (fits(mid)) a = mid; else b = mid; } z = a; }
+  const best = (land) => {
+    const pw = (land ? 277 : 190) * mm, ph = (land ? 190 : 277) * mm;
+    const fits = (z) => { sec.style.width = pw / z + "px"; return sec.scrollHeight * z <= ph * 0.95 && sec.scrollWidth <= pw / z + 1; };
+    if (fits(1)) return 1;
+    let a = 0.2, b = 1; for (let i = 0; i < 12; i++) { const mid = (a + b) / 2; if (fits(mid)) a = mid; else b = mid; }
+    return a;
+  };
+  // varaq yo'nalishi: qaysi birida yozuv kattaroq chiqsa, o'sha (teng bo'lsa — odatiy)
+  const pref = kind !== "ready", zp = best(pref), zo = best(!pref), land = zo > zp * 1.05 ? !pref : pref, z = land === pref ? zp : zo;
   sec.style.width = old; document.body.classList.remove("pmeas");
   sec.style.setProperty("--pz", z.toFixed(3));
   st = document.createElement("style"); st.id = "pfit-css";
