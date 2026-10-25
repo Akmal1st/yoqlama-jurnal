@@ -1445,3 +1445,48 @@ test("Dizayn: uslublar va kompyuterdagi shriftlar", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Jurnal: o'tgan darslar, sana menyusi, qidiruv va saralash", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1280, height: 900}});
+    await page.clock.setFixedTime(new Date("2026-10-23T10:00:00"));
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => { S.ci = 0; go("journal"); });
+    // 7 kun ichidagi o'tgan dars va 7 kundan eskisi
+    const [near, far] = await page.evaluate(() => { const c = D.classes[0], t = todayIso(), ok = c.dates.filter((d) => d < t && !isNoLesson(c, d));
+      return [ok.filter((d) => (pdate(t) - pdate(d)) / 864e5 <= 7).pop(), ok.find((d) => (pdate(t) - pdate(d)) / 864e5 > 7)]; });
+    assert.ok(near && far);
+    // bo'sh katakli o'quvchi (himoya faqat qo'yilgan bahoni o'zgartirishni to'sadi)
+    const put = (d) => page.evaluate((d) => { const c = D.classes[0], si = c.students.findIndex((s) => !s.marks[d]); return putMark(c, si, d, "7", true); }, d);
+    assert.equal(await put(near), false, "standart: faqat bugun");
+    await page.evaluate(() => { S.sec = 2; go("settings"); });
+    await page.click('[data-past="week"]');
+    assert.equal(await put(near), true); assert.equal(await put(far), false);
+    await page.click('[data-past="all"]'); assert.equal(await put(far), true);
+    assert.equal(await page.evaluate(() => putMark(D.classes[0], 1, "2099-01-01", "7", true)), false, "kelajakka yo'q");
+    // sana menyusi: mavzu saqlanadi, «hamma keldi»
+    await page.evaluate((d) => { V.anchor = d; S.ci = 0; go("journal"); }, near);
+    await page.click(`th[data-col="${near}"]`);
+    await page.fill("#cmt", "Kasrlar"); await page.fill("#cmh", "12-mashq"); await page.click(".modal [data-sv]");
+    assert.deepEqual(await page.evaluate((d) => [D.classes[0].lessons[d].topic, D.classes[0].lessons[d].hw], near), ["Kasrlar", "12-mashq"]);
+    assert.ok(await page.isVisible("table.j tr.ft"), "ustun xulosasi qatori");
+    // saralash: o'rtacha baho bo'yicha, ↓ tugmasi ham shu tartibda yuradi
+    await page.selectOption("#jsort", "avgd");
+    const avgs = await page.$$eval("table.j tr[data-q] td.s:not(.a)", (t) => t.map((x) => parseFloat(x.textContent)).filter((v) => !isNaN(v)));
+    assert.deepEqual(avgs, [...avgs].sort((a, b) => b - a));
+    const ord = await page.evaluate(() => S.jord.slice(0, 2));
+    await page.evaluate((si) => { S.sel = [si, todayIso()]; render(); }, ord[0]);
+    await page.keyboard.press("ArrowDown");
+    assert.equal(await page.evaluate(() => S.sel[0]), ord[1]);
+    // qidiruv
+    const nm = await page.evaluate(() => D.classes[0].students[3].name);
+    await page.fill("#jq", nm.split(" ")[0].toLowerCase());
+    const vis = await page.$$eval("table.j tr[data-q]", (t) => t.filter((x) => x.style.display !== "none").length);
+    assert.ok(vis >= 1 && vis < await page.evaluate(() => D.classes[0].students.length));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
