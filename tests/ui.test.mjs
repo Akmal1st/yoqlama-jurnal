@@ -939,3 +939,31 @@ test("Qarzdorlar: past baho va topshirilmagan ish, qayta topshirish", async () =
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("«Yana» menyusi: bo'limlar va qidiruv", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.click(".tabbar [data-go=journal]"); await page.click("[data-more]");
+    const heads = await page.$$eval(".modal .mgrp h3", (x) => x.map((e) => e.textContent));
+    assert.deepEqual(heads.slice(0, 3), ["Darsda", "O'quvchilar", "Ota-onalar"]);
+    await page.fill("#mq", "tugʻilgan");
+    const vis = await page.$$eval(".modal [data-i]", (x) => x.filter((b) => b.offsetParent).map((b) => b.textContent));
+    assert.deepEqual(vis, ["🎂 Tug'ilgan kunlar"]);
+    assert.equal(await page.$$eval(".modal .mgrp", (x) => x.filter((g) => g.offsetParent).length), 1);
+    await page.fill("#mq", "ota-ona");
+    assert.equal(await page.$$eval(".modal [data-i]", (x) => x.filter((b) => b.offsetParent).length), 2, "bo'lim nomi bo'yicha ham topiladi");
+    await page.fill("#mq", "zzzz"); assert.ok(await page.isVisible("#mq0"));
+    await page.fill("#mq", "chaqir"); await page.press("#mq", "Enter");
+    await page.waitForSelector(".modal >> text=Doskaga");
+    // o'quvchi tanlanganda uning bo'limi birinchi chiqadi
+    await page.click(".modal [data-x]").catch(() => {}); await page.evaluate(() => { document.querySelectorAll(".modal").forEach((m) => m.remove()); S.sel = [0, D.classes[S.ci].dates[0]]; });
+    await page.click("[data-more]");
+    assert.ok((await page.textContent(".modal .mgrp h3")).startsWith("Tanlangan:"));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
