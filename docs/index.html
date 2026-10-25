@@ -1884,7 +1884,7 @@ async function moreMenu() {
       ["📇 O'quvchi kartochkasi", () => studentCard(S.ci, sel.name)],
       ["✎ Ismini o'zgartirish", () => renameStudent(S.ci, S.sel[0])],
       [sel.star ? "⭐ Kuzatuvdan olib tashlash" : "⭐ Kuzatuvga qo'shish", () => { sel.star = !sel.star; save(); render(); }],
-      ["⏸ Faolsizlantirish", () => { deactivate(c, [S.sel[0]]); render(); toast(`«${sel.name}» faolsizlantirildi — qaytarish: ↶`); }],
+      ["⏸ Faolsizlantirish", async () => { deactivate(c, [S.sel[0]]); render(); const n = await askOthers(c, [sel.name], false); toast(`«${sel.name}» faolsizlantirildi${n ? ` (yana ${n} ta fanda)` : ""} — qaytarish: ↶`); }],
       ["✕ Shu kunni «dars yo'q» deb belgilash / qaytarish", () => toggleX(c, S.sel[1])],
     ]],
     ["Darsda", [
@@ -2476,11 +2476,32 @@ async function renameStudent(ci, si) {
    Faolsizlar c.students_off da turadi (kompyuter dasturi bu kalitni bilmaydi, shuning uchun u yerda ham ko'rinmaydi). */
 const nMarks = (s) => Object.keys(s.marks).length + Object.keys(s.scores || {}).length;
 const offLog = (c, s, kind) => (D.changelog = D.changelog || []).push({t: new Date().toISOString().slice(0, 19), cls: label(c), student: s.name, date: "", old: kind === "off" ? "faol" : "faolsiz", new: kind === "off" ? "faolsiz" : "faol", kind: kind === "off" ? "deactivate" : "activate"});
-function deactivate(c, idx) {
+function deactivate(c, idx, join = false) {
   const items = idx.slice().sort((a, b) => a - b).map((i) => [i, c.students[i]]);
   for (const [i, st] of items) { st.off = {at: todayIso(), prev: i ? c.students[i - 1].name : null}; c.students_off.push(st); offLog(c, st, "off"); }
   c.students = c.students.filter((_, i) => !idx.includes(i));
-  pushUndo([{kind: "off", c, items: items.map(([, st]) => st)}]); S.sel = null; save();
+  const u = {kind: "off", c, items: items.map(([, st]) => st)};
+  // join — oldingi faolsizlantirish bilan bitta ↶ da qaytadi (boshqa fanlar)
+  if (join && UNDO.length && UNDO[UNDO.length - 1][0].kind === "off") UNDO[UNDO.length - 1].push(u); else pushUndo([u]);
+  S.sel = null; save();
+}
+/* shu sinfning boshqa fanlari (sinf nomi bir xil) va ulardagi shu ismli o'quvchilar: off=true — faolsizlar ichidan */
+function sameInOthers(c, names, off = false) {
+  const want = new Set(names.map(normName));
+  return D.classes.filter((o) => o !== c && clsKey(o.name) === clsKey(c.name))
+    .map((o) => ({c: o, list: (off ? o.students_off : o.students).filter((s) => want.has(normName(s.name)))})).filter((x) => x.list.length);
+}
+const subjList = (others) => others.map((x) => x.c.subject || x.c.name).join(", ");
+function offOthers(others) {
+  for (const {c, list} of others) deactivate(c, list.map((s) => c.students.indexOf(s)).filter((i) => i >= 0), true);
+}
+async function askOthers(c, names, off) {
+  const others = sameInOthers(c, names, off); if (!others.length) return 0;
+  const who = names.length === 1 ? `«${names[0]}»` : `${names.length} ta o'quvchi`;
+  if (!await confirmBox(off ? "Boshqa fanlarda ham faollashtirish" : "Boshqa fanlarda ham faolsizlantirish",
+    `${who} ${c.name} sinfining boshqa fanlarida ham bor: ${subjList(others)}.\nUlarda ham ${off ? "faollashtirilsinmi" : "faolsizlantirilsinmi"}?`, off ? "Ha, faollashtirish" : "Ha, faolsizlantirish")) return 0;
+  if (off) for (const x of others) activate(x.c, x.list); else offOthers(others);
+  render(); return others.length;
 }
 function activate(c, list) {
   for (const st of list) {
@@ -2505,21 +2526,27 @@ function studentsDialog(ci, hint = [], why = "") {
     <div class="col" style="gap:0;max-height:40vh;overflow:auto">${c.students.map((s, i) => `<label class="row" style="gap:10px;flex-wrap:nowrap;padding:8px 2px;border-top:1px solid var(--soft)">
       <input type="checkbox" data-rm="${i}" ${pre.has(normName(s.name)) ? "checked" : ""} style="width:22px;height:22px;flex:none">
       <span class="sp"><b>${esc(s.name)}</b>${pre.has(normName(s.name)) && why ? ' <span class="badge">faylda yo\'q</span>' : ""}<br><span class="muted" style="font-size:13px">${nMarks(s) ? nMarks(s) + " ta belgi/ball" : "belgi yo'q"}</span></span></label>`).join("") || `<div class="muted">Faol o'quvchi yo'q</div>`}</div>
+    <div class="row" id="oth" style="display:none"><label class="row" style="gap:8px;flex-wrap:nowrap"><input type="checkbox" id="othc" checked style="width:20px;height:20px;flex:none"><span>Boshqa fanlarda ham: <b id="othl"></b></span></label></div>
     <div class="row"><span class="sp"></span><button class="btn pri" data-ok>Faolsizlantirish</button></div>
     ${off.length ? `<b>Faolsiz (${off.length})</b><div class="col" style="gap:0;max-height:30vh;overflow:auto">${off.map((s, k) => `<div class="row" style="gap:8px;flex-wrap:nowrap;padding:8px 2px;border-top:1px solid var(--soft)">
       <span class="sp"><b>${esc(s.name)}</b><br><span class="muted" style="font-size:13px">${s.off?.at ? fmt(s.off.at) + " dan faolsiz" : "faolsiz"} · ${nMarks(s)} ta belgi/ball</span></span>
       <button class="btn sm" data-on="${k}">↺ Faollashtirish</button><button class="btn sm danger" data-del="${k}" title="Butunlay o'chirish">✕</button></div>`).join("")}</div>` : ""}
     <div class="row"><span class="sp"></span><button class="btn" data-x>Yopish</button></div>`, (mm, close) => {
     const boxes = [...mm.querySelectorAll("[data-rm]")], ok = $("[data-ok]", mm);
-    const upd = () => { const n = boxes.filter((b) => b.checked).length; ok.disabled = !n; ok.textContent = n ? `${n} ta o'quvchini faolsizlantirish` : "Faolsizlantirish"; };
+    const picked = () => boxes.filter((b) => b.checked).map((b) => c.students[+b.dataset.rm].name);
+    const upd = () => {
+      const n = boxes.filter((b) => b.checked).length; ok.disabled = !n; ok.textContent = n ? `${n} ta o'quvchini faolsizlantirish` : "Faolsizlantirish";
+      const o = n ? sameInOthers(c, picked()) : []; $("#oth", mm).style.display = o.length ? "" : "none"; $("#othl", mm).textContent = subjList(o);
+    };
     boxes.forEach((b) => b.onchange = upd); upd();
     mm.querySelectorAll("[data-sel]").forEach((b) => b.onclick = () => { boxes.forEach((x) => x.checked = b.dataset.sel === "empty" && !nMarks(c.students[+x.dataset.rm])); upd(); });
     $("[data-x]", mm).onclick = () => close();
     ok.onclick = () => {
-      const idx = boxes.filter((b) => b.checked).map((b) => +b.dataset.rm); close(); deactivate(c, idx); render();
-      toast(`${idx.length} ta o'quvchi faolsizlantirildi — qaytarish: ↶ yoki «Faollashtirish»`);
+      const idx = boxes.filter((b) => b.checked).map((b) => +b.dataset.rm), o = $("#othc", mm).checked ? sameInOthers(c, picked()) : [];
+      close(); deactivate(c, idx); offOthers(o); render();
+      toast(`${idx.length} ta o'quvchi faolsizlantirildi${o.length ? ` (yana: ${subjList(o)})` : ""} — qaytarish: ↶ yoki «Faollashtirish»`);
     };
-    mm.querySelectorAll("[data-on]").forEach((b) => b.onclick = () => { const st = off[+b.dataset.on]; close(); activate(c, [st]); render(); toast(`«${st.name}» qayta faollashtirildi`); studentsDialog(ci); });
+    mm.querySelectorAll("[data-on]").forEach((b) => b.onclick = async () => { const st = off[+b.dataset.on]; close(); activate(c, [st]); render(); const n = await askOthers(c, [st.name], true); toast(`«${st.name}» qayta faollashtirildi${n ? ` (yana ${n} ta fanda)` : ""}`); studentsDialog(ci); });
     mm.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => {
       const st = off[+b.dataset.del], n = nMarks(st); close();
       if (n && isLocked() && !await unlock()) return;
@@ -2548,9 +2575,10 @@ function pushUndo(batch) { if (batch.length) { UNDO.push(batch); if (UNDO.length
 async function undoLast() {
   const batch = UNDO.pop(); if (!batch) { toast("Bekor qilinadigan o'zgarish yo'q"); return; }
   if (batch[0].kind === "off") {
-    const {c, items} = batch[0], back = items.filter((st) => c.students_off.includes(st));
-    if (!D.classes.includes(c) || !back.length) { toast("Bu o'quvchilar allaqachon faol"); return; }
-    activate(c, back); render(); toast(`${back.length} ta o'quvchi qayta faollashtirildi`); return;
+    let n = 0;
+    for (const {c, items} of batch) { const back = items.filter((st) => c.students_off.includes(st)); if (D.classes.includes(c) && back.length) { activate(c, back); n += back.length; } }
+    if (!n) { toast("Bu o'quvchilar allaqachon faol"); return; }
+    render(); toast(`${batch.length > 1 ? `${batch.length} ta fanda ` : ""}${n} ta o'quvchi qayta faollashtirildi`); return;
   }
   const live = batch.filter((u) => D.classes.includes(u.c) && u.c.students.includes(u.s) &&
     ((u.kind === "mark" ? u.s.marks[u.key] : (u.s.scores || {})[u.key]) ?? "") === u.nw);
