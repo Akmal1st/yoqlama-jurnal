@@ -1686,7 +1686,7 @@ let toastT = null;
 function toast(msg) {
   document.querySelectorAll(".toast").forEach((e) => e.remove());
   const el = h(`<div class="toast">${esc(msg)}</div>`); document.body.append(el);
-  clearTimeout(toastT); toastT = setTimeout(() => el.remove(), 3500);
+  clearTimeout(toastT); toastT = setTimeout(() => el.remove(), Math.max(3500, String(msg).length * 55));
 }
 // ixcham dizaynda qisqargan tugma yozuvi — sichqoncha ustiga borganda to'liq ko'rinadi
 function fitTitles(root) {
@@ -5121,13 +5121,33 @@ const tgOn = () => { const c = tgCfg(); return !!(c.token && c.chat); };
 function tgDev() { let c = tgCfg(); if (!c.dev) c = tgSet({dev: Math.random().toString(36).slice(2, 8)}); return c.dev; }
 const tgAge = () => { const l = tgCfg().last; return tgOn() && l ? Math.floor((Date.now() - Date.parse(l)) / 864e5) : null; };
 const djb = (t) => { let x = 5381; for (let i = 0; i < t.length; i++) x = (x * 33 ^ t.charCodeAt(i)) >>> 0; return x.toString(36) + t.length; };
+// Bot API so'rovi «oddiy» ko'rinishda (form yoki FormData): JSON sarlavhasi brauzerni avval OPTIONS so'rovini yuborishga majbur qilardi,
+// ba'zi tarmoqlarda u o'tmay «Telegram'ga ulanib bo'lmadi» chiqardi
 async function tgApi(method, params, token = tgCfg().token) {
-  const fd = params instanceof FormData;
-  const r = await fetch(`https://api.telegram.org/bot${token}/${method}`, {method: "POST", body: fd ? params : JSON.stringify(params || {}), headers: fd ? {} : {"Content-Type": "application/json"}});
+  const body = params instanceof FormData ? params : new URLSearchParams(Object.entries(params || {}).map(([k, v]) => [k, typeof v === "object" ? JSON.stringify(v) : String(v)]));
+  const r = await tgFetch(`https://api.telegram.org/bot${token}/${method}`, {method: "POST", body});
   const j = await r.json().catch(() => ({}));
   if (!j.ok) throw new Error(j.description || `Telegram javob bermadi (${r.status})`);
   return j.result;
 }
+// tarmoq xatosi: bir marta qayta urinadi, so'ng sababini aniqlab tushunarli xabar beradi
+async function tgFetch(url, opt = {}, ms = 25000) {
+  for (let k = 0; ; k++) {
+    const ac = new AbortController(), tm = setTimeout(() => ac.abort(), ms);
+    try { return await fetch(url, Object.assign({}, opt, {signal: ac.signal})); }
+    catch (e) { if (k) throw await tgNetErr(e); await new Promise((r) => setTimeout(r, 1500)); }
+    finally { clearTimeout(tm); }
+  }
+}
+async function tgNetErr(e) {
+  if (navigator.onLine === false) return Object.assign(new Error("Internet yo'q — ulanib, qayta urinib ko'ring"), {net: "off"});
+  let reach = false;
+  try { await fetch("https://api.telegram.org/", {mode: "no-cors", cache: "no-store"}); reach = true; } catch (x) { /* server ochilmadi */ }
+  if (reach) return Object.assign(new Error("Telegram serveri ochildi, lekin brauzer javobni qabul qilmadi — sahifani yangilab, qayta urinib ko'ring"), {net: "cors"});
+  return Object.assign(new Error(e && e.name === "AbortError" ? "Telegram javob bermadi (vaqt tugadi) — internet sekin yoki Telegram tarmog'ingizda to'silgan. VPN yoqib, qayta urinib ko'ring"
+    : "Telegram serveriga ulanib bo'lmadi — internetni tekshiring. Telegram ilovasi VPN bilan ishlasa, brauzerda ham VPN yoqing"), {net: "down"});
+}
+const tgErrTxt = (e) => e.net ? e.message : "Telegram: " + e.message;
 let TG_NEW = null, tgBusy = false; // TG_NEW — boshqa qurilmadan kelgan yangiroq zaxira (Bugun sahifasida taklif qilinadi)
 async function tgBackup(force) {
   const c = tgCfg(); if (!c.token || !c.chat || tgBusy) return false;
@@ -5154,7 +5174,9 @@ async function tgPinned() {
 function djbData() { const w = D.web.saved; delete D.web.saved; const h = djb(JSON.stringify(D)); if (w) D.web.saved = w; return h; }
 async function tgPull(pm) {
   const f = await tgApi("getFile", {file_id: pm.document.file_id});
-  const data = await (await fetch(`https://api.telegram.org/file/bot${tgCfg().token}/${f.file_path}`)).json();
+  let data;
+  try { data = await (await tgFetch(`https://api.telegram.org/file/bot${tgCfg().token}/${f.file_path}`)).json(); }
+  catch (e) { if (e.net === "cors") throw Object.assign(new Error("Zaxira faylini brauzer yuklay olmadi. Botdagi oxirgi faylni telefonga saqlab, «Sozlamalar → Ma'lumotlar → Fayldan yuklash» orqali oching"), {net: "file"}); throw e; }
   if (!data || !Array.isArray(data.classes)) throw new Error("bu jurnal fayli emas");
   if (tooNew(data)) throw new Error("zaxira ilovaning yangiroq versiyasida saqlangan — sahifani yangilang");
   D = migrate(normalize(data)); autoDates(); save(); TG_NEW = null;
@@ -5201,7 +5223,7 @@ function tgSetup() {
           await tgApi("sendMessage", {chat_id: u.message.chat.id, text: "✅ Yo'qlama jurnali ulandi. Zaxira nusxalar shu yerga keladi, oxirgisi doim tepada qadalgan turadi."});
           TG_NEW = null; await tgAuto(); close(true);
         }
-      } catch (e) { toast(e.message === "Failed to fetch" ? "Telegram'ga ulanib bo'lmadi — internetni tekshiring" : e.message); }
+      } catch (e) { toast(e.message); }
       ok.disabled = false;
     };
   });
@@ -5221,7 +5243,7 @@ async function tgAction(a) {
       if (!await confirmBox("Telegram'ni uzish", "Avtomatik zaxira to'xtaydi. Botdagi eski fayllar o'chmaydi.", "Uzish")) return;
       const c = tgCfg(); localStorage.setItem(TG_KEY, JSON.stringify({dev: c.dev})); TG_NEW = null; render();
     }
-  } catch (e) { toast(e.message === "Failed to fetch" ? "Telegram'ga ulanib bo'lmadi — internetni tekshiring" : "Telegram: " + e.message); }
+  } catch (e) { toast(tgErrTxt(e)); }
 }
 
 /* ───────── PWA: o'rnatish va oflayn ishlash ───────── */
