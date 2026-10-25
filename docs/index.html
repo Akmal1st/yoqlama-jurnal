@@ -118,7 +118,7 @@ table.j .sn{display:none}
 .tag.now{background:var(--acc);color:#fff;padding:2px 8px;border-radius:99px;margin-left:6px}
 table.sch td{padding:0}table.sch select{min-width:96px;min-height:36px;padding:4px 6px;font-size:13px}table.sch td.bl{display:flex;flex-direction:column;gap:2px;align-items:center;padding:2px 4px}table.sch td.bl input{width:104px;min-height:32px;padding:2px 6px;font-size:13px;text-align:center}
 .badge{font-size:11px;font-weight:800;color:#b42318;background:#fde8e6;padding:1px 7px;border-radius:99px;margin-left:6px;white-space:nowrap}
-input[type=text],input[type=tel],input[type=date],input[type=password],input[type=number],select,textarea{background:var(--base);border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-height:40px;width:100%}
+input[type=text],input[type=search],input[type=tel],input[type=date],input[type=password],input[type=number],select,textarea{background:var(--base);border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-height:40px;width:100%}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:-1px}
 textarea{min-height:120px;resize:vertical}
 label.f{display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:14px}
@@ -231,6 +231,8 @@ table.j td.nm[data-st]{cursor:pointer}
 .nmlink{padding:0;text-align:left;color:var(--text)}
 /* kartochka */
 .modal .card.wide{width:min(760px,100%)}
+.mgrp{display:flex;flex-direction:column;gap:6px}.mgrp h3{margin:2px 0 0;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}@media(max-width:560px){.mgrid{grid-template-columns:1fr 1fr}}.mgrid .btn{justify-content:flex-start;text-align:left;white-space:normal;line-height:1.25}.mgrid [hidden],.mgrp[hidden]{display:none}
 .seg.tabs{flex-wrap:wrap}
 svg.growth{width:100%;height:auto;background:var(--alt);border-radius:10px}
 svg.stat{width:100%;height:auto;background:var(--alt);border-radius:10px}svg.stat .pt:hover circle:last-of-type{r:6}svg.stat .pt:hover path{opacity:.85}
@@ -288,7 +290,7 @@ h2{font-size:21px;font-weight:700;letter-spacing:-.005em}
 .seg{background:var(--soft);border-radius:12px}
 .seg button{border-radius:9px;transition:background .15s,color .15s}
 .seg button.on{box-shadow:0 1px 3px rgba(60,45,20,.18)}
-input[type=text],input[type=tel],input[type=date],input[type=password],input[type=number],select,textarea{border-radius:12px;transition:border-color .15s,box-shadow .15s}
+input[type=text],input[type=search],input[type=tel],input[type=date],input[type=password],input[type=number],select,textarea{border-radius:12px;transition:border-color .15s,box-shadow .15s}
 input:focus,select:focus,textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
 .av{border-radius:50%;background:var(--acc-soft);color:var(--acc);font-size:14px;letter-spacing:.02em}
 .item{border-top-color:var(--soft)}
@@ -1578,36 +1580,66 @@ document.addEventListener("keydown", (e) => {
   e.preventDefault(); S.sel = part ? [si, ds[di], part] : [si, ds[di]]; const sl = $("#tw").scrollLeft; render(); $("#tw").scrollLeft = sl;
 });
 async function moreMenu() {
-  const c = D.classes[S.ci], t = todayIso();
-  const acts = [
-    ["＋ O'quvchi qo'shish", () => addStudents(S.ci)],
-    S.sel && ["✎ Tanlangan o'quvchi ismini o'zgartirish", () => renameStudent(S.ci, S.sel[0])],
-    S.sel && ["⏸ Tanlangan o'quvchini faolsizlantirish", () => { const st = c.students[S.sel[0]]; deactivate(c, [S.sel[0]]); render(); toast(`«${st.name}» faolsizlantirildi — qaytarish: ↶`); }],
-    [`⏸ Faol / faolsiz o'quvchilar${c.students_off.length ? ` (${c.students_off.length} faolsiz)` : ""}`, () => studentsDialog(S.ci)],
-    S.sel && ["⭐ Kuzatuvga qo'shish / olib tashlash", () => { const s = c.students[S.sel[0]]; s.star = !s.star; save(); render(); }],
-    S.sel && ["📇 O'quvchi kartochkasi", () => studentCard(S.ci, c.students[S.sel[0]].name)],
-    ["🎲 Doskaga chaqirish (tasodifiy o'quvchi)", () => callDialog(S.ci)],
-    ["👥 Guruhlarga bo'lish", () => groupsDialog(S.ci)],
-    ["🪑 O'rindiq xaritasi", () => seatsDialog(S.ci)],
-    ["🎂 Tug'ilgan kunlar", () => bdaysDialog(S.ci)],
-    ["📝 Mavzular va uy vazifalari", () => lessonsDialog(S.ci)],
-    ["✉️ Ota-onalarga xabarlar (butun sinf)", () => parentBulk(S.ci)],
-    ["👪 Ota-onalar kontaktlari", () => parentsDialog(S.ci)],
-    ["📌 Qarzdorlar (qayta topshirish)", () => debtsDialog(S.ci)],
-    ["📚 Kalendar-tematik reja (KTR)", () => ktrDialog(S.ci)],
-    ["📊 BSB / CHSB ballari", () => { S.jpage = "sum"; render(); }],
-    ["🔍 BSB tahlili (savollar bo'yicha)", () => { S.jpage = "bsb"; render(); }],
-    UNDO.length && ["↶ Oxirgi o'zgarishni bekor qilish", undoLast],
-    !c.dates.includes(t) && ["📅 Bugunni dars kuni qilish", () => { c.dates.push(t); c.dates.sort(); save(); V.anchor = t; render(); }],
-    S.sel && ["✕ Tanlangan kunni «dars yo'q» deb belgilash / qaytarish", () => toggleX(c, S.sel[1])],
-    ["✎ Sinf nomi va fani", () => editClass(S.ci)],
-  ].filter(Boolean);
-  const r = await modal(`<h2>${esc(label(c))}</h2>${acts.map((a, i) => `<button class="btn" style="justify-content:flex-start" data-i="${i}">${a[0]}</button>`).join("")}
+  const c = D.classes[S.ci], t = todayIso(), sel = S.sel && c.students[S.sel[0]];
+  // bo'limlar: [sarlavha, [[matn, amal], ...]] — false bo'lgan bandlar tushib qoladi
+  const groups = [
+    sel && [`Tanlangan: ${sel.name}`, [
+      ["📇 O'quvchi kartochkasi", () => studentCard(S.ci, sel.name)],
+      ["✎ Ismini o'zgartirish", () => renameStudent(S.ci, S.sel[0])],
+      [sel.star ? "⭐ Kuzatuvdan olib tashlash" : "⭐ Kuzatuvga qo'shish", () => { sel.star = !sel.star; save(); render(); }],
+      ["⏸ Faolsizlantirish", () => { deactivate(c, [S.sel[0]]); render(); toast(`«${sel.name}» faolsizlantirildi — qaytarish: ↶`); }],
+      ["✕ Shu kunni «dars yo'q» deb belgilash / qaytarish", () => toggleX(c, S.sel[1])],
+    ]],
+    ["Darsda", [
+      ["🎲 Doskaga chaqirish", () => callDialog(S.ci)],
+      ["👥 Guruhlarga bo'lish", () => groupsDialog(S.ci)],
+      ["🪑 O'rindiq xaritasi", () => seatsDialog(S.ci)],
+      ["📝 Mavzular va uy vazifalari", () => lessonsDialog(S.ci)],
+      ["📚 KTR (kalendar-tematik reja)", () => ktrDialog(S.ci)],
+    ]],
+    ["O'quvchilar", [
+      ["＋ O'quvchi qo'shish", () => addStudents(S.ci)],
+      [`⏸ Faolsiz o'quvchilar${c.students_off.length ? ` (${c.students_off.length})` : ""}`, () => studentsDialog(S.ci)],
+      ["🎂 Tug'ilgan kunlar", () => bdaysDialog(S.ci)],
+      ["📌 Qarzdorlar", () => debtsDialog(S.ci)],
+    ]],
+    ["Ota-onalar", [
+      ["👪 Kontaktlar", () => parentsDialog(S.ci)],
+      ["✉️ Xabarlar (butun sinf)", () => parentBulk(S.ci)],
+    ]],
+    ["Baholash", [
+      ["📊 BSB / CHSB ballari", () => { S.jpage = "sum"; render(); }],
+      ["🔍 BSB tahlili", () => { S.jpage = "bsb"; render(); }],
+    ]],
+    ["Jurnal", [
+      UNDO.length && ["↶ Oxirgi o'zgarishni bekor qilish", undoLast],
+      !c.dates.includes(t) && ["📅 Bugunni dars kuni qilish", () => { c.dates.push(t); c.dates.sort(); save(); V.anchor = t; render(); }],
+      ["✎ Sinf nomi va fani", () => editClass(S.ci)],
+    ]],
+  ].filter(Boolean).map(([h, l]) => [h, l.filter(Boolean)]).filter(([, l]) => l.length);
+  const acts = groups.flatMap(([, l]) => l);
+  let k = 0;
+  const r = await modal(`<h2>${esc(label(c))}</h2>
+    <input type="search" id="mq" placeholder="🔍 Funksiyani qidirish" autocomplete="off">
+    ${groups.map(([h, l]) => `<section class="mgrp"><h3>${esc(h)}</h3><div class="mgrid">${l.map((a) => `<button class="btn" data-i="${k++}">${a[0]}</button>`).join("")}</div></section>`).join("")}
+    <div class="muted" id="mq0" hidden>Hech narsa topilmadi</div>
     <div class="row"><span class="sp"></span><button class="btn" data-x>Yopish</button></div>`, (mm, close) => {
+    $(".card", mm).classList.add("wide");
     mm.querySelectorAll("[data-i]").forEach((b) => b.onclick = () => close(+b.dataset.i)); $("[data-x]", mm).onclick = () => close(null);
+    const q = $("#mq", mm);
+    q.oninput = () => {
+      const v = normQ(q.value);
+      mm.querySelectorAll("[data-i]").forEach((b) => b.hidden = !!v && !normQ(b.closest(".mgrp").firstChild.textContent + " " + b.textContent).includes(v));
+      mm.querySelectorAll(".mgrp").forEach((g) => g.hidden = !g.querySelector("[data-i]:not([hidden])"));
+      $("#mq0", mm).hidden = !!mm.querySelector("[data-i]:not([hidden])");
+    };
+    q.onkeydown = (e) => { if (e.key === "Enter") { const b = mm.querySelector("[data-i]:not([hidden])"); if (b) b.click(); } };
+    if (matchMedia("(pointer:fine)").matches) setTimeout(() => q.focus(), 0);
   });
   if (r !== null && r !== undefined) acts[r][1]();
 }
+// qidiruv uchun: kichik harf, oʻ/gʻ tutuq belgilari bir xil
+function normQ(x) { return String(x).toLowerCase().replace(/[ʻʼ‘’`´]/g, "'").replace(/\s+/g, " ").trim(); }
 function toggleX(c, d) {
   if (isNoLesson(c, d)) {
     c.extra_x = c.extra_x.filter((x) => x !== d);
