@@ -32,7 +32,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       for (const t of ["grow", "notes", "msg", "sum"]) await page.click(`.modal [data-tab=${t}]`);
       await page.click(".modal [data-x]");
       await nav("reports");
-      for (const k of ["ready", "cmp", "blank", "cls"]) await page.click(`[data-kind=${k}]`);
+      for (const k of ["att", "stats", "ready", "cmp", "blank", "cls"]) await page.click(`[data-kind=${k}]`);
       await nav("settings");
       for (let i = 0; i < 7; i++) await page.click(`[data-sec="${i}"]`);
       await nav("today");
@@ -1026,6 +1026,34 @@ test("Sinf hisoboti: saralash, xavf filtri, sifat/o'zlashtirish va Excel", async
     await page.evaluate(() => { window.loadXlsx = () => Promise.reject(new Error("offline")); });
     const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-xlsx]")]);
     assert.ok(dl.suggestedFilename().endsWith(".csv"), dl.suggestedFilename());
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("Davomat varag'i: oy bo'yicha belgilar, jamilar va Excel", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}, acceptDownloads: true});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const exp = await page.evaluate(() => {
+      const c = D.classes[0], t = todayIso(), ym = c.dates.filter((d) => d <= t).pop().slice(0, 7);
+      const ds = c.dates.filter((d) => d.slice(0, 7) === ym && d <= t && !isNoLesson(c, d));
+      const s0 = c.students[0]; s0.marks[ds[0]] = "s"; s0.marks[ds[1]] = "8"; save();
+      S.amon = ym; S.rep = {ci: 0, per: "cur", kind: "att"}; go("reports");
+      return {n: ds.length, s: ds.filter((d) => attPart(s0.marks[d] || "") === "s").length};
+    });
+    assert.equal(await page.$$eval("table.attm tr:first-child th", (x) => x.length), exp.n + 7);
+    const row1 = await page.$$eval("table.attm tr:nth-child(2) td", (x) => x.map((e) => e.textContent));
+    assert.equal(row1[2], "S"); assert.equal(row1[3], "", "baho qo'yilgan kun — darsda");
+    assert.equal(+row1[exp.n + 2], exp.s);
+    // chop etishda yotiq varaq
+    await page.evaluate(() => fitPrint()); assert.ok((await page.textContent("#pfit-css")).includes("landscape"));
+    await page.evaluate(() => { window.loadXlsx = () => Promise.reject(new Error("offline")); });
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-axlsx]")]);
+    assert.ok(dl.suggestedFilename().includes("davomat"), dl.suggestedFilename());
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
