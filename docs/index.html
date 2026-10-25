@@ -811,6 +811,7 @@ function migrate(d) {
   let v = +d.web.dv || 0;
   if (v > DATA_VER) { NEWER = true; return d; }
   while (v < DATA_VER) { d = (MIGRATE[v] || ((x) => x))(d); v++; }
+  d.settings.method_weekday = null;   // metod kuni ilovadan olib tashlangan (Akmal, 2026-10-25): o'sha kunlar oddiy dars kuni
   d.web.dv = DATA_VER; return d;
 }
 function load() {
@@ -1809,7 +1810,7 @@ const HELP = [
   ]],
   ["settings", "⚙ Sozlamalar", [
     ["Sinflar", "Sinf qo'shish, o'quvchilar ro'yxati, faolsizlantirish (ketgan o'quvchi baholari saqlanadi)."],
-    ["Dars kunlari", "Dars jadvali (Excel'dan ham), choraklar, metod kuni, bayramlar, dars eslatmasi va kechki eslatma."],
+    ["Dars kunlari", "Dars jadvali (Excel'dan ham), choraklar, bayramlar, dars eslatmasi va kechki eslatma."],
     ["Funksiyalar", "Ishlatmaydigan funksiyalarni o'chirib qo'ying — menyu va sahifalar soddalashadi, ma'lumot o'chmaydi."],
     ["Ma'lumotlar", "Faylga zaxira, Telegram'ga avtomatik zaxira (boshqa qurilma bilan almashish), kunlik nusxalar, emaktab'dan import, yangi o'quv yili."],
   ]],
@@ -2927,8 +2928,7 @@ function pageSettings(m) {
       D.classes.map((c, i) => `<div class="srow"><div><b>${esc(label(c))}</b></div><div class="days">${WD.slice(0, 6).map((w, k) => `<button class="${(c.weekdays || []).includes(k) ? "on" : ""}" data-wd="${i}|${k}">${w}</button>`).join("")}</div></div>`).join("") + `</div></div>` +
       sgroup("Choraklar", `<div class="srow"><div style="flex:1 1 100%"><div class="muted">Boshlanish va tugash sanalari — hamma sinflar uchun umumiy.</div>${qs}</div>
         <button class="btn pri" data-a="genq">Saqlash va dars kunlarini yaratish</button></div>`) +
-      sgroup("Dars bo'lmaydigan kunlar", srow("Metod kuni", "Shu hafta kunida dars bo'lmaydi (jurnalda X)", `<select id="mw" style="width:auto"><option value="-1">Belgilanmagan</option>${WD_FULL.slice(0, 6).map((w, k) => `<option value="${k}" ${st.method_weekday === k ? "selected" : ""}>${w}</option>`).join("")}</select>`) +
-      srow("Bayramlar", "Har yili (OO-KK) yoki bir martalik (YYYY-OO-KK), vergul bilan", `<input type="text" id="hol" value="${esc(st.holidays.join(", "))}" class="winp">`));
+      sgroup("Dars bo'lmaydigan kunlar", srow("Bayramlar", "Har yili (OO-KK) yoki bir martalik (YYYY-OO-KK), vergul bilan", `<input type="text" id="hol" value="${esc(st.holidays.join(", "))}" class="winp">`));
   } else if (S.sec === 2) {
     const rs = ranges();
     const upTo = (i) => i + 1 < rs.length ? rs[i + 1].min - 1 : 10;
@@ -3011,7 +3011,6 @@ function pageSettings(m) {
     remSchedule(); toast(eve.value ? `Kechki eslatma: har kuni ${eve.value}` : "Kechki eslatma o'chirildi");
   };
   const remm = $("#remm", m); if (remm) remm.onchange = () => { D.web.remind = Object.assign(remCfg(), {min: +remm.value}); save(); remSchedule(); toast("Eslatma vaqti saqlandi"); };
-  const mw = $("#mw", m); if (mw) mw.onchange = () => { const v = +mw.value; st.method_weekday = v < 0 ? null : v; save(); toast("Metod kuni saqlandi"); };
   const hol = $("#hol", m); if (hol) hol.onchange = () => { st.holidays = hol.value.split(/[,\s]+/).filter(Boolean); save(); toast("Bayramlar saqlandi"); };
   m.querySelectorAll("[data-rmin]").forEach((x) => x.onchange = () => {
     const rs = ranges(), r = rs[+x.dataset.rmin], v = +x.value;
