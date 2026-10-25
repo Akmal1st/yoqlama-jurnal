@@ -1557,6 +1557,9 @@ test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqla
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     await page.evaluate(() => { window.print = () => {}; });
+    // metod kuni olib tashlangan: faylda bo'lsa ham hisobga olinmaydi, sozlamada yo'q
+    assert.equal(await page.evaluate(() => D.settings.method_weekday), null);
+    await page.evaluate(() => { S.sec = 1; go("settings"); }); assert.equal(await page.locator("#mw").count(), 0);
     // pullik ta'lim: «Ism, sinfi, telefon» qatorlari, narx — maktabda oylik
     await page.click(".side [data-go=settings]"); await page.click('[data-sec="0"]'); await page.click("[data-a=addpaid]");
     await page.fill(".modal #cn", "Ingliz tili kursi");
