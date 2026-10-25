@@ -907,3 +907,35 @@ test("Chorak yakuni eslatmasi: «Bugun»da kamchiliklar va darsda «baho kam» b
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Qarzdorlar: past baho va topshirilmagan ish, qayta topshirish", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const info = await page.evaluate(() => {
+      const c = D.classes[0], s = c.students[0], [lo, hi] = periodNow();
+      const ds = c.dates.filter((d) => lo <= d && d <= hi && !isNoLesson(c, d));
+      for (const st of c.students) { st.retake = {}; for (const d of ds) if (gradesOf(st.marks[d] || "").some((g) => g <= lowMax())) st.marks[d] = "8"; }
+      c.works = c.works.filter((w) => w.date < lo || w.date > hi);
+      s.marks[ds[0]] = "3"; s.marks[ds[1]] = "s";
+      c.works.push({id: "wq1", type: "bsb", date: ds[1], max: 10}); delete (s.scores || {}).wq1;
+      c.students.forEach((st, i) => { if (i) (st.scores = st.scores || {}).wq1 = 9; });
+      save(); return {name: s.name, d: debtsOf(c, s, lo, hi).map((x) => x.key), all: c.students.map((st) => debtsOf(c, st, lo, hi).length)};
+    });
+    assert.equal(info.d.length, 2); assert.ok(info.d[0].startsWith("g:") && info.d[1] === "w:wq1", JSON.stringify(info.d));
+    assert.deepEqual(info.all.slice(1).filter(Boolean), []);
+    await page.evaluate(() => { S.ci = 0; S.page = "journal"; render(); debtsDialog(0); });
+    assert.ok((await page.textContent("#dbb")).includes("2 ta qarz · 1 o'quvchi"));
+    await page.click("[data-dok]"); await page.fill("#ask", "7"); await page.click(".modal [data-ok]");
+    await page.waitForSelector("text=1 ta qarz");
+    const r = await page.evaluate(() => Object.values(D.classes[0].students[0].retake)[0].v);
+    assert.equal(r, "7");
+    await page.check("#dall"); assert.ok((await page.textContent("#dbb")).includes("qayta topshirdi"));
+    await page.click("[data-dun]"); await page.waitForSelector("text=2 ta qarz");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
