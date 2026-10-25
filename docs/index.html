@@ -1129,6 +1129,34 @@ function parsePlanText(text) {
   }
   return topics;
 }
+// Excel'dagi KTR jadvali → reja matni: «I CHORAK» qatori — chorak sarlavhasi, «mavzu» ustuni — mavzu, «soat» ustuni — soatlar soni
+function planFromRows(rows) {
+  const cs = (v) => String(v ?? "").replace(/\s+/g, " ").trim(), isN = (x) => /^\d+([.,]\d+)?$/.test(x);
+  let tc = -1, hc = -1, start = 0;
+  for (let i = 0; i < Math.min(rows.length, 15); i++) {
+    const r = (rows[i] || []).map((v) => normQ(cs(v)));
+    const t = r.findIndex((x) => /^(dars(ning)?\s+)?mavzu|^(тема|наименование)/.test(x) && x.length < 40);
+    if (t >= 0) { tc = t; hc = r.findIndex((x) => /^(soat|час|кол)/.test(x)); start = i + 1; break; }
+  }
+  const out = [];
+  for (const row of rows.slice(start)) {
+    const c = (row || []).map(cs), first = c.find(Boolean) || "";
+    const qm = first.match(/^(IV|III|II|I|[1-4])\s*-?\s*(chorak|четверть)/i);
+    if (qm && c.filter(Boolean).length <= 2) { out.push(`== ${/\d/.test(qm[1]) ? qm[1] : ROMAN[qm[1].toUpperCase()]}-chorak`); continue; }
+    const t = (tc >= 0 ? c[tc] : c.filter((x) => x && !isN(x)).sort((a, b) => b.length - a.length)[0] || "").replace(/\|/g, "/");
+    if (!t || isN(t)) continue;
+    const h = hc >= 0 && /^\d+$/.test(c[hc]) ? Math.max(1, Math.min(+c[hc], 10)) : 1;
+    out.push(h > 1 ? `${t} | ${h}` : t);
+  }
+  return out.join("\n");
+}
+async function planFromExcel(file, c) {
+  const X = await loadXlsx(), wb = X.read(new Uint8Array(await file.arrayBuffer()), {type: "array"});
+  const sheets = wb.SheetNames.map((n) => { const text = planFromRows(X.utils.sheet_to_json(wb.Sheets[n], {header: 1, raw: false, defval: ""})); return {n, text, k: parsePlanText(text).length}; }).filter((x) => x.k);
+  // bir nechta varaq bo'lsa — nomida shu sinf fani yoki sinf raqami bor varaq birinchi
+  const sub = normQ(c.subject || ""), num = (c.name.match(/\d+/) || [""])[0], score = (n) => (sub && normQ(n).includes(sub) ? 2 : 0) + (num && new RegExp(`(^|\\D)${num}(\\D|$)`).test(n) ? 1 : 0);
+  return sheets.sort((a, b) => score(b.n) - score(a.n));
+}
 function planToText(plan) {
   let q = null; const out = [];
   for (const t of plan.topics || []) { if (t.q !== q && t.q) { out.push(`== ${t.q}-chorak`); q = t.q; } out.push(t.h > 1 ? `${t.t} | ${t.h}` : t.t); }
@@ -1165,7 +1193,8 @@ function ktrLine(k) {
   return `O'tildi ${k.done} / ${k.total} soat · reja bo'yicha shu kungacha ${k.expect}${k.behind >= 2 ? ` · <b class="warn">${k.behind} soat orqada</b>` : k.done >= k.expect ? ` · <span class="ok">reja bo'yicha ✓</span>` : ""}${k.short ? ` · <span class="warn">${k.q ? `${k.q}-chorak oxirigacha` : "yil oxirigacha"} ${k.short} mavzuga dars yetmaydi</span>` : ""}`;
 }
 function workOfTopic(text) {
-  const m = String(text).match(/^\s*(?:\d+\s*-?\s*)?(CHSB|BSB)\b(?:\s*[-№#]?\s*\d+)?\s*(?:\(\s*(\d+(?:[.,]\d+)?)\s*ball\s*\))?/i);
+  // «BSB tahlili» kabi oddiy dars — summativ ish emas (BSB/CHSB dan keyin so'z kelmasligi kerak)
+  const m = String(text).match(/^\s*(?:\d+\s*-?\s*)?(CHSB|BSB)\b(?:\s*[-№#]?\s*\d+)?(?!\s*\p{L})\s*(?:\(\s*(\d+(?:[.,]\d+)?)\s*ball\s*\))?/iu);
   if (!m) return null; return [m[1].toLowerCase(), m[2] ? parseFloat(m[2].replace(",", ".")) : null];
 }
 function reflowPlan(c, start) {
@@ -2693,16 +2722,30 @@ function ktrDialog(ci) {
   const c = D.classes[ci], plan = c.plan || {on: false, topics: []};
   const free = c.dates.filter((d) => d >= todayIso() && !isNoLesson(c, d)).length;
   modal(`<h2>Kalendar-tematik reja · ${esc(label(c))}</h2>
-    <div class="muted">Har qatorda bitta mavzu. Chorak sarlavhasi: <code>== 2-chorak</code>. Bir necha soatlik mavzu: <code>Kasrlar | 3</code>. «BSB» yoki «CHSB (40 ball)» bilan boshlangan mavzu summativ ish sifatida o'zi qo'shiladi.</div>
+    <div class="muted">Excel faylidan yuklash mumkin («Dars mavzusi», «Soat» ustunlari va «I CHORAK» qatorlari bilan) yoki qo'lda yozing: har qatorda bitta mavzu. Chorak sarlavhasi: <code>== 2-chorak</code>. Bir necha soatlik mavzu: <code>Kasrlar | 3</code>. «BSB» yoki «CHSB (40 ball)» bilan boshlangan mavzu summativ ish sifatida o'zi qo'shiladi.</div>
     <textarea id="kt" style="min-height:260px" placeholder="== 1-chorak&#10;Natural sonlar | 2&#10;Kasrlar&#10;BSB №1 (25 ball)">${esc(planToText(plan))}</textarea>
     <label class="row" style="gap:8px;font-weight:600"><input type="checkbox" id="kon" ${plan.on || !plan.topics.length ? "checked" : ""} style="width:20px;height:20px"> Mavzularni dars kunlariga avtomatik taqsimlash</label>
     ${(() => { const k = ktrProgress(c); return k ? `<div class="kprog"><div class="kbar"><i style="width:${Math.min(100, 100 * k.done / k.total)}%"></i><u style="left:${Math.min(100, 100 * k.expect / k.total)}%" title="Reja bo'yicha shu kungacha"></u></div><div>${ktrLine(k)}</div></div>` : ""; })()}
     <div class="muted" id="kinfo">Bugundan keyin ${free} ta dars kuni bor.</div>
-    <div class="row"><button class="btn" data-file>📂 Fayldan (.txt)</button><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn pri" data-ok>Saqlash</button></div>`, (mm, close) => {
+    <div class="row wrap" id="ksb" style="display:none"><label class="f">Excel varag'i<select id="ksh"></select></label></div>
+    <div class="row"><button class="btn" data-file>📂 Fayldan (Excel yoki .txt)</button><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn pri" data-ok>Saqlash</button></div>`, (mm, close) => {
     const ta = $("#kt", mm), info = $("#kinfo", mm);
     const upd = () => { const tp = parsePlanText(ta.value), h = tp.reduce((a, t) => a + t.h, 0); info.textContent = `${tp.length} ta mavzu, ${h} soat · bugundan keyin ${free} ta dars kuni bor.`; };
     ta.oninput = upd; upd();
-    $("[data-file]", mm).onclick = () => { const f = document.createElement("input"); f.type = "file"; f.accept = ".txt,text/plain"; f.onchange = async () => { if (f.files[0]) { ta.value = await f.files[0].text(); upd(); } }; f.click(); };
+    $("[data-file]", mm).onclick = () => {
+      const f = document.createElement("input"); f.type = "file"; f.accept = ".xls,.xlsx,.txt,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      f.onchange = async () => {
+        const file = f.files[0]; if (!file) return;
+        if (!/\.xlsx?$/i.test(file.name)) { ta.value = await file.text(); upd(); return; }
+        let sh; try { toast("Fayl o'qilmoqda…"); sh = await planFromExcel(file, c); } catch (e) { toast("Faylni o'qib bo'lmadi: " + e.message); return; }
+        if (!sh.length) { toast("Faylda mavzular topilmadi — «Dars mavzusi» ustuni bo'lishi kerak"); return; }
+        const box = $("#ksb", mm), sel = $("#ksh", mm), put = (i) => { ta.value = sh[i].text; upd(); };
+        sel.innerHTML = sh.map((x, i) => `<option value="${i}">${esc(x.n)} — ${x.k} ta mavzu</option>`).join(""); box.style.display = sh.length < 2 ? "none" : "";
+        sel.onchange = () => put(+sel.value); put(0);
+        toast(`${sh[0].k} ta mavzu yuklandi («${sh[0].n}») — tekshirib, «Saqlash»ni bosing`);
+      };
+      f.click();
+    };
     $("[data-x]", mm).onclick = () => close();
     $("[data-ok]", mm).onclick = () => {
       c.plan = {on: $("#kon", mm).checked, topics: parsePlanText(ta.value)};
