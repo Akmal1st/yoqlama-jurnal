@@ -1,5 +1,5 @@
 /* Yo'qlama jurnali — oflayn ishlash uchun kesh. Ilova yangilanganda VERSION ni oshiring. */
-const VERSION = "jurnal-v45";
+const VERSION = "jurnal-v46";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./icon-maskable.png"];
 const XLSX_URL = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
 
