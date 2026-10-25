@@ -474,18 +474,22 @@ test("Telegram: ulash, avtomatik zaxira va boshqa qurilmadan yuklash (soxta bot 
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     const calls = [], docs = [], ctypes = [];
     let pinned = null, nextId = 10;
+    const texts = {}, deleted = [];
     const other = JSON.stringify({classes: [{name: "5-B", subject: "Fizika", students: [{name: "Boshqa Qurilma", marks: {}}]}]});
     await page.route("https://api.telegram.org/**", async (route) => {
       const url = route.request().url(), m = url.split("/").pop();
-      if (url.includes("/file/")) return route.fulfill({status: 200, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: other});
+      // haqiqiy Telegram fayl manzili CORS sarlavhasini bermaydi — brauzerda fetch xato beradi
+      if (url.includes("/file/")) return route.abort("failed");
       calls.push(m);
       ctypes.push(route.request().headers()["content-type"] || "");
       const body = route.request().postData() || "";
       let result = true;
       if (m === "getMe") result = {id: 1, is_bot: true, username: "sinf_test_bot"};
       else if (m === "getUpdates") result = [{update_id: 1, message: {message_id: 1, chat: {id: 777, type: "private"}, text: "/start"}}];
-      else if (m === "sendMessage") result = {message_id: nextId++};
-      else if (m === "sendDocument") { docs.push(body); const id = nextId++; pinned = {message_id: id, date: 1761300000, caption: (body.match(/#q\w+/) || [""])[0], document: {file_id: "F" + id}}; result = {message_id: id}; }
+      else if (m === "sendMessage") { const id = nextId++; texts[id] = new URLSearchParams(body).get("text"); result = {message_id: id}; }
+      else if (m === "editMessageReplyMarkup") { const id = +new URLSearchParams(body).get("message_id"); if (!(id in texts)) return route.fulfill({status: 400, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: JSON.stringify({ok: false, description: "message to edit not found"})}); result = {message_id: id, text: texts[id]}; }
+      else if (m === "deleteMessages") { for (const id of JSON.parse(new URLSearchParams(body).get("message_ids"))) { delete texts[id]; deleted.push(id); } }
+      else if (m === "sendDocument") { docs.push(body); const id = nextId++; pinned = {message_id: id, date: 1761300000, caption: (body.match(/#q\w+( #d[\d.]+)?/) || [""])[0], document: {file_id: "F" + id}}; result = {message_id: id}; }
       else if (m === "getChat") result = {id: 777, pinned_message: pinned};
       else if (m === "getFile") result = {file_path: "documents/x.json"};
       return route.fulfill({status: 200, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: JSON.stringify({ok: true, result})});
@@ -502,18 +506,35 @@ test("Telegram: ulash, avtomatik zaxira va boshqa qurilmadan yuklash (soxta bot 
     assert.equal(docs.length, 1, "birinchi zaxira yuborilishi kerak");
     assert.ok(docs[0].includes('"classes"') && docs[0].includes("777"), "faylda jurnal bo'lishi kerak");
     assert.ok(calls.includes("pinChatMessage"));
+    // zaxira matn bo'laklari bo'lib ham boradi (fayl manzilini brauzer o'qiy olmaydi)
+    const myParts = (pinned.caption.match(/#d([\d.]+)/) || [])[1].split(".").map(Number);
+    assert.ok(myParts.length >= 1 && myParts.every((id) => texts[id].startsWith("📦")), pinned.caption);
+    assert.equal(JSON.stringify(await page.evaluate(async (ids) => tgReadParts(ids), myParts)), await page.evaluate(() => JSON.stringify(D)));
     // token jurnal fayliga yozilmaydi
     assert.ok(!(await page.evaluate(() => JSON.stringify(D))).includes("AAHabc"));
     // o'zgarishsiz qayta ochilganda takror yuborilmaydi
     await page.evaluate(() => tgAuto()); assert.equal(docs.length, 1);
     // boshqa qurilma yangiroq zaxira qadadi → Bugun sahifasida taklif → yuklash
-    pinned = {message_id: 99, date: 1761300500, caption: "#qboshqa", document: {file_id: "F99"}};
+    // eski usuldagi zaxira (faqat fayl) — tushunarli xabar
+    pinned = {message_id: 98, date: 1761300400, caption: "#qboshqa", document: {file_id: "F98"}};
+    await page.evaluate(async () => { S.page = "today"; await tgAuto(); });
+    await page.waitForSelector("text=boshqa qurilmadan yangiroq zaxira");
+    page.once("dialog", (d) => d.accept());
+    await page.click("[data-tg=tgnew]"); await page.click(".modal [data-ok]");
+    await page.waitForSelector(".toast:has-text('eski usulda')", {timeout: 15000});
+    const {gzipSync} = await import("node:zlib");
+    const z = gzipSync(other).toString("base64url"), half = Math.ceil(z.length / 2);
+    texts[95] = `📦1/2 ${z.slice(0, half)}`; texts[96] = `📦2/2 ${z.slice(half)}`;
+    pinned = {message_id: 99, date: 1761300500, caption: "#qboshqa #d95.96", document: {file_id: "F99"}};
     await page.evaluate(async () => { S.page = "today"; await tgAuto(); });
     await page.waitForSelector("text=boshqa qurilmadan yangiroq zaxira");
     page.once("dialog", (d) => d.accept());
     await page.click("[data-tg=tgnew]"); await page.click(".modal [data-ok]");
     await page.waitForFunction(() => D.classes.length === 1 && D.classes[0].name === "5-B");
     assert.equal(docs.length, 1, "yuklangandan keyin eski ma'lumot yuborilmasligi kerak");
+    // keyingi zaxira oldingi bo'laklarni o'chiradi
+    await page.evaluate(async () => { D.classes[0].name = "5-V"; await tgBackup(false); });
+    assert.equal(docs.length, 2); assert.ok(deleted.includes(95) && deleted.includes(96), deleted.join());
     // so'rovlar «oddiy» (OPTIONS'siz) ko'rinishda: JSON sarlavhasi yo'q
     assert.ok(ctypes.every((t) => !t.includes("application/json")), ctypes.join());
     // Telegram umuman ochilmasa — VPN haqida tushunarli xabar

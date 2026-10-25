@@ -5265,10 +5265,15 @@ const djb = (t) => { let x = 5381; for (let i = 0; i < t.length; i++) x = (x * 3
 // ba'zi tarmoqlarda u o'tmay «Telegram'ga ulanib bo'lmadi» chiqardi
 async function tgApi(method, params, token = tgCfg().token) {
   const body = params instanceof FormData ? params : new URLSearchParams(Object.entries(params || {}).map(([k, v]) => [k, typeof v === "object" ? JSON.stringify(v) : String(v)]));
-  const r = await tgFetch(`https://api.telegram.org/bot${token}/${method}`, {method: "POST", body});
-  const j = await r.json().catch(() => ({}));
-  if (!j.ok) throw new Error(j.description || `Telegram javob bermadi (${r.status})`);
-  return j.result;
+  for (let k = 0; ; k++) {
+    const r = await tgFetch(`https://api.telegram.org/bot${token}/${method}`, {method: "POST", body});
+    const j = await r.json().catch(() => ({}));
+    if (j.ok) return j.result;
+    // ko'p xabar ketma-ket ketganda Telegram «biroz kuting» deydi — kutib, qayta yuboramiz
+    const w = j.parameters && j.parameters.retry_after;
+    if (j.error_code === 429 && w && w <= 30 && k < 3) { await new Promise((ok) => setTimeout(ok, w * 1000 + 300)); continue; }
+    throw new Error(j.description || `Telegram javob bermadi (${r.status})`);
+  }
 }
 // tarmoq xatosi: bir marta qayta urinadi, so'ng sababini aniqlab tushunarli xabar beradi
 async function tgFetch(url, opt = {}, ms = 25000) {
@@ -5289,6 +5294,34 @@ async function tgNetErr(e) {
 }
 const tgErrTxt = (e) => e.net ? e.message : "Telegram: " + e.message;
 let TG_NEW = null, tgBusy = false; // TG_NEW — boshqa qurilmadan kelgan yangiroq zaxira (Bugun sahifasida taklif qilinadi)
+// Telegram fayl manzili (api.telegram.org/file/…) brauzerga CORS ruxsatini bermaydi — faylni qaytarib o'qib bo'lmaydi.
+// Shuning uchun zaxira yana siqilgan matn bo'laklari bo'lib xabar sifatida ham boradi; bot API usullari esa CORS bilan ishlaydi.
+const TG_PART = 4000, TG_MAXP = 60;
+const b64u = (u8) => { let t = ""; for (let i = 0; i < u8.length; i += 0x8000) t += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(t).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
+const unb64u = (t) => { const b = atob(t.replace(/-/g, "+").replace(/_/g, "/")), u8 = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u8[i] = b.charCodeAt(i); return u8; };
+async function gzipTxt(t) { return new Uint8Array(await new Response(new Blob([t]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer()); }
+async function gunzipTxt(u8) { return new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream("gzip"))).text(); }
+const tgBtn = () => ({inline_keyboard: [[{text: "📒 Ilovani ochish", url: `https://akmal1st.github.io/yoqlama-jurnal/#${Date.now().toString(36)}`}]]});
+async function tgSendParts(chat, json) {
+  if (typeof CompressionStream === "undefined") return [];
+  const z = b64u(await gzipTxt(json)), n = Math.ceil(z.length / TG_PART), ids = [];
+  if (n > TG_MAXP) return [];
+  for (let i = 0; i < n; i++) {
+    const m = await tgApi("sendMessage", {chat_id: chat, text: `📦${i + 1}/${n} ${z.slice(i * TG_PART, (i + 1) * TG_PART)}`, disable_notification: true, reply_markup: tgBtn()});
+    ids.push(m.message_id);
+  }
+  return ids;
+}
+// o'z xabarining matnini qaytarib olish: tugmani yangilash (editMessageReplyMarkup) butun xabarni qaytaradi
+async function tgReadParts(ids) {
+  const chat = tgCfg().chat, out = [];
+  for (let i = 0; i < ids.length; i += 5) {
+    const ms = await Promise.all(ids.slice(i, i + 5).map((id) => tgApi("editMessageReplyMarkup", {chat_id: chat, message_id: id, reply_markup: tgBtn()})));
+    for (const m of ms) { const t = m.text || ""; out.push(t.slice(t.indexOf(" ") + 1)); }
+  }
+  return JSON.parse(await gunzipTxt(unb64u(out.join(""))));
+}
+const tgPartIds = (pm) => (((pm.caption || "").match(/#d([\d.]+)/) || [])[1] || "").split(".").filter(Boolean).map(Number);
 async function tgBackup(force) {
   const c = tgCfg(); if (!c.token || !c.chat || tgBusy) return false;
   const json = JSON.stringify(D), hash = djbData();
@@ -5296,13 +5329,17 @@ async function tgBackup(force) {
   tgBusy = true;
   try {
     const now = new Date(), hm = `${pad(now.getHours())}:${pad(now.getMinutes())}`, fd = new FormData();
+    let parts = [];
+    try { parts = await tgSendParts(c.chat, json); } catch (e) { console.warn("Telegram bo'laklar:", e.message); }
     fd.append("chat_id", c.chat);
     fd.append("document", new Blob([json], {type: "application/json"}), `journal_${iso(now)}_${hm.replace(":", "")}.json`);
-    fd.append("caption", `📒 Yo'qlama jurnali zaxirasi\n${fmt(iso(now))} ${hm} · ${D.classes.length} ta sinf\nTiklash: ilovada «Sozlamalar → Ma'lumotlar → Telegram'dan yuklash» yoki faylni «Fayldan yuklash» orqali oching.\n#q${tgDev()}`);
+    fd.append("caption", `📒 Yo'qlama jurnali zaxirasi\n${fmt(iso(now))} ${hm} · ${D.classes.length} ta sinf\nTiklash: ilovada «Sozlamalar → Ma'lumotlar → Telegram'dan yuklash» yoki faylni «Fayldan yuklash» orqali oching.\n#q${tgDev()}${parts.length ? " #d" + parts.join(".") : ""}`);
     fd.append("disable_notification", "true");
     const msg = await tgApi("sendDocument", fd);
     try { await tgApi("pinChatMessage", {chat_id: c.chat, message_id: msg.message_id, disable_notification: true}); } catch (e) { /* qadash shart emas */ }
-    tgSet({hash, last: now.toISOString(), seen: msg.message_id});
+    // oldingi zaxiraning matn bo'laklari endi kerak emas (fayllar tarix uchun qoladi)
+    if (c.parts && c.parts.length) tgApi("deleteMessages", {chat_id: c.chat, message_ids: c.parts}).catch(() => {});
+    tgSet({hash, last: now.toISOString(), seen: msg.message_id, parts});
     return true;
   } finally { tgBusy = false; }
 }
@@ -5313,14 +5350,18 @@ async function tgPinned() {
 // saqlash vaqti (web.saved) o'zgarishi «yangi ma'lumot» hisoblanmasin
 function djbData() { const w = D.web.saved; delete D.web.saved; const h = djb(JSON.stringify(D)); if (w) D.web.saved = w; return h; }
 async function tgPull(pm) {
-  const f = await tgApi("getFile", {file_id: pm.document.file_id});
+  const ids = tgPartIds(pm);
   let data;
-  try { data = await (await tgFetch(`https://api.telegram.org/file/bot${tgCfg().token}/${f.file_path}`)).json(); }
-  catch (e) { if (e.net === "cors") throw Object.assign(new Error("Zaxira faylini brauzer yuklay olmadi. Botdagi oxirgi faylni telefonga saqlab, «Sozlamalar → Ma'lumotlar → Fayldan yuklash» orqali oching"), {net: "file"}); throw e; }
+  if (ids.length && typeof DecompressionStream !== "undefined") data = await tgReadParts(ids);
+  else {
+    const f = await tgApi("getFile", {file_id: pm.document.file_id});
+    try { data = await (await tgFetch(`https://api.telegram.org/file/bot${tgCfg().token}/${f.file_path}`)).json(); }
+    catch (e) { if (e.net === "cors") throw Object.assign(new Error("Bu zaxira eski usulda yuborilgan — brauzer uni o'qiy olmaydi. Uni yuborgan qurilmada ilovani yangilab, «Sozlamalar → Ma'lumotlar → 📤 Hozir yuborish»ni bosing, so'ng shu yerda qayta yuklang. Yoki botdagi faylni telefonga saqlab, «Fayldan yuklash» orqali oching"), {net: "file"}); throw e; }
+  }
   if (!data || !Array.isArray(data.classes)) throw new Error("bu jurnal fayli emas");
   if (tooNew(data)) throw new Error("zaxira ilovaning yangiroq versiyasida saqlangan — sahifani yangilang");
   D = migrate(normalize(data)); autoDates(); save(); TG_NEW = null;
-  tgSet({seen: pm.message_id, hash: djbData(), last: new Date(pm.date * 1000).toISOString()});
+  tgSet({seen: pm.message_id, hash: djbData(), last: new Date(pm.date * 1000).toISOString(), parts: ids});
 }
 // ilova ochilganda: avval boshqa qurilmada yangiroq zaxira bormi — bo'lsa, so'ramasdan ustidan yozmaymiz
 async function tgAuto() {
