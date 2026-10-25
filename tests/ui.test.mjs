@@ -229,7 +229,7 @@ test("jurnal: KQ katagiga himoya yoqilgan holda ham baho qo'yiladi", async () =>
   } finally { await browser.close(); }
 });
 
-test("jurnal: Kun rejimida yo'qlama va baho alohida kataklarda", async () => {
+test("jurnal: Kun ko'rinishi, katak yonidagi belgi oynasi, sinf tanlash", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     const page = await browser.newPage({viewport: {width: 1440, height: 900}});
@@ -240,23 +240,37 @@ test("jurnal: Kun rejimida yo'qlama va baho alohida kataklarda", async () => {
     const t = await page.evaluate(() => { const c = D.classes[0], t = todayIso(); D.settings.method_weekday = null; c.extra_x = [];
       if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } D.settings.protect.enabled = false; c.students[0].marks[t] = ""; delete c.students[0].marks[t]; save(); return t; });
     await page.click(".side [data-go=journal]"); await page.click(".side [data-mode=day]");
-    assert.equal(await page.locator(`[data-c="0|${t}|a"]`).count(), 1);
-    assert.equal(await page.locator(`[data-c="0|${t}|g"]`).count(), 1);
-    assert.deepEqual(await page.$$eval("table.j th.dsp", (x) => x.map((e) => e.firstChild.textContent)), ["Yo'qlama", "Baho"]);
+    assert.equal(await page.locator("table.j").count(), 0, "Kun — jadval emas, ro'yxat");
+    assert.equal(await page.locator(`.dday.on[data-dd="${t}"]`).count(), 1);
     const mark = () => page.evaluate((d) => D.classes[0].students[0].marks[d] || "", t);
-    await page.click(`[data-c="0|${t}|a"]`); await page.click("[data-k=kq]");
-    await page.click(`[data-c="0|${t}|g"]`); await page.click('[data-k="8"]');
+    await page.click("[data-a='0|kq']"); await page.click("[data-g='0|8']");
     assert.equal(await mark(), "8kq");
-    assert.equal(await page.textContent(`[data-c="0|${t}|a"]`), "KQ");
-    assert.equal(await page.textContent(`[data-c="0|${t}|g"]`), "8");
-    await page.click(`[data-c="0|${t}|a"]`); await page.click('.keys [data-k=""]');
-    assert.equal(await mark(), "8", "⌫ yo'qlama katagida faqat KQ ni o'chiradi");
-    await page.click(`[data-c="0|${t}|g"]`); await page.keyboard.press("ArrowLeft"); await page.keyboard.press("s");
+    assert.equal(await page.locator("[data-g='0|8'].on").count(), 1);
+    await page.click("[data-two2]"); await page.click("[data-g='0|9']");
+    assert.equal(await mark(), "8/9kq", "＋2 — ikkinchi baho");
+    await page.click("[data-g='0|9']"); await page.click("[data-a='0|kq']");
+    assert.equal(await mark(), "8", "qayta bosish belgini olib tashlaydi");
+    await page.click("[data-a='0|s']");
     assert.equal(await mark(), "s");
-    // boshqa rejimlarda bitta katak
+    await page.click("[data-a='0|s']");
+    assert.equal(await mark(), "");
+    // mavzu shu yerda saqlanadi
+    await page.fill("#dmt", "Kvadrat tenglamalar"); await page.press("#dmt", "Tab");
+    assert.equal(await page.evaluate((d) => D.classes[0].lessons[d].topic, t), "Kvadrat tenglamalar");
+    // boshqa rejimlarda jadval; katak tanlansa belgi oynasi katak yonida chiqadi
     await page.click(".side [data-mode=week]");
     assert.equal(await page.locator(`[data-c="0|${t}"]`).count(), 1);
-    assert.equal(await page.locator("table.j th.dsp").count(), 0);
+    assert.equal(await page.locator(".keys:visible").count(), 0, "katak tanlanmaguncha belgi oynasi yo'q");
+    await page.click(`[data-c="0|${t}"]`);
+    const [c, k] = await page.evaluate(() => [$(".cell.sel").getBoundingClientRect().toJSON(), $(".keys.pop").getBoundingClientRect().toJSON()]);
+    assert.ok(Math.abs((k.left > c.left ? k.left - c.right : c.left - k.right) - 10) < 2, "oyna katak yonida");
+    assert.ok(k.height < 260, `oyna ixcham: ${k.height}`);
+    await page.click('[data-k="7"]'); assert.equal(await mark(), "7");
+    await page.keyboard.press("Escape");
+    assert.equal(await page.locator(".keys:visible").count(), 0);
+    // sinf tanlash oynasi
+    await page.click("[data-pick]"); await page.click(".modal [data-pci='1']");
+    assert.equal(await page.evaluate(() => S.ci), 1);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
