@@ -472,13 +472,14 @@ test("Telegram: ulash, avtomatik zaxira va boshqa qurilmadan yuklash (soxta bot 
   try {
     const page = await browser.newPage({viewport: {width: 390, height: 844}});
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
-    const calls = [], docs = [];
+    const calls = [], docs = [], ctypes = [];
     let pinned = null, nextId = 10;
     const other = JSON.stringify({classes: [{name: "5-B", subject: "Fizika", students: [{name: "Boshqa Qurilma", marks: {}}]}]});
     await page.route("https://api.telegram.org/**", async (route) => {
       const url = route.request().url(), m = url.split("/").pop();
       if (url.includes("/file/")) return route.fulfill({status: 200, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: other});
       calls.push(m);
+      ctypes.push(route.request().headers()["content-type"] || "");
       const body = route.request().postData() || "";
       let result = true;
       if (m === "getMe") result = {id: 1, is_bot: true, username: "sinf_test_bot"};
@@ -513,6 +514,13 @@ test("Telegram: ulash, avtomatik zaxira va boshqa qurilmadan yuklash (soxta bot 
     await page.click("[data-tg=tgnew]"); await page.click(".modal [data-ok]");
     await page.waitForFunction(() => D.classes.length === 1 && D.classes[0].name === "5-B");
     assert.equal(docs.length, 1, "yuklangandan keyin eski ma'lumot yuborilmasligi kerak");
+    // so'rovlar «oddiy» (OPTIONS'siz) ko'rinishda: JSON sarlavhasi yo'q
+    assert.ok(ctypes.every((t) => !t.includes("application/json")), ctypes.join());
+    // Telegram umuman ochilmasa — VPN haqida tushunarli xabar
+    await page.unroute("https://api.telegram.org/**");
+    await page.route("https://api.telegram.org/**", (r) => r.abort("connectionrefused"));
+    await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="5"]'); await page.click("[data-a=tgsend]");
+    await page.waitForSelector(".toast:has-text('VPN')", {timeout: 15000});
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
