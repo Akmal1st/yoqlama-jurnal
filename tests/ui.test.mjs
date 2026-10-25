@@ -1104,3 +1104,31 @@ test("Chop etish: telefonda ham hisobot kompyuterdagidek o'lchamda (mayda emas)"
     assert.ok(zs.ph > 0.6, JSON.stringify(zs));
   } finally { await browser.close(); }
 });
+
+test("Hisobotlar: tur kartochkalari, telefonda saralash, solishtirishdan sinfga o'tish, tanlov eslab qolinadi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.click(".tabbar [data-go=reports]");
+    assert.equal(await page.$$eval(".rk", (x) => x.length), 7);
+    // telefonda ustun sarlavhasi yo'q — saralash ro'yxatdan
+    await page.selectOption("#rsort", "avg|1");
+    const avgs = await page.$$eval("table.rcls tr", (tr) => tr.slice(1).map((r) => parseFloat(r.cells[2].textContent)).filter((x) => !isNaN(x)));
+    assert.deepEqual(avgs, avgs.slice().sort((a, b) => a - b));
+    await page.click("[data-kind=cmp]"); await page.click('[data-cmpc="1"]');
+    assert.deepEqual(await page.evaluate(() => [S.rep.kind, S.rep.ci]), ["cls", 1]);
+    await page.click("[data-kind=ready]"); await page.selectOption("#rq", "2");
+    assert.equal(await page.evaluate(() => S.rq), 2);
+    assert.ok(await page.$("[data-rxlsx]"));
+    await page.click("[data-kind=att]"); await page.selectOption("#rp", { index: 0 }).catch(() => {});
+    await page.reload(); await page.waitForSelector(".tabbar");
+    await page.click(".tabbar [data-go=reports]");
+    assert.equal(await page.evaluate(() => S.rep.kind), "att");
+    assert.ok(await page.$("#amon"));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
