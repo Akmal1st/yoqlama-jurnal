@@ -1246,3 +1246,39 @@ test("Jurnal: xavf ostidagi o'quvchi qatori va tartib raqami rang bilan ajratila
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("KTR: Excel faylidan choraklari bilan yuklash, «BSB tahlili» summativ ish emas", async () => {
+  const XLSX = (await import("xlsx")).default;
+  const lib = fileURLToPath(new URL("../node_modules/xlsx/dist/xlsx.full.min.js", import.meta.url));
+  const rows = (n) => [["TAQVIM-MAVZU REJA\n[Algebra] — [10] sinf"], ["Dars tartibi", "Dars mavzusi", "Soat", "Taqvimiy muddat"],
+    ["I CHORAK"], [1, `${n} 1`, 1], [2, `${n} 2`, 2], [3, "BSB-1 (25 ball)", 1], [4, "BSB tahlili", 1], ["II CHORAK"], [5, `${n} 3`, ""], [6, "CHSB-1 ( 40 ball)", 1]];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows("Fizika")), "7-sinf_Fizika");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows("Mavzu")), "6-sinf_Matematika");
+  const xls = XLSX.write(wb, {type: "buffer", bookType: "xls"});
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const ctx = await browser.newContext({serviceWorkers: "block", viewport: {width: 390, height: 844}});
+    await ctx.route("https://cdnjs.cloudflare.com/**", (r) => r.fulfill({path: lib, contentType: "application/javascript"}));
+    const page = await ctx.newPage();
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => { ktrDialog(0); });   // 6-A · Matematika
+    const [c2] = await Promise.all([page.waitForEvent("filechooser"), page.click(".modal [data-file]")]);
+    await c2.setFiles({name: "ktr.xls", mimeType: "application/vnd.ms-excel", buffer: xls});
+    await page.waitForFunction(() => $("#kt").value.includes("BSB tahlili"));
+    // sinf faniga mos varaq birinchi tanlanadi, boshqasini tanlash mumkin
+    assert.equal(await page.inputValue("#kt"), "== 1-chorak\nMavzu 1\nMavzu 2 | 2\nBSB-1 (25 ball)\nBSB tahlili\n== 2-chorak\nMavzu 3\nCHSB-1 ( 40 ball)");
+    assert.ok(await page.isVisible("#ksh"));
+    await page.selectOption("#ksh", "1"); assert.ok((await page.inputValue("#kt")).includes("Fizika 1"));
+    await page.selectOption("#ksh", "0");
+    const r = await page.evaluate(() => ({tp: parsePlanText($("#kt").value).map((t) => [t.q, t.h]), w: ["BSB-1 (25 ball)", "BSB tahlili", "CHSB-1 ( 40 ball)", "BSB №2"].map(workOfTopic)}));
+    assert.deepEqual(r.tp, [[1, 1], [1, 2], [1, 1], [1, 1], [2, 1], [2, 1]]);
+    assert.deepEqual(r.w, [["bsb", 25], null, ["chsb", 40], ["bsb", null]]);
+    await page.click(".modal [data-ok]");
+    assert.equal(await page.evaluate(() => D.classes[0].plan.topics.length), 6);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});

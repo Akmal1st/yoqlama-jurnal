@@ -2261,8 +2261,8 @@ class Store:
 
     @staticmethod
     def _work_of_topic(text):
-        """«BSB-1 (25 ball)», «CHSB 2», «1-BSB» → (tur, maksimal ball yoki None) yoki None."""
-        m = re.match(r"^\s*(?:\d+\s*-?\s*)?(CHSB|BSB)\b(?:\s*[-№#]?\s*\d+)?\s*(?:\(\s*(\d+(?:[.,]\d+)?)\s*ball\s*\))?", str(text), re.I)
+        """«BSB-1 (25 ball)», «CHSB 2», «1-BSB» → (tur, maksimal ball yoki None) yoki None; «BSB tahlili» — ish emas."""
+        m = re.match(r"^\s*(?:\d+\s*-?\s*)?(CHSB|BSB)\b(?:\s*[-№#]?\s*\d+)?(?!\s*[^\W\d_])\s*(?:\(\s*(\d+(?:[.,]\d+)?)\s*ball\s*\))?", str(text), re.I)
         if not m:
             return None
         mx = float(m.group(2).replace(",", ".")) if m.group(2) else None
