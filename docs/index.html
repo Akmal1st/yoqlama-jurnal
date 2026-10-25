@@ -824,6 +824,51 @@ function quarterGaps(c, q, t = todayIso()) {
   const left = c.dates.filter((d) => t < d && d <= qRange(q)[1] && !isNoLesson(c, d)).length;
   return {low, noScore, left};
 }
+/* qarzdorlar: past baho (qizil oraliq) yoki o'tgan BSB/CHSB topshirilmagan / past natija; s.retake[kalit] = {d, v} — qayta topshirdi */
+const lowMax = () => { const r = ranges(); return r.length > 1 ? r[1].min - 1 : 0; };
+function debtsOf(c, s, lo, hi, t = todayIso()) {
+  const out = [], lm = lowMax(), wb = +(D.settings.risk.work_below ?? 40);
+  for (const d of c.dates) if (lo <= d && d <= hi && d <= t && !isNoLesson(c, d)) {
+    const gs = gradesOf(s.marks[d] || "").filter((g) => g <= lm);
+    if (gs.length) out.push({key: "g:" + d, date: d, what: `${fmt(d).slice(0, 5)} — baho ${gs.join("/")}`});
+  }
+  for (const w of c.works) if (lo <= w.date && w.date <= hi && w.date <= t) {
+    const v = (s.scores || {})[w.id], ab = ["s", "dq", "k"].includes(attPart(s.marks[w.date] || ""));
+    if (!isNum(v) && ab) out.push({key: "w:" + w.id, date: w.date, what: `${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)} — topshirmagan (darsda yo'q edi)`});
+    else if (isNum(v) && w.max && 100 * v / w.max < wb) out.push({key: "w:" + w.id, date: w.date, what: `${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)} — ${fmtNum(v)}/${fmtNum(w.max)} (${pyFixed(100 * v / w.max, 0)}%)`});
+  }
+  return out.map((x) => Object.assign(x, {done: (s.retake || {})[x.key] || null})).sort((a, b) => a.date.localeCompare(b.date));
+}
+function debtsDialog(ci) {
+  const c = D.classes[ci]; let all = false;
+  const [lo, hi] = periodNow();
+  const body = () => {
+    const rows = c.students.map((s, si) => ({s, si, ds: debtsOf(c, s, lo, hi)})).map((x) => Object.assign(x, {open: x.ds.filter((d) => !d.done)})).filter((x) => all ? x.ds.length : x.open.length);
+    const n = rows.reduce((a, x) => a + x.open.length, 0);
+    return `<div class="row wrap" style="gap:8px"><span class="${n ? "warn" : "ok"} sp">${n ? `${n} ta qarz · ${rows.filter((x) => x.open.length).length} o'quvchi` : "Qarzdorlar yo'q ✓"}</span>
+        <label class="row" style="gap:6px"><input type="checkbox" id="dall" ${all ? "checked" : ""} style="width:20px;height:20px"> Topshirilganlarni ham ko'rsatish</label></div>
+      <div class="lsns">${rows.map(({s, si, ds}) => `<div class="pmsg"><b>${esc(s.name)}</b>${ds.filter((d) => all || !d.done).map((d) => `<div class="row" style="gap:8px;flex-wrap:nowrap"><span class="sp ${d.done ? "muted" : ""}" style="min-width:0">${d.done ? "✓ " : "• "}${esc(d.what)}${d.done ? ` → qayta topshirdi ${fmt(d.done.d).slice(0, 5)}${d.done.v ? `: ${esc(d.done.v)}` : ""}` : ""}</span>
+          ${d.done ? `<button class="btn sm" data-dun="${si}|${d.key}">Bekor</button>` : `<button class="btn sm" data-dok="${si}|${d.key}">✓ Topshirdi</button>`}</div>`).join("")}</div>`).join("")}</div>`;
+  };
+  return modal(`<h2>📌 Qarzdorlar · ${esc(label(c))}</h2>
+    <div class="muted">Joriy davrda (${fmt(lo)} – ${fmt(hi)}) past baho (${lowMax()} va undan past) olganlar, BSB/CHSB ishini topshirmagan yoki ${D.settings.risk.work_below ?? 40}% dan past natija ko'rsatganlar. Qayta topshirgach «✓ Topshirdi»ni bosing — yangi bahoni yozib qo'yish mumkin.</div>
+    <div id="dbb" class="col" style="gap:10px">${body()}</div>
+    <div class="row"><button class="btn" data-dcp>📋 Ro'yxatni nusxalash</button><span class="sp"></span><button class="btn pri" data-x>Yopish</button></div>`, (m, close) => {
+    const redraw = () => { $("#dbb", m).innerHTML = body(); bind(); };
+    const bind = () => {
+      $("#dall", m).onchange = (e) => { all = e.target.checked; redraw(); };
+      m.querySelectorAll("[data-dok]").forEach((b) => b.onclick = async () => {
+        const [si, key] = b.dataset.dok.split(/\|(.*)/s), st = c.students[+si];
+        const v = await ask("Qayta topshirdi", `${st.name}: yangi baho yoki ball (ixtiyoriy)`, ""); if (v === null) return;
+        st.retake = st.retake || {}; st.retake[key] = {d: todayIso(), v: v.trim()}; save(); redraw();
+      });
+      m.querySelectorAll("[data-dun]").forEach((b) => b.onclick = () => { const [si, key] = b.dataset.dun.split(/\|(.*)/s), st = c.students[+si]; delete st.retake[key]; save(); redraw(); });
+    };
+    bind();
+    $("[data-dcp]", m).onclick = () => copyText(`${label(c)} — qarzdorlar (${fmt(lo)} – ${fmt(hi)})\n` + c.students.map((s) => [s, debtsOf(c, s, lo, hi).filter((d) => !d.done)]).filter(([, ds]) => ds.length).map(([s, ds]) => `${s.name}: ${ds.map((d) => d.what).join("; ")}`).join("\n"));
+    $("[data-x]", m).onclick = () => { close(); render(); };
+  });
+}
 const HW_WARN = 3;   // davrda shuncha marta bajarmasa — «E'tibor talab qiladi»
 function hwOverview() {
   const [lo, hi] = periodNow(), out = [];
@@ -1351,7 +1396,7 @@ function pageToday(m) {
     ${(() => { const qe = quarterEnd(); if (!qe) return "";
       const rows = D.classes.map((c, ci) => ({c, ci, g: quarterGaps(c, qe.q)})).filter((x) => x.g.low.length || x.g.noScore.length);
       return `<section class="card col qend"><h2>📋 ${qe.q}-chorak tugashiga ${qe.left ? `${qe.left} kun` : "bugun"} qoldi (${fmt(qe.end)})</h2>
-        ${rows.length ? rows.map(({c, ci, g}) => `<div class="row" style="gap:8px;flex-wrap:nowrap"><div class="sp" style="min-width:0"><b>${esc(label(c))}</b><div class="muted">${[g.low.length ? `${g.low.length} o'quvchida formativ baho kam (kamida ${fbMin()} ta kerak)` : "", g.noScore.length ? `${g.noScore.length} o'quvchida BSB/CHSB balli yo'q` : "", `qolgan darslar: ${g.left}`].filter(Boolean).join(" · ")}</div></div>
+        ${rows.length ? rows.map(({c, ci, g}) => `<div class="row" style="gap:8px;flex-wrap:nowrap"><div class="sp" style="min-width:0"><b>${esc(label(c))}</b><div class="muted">${[g.low.length ? `${g.low.length} o'quvchida formativ baho kam (kamida ${fbMin()} ta kerak)` : "", g.noScore.length ? `${g.noScore.length} o'quvchida BSB/CHSB balli yo'q` : "", (() => { const [lo, hi] = periodNow(), n = c.students.reduce((a, st) => a + debtsOf(c, st, lo, hi).filter((d) => !d.done).length, 0); return n ? `qarzlar: ${n}` : ""; })(), `qolgan darslar: ${g.left}`].filter(Boolean).join(" · ")}</div></div>
           <button class="btn sm" data-qready="${ci}">Ko'rish</button></div>`).join("") : `<div class="ok">✓ Hamma sinflarda baholar va ballar yetarli — chorak bahosini qo'yishga tayyor.</div>`}</section>`; })()}
     <div id="found"></div>
     <section class="grid lessons">${cards}</section>
@@ -1548,6 +1593,7 @@ async function moreMenu() {
     ["📝 Mavzular va uy vazifalari", () => lessonsDialog(S.ci)],
     ["✉️ Ota-onalarga xabarlar (butun sinf)", () => parentBulk(S.ci)],
     ["👪 Ota-onalar kontaktlari", () => parentsDialog(S.ci)],
+    ["📌 Qarzdorlar (qayta topshirish)", () => debtsDialog(S.ci)],
     ["📚 Kalendar-tematik reja (KTR)", () => ktrDialog(S.ci)],
     ["📊 BSB / CHSB ballari", () => { S.jpage = "sum"; render(); }],
     ["🔍 BSB tahlili (savollar bo'yicha)", () => { S.jpage = "bsb"; render(); }],
@@ -2905,6 +2951,7 @@ function studentCard(ci, name, tab = "sum") {
       <div class="tile"><div class="muted">Baholar</div><div>${r.n}</div></div><div class="tile"><div class="muted">Sababsiz</div><div>${r.s}</div></div></div>
       <div>S ${r.s} · DQ ${r.dq} · K ${r.k} · KQ ${r.kq}</div>
       ${s.bday ? `<div>🎂 Tug'ilgan kun: ${fmtBday(s.bday)}</div>` : ""}
+      ${(() => { const ds = debtsOf(c, s, lo, hi).filter((d) => !d.done); return ds.length ? `<div class="warn">📌 Qarzlar: ${esc(ds.map((d) => d.what).join("; "))}</div>` : ""; })()}
       ${s.par ? `<div>👪 ${esc(s.par.name || "Ota-ona")}${s.par.phone ? ` · <a href="tel:${s.par.phone}">${fmtPhone(s.par.phone)}</a>` : ""}${s.par.tg ? ` · <a href="https://t.me/${s.par.tg}" target="_blank" rel="noopener">@${esc(s.par.tg)}</a>` : ""}</div>` : ""}
       ${(() => { const h = hwStat(s, lo, hi); return h.n ? `<div class="${h.no >= HW_WARN ? "warn" : ""}">🏠 Uy vazifasi (${per}): ${h.ok} / ${h.n} bajarilgan${h.no ? ` · ${h.no} marta bajarmagan` : ""}</div>` : ""; })()}
       ${r.why.length ? `<div class="warn">⚠ ${esc(r.why.join("; "))}</div>` : `<div class="ok">✓ Xavf belgilari yo'q</div>`}
