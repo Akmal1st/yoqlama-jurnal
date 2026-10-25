@@ -196,6 +196,7 @@ table.j td.s.a{color:var(--muted);font-weight:600}
 .days button.on{background:var(--acc);border-color:var(--acc);color:var(--acc-fg)}
 .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.tile.wide2{grid-column:span 2}.qby{display:flex;gap:14px;flex-wrap:wrap;font-size:20px}.qby span{white-space:nowrap}
 .bands{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.bnd{border-radius:999px;padding:4px 12px;font-size:14px}
+table.attm{border-collapse:collapse;font-size:13px;width:100%}table.attm th,table.attm td{border:1px solid var(--line);padding:3px 4px;text-align:center;min-width:24px}table.attm th{font-weight:600;background:var(--alt)}table.attm th small{font-weight:400;color:var(--muted)}table.attm .an{text-align:left;white-space:nowrap;min-width:150px}table.attm td.ac{font-weight:700;font-size:11px;padding:3px 1px}table.attm tr.tot td{font-weight:700;background:var(--alt)}
 table.r th.srt{cursor:pointer;user-select:none}table.r th.srt:hover{color:var(--text)}
 @media(max-width:820px){.row.chips.repk{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}.row.chips.repk .chip{flex:0 0 auto}.qby{font-size:17px}}
 @media (max-width:820px){.tiles{grid-template-columns:repeat(2,1fr)}}
@@ -1853,11 +1854,12 @@ function pageReports(m) {
   const R = S.rep; R.ci = Math.min(R.ci, D.classes.length - 1); R.kind = R.kind || "cls";
   const c = D.classes[R.ci], [lo, hi] = repRange(R.per), rq = /^q\d$/.test(R.per) ? +R.per[1] : R.per === "cur" ? periodNow()[2] : null, {rows, lessons} = reportRows(c, lo, hi, rq);
   const pers = [["cur", "Joriy chorak / oy"], ...[1, 2, 3, 4].filter(qRange).map((q) => [`q${q}`, `${q}-chorak`]), ["month", "Shu oy"], ["week", "Shu hafta"], ["all", "Butun yil"]];
-  const kinds = [["cls", "Sinf hisoboti"], ["stats", "📈 Grafik va statistika"], ["ready", "Chorakka tayyorlik"], ["cmp", "Sinflarni solishtirish"], ["blank", "Bo'sh yo'qlama varag'i"]];
+  const kinds = [["cls", "Sinf hisoboti"], ["stats", "📈 Grafik va statistika"], ["att", "📅 Davomat varag'i"], ["ready", "Chorakka tayyorlik"], ["cmp", "Sinflarni solishtirish"], ["blank", "Bo'sh yo'qlama varag'i"]];
   const needCls = R.kind !== "cmp", needPer = R.kind === "cls" || R.kind === "cmp" || R.kind === "stats";
   let sec;
   if (R.kind === "cls") sec = repClass(c, lo, hi, rows, lessons, rq);
   else if (R.kind === "stats") sec = `<div class="row"><h2 class="sp">${esc(label(c))} · ${fmt(lo)} – ${fmt(hi)}</h2><button class="btn pri noprint" data-print>Chop etish / PDF</button></div>${repStats(c, lo, hi, rows)}`;
+  else if (R.kind === "att") sec = repAtt(c);
   else if (R.kind === "ready") sec = `<div class="row noprint"><span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button></div>${repReady(c)}`;
   else if (R.kind === "cmp") sec = `<div class="row noprint"><span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button><button class="btn" data-ccsv>📊 Excel</button></div>${repCompare(lo, hi)}`;
   else sec = `<div class="row noprint"><span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button></div>${repBlank(c)}`;
@@ -1868,12 +1870,21 @@ function pageReports(m) {
       ${needPer ? `<label class="f">Davr<select id="rp">${pers.map(([k, n]) => `<option value="${k}" ${k === R.per ? "selected" : ""}>${n}</option>`).join("")}</select></label>` : ""}</div>
     <section class="card col" style="gap:14px">${sec}</section></div>`;
   m.querySelectorAll("[data-kind]").forEach((b) => b.onclick = () => { R.kind = b.dataset.kind; render(); });
+  const kon = $(".repk .chip.on", m), kr = kon && kon.parentElement; if (kr && kr.scrollWidth > kr.clientWidth) kr.scrollLeft = kon.offsetLeft - kr.offsetLeft - 16;
   const rc = $("#rc", m); if (rc) rc.onchange = (e) => { R.ci = +e.target.value; render(); };
   const rp = $("#rp", m); if (rp) rp.onchange = (e) => { R.per = e.target.value; render(); };
   m.querySelectorAll("[data-print]").forEach((b) => b.onclick = () => { fitPrint(); window.print(); });
   m.querySelectorAll("[data-card]").forEach((b) => b.onclick = () => studentCard(R.ci, b.dataset.card));
   m.querySelectorAll("[data-rq]").forEach((b) => b.onclick = () => { S.rq = +b.dataset.rq; render(); });
   m.querySelectorAll("[data-bm]").forEach((b) => b.onclick = () => { S.bmode = b.dataset.bm; render(); });
+  const am = $("#amon", m); if (am) am.onchange = () => { S.amon = am.value; render(); };
+  const ax = $("[data-axlsx]", m); if (ax) ax.onclick = () => {
+    const A = attMonth(c, S.amon), codes = {s: "S", dq: "DQ", k: "K", kq: "KQ", ch: "CH"};
+    saveTable(`${label(c)} davomat ${A.ym}`, [[`${label(c)} · davomat · ${A.title}`], [],
+      ["№", "O'quvchi", ...A.dates.map((d) => d.slice(8)), "S", "DQ", "K", "KQ", "Davomat %"],
+      ...A.rows.map((r, i) => [i + 1, r.name, ...r.cells.map((v) => codes[v] || ""), r.s, r.dq, r.k, r.kq, r.att]),
+      ["", "Kelmaganlar", ...A.dayAbs, A.tot.s, A.tot.dq, A.tot.k, A.tot.kq, A.att]], [5, 28, ...A.dates.map(() => 4), 5, 5, 5, 5, 10]);
+  };
   const bd = $("#bday", m); if (bd) bd.onchange = () => { S.bday = bd.value || null; render(); };
   m.querySelectorAll("[data-rs]").forEach((th) => th.onclick = () => { const k = th.dataset.rs, o = S.rsort || {}; S.rsort = {k, dir: o.k === k ? -(o.dir || 1) : (k === "name" ? 1 : -1)}; render(); });
   m.querySelectorAll("[data-rf]").forEach((b) => b.onclick = () => { S.rfilt = b.dataset.rf; render(); });
@@ -3242,6 +3253,36 @@ function repClass(c, lo, hi, rows, lessons, rq) {
       ${rq ? `<td class="n">${r.q ? `${pyFixed(r.q.total, 1)}${r.q.complete ? ` · <b>${r.q.grade}</b>` : ` <span class="muted" title="Hali to'liq emas">…</span>`}` : "—"}</td>` : ""}
       <td class="${r.risk ? "warn" : "muted"}" style="font-weight:600">${esc(r.why.join("; ")) || "—"}</td></tr>`; }).join("")}</table></div>
     ${list.length ? "" : `<div class="muted">Xavf ostida o'quvchi yo'q. 👍</div>`}`;
+}
+// oylik davomat: o'quvchilar × dars kunlari; belgilar S/DQ/K/KQ, kelganlar bo'sh
+function attMonth(c, ym) {
+  const t = todayIso(), months = [...new Set(c.dates.filter((d) => d <= t).map((d) => d.slice(0, 7)))].sort();
+  if (!months.includes(t.slice(0, 7))) months.push(t.slice(0, 7));
+  ym = months.includes(ym) ? ym : t.slice(0, 7);
+  const dates = c.dates.filter((d) => d.slice(0, 7) === ym && d <= t && !isNoLesson(c, d));
+  const tot = {s: 0, dq: 0, k: 0, kq: 0}; let own = 0, abs = 0;
+  const rows = c.students.map((st) => {
+    const cells = dates.map((d) => attPart(st.marks[d] || "")), r = {name: st.name, cells, s: 0, dq: 0, k: 0, kq: 0};
+    for (const v of cells) if (r[v] !== undefined && v) r[v]++;
+    const o = cells.filter((v) => v !== "ch").length, a = r.s + r.dq + r.k;
+    r.att = o ? +pyFixed(100 * (o - a) / o, 1) : null; own += o; abs += a;
+    for (const k in tot) tot[k] += r[k];
+    return r;
+  });
+  const dayAbs = dates.map((_, j) => rows.filter((r) => ["s", "dq", "k"].includes(r.cells[j])).length);
+  return {ym, months, dates, rows, dayAbs, tot, att: own ? +pyFixed(100 * (own - abs) / own, 1) : null, title: `${MONTHS[+ym.slice(5) - 1]} ${ym.slice(0, 4)}`};
+}
+function repAtt(c) {
+  const A = attMonth(c, S.amon), col = D.settings.attendance, codes = {s: "S", dq: "DQ", k: "K", kq: "KQ", ch: "CH"};
+  const cell = (v) => v && codes[v] ? `<td class="ac" style="background:${col[v]};color:${contrast(col[v])}">${codes[v]}</td>` : `<td class="ac"></td>`;
+  return `<div class="row wrap noprint" style="gap:8px"><label class="f">Oy<select id="amon">${A.months.map((x) => `<option value="${x}" ${x === A.ym ? "selected" : ""}>${MONTHS[+x.slice(5) - 1]} ${x.slice(0, 4)}</option>`).join("")}</select></label>
+      <span class="sp"></span><button class="btn pri" data-print>Chop etish / PDF</button><button class="btn" data-axlsx>📊 Excel</button></div>
+    <div class="row wrap"><h2 class="sp" style="flex:1 1 260px">${esc(label(c))} · davomat · ${A.title}</h2><span class="muted">${A.dates.length} dars · davomat ${A.att !== null ? A.att + "%" : "—"}</span></div>
+    ${A.dates.length ? `<div style="overflow:auto"><table class="attm"><tr><th>№</th><th class="an">O'quvchi</th>${A.dates.map((d) => `<th>${d.slice(8)}<br><small>${WD[pyWd(d)]}</small></th>`).join("")}<th>S</th><th>DQ</th><th>K</th><th>KQ</th><th>%</th></tr>
+      ${A.rows.map((r, i) => `<tr><td>${i + 1}</td><td class="an">${esc(r.name)}</td>${r.cells.map(cell).join("")}<td class="n">${r.s || ""}</td><td class="n">${r.dq || ""}</td><td class="n">${r.k || ""}</td><td class="n">${r.kq || ""}</td><td class="n ${r.att !== null && r.att < D.settings.risk.att_below ? "warn" : ""}">${r.att ?? "—"}</td></tr>`).join("")}
+      <tr class="tot"><td></td><td class="an">Kelmaganlar</td>${A.dayAbs.map((n) => `<td class="n">${n || ""}</td>`).join("")}<td class="n">${A.tot.s}</td><td class="n">${A.tot.dq}</td><td class="n">${A.tot.k}</td><td class="n">${A.tot.kq}</td><td class="n">${A.att ?? "—"}</td></tr></table></div>
+      <div class="muted" style="font-size:13px">S — sababsiz, DQ — sababli, K — kasal, KQ — kech qoldi${A.rows.some((r) => r.cells.includes("ch")) ? ", CH — chet elda" : ""}. Bo'sh katak — darsda bo'lgan.</div>`
+    : `<div class="muted">Bu oyda o'tilgan dars kunlari yo'q.</div>`}`;
 }
 function repCompare(lo, hi) {
   const rows = compareRows(lo, hi), f = (v, d = 1, s = "") => v === null ? "—" : v.toFixed(d) + s;
