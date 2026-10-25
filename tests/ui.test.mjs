@@ -1442,7 +1442,7 @@ test("Dizayn: uslublar va kompyuterdagi shriftlar", async () => {
     assert.equal(await page.locator(".stys [data-sty]").count(), 5);
     const win = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--win").trim());
     const before = await win();
-    for (const st of ["daftar", "gazeta", "bento", "kosmos"]) {
+    for (const st of ["rasmiy", "ilova", "rangli", "qorongi"]) {
       await page.click(`[data-sty="${st}"]`);
       assert.equal(await page.evaluate(() => D.web.style), st);
       assert.notEqual(await win(), before, `${st}: fon o'zgarishi kerak`);
@@ -1570,7 +1570,11 @@ test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqla
     assert.equal(c.kind, "paid"); assert.deepEqual(c.fee, {month: 360000, day: 50000});
     assert.equal(c.students[0].cls, "7-B"); assert.equal(c.students[0].par.phone, "+998901234567");
     assert.deepEqual(c.students[1].plan, {t: "month", sum: 360000});
-    assert.equal(await page.evaluate(() => S.jpage), "mem");
+    assert.equal(await page.evaluate(() => S.jpage), "cards");
+    assert.equal(await page.locator(".mcard").count(), 2);
+    assert.equal(await page.locator(".side .nav.on[data-go=groups]").count(), 1);
+    assert.ok(await page.evaluate(() => classGroups().flatMap(([, ids]) => ids).every((i) => !isGrp(D.classes[i]))), "sinflar ro'yxatida guruh bo'lmasin");
+    await page.click("[data-jp=mem]");
     await page.selectOption("[data-mf='1|pt']", "day");
     assert.deepEqual(await page.evaluate((i) => D.classes[i].students[1].plan, ci), {t: "day", sum: 50000});
     // hisob: oylik — oyda dars bo'lsa; kunlik — qatnashgan darslar × narx; sababli qoldirilgani hisoblanmaydi
@@ -1594,6 +1598,19 @@ test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqla
     assert.equal(c.students[1].pays.length, 1); assert.equal(c.students[1].pays[0].no, 1); assert.equal(c.rc, 1);
     await page.click("[data-prep]");
     assert.match(await page.textContent("#pdoc"), /To'lovlar hisoboti/);
+    // «Guruhlar» bo'limi: kartochka, bugungi davomat tugmasi
+    await page.click(".side [data-go=groups]");
+    await page.waitForSelector(".gcard");
+    await page.click(`[data-gopen='${ci}']`);
+    assert.equal(await page.evaluate(() => S.jpage), "cards");
+    await page.click("[data-tog='0']");
+    assert.equal(await page.evaluate((i) => D.classes[i].students[0].marks[todayIso()], ci), "s");
+    await page.evaluate(() => { unlockedUntil = Date.now() + 60000; });   // qo'yilgan belgini o'zgartirish — qulf ochiq bo'lsa
+    await page.click("[data-tog='0']");
+    assert.equal(await page.evaluate((i) => D.classes[i].students[0].marks[todayIso()] || "", ci), "");
+    // «Jurnal» bosilsa — sinf ochiladi, guruh emas
+    await page.click(".side [data-go=journal]");
+    assert.equal(await page.evaluate(() => isGrp(D.classes[S.ci])), false);
     // «Bugun»: shu oy to'lamaganlar
     await page.click(".side [data-go=today]");
     await page.waitForSelector("text=uchun to'lamaganlar");
@@ -1612,8 +1629,8 @@ test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqla
     await page.evaluate(() => addClassDialog("club"));
     await page.fill(".modal #cn", "Robototexnika"); await page.fill(".modal #cl", "Aliyev Sardor, 7-B"); await page.click(".modal [data-ok]");
     const k = await page.evaluate(() => D.classes.length - 1);
-    assert.equal(await page.locator(".jtabs [data-jp]").allTextContents().then((x) => x.join("|")), "Davomat|A'zolar|Yutuqlar");
-    await page.selectOption("[data-mf='0|skill']", "8");
+    assert.equal(await page.locator(".jtabs [data-jp]").allTextContents().then((x) => x.join("|")), "A'zolar|Davomat|Yutuqlar|Ro'yxat");
+    await page.click("[data-jp=mem]"); await page.selectOption("[data-mf='0|skill']", "8");
     await page.click("[data-jp=ach]"); await page.fill("#at", "Robototexnika tanlovi"); await page.selectOption("#al", "Tuman"); await page.click("[data-adda]");
     const st = await page.evaluate((i) => D.classes[i].students[0], k);
     assert.equal(st.ach.length, 1); assert.equal(st.ach[0].lvl, "Tuman"); assert.equal(Object.values(st.skill)[0], 8);
