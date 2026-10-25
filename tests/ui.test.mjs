@@ -1226,3 +1226,23 @@ test("Haftalik xulosa, faollik belgilari va ota-onaga natija havolasi", async ()
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Jurnal: xavf ostidagi o'quvchi qatori va tartib raqami rang bilan ajratiladi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const r = await page.evaluate(() => { S.ci = 0; V.mode = "month"; go("journal");
+      const [lo, hi, q] = periodNow(), want = reportRows(D.classes[0], lo, hi, q).rows.filter((x) => x.why.some((w) => !w.startsWith("baholar soni"))).map((x) => x.name);
+      const tr = [...document.querySelectorAll("table.j tr.risk")], ok = document.querySelector("table.j tr:not(.risk) td.nm i");
+      const bg = (el) => getComputedStyle(el).backgroundColor;
+      return {want: want.length, got: tr.length, title: tr[0] && tr[0].querySelector("td.nm").title, num: tr[0] && bg(tr[0].querySelector("td.nm i")), plain: ok && bg(ok), badge: document.querySelectorAll("table.j .badge").length}; });
+    assert.ok(r.want > 0); assert.equal(r.got, r.want);
+    assert.ok(r.title.includes("xavf:"), r.title);
+    assert.notEqual(r.num, r.plain); assert.equal(r.badge, 0);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
