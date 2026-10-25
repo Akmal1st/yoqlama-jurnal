@@ -109,6 +109,9 @@ table.j .sn{display:none}
 .seats{display:grid;gap:8px 0;min-width:300px}.seat{min-height:52px;border:1px solid var(--line);background:var(--base);padding:3px;font-size:12.5px;font-weight:700;line-height:1.15;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
 .seat.l{border-radius:10px 0 0 10px;margin-left:8px}.seat.r{border-radius:0 10px 10px 0;margin-right:8px;border-left-style:dashed}.seat.empty{background:var(--soft);border-style:dashed}.seat.on{outline:3px solid var(--acc);outline-offset:-2px}.seat small{font-size:10.5px;opacity:.9}
 .bday{background:color-mix(in srgb,var(--today) 22%,var(--base));border-color:var(--today)}
+.hwb{min-height:32px;padding:0 10px;border-radius:8px;border:1px dashed var(--line);background:var(--base);font-weight:700;font-size:12.5px;color:var(--muted)}
+.hwb.ok{background:var(--ok);border:1px solid var(--ok);color:var(--base)}.hwb.no{background:var(--danger);border:1px solid var(--danger);color:var(--base)}.hwcard{margin:6px 0;padding:10px 14px}
+@media (max-width:560px){.lrow .who.hwn{flex:1 1 calc(100% - 130px)}}
 .tag.now{background:var(--acc);color:#fff;padding:2px 8px;border-radius:99px;margin-left:6px}
 table.sch td{padding:0}table.sch select{min-width:96px;min-height:36px;padding:4px 6px;font-size:13px}table.sch td.bl{display:flex;flex-direction:column;gap:2px;align-items:center;padding:2px 4px}table.sch td.bl input{width:104px;min-height:32px;padding:2px 6px;font-size:13px;text-align:center}
 .badge{font-size:11px;font-weight:800;color:#b42318;background:#fde8e6;padding:1px 7px;border-radius:99px;margin-left:6px;white-space:nowrap}
@@ -797,6 +800,15 @@ function riskOverview() {
   return out;
 }
 const hasMarks = (c, s) => c.students.some((st) => st.marks[s]);
+/* uy vazifasi tekshiruvi: s.hwd[sana] = 1 (bajardi) | 0 (bajarmadi); sana — tekshirilgan dars kuni */
+const prevHw = (c, t = todayIso()) => { const d = c.dates.filter((x) => x < t && !isNoLesson(c, x)).pop(); return d && c.lessons[d] && c.lessons[d].hw ? [d, c.lessons[d].hw] : null; };
+function hwStat(s, lo, hi) { const v = Object.entries(s.hwd || {}).filter(([d]) => lo <= d && d <= hi).map(([, x]) => x); return {n: v.length, ok: v.filter((x) => x === 1).length, no: v.filter((x) => x === 0).length}; }
+const HW_WARN = 3;   // davrda shuncha marta bajarmasa — «E'tibor talab qiladi»
+function hwOverview() {
+  const [lo, hi] = periodNow(), out = [];
+  D.classes.forEach((c, ci) => c.students.forEach((s) => { const h = hwStat(s, lo, hi); if (h.no >= HW_WARN) out.push({ci, name: s.name, why: [`uy vazifasini ${h.no} marta bajarmagan`]}); }));
+  return out;
+}
 function lessonsToday() {
   const t = todayIso(), sc = schedToday(t);
   const L = D.classes.map((c, ci) => ({c, ci})).filter(({c}) => c.dates.includes(t) && !isNoLesson(c, t))
@@ -1288,6 +1300,7 @@ function pageToday(m) {
   const L = lessonsToday();
   const nowd = D.classes.filter((c) => !c.weekdays || !c.weekdays.length).length;
   const risk = riskOverview().flatMap((r) => r.names.map((n) => ({ci: r.ci, ...n})));
+  for (const h of hwOverview()) { const x = risk.find((r) => r.ci === h.ci && r.name === h.name); if (x) x.why = x.why.concat(h.why); else risk.push(h); }
   const ups = upcoming();
   const hm = `${pad(new Date().getHours())}:${pad(new Date().getMinutes())}`;
   const nextNo = (() => { const all = L.flatMap((x) => x.slots || []).filter((x) => x.from).sort((a, b) => a.no - b.no); const cur = all.find((x) => x.from <= hm && hm < x.to); return cur ? ["now", cur.no] : (all.find((x) => hm < x.from) ? ["next", all.find((x) => hm < x.from).no] : null); })();
@@ -1318,7 +1331,7 @@ function pageToday(m) {
     <section class="grid lessons">${cards}</section>
     <div class="grid two">
       <section class="card"><div class="row"><h2 class="sp">E'tibor talab qiladi${risk.length ? ` — ${risk.length} o'quvchi` : ""}</h2>${risk.length ? `<button class="link" data-go2="reports">Hammasi</button>` : ""}</div>
-        ${risk.length ? risk.slice(0, 6).map((r) => `<div class="item"><div class="av">${esc(initials(r.name))}</div><div class="sp"><b>${esc(r.name)}</b> <span class="muted">· ${esc(label(D.classes[r.ci]))}</span><div class="muted">${esc(r.why[0])}</div></div>
+        ${risk.length ? risk.slice(0, 6).map((r) => `<div class="item"><div class="av">${esc(initials(r.name))}</div><div class="sp"><b>${esc(r.name)}</b> <span class="muted">· ${esc(label(D.classes[r.ci]))}</span><div class="muted">${esc(r.why.slice(0, 2).join("; "))}</div></div>
           <button class="btn sm" data-stud="${r.ci}|${esc(r.name)}">Ko'rish</button></div>`).join("") + (risk.length > 6 ? `<div class="muted" style="padding-top:8px">va yana ${risk.length - 6} ta</div>` : "")
           : `<div class="muted" style="padding-top:8px">Hozircha hamma o'quvchi me'yorda — xavf ostida hech kim yo'q. 👍</div>`}</section>
       <div class="col" style="gap:16px">
@@ -1580,11 +1593,15 @@ function pageLesson(m) {
           `<button class="tg" data-att="${si}|${v}" title="${l}" style="${a === v ? `background:${col};border-color:${col};color:#fff` : ""}"><span class="lg">${l}</span><span class="sh">${sh}</span></button>`).join("")}</span></div>`;
       }).join("")}</div>`;
   } else if (S.step === 1) {
-    body = `<div class="row"><h1 class="sp">Baholar (ixtiyoriy)</h1><div class="seg"><button class="${S.two ? "" : "on"}" data-two="0">Bitta baho</button><button class="${S.two ? "on" : ""}" data-two="1">Ikkita baho</button></div></div>
+    const ph = prevHw(c), hwOn = !!ph || c.students.some((x) => x.hwd && t in x.hwd);
+    const hwBtn = (x, si) => { const v = (x.hwd || {})[t]; return `<button class="hwb ${v === 1 ? "ok" : v === 0 ? "no" : ""}" data-hw="${si}" title="Uy vazifasi: bosib belgilang">${v === 1 ? "UV ✓" : v === 0 ? "UV ✗" : "UV"}</button>`; };
+    body = (hwOn ? `<div class="card row hwcard"><span class="sp">🏠 <b>Uy vazifasi</b>${ph ? ` (${fmt(ph[0]).slice(0, 5)}): ${esc(ph[1])}` : ""}<br><span class="muted">Har o'quvchidagi «UV» tugmasi: bir bosish — bajardi ✓, ikki — bajarmadi ✗, uch — belgisiz.</span></span>
+        <button class="btn sm" data-hwall>Qolganlar bajardi ✓</button></div>` : "") +
+    `<div class="row"><h1 class="sp">Baholar (ixtiyoriy)</h1><div class="seg"><button class="${S.two ? "" : "on"}" data-two="0">Bitta baho</button><button class="${S.two ? "on" : ""}" data-two="1">Ikkita baho</button></div></div>
       <p class="muted" style="margin:6px 0">Kimdan so'ragan bo'lsangiz — bahosini bosing. Qayta bosilsa o'chadi.${S.two ? " «Ikkita baho» rejimida ikkinchi bosilgan baho qo'shiladi (masalan 8/9)." : ""}</p>
       <div class="card" style="padding:4px 14px">${c.students.map((s, si) => {
         const a = attOf(c, si), ab = ["s", "dq", "k"].includes(a), gs = gradesOf(s.marks[t] || "");
-        return `<div class="lrow"><span class="n">${si + 1}</span><span class="who ${ab ? "dim" : ""}">${esc(s.name)}${ab ? ` (${ABSENT_NAMES[a]})` : ""}</span><span class="row" style="gap:4px">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((g) =>
+        return `<div class="lrow"><span class="n">${si + 1}</span><span class="who ${ab ? "dim" : ""} ${hwOn && !ab ? "hwn" : ""}">${esc(s.name)}${ab ? ` (${ABSENT_NAMES[a]})` : ""}</span>${hwOn && !ab ? hwBtn(s, si) : ""}<span class="row" style="gap:4px">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((g) =>
           `<button class="gb" data-gr="${si}|${g}" ${ab ? "disabled" : ""} style="${gs.includes(g) ? `background:${gradeColor(g)};border:2px solid var(--text);color:#12303a` : ""}">${g}</button>`).join("")}</span></div>`;
       }).join("")}</div>`;
   } else {
@@ -1597,7 +1614,7 @@ function pageLesson(m) {
     <div class="steps">${steps}</div></div>
     ${(() => { const b = birthdays(0).filter((x) => x.ci === S.lesson); return b.length ? `<div class="card row bday" style="padding:10px 14px">🎂 Bugun tug'ilgan kun: <b>${b.map((x) => esc(x.s.name)).join(", ")}</b></div>` : ""; })()}
     <div class="row wrap" style="gap:8px"><button class="btn sm" data-call>🎲 Doskaga chaqirish</button><button class="btn sm" data-grp>👥 Guruhlarga bo'lish</button></div>${body}
-    <div class="foot"><span class="muted sp">Kelmagan: ${absent} · kech qolgan: ${late} · baho qo'yilgan: ${graded}</span>
+    <div class="foot"><span class="muted sp">Kelmagan: ${absent} · kech qolgan: ${late} · baho qo'yilgan: ${graded}${(() => { const no = c.students.filter((x) => x.hwd && x.hwd[t] === 0).length; return no ? ` · UV bajarmagan: ${no}` : ""; })()}</span>
       ${S.step ? `<button class="btn" data-back>‹ Orqaga</button>` : ""}<button class="btn pri" data-next>${["Saqlash va baholarga o'tish ›", "Keyingi: mavzu ›", "✓ Darsni yakunlash"][S.step]}</button></div></div>`;
   const keepY = () => { const y = window.scrollY; render(); window.scrollTo(0, y); };
   m.querySelectorAll("[data-step]").forEach((b) => b.onclick = () => { saveTopic(); S.step = +b.dataset.step; render(); });
@@ -1625,6 +1642,11 @@ function pageLesson(m) {
   const swb = $("[data-swb]", m); if (swb) swb.onclick = () => { S.cur = Math.max(0, Math.min(S.cur || 0, n) - 1); render(); };
   const sw0 = $("[data-sw0]", m); if (sw0) sw0.onclick = () => { S.cur = 0; render(); };
   const swc = $("#swc", m); if (swc) swipeDrag(swc, (dir) => swipeMark(c, dir > 0 ? "" : "s"));
+  m.querySelectorAll("[data-hw]").forEach((b) => b.onclick = () => {
+    const st = c.students[+b.dataset.hw], v = (st.hwd || {})[t], nx = v === undefined ? 1 : v === 1 ? 0 : undefined;
+    st.hwd = st.hwd || {}; if (nx === undefined) delete st.hwd[t]; else st.hwd[t] = nx; save(); keepY();
+  });
+  const hwa = $("[data-hwall]", m); if (hwa) hwa.onclick = () => { c.students.forEach((st, si) => { if (["s", "dq", "k"].includes(attOf(c, si))) return; st.hwd = st.hwd || {}; if (!(t in st.hwd)) st.hwd[t] = 1; }); save(); keepY(); };
   m.querySelectorAll("[data-two]").forEach((b) => b.onclick = () => { S.two = b.dataset.two === "1"; render(); });
   const all = $("[data-all]", m); if (all) all.onclick = () => { c.students.forEach((_, si) => { if (["s", "dq", "k"].includes(attOf(c, si))) putMark(c, si, t, "", true); }); keepY(); };
   $("[data-exit]", m).onclick = () => { saveTopic(); go("today"); };
@@ -2808,6 +2830,8 @@ function weekDigest(c, name, lo, hi, lang) {
   const lines = ds.map((d) => { const m = s.marks[d] || "", gs = gradesOf(m), a = attPart(m), parts = [];
     if (gs.length) parts.push((ru ? "оценка " : "baho ") + gs.join("/")); if (a && AB[a]) parts.push(AB[a]);
     return parts.length ? `• ${fmt(d).slice(0, 5)} — ${parts.join(", ")}` : ""; }).filter(Boolean);
+  const hwNo = ds.filter((d) => (s.hwd || {})[d] === 0).map((d) => fmt(d).slice(0, 5));
+  if (hwNo.length) lines.push(`• ${ru ? "Не выполнил(а) домашнее задание" : "Uy vazifasini bajarmagan"}: ${hwNo.join(", ")}`);
   const all = ds.flatMap((d) => gradesOf(s.marks[d] || "")), avg = all.length ? (all.reduce((a, b) => a + b, 0) / all.length).toFixed(1) : null;
   const hwd = c.dates.filter((d) => d <= t && c.lessons[d] && c.lessons[d].hw).pop();
   return (lines.length ? lines.join("\n") + (avg ? `\n${ru ? "Средний балл" : "O'rtacha baho"}: ${avg}` : "") : (ru ? "За этот период оценок и пропусков нет." : "Bu davrda baho va qoldirish yo'q."))
@@ -2851,6 +2875,7 @@ function studentCard(ci, name, tab = "sum") {
       <div class="tile"><div class="muted">Baholar</div><div>${r.n}</div></div><div class="tile"><div class="muted">Sababsiz</div><div>${r.s}</div></div></div>
       <div>S ${r.s} · DQ ${r.dq} · K ${r.k} · KQ ${r.kq}</div>
       ${s.bday ? `<div>🎂 Tug'ilgan kun: ${fmtBday(s.bday)}</div>` : ""}
+      ${(() => { const h = hwStat(s, lo, hi); return h.n ? `<div class="${h.no >= HW_WARN ? "warn" : ""}">🏠 Uy vazifasi (${per}): ${h.ok} / ${h.n} bajarilgan${h.no ? ` · ${h.no} marta bajarmagan` : ""}</div>` : ""; })()}
       ${r.why.length ? `<div class="warn">⚠ ${esc(r.why.join("; "))}</div>` : `<div class="ok">✓ Xavf belgilari yo'q</div>`}
       <div class="row" style="gap:4px">${last.map((d) => { const col = markColors(s.marks[d]); return `<span class="pill" title="${fmt(d)}" style="${col ? `background:${col[0]};color:${col[1]}` : ""}">${displayMark(s.marks[d])}</span>`; }).join("") || '<span class="muted">Hali belgi yo\'q</span>'}</div>
       ${qw.length ? `<div><b>${q}-chorak summativ:</b> ${qw.map((w) => `${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)}: ${esc(fmtNum(sc[w.id] ?? "—"))}/${fmtNum(w.max)}`).join(" · ")}<br>Jami: ${fmtNum(qr.total)} / 100 ${qr.grade ? "→ " + g5pill(qr.grade) : ""}</div>` : ""}`;
