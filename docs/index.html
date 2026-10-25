@@ -190,13 +190,35 @@ table.j td.s.a{color:var(--muted);font-weight:600}
 .foot{position:sticky;bottom:0;background:var(--win);padding:12px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:10px}
 @media (max-width:820px){.foot{bottom:60px}}
 /* sozlamalar */
-.set{display:grid;grid-template-columns:250px 1fr;gap:18px;align-items:start}
+.set{display:grid;grid-template-columns:280px minmax(0,1fr);gap:18px;align-items:start}
 @media (max-width:820px){.set{grid-template-columns:1fr}}
-.secs{display:flex;flex-direction:column;gap:3px;padding:8px}
-@media (max-width:820px){.secs{flex-direction:row;overflow-x:auto}}
-.secs button{border:0;background:transparent;text-align:left;padding:10px 14px;border-radius:10px;font-weight:600;white-space:nowrap}
+.secs{display:flex;flex-direction:column;gap:3px;padding:8px;position:sticky;top:16px}
+.secs button{border:0;background:transparent;text-align:left;padding:9px 10px;border-radius:10px;font-weight:600;display:flex;gap:11px;align-items:center;color:var(--text)}
+.secs .sn{display:flex;flex-direction:column;line-height:1.25;min-width:0}.secs small{font-size:12.5px;font-weight:500;color:var(--muted)}
+.secs button:hover{background:var(--alt)}.secs button.on .si{background:var(--base)}
 .secs button.on{background:var(--soft)}
 .srow{display:flex;gap:14px;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--soft);flex-wrap:wrap}
+.srow .sact{gap:6px;flex-wrap:wrap}
+.shead{display:flex;gap:14px;align-items:center;padding-bottom:4px}.shead h2{margin:0}
+.si{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:9px;background:var(--alt);font-size:17px;flex:none}.si.big{width:46px;height:46px;font-size:24px;border-radius:13px;background:var(--acc-soft)}
+.sgroup{margin-top:22px}.sgt{margin:0 0 8px 2px;font-size:12.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.shint{margin:-2px 2px 10px;font-size:14px}
+.sgbox{border:1px solid var(--line);border-radius:calc(var(--r) * .8);background:var(--base);overflow:hidden}
+.sgbox>.srow,.sgbox>.rkgrid{padding:14px 16px}.sgbox>.srow:first-child{border-top:0}
+.sgroup.danger .sgt{color:var(--danger)}.sgroup.danger .sgbox{border-color:color-mix(in srgb,var(--danger) 45%,var(--line));background:color-mix(in srgb,var(--danger) 4%,var(--base))}
+.scls{flex-wrap:nowrap}.srow.scls>.av{flex:none;font-size:13px;width:42px;height:42px}.srow.scls>.sp{flex:1 1 0}
+.swt{display:inline-flex;align-items:center;gap:9px;border:0;background:none;font:inherit;font-weight:700;color:var(--muted);padding:4px 0;cursor:pointer;min-width:120px}
+.swt i{flex:none;width:44px;height:26px;border-radius:99px;background:var(--line);position:relative;transition:background .15s}
+.swt i::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .15s}
+.swt.on{color:var(--text)}.swt.on i{background:var(--acc)}.swt.on i::after{left:21px}
+.srow.tog{flex-wrap:nowrap}.srow.tog>div:first-child{flex:1 1 0;min-width:0}
+.swt:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:6px}
+.qgrid{display:grid;grid-template-columns:max-content minmax(0,190px) minmax(0,190px);gap:8px 10px;align-items:center;margin-top:12px}
+.qgrid .gh,.rkf>span:first-child{font-size:12.5px;color:var(--muted);font-weight:700}
+.qgrid input{min-width:0}
+.rkgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px 18px}
+.rkf{display:flex;flex-direction:column;gap:6px}.rkf input{width:100px}.rkf i{font-style:normal;color:var(--muted)}
+.winp{min-width:min(260px,100%)}
 .srow>div:first-child{flex:1 1 260px}
 .days{display:flex;gap:6px;flex-wrap:wrap}
 .days button{min-width:46px;min-height:38px;border-radius:9px;border:1px solid var(--line);background:var(--base);font-weight:700}
@@ -359,8 +381,12 @@ table.r tr:hover td{background:var(--alt)}
   .chip{white-space:normal;min-height:36px;padding:6px 13px;line-height:1.2}
   .seg{overflow:visible;flex-wrap:wrap;max-width:100%}
   .seg button{flex:1 1 auto;white-space:normal;line-height:1.2;padding:6px 10px}
-  .secs{flex-wrap:wrap;overflow:visible}
-  .secs button{white-space:normal;flex:1 1 auto;text-align:center;padding:9px 10px}
+  .secs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));position:static;gap:4px}
+  .secs button{padding:8px;gap:8px}.secs small{display:none}.secs .si{width:28px;height:28px;font-size:15px}
+  .qgrid{grid-template-columns:max-content minmax(0,1fr) minmax(0,1fr)}
+  .scls{flex-wrap:wrap}.srow.scls>.sp{flex:1 1 calc(100% - 60px)}.scls .sact{flex:1 1 100%}
+  .sgbox>.srow,.sgbox>.rkgrid{padding:12px 14px}
+  .srow.tog .swt{min-width:0}.srow.tog .swt span{display:none}
   .btn{white-space:normal;line-height:1.2;text-align:center;padding-top:6px;padding-bottom:6px}
   .keys{display:grid;grid-template-columns:repeat(9,1fr);overflow:visible;gap:4px;padding:8px}
   .keys .hint{grid-column:1/-1;max-width:none;font-size:13px;white-space:normal;margin:0 2px 2px}
@@ -2196,52 +2222,58 @@ function pageReports(m) {
 }
 
 /* ───────── 5. Sozlamalar ───────── */
-const SECS = ["Sinflar va o'quvchilar", "Dars kunlari va choraklar", "Baholash", "🎨 Dizayn", "Himoya", "Ma'lumotlar", "🧩 Funksiyalar"];
-function srow(t, d, btn) { return `<div class="srow"><div><b>${t}</b><div class="muted">${d}</div></div><div class="row" style="gap:6px">${btn}</div></div>`; }
+// [belgi, nomi, qisqa izoh]
+const SECS = [["👥", "Sinflar va o'quvchilar", "Sinf qo'shish, ro'yxatlar"], ["📅", "Dars kunlari va choraklar", "Jadval, eslatmalar, choraklar"], ["🎯", "Baholash", "Baho ranglari, xavf mezonlari"],
+  ["🎨", "Dizayn", "Mavzu, shrift, ranglar"], ["🔒", "Himoya", "Baholarni qulflash, parol"], ["💾", "Ma'lumotlar", "Zaxira, import, o'quv yili"], ["🧩", "Funksiyalar", "Keraksizlarini yashirish"]];
+function srow(t, d, btn) { return `<div class="srow${String(btn).startsWith('<button class="swt') ? " tog" : ""}"><div><b>${t}</b>${d ? `<div class="muted">${d}</div>` : ""}</div>${btn ? `<div class="row sact">${btn}</div>` : ""}</div>`; }
+// sozlamalar guruhi: kichik sarlavha va ramkali qatorlar
+const sgroup = (title, html, cls = "") => html ? `<div class="sgroup ${cls}">${title ? `<h3 class="sgt">${title}</h3>` : ""}<div class="sgbox">${html}</div></div>` : "";
+// yoqish/o'chirish tugmasi (kalit ko'rinishida)
+const swt = (attrs, on) => `<button class="swt ${on ? "on" : ""}" role="switch" aria-checked="${on}" ${attrs}><i></i><span>${on ? "Yoqilgan" : "O'chiq"}</span></button>`;
 function pageSettings(m) {
   const st = D.settings; let body = "";
   if (S.sec === 0) {
-    body = srow("Sinf qo'shish", "Sinf nomi, fani va o'quvchilar ro'yxati", `<button class="btn pri" data-a="addc">＋ Sinf qo'shish</button>`) +
-      D.classes.map((c, i) => srow(esc(label(c)), `${c.students.length} o'quvchi${c.students_off.length ? ` (+${c.students_off.length} faolsiz)` : ""} · ${c.dates.length} dars kuni`,
-        `<button class="btn sm" data-a="stud" data-i="${i}">＋ O'quvchi</button><button class="btn sm" data-a="rmst" data-i="${i}">⏸ Faolsiz${c.students_off.length ? ` (${c.students_off.length})` : ""}</button><button class="btn sm" data-a="edit" data-i="${i}">✎</button><button class="btn sm danger" data-a="del" data-i="${i}">O'chirish</button>`)).join("");
+    body = sgroup("", srow("Yangi sinf", "Sinf nomi, fani va o'quvchilar ro'yxati — ro'yxatni Excel yoki Word'dan nusxalab qo'yish mumkin", `<button class="btn pri" data-a="addc">＋ Sinf qo'shish</button>`)) +
+      sgroup(`Sinflaringiz · ${D.classes.length}`, D.classes.map((c, i) => `<div class="srow scls"><div class="av">${esc(c.name.slice(0, 3))}</div><div class="sp" style="min-width:0"><b>${esc(label(c))}</b>
+        <div class="muted">${c.students.length} o'quvchi${c.students_off.length ? ` (+${c.students_off.length} faolsiz)` : ""} · ${c.dates.length} dars kuni</div></div>
+        <div class="row sact"><button class="btn sm" data-a="stud" data-i="${i}">＋ O'quvchi</button><button class="btn sm" data-a="rmst" data-i="${i}">⏸ Faolsiz${c.students_off.length ? ` (${c.students_off.length})` : ""}</button><button class="btn sm" data-a="edit" data-i="${i}" title="Nomi va fanini o'zgartirish">✎</button><button class="btn sm danger" data-a="del" data-i="${i}" title="Sinfni o'chirish">🗑</button></div></div>`).join(""));
   } else if (S.sec === 1) {
-    const qs = [1, 2, 3, 4].map((q) => { const r = st.quarters[q - 1] || ["", ""]; return `<div class="row" style="gap:8px"><b style="width:80px">${q}-chorak</b><input type="date" data-q="${q}|0" value="${r[0] || ""}" style="max-width:180px"> — <input type="date" data-q="${q}|1" value="${r[1] || ""}" style="max-width:180px"></div>`; }).join("");
+    const qs = `<div class="qgrid"><span></span><span class="gh">Boshlanishi</span><span class="gh">Tugashi</span>${[1, 2, 3, 4].map((q) => { const r = st.quarters[q - 1] || ["", ""]; return `<b>${q}-chorak</b><input type="date" data-q="${q}|0" value="${r[0] || ""}" aria-label="${q}-chorak boshlanishi"><input type="date" data-q="${q}|1" value="${r[1] || ""}" aria-label="${q}-chorak tugashi">`; }).join("")}</div>`;
     const sc = sched(), nL = sc ? sc.days.reduce((a, d) => a + d.filter(Boolean).length, 0) : 0;
-    body = srow("📅 Dars jadvali", sc ? `Haftasiga ${nL} ta dars · ${sc.bells.length} soatlik kun. Dars kunlari va «Bugun» sahifasi shu jadvalga qarab ishlaydi.` : "Haftalik jadvalni bir marta kiriting yoki Excel fayldan yuklang — «Bugun» sahifasi darslarni soat tartibida ko'rsatadi, dars kunlari o'zi belgilanadi.",
-      `<button class="btn pri" data-a="sch">${sc ? "Tahrirlash" : "Kiritish"}</button><button class="btn" data-a="schx">📊 Excel'dan yuklash</button><button class="btn" data-a="scht">⬇ Namuna Excel</button>`) +
-      (() => { const r = remCfg(), perm = "Notification" in window ? Notification.permission : "denied";
+    body = sgroup("Haftalik jadval", srow("📅 Dars jadvali", sc ? `Haftasiga ${nL} ta dars · ${sc.bells.length} soatlik kun. Dars kunlari va «Bugun» sahifasi shu jadvalga qarab ishlaydi.` : "Haftalik jadvalni bir marta kiriting yoki Excel fayldan yuklang — «Bugun» sahifasi darslarni soat tartibida ko'rsatadi, dars kunlari o'zi belgilanadi.",
+      `<button class="btn pri" data-a="sch">${sc ? "Tahrirlash" : "Kiritish"}</button><button class="btn" data-a="schx">📊 Excel'dan yuklash</button><button class="btn" data-a="scht">⬇ Namuna Excel</button>`)) +
+      sgroup("Eslatmalar", (() => { const r = remCfg(), perm = "Notification" in window ? Notification.permission : "denied";
         return srow("🔔 Dars eslatmasi", `Jadvaldagi har bir darsdan oldin telefonga/kompyuterga bildirishnoma keladi: soat, sinf, mavzu va oldingi uy vazifasi.${r.on && perm !== "granted" ? " <span class='warn'>Bildirishnomaga ruxsat yo'q — eslatma faqat ilova ichida chiqadi.</span>" : ""} Ilova ochiq yoki fonda turganda ishlaydi.`,
           `<select id="remm" style="width:auto" ${r.on ? "" : "disabled"}>${[0, 2, 5, 10, 15].map((k) => `<option value="${k}" ${r.min === k ? "selected" : ""}>${k ? `${k} daqiqa oldin` : "Dars boshlanganda"}</option>`).join("")}</select>
           <button class="btn ${r.on ? "" : "pri"}" data-a="rem">${r.on ? "O'chirish" : "Yoqish"}</button>${r.on ? `<button class="btn" data-a="remt">Sinab ko'rish</button>` : ""}`); })() +
       (feat("gaps") ? srow("📝 Kechki eslatma", "Kechqurun shu vaqtda bugungi darslardan yo'qlama yoki mavzu kiritilmaganlari bo'lsa, bildirishnoma keladi. Dars jadvali shart emas.",
-        `<select id="eve" style="width:auto"><option value="">O'chiq</option>${["16:00", "17:00", "18:00", "19:00", "20:00", "21:00"].map((k) => `<option ${D.web.eve === k ? "selected" : ""}>${k}</option>`).join("")}</select>`) : "") +
-      `<div class="srow"><div><b>Har bir sinfning dars kunlari</b><div class="muted">Bosib belgilang. Saqlangach joriy chorak sanalari o'zi yaratiladi.</div></div></div>` +
-      D.classes.map((c, i) => `<div class="srow"><div><b>${esc(label(c))}</b></div><div class="days">${WD.slice(0, 6).map((w, k) => `<button class="${(c.weekdays || []).includes(k) ? "on" : ""}" data-wd="${i}|${k}">${w}</button>`).join("")}</div></div>`).join("") +
-      `<div class="srow"><div><b>Choraklar</b><div class="muted">Boshlanish va tugash sanalari — hamma sinflar uchun umumiy.</div><div class="col" style="margin-top:10px">${qs}</div></div>
-        <button class="btn pri" data-a="genq">Saqlash va dars kunlarini yaratish</button></div>` +
-      srow("Metod kuni", "Shu hafta kunida dars bo'lmaydi (jurnalda X)", `<select id="mw" style="width:auto"><option value="-1">Belgilanmagan</option>${WD_FULL.slice(0, 6).map((w, k) => `<option value="${k}" ${st.method_weekday === k ? "selected" : ""}>${w}</option>`).join("")}</select>`) +
-      srow("Bayramlar", "Har yili (OO-KK) yoki bir martalik (YYYY-OO-KK), vergul bilan", `<input type="text" id="hol" value="${esc(st.holidays.join(", "))}" style="min-width:260px">`);
+        `<select id="eve" style="width:auto"><option value="">O'chiq</option>${["16:00", "17:00", "18:00", "19:00", "20:00", "21:00"].map((k) => `<option ${D.web.eve === k ? "selected" : ""}>${k}</option>`).join("")}</select>`) : "")) +
+      `<div class="sgroup"><h3 class="sgt">Har bir sinfning dars kunlari</h3><p class="muted shint">Bosib belgilang. «Saqlash va dars kunlarini yaratish» bosilgach, chorak sanalari o'zi yaratiladi.</p><div class="sgbox">` +
+      D.classes.map((c, i) => `<div class="srow"><div><b>${esc(label(c))}</b></div><div class="days">${WD.slice(0, 6).map((w, k) => `<button class="${(c.weekdays || []).includes(k) ? "on" : ""}" data-wd="${i}|${k}">${w}</button>`).join("")}</div></div>`).join("") + `</div></div>` +
+      sgroup("Choraklar", `<div class="srow"><div style="flex:1 1 100%"><div class="muted">Boshlanish va tugash sanalari — hamma sinflar uchun umumiy.</div>${qs}</div>
+        <button class="btn pri" data-a="genq">Saqlash va dars kunlarini yaratish</button></div>`) +
+      sgroup("Dars bo'lmaydigan kunlar", srow("Metod kuni", "Shu hafta kunida dars bo'lmaydi (jurnalda X)", `<select id="mw" style="width:auto"><option value="-1">Belgilanmagan</option>${WD_FULL.slice(0, 6).map((w, k) => `<option value="${k}" ${st.method_weekday === k ? "selected" : ""}>${w}</option>`).join("")}</select>`) +
+      srow("Bayramlar", "Har yili (OO-KK) yoki bir martalik (YYYY-OO-KK), vergul bilan", `<input type="text" id="hol" value="${esc(st.holidays.join(", "))}" class="winp">`));
   } else if (S.sec === 2) {
     const rs = ranges();
     const upTo = (i) => i + 1 < rs.length ? rs[i + 1].min - 1 : 10;
-    body = `<div class="srow"><div><b>Baho ranglari</b><div class="muted">Jurnalda har bir baho qaysi rangda chiqishi. Har guruh tanlangan bahodan boshlanib, keyingi guruhgacha davom etadi.</div>
+    body = sgroup("Baho ranglari", `<div class="srow"><div><div class="muted">Jurnalda har bir baho qaysi rangda chiqishi. Har guruh tanlangan bahodan boshlanib, keyingi guruhgacha davom etadi.</div>
       <div class="gprev">${Array.from({length: 10}, (_, k) => { const col = gradeColor(k + 1); return `<span style="${col ? `background:${col};color:${contrast(col)}` : ""}">${k + 1}</span>`; }).join("")}</div>
       <div class="grng"><div class="gh">Guruh nomi</div><div class="gh">Baholar</div><div class="gh">Rang</div>${rs.map((r, i) =>
       `<input type="text" data-rname="${i}" value="${esc(r.name)}" aria-label="Guruh nomi">
        <div class="grb"><select data-rmin="${i}" aria-label="Boshlanishi">${Array.from({length: 10}, (_, k) => `<option value="${k + 1}" ${r.min === k + 1 ? "selected" : ""}>${k + 1}</option>`).join("")}</select><span>– ${upTo(i)}</span></div>
-       <input type="color" data-rcol="${i}" value="${r.color}" aria-label="Rang">`).join("")}</div></div></div>` +
-      srow("Xavf: o'rtacha baho shundan past", "", `<input type="number" step="0.5" data-rk="avg_below" value="${st.risk.avg_below}" style="width:100px">`) +
-      srow("Xavf: davomat foizi shundan past", "", `<input type="number" data-rk="att_below" value="${st.risk.att_below}" style="width:100px">`) +
-      srow("Xavf: sababsiz qoldirish soni", "shuncha yoki ko'p", `<input type="number" data-rk="s_ge" value="${st.risk.s_ge}" style="width:100px">`) +
-      srow("Xavf: shu kungacha baholar kam", "shundan kam baho bo'lsa", `<input type="number" data-rk="few_lt" value="${st.risk.few_lt}" style="width:100px">`) +
-      srow("Formativ baho (FB) uchun kamida", "Chorakda shuncha kundalik baho bo'lmasa, FB = 0", `<input type="number" min="1" id="fbm" value="${fbMin()}" style="width:100px">`) +
-      srow("KTRdagi BSB/CHSB mavzulari", "Rejadagi «BSB …» va «CHSB …» mavzulari uchun summativ ish o'zi qo'shilsin", `<button class="btn" data-a="ktrw">${ktrWorksOn() ? "Yoqilgan" : "O'chiq"}</button>`);
+       <input type="color" data-rcol="${i}" value="${r.color}" aria-label="Rang">`).join("")}</div></div></div>`) +
+      `<div class="sgroup"><h3 class="sgt">Xavf mezonlari</h3><p class="muted shint">Shu shartlardan biri bajarilsa, o'quvchi «xavf ostida» deb belgilanadi: jurnalda qatori qizil, «Bugun»da «E'tibor talab qiladi».</p><div class="sgbox"><div class="rkgrid">
+        ${[["avg_below", "O'rtacha baho shundan past", "0.5", ""], ["att_below", "Davomat shundan past", "1", "%"], ["s_ge", "Sababsiz qoldirish, kamida", "1", "ta"], ["few_lt", "Baholar soni shundan kam", "1", "ta"]].map(([k, n, stp, u]) =>
+          `<label class="rkf"><span>${n}</span><span class="row" style="gap:6px;flex-wrap:nowrap"><input type="number" step="${stp}" data-rk="${k}" value="${st.risk[k]}">${u ? `<i>${u}</i>` : ""}</span></label>`).join("")}</div></div></div>` +
+      sgroup("Chorak bahosi", srow("Formativ baho (FB) uchun kamida", "Chorakda shuncha kundalik baho bo'lmasa, FB = 0", `<input type="number" min="1" id="fbm" value="${fbMin()}" style="width:90px">`) +
+        srow("KTRdagi BSB/CHSB mavzulari", "Rejadagi «BSB …» va «CHSB …» mavzulari uchun summativ ish o'zi qo'shilsin", swt('data-a="ktrw"', ktrWorksOn())));
   } else if (S.sec === 3) {
     const w = D.web, seg = (attr, list, cur) => `<div class="seg wrap">${list.map(([k, n]) => `<button class="${cur === k ? "on" : ""}" data-${attr}="${k}">${n}</button>`).join("")}</div>`;
     body = `<div class="dprev"><div class="dside"><b>Y</b><span>Jurnal</span></div><div class="dmain"><div class="dtitle">Namuna: 7-B · Matematika</div>
         <div class="row" style="gap:6px"><span class="cell" style="width:38px;display:grid;place-items:center;background:${gradeColor(9)};color:${contrast(gradeColor(9))}">9</span><span class="cell" style="width:38px;display:grid;place-items:center;background:${D.settings.attendance.s};color:#fff">S</span><span class="cell t" style="width:38px;display:grid;place-items:center">—</span><button class="btn pri sm">▶ Darsni boshlash</button></div>
         <div class="muted">Aa Bb Oʻoʻ Gʻgʻ 0123456789 — «Yozuv namunasi»</div></div></div>` +
-      srow("Mavzu", "Kunduzgi — och fon; Tungi — qorong'i fon, kechqurun ko'zni charchatmaydi; Avto — telefon/kompyuter sozlamasiga qarab", seg("th", [["light", "☀ Kunduzgi"], ["dark", "🌙 Tungi"], ["auto", "Avto"]], w.theme)) +
+      sgroup("Ko'rinish", srow("Mavzu", "Kunduzgi — och fon; Tungi — qorong'i fon, kechqurun ko'zni charchatmaydi; Avto — telefon/kompyuter sozlamasiga qarab", seg("th", [["light", "☀ Kunduzgi"], ["dark", "🌙 Tungi"], ["auto", "Avto"]], w.theme)) +
       `<div class="srow"><div><b>Yozuv turi</b><div class="muted">Butun ilova, hisobotlar va chop etiladigan hujjatlar shu shriftda chiqadi</div></div>
         <div class="fonts">${FONTS.map(([k, n, ff]) => `<button class="fopt ${w.font === k ? "on" : ""}" data-font="${k}" style="font-family:${esc(ff)}"><b>${n}</b><span>Aa Oʻoʻ 123</span></button>`).join("")}</div></div>` +
       srow("Yozuv o'lchami", "Ekrandagi yozuv va kataklar kattaligi", seg("fs", FSIZES.map(([k, n]) => [k, n]), w.fsize)) +
@@ -2249,38 +2281,38 @@ function pageSettings(m) {
         <div class="accs">${Object.entries(ACCENTS).map(([k, a]) => `<button class="acc ${w.accent === k ? "on" : ""}" data-accent="${k}" title="${a[0]}"><i style="background:linear-gradient(135deg,${a[1]} 50%,${a[6]} 50%)"></i>${a[0]}</button>`).join("")}</div></div>` +
       srow("Burchaklar", "Kartochka va jadvallar burchagi", seg("rad", [["round", "Yumaloq"], ["sharp", "To'g'ri"]], w.radius)) +
       srow("Ko'rinish zichligi", "Oddiy — katta kataklar; Kompakt — butun chorak bitta ekranda", seg("den", [["oddiy", "Oddiy"], ["kompakt", "Kompakt"]], w.density === "kompakt" ? "kompakt" : "oddiy")) +
-      srow("Standart dizayn", "Shrift, rang, o'lcham va burchaklarni boshlang'ich holatga qaytaradi", `<button class="btn" data-a="dreset">↺ Qaytarish</button>`);
+      srow("Standart dizayn", "Shrift, rang, o'lcham va burchaklarni boshlang'ich holatga qaytaradi", `<button class="btn" data-a="dreset">↺ Qaytarish</button>`));
   } else if (S.sec === 4) {
     const p = st.protect;
-    body = srow("Qo'yilgan baholarni himoyalash", "Mavjud bahoni o'zgartirishdan oldin qulfni ochish kerak (bo'sh katakka baho qo'yish erkin)", `<button class="btn" data-a="prot">${p.enabled ? "Yoqilgan" : "O'chiq"}</button>`) +
+    body = sgroup("", srow("Qo'yilgan baholarni himoyalash", "Mavjud bahoni o'zgartirishdan oldin qulfni ochish kerak (bo'sh katakka baho qo'yish erkin)", swt('data-a="prot"', p.enabled)) +
       srow("Parol", p.pin ? "O'rnatilgan" : "O'rnatilmagan — qulf bitta bosish bilan ochiladi", `<button class="btn" data-a="pin">${p.pin ? "O'zgartirish" : "O'rnatish"}</button>${p.pin ? `<button class="btn danger" data-a="nopin">Olib tashlash</button>` : ""}`) +
-      srow("Avtomatik qulflash", "Harakatsiz qolgandan keyin, daqiqa", `<input type="number" min="1" id="alm" value="${p.auto_lock_min || 10}" style="width:100px">`);
+      srow("Avtomatik qulflash", "Harakatsiz qolgandan keyin, daqiqa", `<input type="number" min="1" id="alm" value="${p.auto_lock_min || 10}" style="width:90px">`));
   } else if (S.sec === 6) {
     const nOn = FEATS.filter(([k]) => feat(k)).length;
-    body = `<p class="muted" style="margin:4px 0 8px">Ishlatmaydigan funksiyalaringizni o'chirib qo'ying — ular menyu, «Bugun» sahifasi va darsdan yo'qoladi. Kiritilgan ma'lumotlar o'chmaydi, qayta yoqsangiz hammasi joyida bo'ladi. Yo'qlama, baholar, BSB/CHSB va hisobotlar doim yoqilgan.</p>` +
-      srow("Tayyor to'plam", `${nOn} / ${FEATS.length} ta yoqilgan. «Oddiy»da doskaga chaqirish, guruhlar, o'rindiq xaritasi, yo'qlama rejimlari va qarzdorlar o'chadi.`, `<button class="btn" data-fp="simple">Oddiy</button><button class="btn" data-fp="all">Hammasi</button>`) +
-      FEATS.map(([k, n, d]) => srow(n, d, `<button class="btn ${feat(k) ? "pri" : ""}" data-ft="${k}">${feat(k) ? "Yoqilgan" : "O'chiq"}</button>`)).join("");
+    body = `<p class="muted shint">Ishlatmaydigan funksiyalaringizni o'chirib qo'ying — ular menyu, «Bugun» sahifasi va darsdan yo'qoladi. Kiritilgan ma'lumotlar o'chmaydi, qayta yoqsangiz hammasi joyida bo'ladi. Yo'qlama, baholar, BSB/CHSB va hisobotlar doim yoqilgan.</p>` +
+      sgroup("", srow("Tayyor to'plam", `${nOn} / ${FEATS.length} ta yoqilgan. «Oddiy»da doskaga chaqirish, guruhlar, o'rindiq xaritasi, yo'qlama rejimlari va qarzdorlar o'chadi.`, `<button class="btn" data-fp="simple">Oddiy</button><button class="btn" data-fp="all">Hammasi</button>`)) +
+      sgroup("Qo'shimcha funksiyalar", FEATS.map(([k, n, d]) => srow(n, d, swt(`data-ft="${k}"`, feat(k)))).join(""));
   } else {
     const n = (D.changelog || []).length;
     const age = backupAge();
-    body = (installEvt ? srow("Ilovani o'rnatish", "Telefon yoki kompyuter ekraniga ilova sifatida qo'shiladi va internetsiz ochiladi", `<button class="btn pri" data-a="inst">📲 O'rnatish</button>`)
+    body = sgroup("", installEvt ? srow("Ilovani o'rnatish", "Telefon yoki kompyuter ekraniga ilova sifatida qo'shiladi va internetsiz ochiladi", `<button class="btn pri" data-a="inst">📲 O'rnatish</button>`)
       : isStandalone() ? "" : srow("Telefonga o'rnatish", /iPhone|iPad/.test(navigator.userAgent) ? "Safari'da «Ulashish» → «Bosh ekranga qo'shish» (Add to Home Screen)" : "Brauzer menyusi (⋮) → «Ilovani o'rnatish» yoki «Bosh ekranga qo'shish»", "")) +
-      (() => { const c = tgCfg(), on = tgOn(), l = c.last ? new Date(c.last) : null;
+      sgroup("Zaxira", (() => { const c = tgCfg(), on = tgOn(), l = c.last ? new Date(c.last) : null;
         return srow("✈️ Telegram'ga avtomatik zaxira", on ? `Ulangan: @${esc(c.bot || "bot")} · oxirgi zaxira: ${l ? `${fmt(iso(l))} ${pad(l.getHours())}:${pad(l.getMinutes())}` : "hali yo'q"}. Boshqa qurilmada ham shu botni ulasangiz, ma'lumotlar ular orasida almashinadi.`
           : "Ma'lumotlar har kuni o'zingizning Telegram botingizga fayl bo'lib boradi. Telefon yo'qolsa yoki brauzer tozalansa ham jurnal saqlanib qoladi.",
           on ? `<button class="btn pri" data-a="tgsend">📤 Hozir yuborish</button><button class="btn" data-a="tgload">📥 Telegram'dan yuklash</button><button class="btn" data-a="tgoff">Uzish</button>` : `<button class="btn pri" data-a="tgon">🔗 Ulash</button>`); })() +
       srow("Faylga saqlash (zaxira)" + (age === null ? "" : ` <span class="muted" style="font-weight:500">· oxirgisi ${age ? age + " kun oldin" : "bugun"}</span>`), "journal.json — kompyuterdagi dastur yoki boshqa qurilmada ochish uchun. Vaqti-vaqti bilan saqlab qo'ying.", `<button class="btn pri" data-a="exp">💾 Yuklab olish</button>`) +
-      srow("🕒 Kunlik avtomatik nusxalar", `Ilova har kuni jurnal holatini brauzerning zaxira xotirasiga o'zi saqlaydi (oxirgi ${SNAP_DAYS} kun) — xato o'chirilgan ma'lumotni qaytarish mumkin.${IDB.db ? "" : " <span class='warn'>Bu brauzerda zaxira xotira ishlamayapti.</span>"}`, `<button class="btn" data-a="snaps">Ko'rish</button>`) +
-      srow("Fayldan yuklash", "Kompyuterdagi dasturning journal.json fayli yoki oldin saqlangan zaxira. Hozirgi ma'lumotlar almashtiriladi.", `<button class="btn" data-a="imp">📂 Faylni tanlash</button>`) +
-      srow("emaktab'dan import", "emaktab «Fan jurnali» Excel fayli (.xls / .xlsx): o'quvchilar, baholar, yo'qlama va BSB/CHSB ballari mavjud jurnalga qo'shiladi", `<button class="btn" data-a="xls">📊 Excel faylni tanlash</button>`) +
-      srow("emaktab.uz saytidan to'g'ridan-to'g'ri", "emaktab'ga kirgan holda bitta bosishda barcha sinflaringiz jurnallari shu yerga keladi (fayl yuklab olish shart emas)", `<button class="btn" data-a="emk">🌐 Sozlash</button>`) +
-      srow("Yangi o'quv yiliga o'tish", "Jurnal arxivlanadi, sinflar o'quvchilari bilan yangi bo'sh jurnalga o'tadi (6-A → 7-A)", `<button class="btn" data-a="roll">Boshlash</button>`) +
+      srow("🕒 Kunlik avtomatik nusxalar", `Ilova har kuni jurnal holatini brauzerning zaxira xotirasiga o'zi saqlaydi (oxirgi ${SNAP_DAYS} kun) — xato o'chirilgan ma'lumotni qaytarish mumkin.${IDB.db ? "" : " <span class='warn'>Bu brauzerda zaxira xotira ishlamayapti.</span>"}`, `<button class="btn" data-a="snaps">Ko'rish</button>`)) +
+      sgroup("Yuklash va import", srow("Fayldan yuklash", "Kompyuterdagi dasturning journal.json fayli yoki oldin saqlangan zaxira. Hozirgi ma'lumotlar almashtiriladi.", `<button class="btn" data-a="imp">📂 Faylni tanlash</button>`) +
+      srow("emaktab'dan import", "Saytdan to'g'ridan-to'g'ri (xatcho'p, telefon yoki fayl orqali) yoki emaktab «Fan jurnali» Excel fayli: o'quvchilar, baholar, yo'qlama va BSB/CHSB ballari mavjud jurnalga qo'shiladi", `<button class="btn pri" data-a="emk">🌐 emaktab.uz dan</button><button class="btn" data-a="xls">📊 Excel fayl</button>`)) +
+      sgroup("O'quv yili", srow("Yangi o'quv yiliga o'tish", "Jurnal arxivlanadi, sinflar o'quvchilari bilan yangi bo'sh jurnalga o'tadi (6-A → 7-A)", `<button class="btn" data-a="roll">Boshlash</button>`) +
       srow("O'zgarishlar tarixi", `${n} ta yozuv (qo'yilgan bahoni o'zgartirish yoki o'chirish)`, `<button class="btn" data-a="hist">Ko'rish</button>`) +
-      srow("Hammasini o'chirish", "Shu brauzerdagi barcha ma'lumotlar o'chadi", `<button class="btn danger" data-a="wipe">O'chirish</button>`);
+      "") + sgroup("Xavfli amallar", srow("Hammasini o'chirish", "Shu brauzerdagi barcha sinflar, baholar va sozlamalar o'chadi. Oldin faylga saqlab qo'ying.", `<button class="btn danger" data-a="wipe">O'chirish</button>`), "danger");
   }
+  const [ic, nm, ds] = SECS[S.sec];
   m.innerHTML = `<div class="col" style="gap:18px"><h1>Sozlamalar</h1><div class="set">
-    <div class="card secs">${SECS.map((s, i) => `<button class="${i === S.sec ? "on" : ""}" data-sec="${i}">${s}</button>`).join("")}</div>
-    <section class="card"><h2>${SECS[S.sec]}</h2>${body}</section></div></div>`;
+    <nav class="card secs" aria-label="Sozlamalar bo'limlari">${SECS.map(([i0, n, d], i) => `<button class="${i === S.sec ? "on" : ""}" data-sec="${i}" ${i === S.sec ? 'aria-current="page"' : ""}><span class="si">${i0}</span><span class="sn">${n}<small>${d}</small></span></button>`).join("")}</nav>
+    <section class="card sbody"><div class="shead"><span class="si big">${ic}</span><div><h2>${nm}</h2><div class="muted">${ds}</div></div></div>${body}</section></div></div>`;
   m.querySelectorAll("[data-sec]").forEach((b) => b.onclick = () => { S.sec = +b.dataset.sec; render(); });
   m.querySelectorAll("[data-ft]").forEach((b) => b.onclick = () => { const o = D.web.off = D.web.off || {}, k = b.dataset.ft; if (o[k]) delete o[k]; else o[k] = 1; save(); render(); });
   m.querySelectorAll("[data-fp]").forEach((b) => b.onclick = () => { D.web.off = b.dataset.fp === "all" ? {} : Object.fromEntries(SIMPLE_OFF.map((k) => [k, 1])); save(); render(); toast(b.dataset.fp === "all" ? "Hamma funksiyalar yoqildi" : "Faqat asosiy funksiyalar qoldi"); });

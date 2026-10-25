@@ -1337,3 +1337,29 @@ test("emaktab: yil boshidan barcha choraklar, ilova oynasi ochilmasa — fayl or
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Sozlamalar: bo'limlar guruhlangan, kalitlar holatni ko'rsatadi, telefonda qator sig'adi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    for (let i = 0; i < 7; i++) {
+      await page.evaluate((i) => { S.sec = i; go("settings"); }, i);
+      const r = await page.evaluate(() => ({g: document.querySelectorAll(".sbody .sgroup").length, over: document.documentElement.scrollWidth - innerWidth, cur: $(".secs [aria-current]").dataset.sec}));
+      assert.ok(r.g >= 1, `bo'lim ${i}: guruh yo'q`); assert.ok(r.over <= 0, `bo'lim ${i}: ${r.over}px yonga chiqdi`); assert.equal(r.cur, String(i));
+    }
+    // funksiya kaliti: bosilganda o'chadi, aria-checked o'zgaradi
+    await page.evaluate(() => { S.sec = 6; go("settings"); });
+    assert.equal(await page.getAttribute("[data-ft=call]", "aria-checked"), "true");
+    await page.click("[data-ft=call]");
+    assert.equal(await page.getAttribute("[data-ft=call]", "aria-checked"), "false");
+    assert.equal(await page.evaluate(() => feat("call")), false);
+    // kalit sarlavha bilan bir qatorda
+    const same = await page.evaluate(() => { const row = $("[data-ft=bday]").closest(".srow"), a = row.firstElementChild.getBoundingClientRect(), b = $("[data-ft=bday]").getBoundingClientRect(); return b.top < a.bottom && b.left > a.left; });
+    assert.ok(same);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
