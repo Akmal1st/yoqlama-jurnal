@@ -34,7 +34,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       await nav("reports");
       for (const k of ["ready", "cmp", "blank", "cls"]) await page.click(`[data-kind=${k}]`);
       await nav("settings");
-      for (let i = 0; i < 6; i++) await page.click(`[data-sec="${i}"]`);
+      for (let i = 0; i < 7; i++) await page.click(`[data-sec="${i}"]`);
       await nav("today");
       const start = await page.$("[data-start]");
       if (start) { await start.click(); await page.click("[data-next]"); await page.click("[data-next]"); await page.click("[data-next]"); }
@@ -964,6 +964,40 @@ test("«Yana» menyusi: bo'limlar va qidiruv", async () => {
     await page.click(".modal [data-x]").catch(() => {}); await page.evaluate(() => { document.querySelectorAll(".modal").forEach((m) => m.remove()); S.sel = [0, D.classes[S.ci].dates[0]]; });
     await page.click("[data-more]");
     assert.ok((await page.textContent(".modal .mgrp h3")).startsWith("Tanlangan:"));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("Funksiyalarni yoqish/o'chirish: menyu, dars va «Bugun»dan yashirinadi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    // yangi foydalanuvchi: sodda to'plam
+    assert.deepEqual(await page.evaluate(() => SIMPLE_OFF.filter((k) => feat(k))), []);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    // import qilingan jurnalda hammasi yoqilgan
+    assert.equal(await page.evaluate(() => FEATS.filter(([k]) => feat(k)).length), await page.evaluate(() => FEATS.length));
+    await page.click(".side [data-go=journal]"); await page.click("[data-more]");
+    await page.click(".modal [data-feats]");
+    await page.waitForSelector("[data-ft=call]");
+    await page.click("[data-ft=call]"); await page.click("[data-ft=groups]"); await page.click("[data-ft=bday]"); await page.click("[data-ft=attmodes]");
+    assert.deepEqual(await page.evaluate(() => Object.keys(D.web.off).sort()), ["attmodes", "bday", "call", "groups"]);
+    await page.click(".side [data-go=journal]"); await page.click("[data-more]");
+    const items = await page.$$eval(".modal [data-i]", (x) => x.map((b) => b.textContent).join("|"));
+    assert.ok(!items.includes("Doskaga") && !items.includes("Guruh") && !items.includes("Tug'ilgan") && items.includes("O'rindiq"), items);
+    await page.click(".modal [data-x]");
+    await page.evaluate(() => { D.web.att_mode = "card"; const c = D.classes[0]; c.students[0].bday = "0000-" + todayIso().slice(5); save(); S.ci = 0; S.lesson = 0; S.step = 0; S.cur = 0; go("lesson"); });
+    await page.waitForSelector("[data-next]");
+    assert.equal(await page.$("[data-call]"), null); assert.equal(await page.$("[data-am]"), null); assert.equal(await page.$(".bday"), null);
+    assert.ok(await page.$("[data-att]"), "kartochka o'chiq — ro'yxat rejimi");
+    await page.evaluate(() => go("today")); assert.equal(await page.$(".bday"), null);
+    // «Hammasi» qaytaradi
+    await page.evaluate(() => { S.sec = 6; go("settings"); }); await page.click("[data-fp=all]");
+    assert.deepEqual(await page.evaluate(() => D.web.off), {});
+    await page.evaluate(() => go("today")); await page.waitForSelector(".bday");
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
