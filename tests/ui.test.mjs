@@ -152,7 +152,7 @@ test("emaktab.uz saytidan xatcho'p orqali import", async () => {
     await ctx.route("https://cdnjs.cloudflare.com/**", async (r) => r.fulfill({body: await readFile(lib), contentType: "text/javascript"}));
     await ctx.route("https://app.test/**", async (r) => {
       const p = new URL(r.request().url()).pathname.slice(1) || "index.html";
-      try { r.fulfill({body: await readFile(docs + p), contentType: p.endsWith(".html") ? "text/html" : undefined}); } catch { r.fulfill({status: 404}); }
+      try { r.fulfill({body: await readFile(docs + p), contentType: p.endsWith(".html") ? "text/html" : p.endsWith(".js") ? "text/javascript" : undefined}); } catch { r.fulfill({status: 404}); }
     });
     await ctx.route("https://schools.emaktab.uz/**", (r) => {
       const u = new URL(r.request().url()); asked.push(u.pathname + u.search);
@@ -1333,7 +1333,7 @@ test("emaktab: yil boshidan barcha choraklar, ilova oynasi ochilmasa — fayl or
     await ctx.route("https://cdnjs.cloudflare.com/**", async (r) => r.fulfill({body: await readFile(lib), contentType: "text/javascript"}));
     await ctx.route("https://app.test/**", async (r) => {
       const p = new URL(r.request().url()).pathname.slice(1) || "index.html";
-      try { r.fulfill({body: await readFile(docs + p), contentType: p.endsWith(".html") ? "text/html" : undefined}); } catch { r.fulfill({status: 404}); }
+      try { r.fulfill({body: await readFile(docs + p), contentType: p.endsWith(".html") ? "text/html" : p.endsWith(".js") ? "text/javascript" : undefined}); } catch { r.fulfill({status: 404}); }
     });
     const hdr = {currentPeriodId: 78, currentGroupId: 5, periods: {5: {periods: [{id: 77, number: 0, name: "I chorak"}, {id: 78, number: 1, name: "II chorak"}, {id: 79, number: 2, name: "III chorak"}]}}};
     await ctx.route("https://schools.emaktab.uz/**", (r) => {
@@ -1349,7 +1349,10 @@ test("emaktab: yil boshidan barcha choraklar, ilova oynasi ochilmasa — fayl or
     const emk = await ctx.newPage(); emk.on("pageerror", (e) => errors.push(e.message));
     await emk.goto("https://schools.emaktab.uz/v2/myclasses");
     await emk.evaluate(() => { window.open = () => null; });   // qalqib chiquvchi oyna to'silgan
-    await emk.evaluate(code);
+    // telefon xatcho'pi: qisqa kod emk.js ni ilova saytidan yuklaydi
+    const loader = await app.evaluate(() => emkLoader());
+    assert.ok(loader.length < 600, `telefon xatcho'pi qisqa bo'lishi kerak: ${loader.length}`);
+    await emk.evaluate(decodeURIComponent(loader.slice(11)));
     await emk.click('[data-emk="all"]');
     const [dl] = await Promise.all([emk.waitForEvent("download"), emk.click('[data-emk="save"]')]);
     assert.equal(dl.suggestedFilename(), "emaktab_jurnallar.json");
@@ -1373,7 +1376,7 @@ test("emaktab: yil boshidan barcha choraklar, ilova oynasi ochilmasa — fayl or
     await app.evaluate(() => { document.querySelectorAll(".modal").forEach((x) => x.remove()); navigator.clipboard.writeText = () => Promise.reject(new Error("no")); emkDialog("phone"); });
     await app.click(".modal [data-copy]");
     const bmk = await app.inputValue(".modal #emkta");
-    assert.ok(bmk.startsWith("javascript:") && !/[\r\n\s]/.test(bmk), "bir qatorli, bo'shliqsiz");
+    assert.ok(bmk.startsWith("javascript:") && !/[\r\n\s]/.test(bmk) && bmk.length < 600, "bir qatorli, qisqa");
     assert.equal(await app.evaluate((u) => { try { new Function(decodeURIComponent(u.slice(11).replace(/\n/g, ""))); return "ok"; } catch (e) { return e.message; } }, bmk), "ok");
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }

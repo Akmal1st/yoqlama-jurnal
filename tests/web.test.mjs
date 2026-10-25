@@ -81,3 +81,8 @@ GOLDEN.classes.forEach((exp, ci) => {
     assert.deepEqual(norm({lessons: r.lessons, dates: r.dates, rows: r.rows.map((x) => pick(x, RKEYS))}), exp.report);
   });
 });
+
+test("docs/emk.js index.html dagi emkGrab bilan bir xil (node tests/make_emk.mjs)", async () => {
+  const {emkJs} = await import("./make_emk.mjs");
+  assert.equal(read("../docs/emk.js"), emkJs());
+});
