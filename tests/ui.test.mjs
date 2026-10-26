@@ -569,9 +569,14 @@ test("Dars jadvali: Excel'dan yuklash, saqlash va dars kunlari", async () => {
     const dir = await mkdtemp(join(tmpdir(), "jadval-")), file = join(dir, "jadval.xlsx");
     await writeFile(file, XLSX.write(wb, {type: "buffer", bookType: "xlsx"}));
     await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="1"]');
-    const [fc] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-a=schx]")]);
+    assert.equal(await page.locator("[data-a=schx], [data-a=scht]").count(), 0, "sozlamada faqat «Kiritish» tugmasi qoladi");
+    await page.click("[data-a=sch]"); await page.waitForSelector(".schtabs [data-day]");
+    const [fc] = await Promise.all([page.waitForEvent("filechooser"), page.click(".modal [data-sx]")]);
     await fc.setFiles(file);
-    await page.waitForSelector("table.sch");
+    await page.waitForSelector(".modal .card.hot");
+    assert.equal(await page.locator(".modal").count(), 1, "eski oyna yopilishi kerak");
+    await page.click(".schtabs [data-day='1']");
+    assert.equal(await page.inputValue(".schlist [data-sd='1|1']"), "7-G|Informatika");
     assert.ok(await page.isVisible("text=8-B"), "jurnalda yo'q sinf ko'rsatilishi kerak");
     await page.click(".modal [data-ok]");
     const r = await page.evaluate(() => ({s: D.web.schedule, wd: Object.fromEntries(D.classes.map((c) => [label(c), c.weekdays])),
@@ -583,7 +588,7 @@ test("Dars jadvali: Excel'dan yuklash, saqlash va dars kunlari", async () => {
     const t = await page.evaluate(() => parseSchedule([["", "1", "2"], ["Du", "6-A", "7-G"], ["Se", "", "9-A Geometriya"], ["Chor", "6-A", ""]]).schedule.days.slice(0, 3));
     assert.deepEqual(t, [["6-A|Matematika", "7-G|Informatika"], ["", "9-A|Geometriya"], ["6-A|Matematika", ""]]);
     // namuna Excel yuklab olinadi
-    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-a=scht]")]);
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-a=sch]").then(() => page.click(".modal [data-st]"))]);
     const back = XLSX.utils.sheet_to_json(XLSX.read(await readFile(await dl.path())).Sheets["Dars jadvali"], {header: 1});
     assert.equal(back[0][2], "Dushanba"); assert.equal(back[1][2], "6-A Matematika");
     assert.deepEqual(errors, []);
