@@ -2,10 +2,12 @@
 
 Bu dastur o'qituvchilar uchun. Unda yo'qlama, kundalik baholar, BSB/CHSB, chorak va yillik baholar yuritiladi. Hisobotlar chiqarish va emaktab bilan ishlash ham mumkin.
 
+**Asosiy dastur: web ilova.** Barcha yangi imkoniyatlar (guruhlar, to'lovlar, hisobotlar, Telegram zaxira, yangi dizayn) avval va faqat web ilovada chiqadi. Manzil: https://akmal1st.github.io/yoqlama-jurnal/ (telefonda «Bosh ekranga qo'shish»). Kompyuter dasturi (`dastur/`) qo'shimcha sifatida saqlanadi: u eski imkoniyatlarni biladi, lekin guruhlar va to'lovlarni bilmaydi.
+
 | Papka | Nima bor |
 |---|---|
-| `docs/` | **Web ilova** (kompyuter va telefonda brauzerda ishlaydi, internetsiz). GitHub Pages shu papkadan sayt qiladi. |
-| `dastur/` | **Kompyuter dasturi** (PySide6): `yoqlama_jurnal.py`, yangi ko'rinish `yoqlama_jurnal2.py`, Telegram bot `emaktab_tgbot.py` |
+| `docs/` | **Asosiy dastur: web ilova** (kompyuter va telefonda brauzerda ishlaydi, internetsiz). GitHub Pages shu papkadan sayt qiladi. |
+| `dastur/` | Qo'shimcha: kompyuter dasturi (PySide6): `yoqlama_jurnal.py`, yangi ko'rinish `yoqlama_jurnal2.py`, Telegram bot `emaktab_tgbot.py` |
 | `tests/` | Hisob-kitoblar testlari |
 
 ## Ishga tushirish
