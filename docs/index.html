@@ -2013,7 +2013,7 @@ function keysDialog() {
   const r = (k, t) => `<span>${k.split(" ").map((x) => `<kbd>${x}</kbd>`).join(" ")}</span><span>${t}</span>`;
   modal(`<h2>Tezkor tugmalar</h2><div class="kbdl">
     <h3>Hamma joyda</h3>${r("Ctrl K", "Qidirish va buyruqlar")}${r("Alt 1…5", "Bugun · Jurnal · Guruhlar · Hisobotlar · Sozlamalar")}${r("?", "Shu ro'yxat")}${r("Esc", "Oynani yopish")}${r("Ctrl Z", "Oxirgi o'zgarishni bekor qilish")}
-    <h3>Jurnal (katak tanlangan)</h3>${r("← → ↑ ↓", "Kataklar bo'ylab yurish")}${r("1…9 0", "Baho (0 = 10)")}${r("S D K Q C", "Sababsiz · Davolanish · Kech qolgan · Kech (KQ) · CH")}${r("+", "Ikkinchi baho")}${r("Del", "Katakni tozalash")}
+    <h3>Jurnal (katak tanlangan)</h3>${r("← → ↑ ↓", "Kataklar bo'ylab yurish")}${r("1…9 0", "Baho (0 = 10)")}${r("S D K Q C", "Sababsiz (S) · Sababli (DQ) · Kasal (K) · Kech qoldi (KQ) · Chet elda (CH)")}${r("+", "Ikkinchi baho")}${r("Del", "Katakni tozalash")}
     <h3>Dars</h3>${r("S D K Q", "Tanlangan o'quvchiga belgi")}</div>
     <div class="row"><span class="sp"></span><button class="btn pri" data-x>Yopish</button></div>`, (m, close) => { $("[data-x]", m).onclick = () => close(); });
 }
