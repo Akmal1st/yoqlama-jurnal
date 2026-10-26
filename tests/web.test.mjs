@@ -3,37 +3,14 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import vm from "node:vm";
+import {loadApp} from "./webapp.mjs";
+import {hisobotWeb} from "./hisobot_web.mjs";
 
 const here = new URL(".", import.meta.url);
 const read = (p) => readFileSync(new URL(p, here), "utf8");
 const INPUTS = JSON.parse(read("inputs.json"));
 const GOLDEN = JSON.parse(read("golden.json"));
 const FIXTURE = JSON.parse(read("fixtures/journal.json"));
-
-function loadApp() {
-  const html = read("../docs/index.html");
-  const src = html.slice(html.indexOf("<script>") + 8, html.lastIndexOf("</script>"));
-  const [y, m, d] = INPUTS.today.split("-").map(Number);
-  const FIXED = new Date(y, m - 1, d, 12).getTime();
-  class FixedDate extends Date {
-    constructor(...a) { if (a.length) super(...a); else super(FIXED); }
-    static now() { return FIXED; }
-  }
-  const noop = () => {};
-  const store = {};
-  const ctx = vm.createContext({
-    Date: FixedDate, console,
-    document: {addEventListener: noop, getElementById: () => null, querySelector: () => null, querySelectorAll: () => []},
-    window: {addEventListener: noop}, navigator: {}, location: {protocol: "file:"},
-    localStorage: {getItem: (k) => store[k] ?? null, setItem: (k, v) => { store[k] = String(v); }},
-    setTimeout, clearTimeout, setInterval: noop, matchMedia: () => ({matches: false}),
-  });
-  vm.runInContext(src + `
-    ;globalThis.__app = {setData: (x) => { D = normalize(x); }, get D() { return D; }, grade5, parseMark, parseScore, parsePlanText,
-      emaktabSheet, bsbStats, bsbRecs, worksInQuarter, quarterResult, yearResult, readiness, reportRows, periodNow, label};`, ctx);
-  return ctx.__app;
-}
 
 // Python bilan bir xil ko'rinishga keltirish: 6 xonagacha, undefined → null, butun kasr → butun son
 function norm(v) {
@@ -48,7 +25,7 @@ const QKEYS = ["bsb", "chsb", "fb", "n_fb", "avg", "total", "max_bsb", "max_chsb
 const YKEYS = ["sb", "avg_fb", "year", "ready", "year_grade", "exam", "final", "final_grade"];
 const RKEYS = ["name", "n", "avg", "att", "s", "dq", "k", "kq", "ch", "absent", "why"];
 
-const A = loadApp();
+const A = loadApp(INPUTS.today);
 A.setData(structuredClone(FIXTURE));
 
 test("grade5: 100 ballik → 5 ballik baho", () => assert.deepEqual(norm(INPUTS.grade5.map(A.grade5)), GOLDEN.grade5));
@@ -85,4 +62,10 @@ GOLDEN.classes.forEach((exp, ci) => {
 test("docs/emk.js index.html dagi emkGrab bilan bir xil (node tests/make_emk.mjs)", async () => {
   const {emkJs} = await import("./make_emk.mjs");
   assert.equal(read("../docs/emk.js"), emkJs());
+});
+
+// Hisobotlar (sinf, to'garak, pullik ta'lim) — hisobot_golden.json bilan; SQLite moduli (dastur/hisobot_sqlite.py) ham shu faylga solishtiriladi
+test("Hisobotlar: solishtirish, ishlar, to'lish, hisob daftari, moliya = hisobot_golden.json", () => {
+  const H = JSON.parse(read("fixtures/hisobot.json")), G = JSON.parse(read("hisobot_golden.json"));
+  assert.deepEqual(norm(hisobotWeb(loadApp(G.today), H)), G);
 });
