@@ -735,6 +735,13 @@ table.bsa input[type=checkbox]{width:20px;height:20px;accent-color:var(--acc)}
 .pd .hdr{text-align:center;margin-bottom:8px}.pd .hdr .sch{font-weight:700;font-size:12pt;text-transform:uppercase}
 .pd .hdr h1{font-size:14pt;margin:4px 0 6px}
 .pd .meta{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 26px;margin:2px 0}
+.pd .hdr2{margin-bottom:8px;border-top:4px solid #0b4f57;padding-top:6px}.pd .hdr2 .sch{text-align:center;font-weight:700;font-size:11pt;text-transform:uppercase;letter-spacing:.4px}
+.pd .hdr2 h1{text-align:center;font-size:14pt;margin:3px 0 8px}.pd .info{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px}
+.pd .ic{border-bottom:1px solid #999;padding:1px 2px}.pd .ic.w{grid-column:span 2}.pd .ic span{display:block;font-size:7.5pt;text-transform:uppercase;letter-spacing:.4px;color:#555}.pd .ic b{font-size:10.5pt}
+.pd table.f2 th.l{text-align:left}.pd table.f2 tr.qn th{font-size:7pt;font-weight:500;background:#f4f4f4}.pd table.f2 tr.sm td{background:#fafafa}
+.pd .ftr2{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;margin-top:10px;align-items:start;break-inside:avoid}.pd .ftr2 table{margin:0}
+.pd .gb{display:block;height:10px;border:1px solid #888;box-sizing:border-box}.pd .kps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pd .kp{border:1px solid #888;border-radius:4px;padding:3px 6px;text-align:center}.pd .kp span{display:block;font-size:7.5pt;text-transform:uppercase;color:#555}.pd .kp b{font-size:12pt}
 .pd .blank{display:inline-block;min-width:120px;border-bottom:1px solid #000}
 .pd .ftr{margin-top:10px}.pd .sign{margin-top:16px;display:grid;gap:14px}.pd .ln{display:inline-block;width:150px;border-bottom:1px solid #000;margin:0 6px}
 #pdoc{display:none}
@@ -4702,21 +4709,27 @@ function bsbReportHtml(meta, an, rec, pdf) {
   return o;
 }
 function bsbFormHtml(meta, an, c, B, H) {
-  const by = Object.fromEntries(an.students.map((s) => [s.name, s])), g = an.grades, nq = an.qmax.length, total = c.students.length;
-  const line = (k, v) => `<span><b>${k}:</b> ${v ? esc(v) : "<span class=\"blank\"></span>"}</span>`;
-  const hdr = `<div class="hdr">${H.school ? `<div class="sch">${esc(H.school)}</div>` : ""}<h1>Bo'lim bo'yicha summativ baholash (BSB) natijalari</h1>
-    <div class="meta">${line("Sinf", meta.cls)}${line("Fan", meta.subject)}${line("Sana", meta.date)}</div>
-    <div class="meta">${line("Bo'lim / mavzu", meta.title)}${line("Savollar soni", String(nq))}${line("Maksimal ball", gnum(an.tot_max))}</div>
-    <div class="meta">${line("Fan o'qituvchisi", H.teacher)}</div></div>`;
-  const tbl = `<table class="stu"><tr><th>№</th><th>O'quvchining familiyasi, ismi</th>${an.qmax.map((_, i) => `<th>${i + 1}-s.</th>`).join("")}<th>Jami</th><th>%</th><th>Baho</th></tr>
+  const by = Object.fromEntries(an.students.map((s) => [s.name, s])), g = an.grades, nq = an.qmax.length, total = c.students.length, ok = an.n && an.questions.length, qs = an.questions, names = meta.names || [];
+  const cell = (k, v, wide) => `<div class="ic${wide ? " w" : ""}"><span>${k}</span><b>${v ? esc(v) : "&nbsp;"}</b></div>`;
+  const hdr = `<div class="hdr2">${H.school ? `<div class="sch">${esc(H.school)}</div>` : ""}<h1>Bo'lim bo'yicha summativ baholash (BSB) natijalari</h1>
+    <div class="info">${cell("Sinf", meta.cls)}${cell("Fan", meta.subject)}${cell("Sana", meta.date)}${cell("Bo'lim / mavzu", meta.title, 1)}${cell("Savollar / maks. ball", `${nq} ta / ${gnum(an.tot_max)}`)}${cell("Fan o'qituvchisi", H.teacher, 1)}</div></div>`;
+  const hasN = names.some(Boolean);
+  const lvl = (q) => bg(LV_COL[q.level]);
+  const tbl = `<table class="stu f2"><tr><th rowspan="${hasN ? 2 : 1}">№</th><th rowspan="${hasN ? 2 : 1}" class="l">O'quvchining familiyasi, ismi</th>${an.qmax.map((_, i) => `<th>${i + 1}-s.</th>`).join("")}<th rowspan="${hasN ? 2 : 1}">Jami</th><th rowspan="${hasN ? 2 : 1}">%</th><th rowspan="${hasN ? 2 : 1}">Baho</th></tr>
+    ${hasN ? `<tr class="qn">${an.qmax.map((_, i) => `<th>${esc(names[i] || "")}</th>`).join("")}</tr>` : ""}
     <tr class="mxr"><td></td><td class="l"><b>Maksimal ball</b></td>${an.qmax.map((v) => `<td>${gnum(v)}</td>`).join("")}<td><b>${gnum(an.tot_max)}</b></td><td>100</td><td></td></tr>
     ${c.students.map((st, i) => { const s = by[st.name];
       return s ? `<tr><td>${i + 1}</td><td class="l">${esc(st.name)}</td>${s.pts.map((v) => `<td>${gnum(v)}</td>`).join("")}<td><b>${gnum(s.total)}</b></td><td>${pct0(s.pct)}</td><td${bg(BA_COL[s.grade])}><b>${s.grade}</b></td></tr>`
-        : `<tr class="abs"><td>${i + 1}</td><td class="l">${esc(st.name)}</td><td colspan="${nq + 3}">qatnashmadi</td></tr>`; }).join("")}</table>`;
-  const ok = an.n && an.questions.length;
-  const ftr = `<div class="ftr"><table><tr><th>Sinfdagi o'quvchilar</th><th>Qatnashdi</th><th>Qatnashmadi</th><th>«5»</th><th>«4»</th><th>«3»</th><th>«2»</th><th>O'rtacha ball</th><th>O'zlashtirish</th><th>Bilim sifati</th></tr>
-    <tr><td>${total}</td><td>${an.n}</td><td>${an.absent.length}</td>${[5, 4, 3, 2].map((k) => `<td><b>${g[k]}</b></td>`).join("")}<td>${ok ? pyFixed(an.mean_total, 1) : "—"}</td><td>${ok ? pct0(an.mastery) : "—"}</td><td>${ok ? pct0(an.quality) : "—"}</td></tr></table>
-    <div class="sign"><div>Fan o'qituvchisi: <span class="ln"></span> ${esc(H.teacher || "")}</div><div>O'quv ishlari bo'yicha direktor o'rinbosari: <span class="ln"></span> ${esc(H.deputy || "")}</div><div>Sana: «____» ______________ ${meta.date.slice(6)} y.</div></div></div>`;
+        : `<tr class="abs"><td>${i + 1}</td><td class="l">${esc(st.name)}</td><td colspan="${nq + 3}">qatnashmadi</td></tr>`; }).join("")}
+    ${ok ? `<tr class="sm"><td></td><td class="l"><b>O'rtacha ball</b></td>${qs.map((q) => `<td>${pyFixed(q.mean, 1)}</td>`).join("")}<td><b>${pyFixed(an.mean_total, 1)}</b></td><td><b>${pct0(an.mean_pct)}</b></td><td></td></tr>
+    <tr class="sm"><td></td><td class="l"><b>O'zlashtirish, %</b></td>${qs.map((q) => `<td${lvl(q)}><b>${pyFixed(q.pct, 0)}</b></td>`).join("")}<td colspan="3"></td></tr>
+    <tr class="sm"><td></td><td class="l"><b>To'liq yechganlar</b></td>${qs.map((q) => `<td>${q.full}</td>`).join("")}<td colspan="3"></td></tr>
+    <tr class="sm"><td></td><td class="l"><b>0 ball olganlar</b></td>${qs.map((q) => `<td>${q.zero}</td>`).join("")}<td colspan="3"></td></tr>` : ""}</table>`;
+  const bar = (k) => { const pc = an.n ? 100 * g[k] / an.n : 0; return `<tr><td${bg(BA_COL[k])}><b>${k}</b></td><td>${g[k]}</td><td>${pyFixed(pc, 0)}%</td><td class="l"><span class="gb" style="width:${Math.round(pc)}%;background:${BA_COL[k]}"></span></td></tr>`; };
+  const kp = (k, v) => `<div class="kp"><span>${k}</span><b>${v}</b></div>`;
+  const ftr = `<div class="ftr2"><div class="dist"><table><tr><th>Baho</th><th>Soni</th><th>%</th><th class="l">Taqsimot</th></tr>${[5, 4, 3, 2].map(bar).join("")}</table></div>
+    <div class="kps">${kp("Sinfda", total)}${kp("Qatnashdi", an.n)}${kp("Qatnashmadi", an.absent.length)}${kp("O'rtacha ball", ok ? pyFixed(an.mean_total, 1) + " / " + gnum(an.tot_max) : "—")}${kp("O'zlashtirish", ok ? pct0(an.mastery) : "—")}${kp("Bilim sifati", ok ? pct0(an.quality) : "—")}</div></div>
+    <div class="sign"><div>Fan o'qituvchisi: <span class="ln"></span> ${esc(H.teacher || "")}</div><div>O'quv ishlari bo'yicha direktor o'rinbosari: <span class="ln"></span> ${esc(H.deputy || "")}</div><div>Sana: «____» ______________ ${meta.date.slice(6)} y.</div></div>`;
   return `<div class="form2">${hdr}${tbl}${ftr}</div>`;
 }
 function printDoc(html, land) {
@@ -4749,13 +4762,17 @@ async function baExcel(variant, c, B, an, rec, H) {
         ...[["Yutuqlar", "good"], ["Kamchiliklar", "bad"], ["Tavsiyalar", "tips"]].flatMap(([t, k]) => [[t], ...rec[k].map((x) => ["• " + x]), []])], [40, 16]);
     }
   } else {
-    const by = Object.fromEntries(an.students.map((s) => [s.name, s])), W = nq + 5, g = an.grades;
+    const by = Object.fromEntries(an.students.map((s) => [s.name, s])), W = nq + 5, g = an.grades, ok = an.n && an.questions.length, hasN = meta.names.some(Boolean);
+    const sm = (t, f, tail) => ["", t, ...an.questions.map(f), ...(tail || ["", "", ""])];
     const aoa = [[H.school || ""], ["Bo'lim bo'yicha summativ baholash (BSB) natijalari"], [`Sinf: ${meta.cls}     Fan: ${meta.subject || "—"}     Sana: ${meta.date}`],
       [`Bo'lim / mavzu: ${meta.title || "—"}     Savollar soni: ${nq}     Maksimal ball: ${gnum(an.tot_max)}`], [`Fan o'qituvchisi: ${H.teacher || ""}`], [],
-      ["№", "O'quvchining familiyasi, ismi", ...an.qmax.map((_, i) => `${i + 1}-s.`), "Jami", "%", "Baho"], maxRow,
-      ...c.students.map((st, i) => { const s = by[st.name]; return s ? [i + 1, st.name, ...s.pts, s.total, Math.round(s.pct), s.grade] : [i + 1, st.name, "qatnashmadi"]; }), [],
-      ["Sinfdagi o'quvchilar", "", "Qatnashdi", "Qatnashmadi", "«5»", "«4»", "«3»", "«2»", "O'rtacha ball", "O'zlashtirish %", "Bilim sifati %"],
-      [c.students.length, "", an.n, an.absent.length, g[5], g[4], g[3], g[2], an.n ? Math.round(an.mean_total * 10) / 10 : "", an.n ? Math.round(an.mastery) : "", an.n ? Math.round(an.quality) : ""], [],
+      ["№", "O'quvchining familiyasi, ismi", ...an.qmax.map((_, i) => `${i + 1}-s.`), "Jami", "%", "Baho"],
+      ...(hasN ? [["", "Savol / mezon", ...an.qmax.map((_, i) => meta.names[i] || ""), "", "", ""]] : []), maxRow,
+      ...c.students.map((st, i) => { const s = by[st.name]; return s ? [i + 1, st.name, ...s.pts, s.total, Math.round(s.pct), s.grade] : [i + 1, st.name, "qatnashmadi"]; }),
+      ...(ok ? [sm("O'rtacha ball", (q) => Math.round(q.mean * 10) / 10, [Math.round(an.mean_total * 10) / 10, Math.round(an.mean_pct), ""]), sm("O'zlashtirish, %", (q) => Math.round(q.pct)), sm("To'liq yechganlar", (q) => q.full), sm("0 ball olganlar", (q) => q.zero)] : []), [],
+      ["Baho", "Soni", "%"], ...[5, 4, 3, 2].map((k) => [k, g[k], an.n ? Math.round(100 * g[k] / an.n) : 0]), [],
+      ["Sinfdagi o'quvchilar", "", "Qatnashdi", "Qatnashmadi", "O'rtacha ball", "O'zlashtirish %", "Bilim sifati %"],
+      [c.students.length, "", an.n, an.absent.length, an.n ? Math.round(an.mean_total * 10) / 10 : "", an.n ? Math.round(an.mastery) : "", an.n ? Math.round(an.quality) : ""], [],
       [`Fan o'qituvchisi: ____________ ${H.teacher || ""}`], [`O'quv ishlari bo'yicha direktor o'rinbosari: ____________ ${H.deputy || ""}`], [`Sana: «____» ______________ ${meta.date.slice(6)} y.`]];
     add("BSB", aoa, [5, 32, ...Array(Math.max(nq, 9)).fill(8), 8, 7, 7], [0, 1, 2, 3, 4].map((r) => ({s: {r, c: 0}, e: {r, c: W - 1}})));
   }

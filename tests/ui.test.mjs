@@ -443,14 +443,14 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]');
       await page.fill("#hs", "12-maktab"); await page.fill("#ht", "Karimova N."); await page.click(".modal [data-pdf]");
       txt = await page.evaluate(() => window.__printed);
-      for (const s of ["12-maktab", "Bo'lim bo'yicha summativ baholash (BSB) natijalari", "Kasrlar", "qatnashmadi", "Qatnashdi", "direktor o'rinbosari", "Karimova N."]) assert.ok(txt.includes(s), s);
+      for (const s of ["12-maktab", "Bo'lim bo'yicha summativ baholash (BSB) natijalari", "Kasrlar", "qatnashmadi", "Qatnashdi", "direktor o'rinbosari", "Karimova N.", "O'zlashtirish, %", "To'liq yechganlar", "Taqsimot", "Bilim sifati"]) assert.ok(txt.includes(s), s);
       assert.ok(!txt.includes("Yutuqlar"));
       assert.equal(await page.evaluate(() => D.web.bsb_hdr.school), "12-maktab", "header ma'lumoti eslab qolinadi");
       await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]');
       const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".modal [data-xl]")]);
       const wb = XLSX.read(await readFile(await dl.path()));
       const aoa = XLSX.utils.sheet_to_json(wb.Sheets.BSB, {header: 1});
-      assert.equal(aoa[0][0], "12-maktab"); assert.ok(aoa.some((r) => String(r[0]).startsWith("O'quv ishlari bo'yicha direktor")));
+      assert.equal(aoa[0][0], "12-maktab"); assert.ok(aoa.some((r) => r[1] === "O'zlashtirish, %") && aoa.some((r) => r[0] === "Baho" && r[1] === "Soni"), "yangi qatorlar Excelda"); assert.ok(aoa.some((r) => String(r[0]).startsWith("O'quv ishlari bo'yicha direktor")));
       // jami ballni summativga o'tkazish (yangi BSB ishi)
       await page.click("[data-btr]"); await page.click(".modal [data-ok]");
       const w = await page.evaluate((d) => { const c = D.classes[S.ci], w = c.works.find((x) => x.type === "bsb" && x.date === d && x.title === "Kasrlar"); return w && [w.max, c.students.map((s) => (s.scores || {})[w.id] ?? null)]; }, qd);
