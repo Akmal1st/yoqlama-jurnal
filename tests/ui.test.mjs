@@ -141,7 +141,6 @@ test("emaktab.uz saytidan xatcho'p orqali import", async () => {
   const {readFile} = await import("node:fs/promises");
   const XLSX = (await import("xlsx")).default;
   const docs = fileURLToPath(new URL("../docs/", import.meta.url));
-  const lib = fileURLToPath(new URL("../node_modules/xlsx/dist/xlsx.full.min.js", import.meta.url));
   const rows = JSON.parse(await readFile(fileURLToPath(new URL("inputs.json", import.meta.url)), "utf8")).emaktab[0].rows;
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "Matematika");
   const xls = XLSX.write(wb, {type: "buffer", bookType: "xls"});
@@ -149,7 +148,6 @@ test("emaktab.uz saytidan xatcho'p orqali import", async () => {
   try {
     const ctx = await browser.newContext({serviceWorkers: "block"});
     const asked = [];
-    await ctx.route("https://cdnjs.cloudflare.com/**", async (r) => r.fulfill({body: await readFile(lib), contentType: "text/javascript"}));
     await ctx.route("https://app.test/**", async (r) => {
       const p = new URL(r.request().url()).pathname.slice(1) || "index.html";
       try { r.fulfill({body: await readFile(docs + p), contentType: p.endsWith(".html") ? "text/html" : p.endsWith(".js") ? "text/javascript" : undefined}); } catch { r.fulfill({status: 404}); }
@@ -270,6 +268,57 @@ test("Tahlil tuzatishlari: Ctrl tugmalari belgi qo'ymaydi, Escape, bir marta saq
   } finally { await browser.close(); }
 });
 
+test("Tavsiyalar: o'quvchi id va bir xil ismlar, to'lovni qaytarish, buzilgan xotira, BSB kunidagi baho", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    // buzilgan localStorage: matn alohida saqlanadi va ogohlantiriladi
+    await page.goto(APP);
+    await page.evaluate(() => { localStorage.setItem(STORE_KEY, "{buzilgan"); indexedDB.deleteDatabase("yoqlama_jurnal"); });
+    await page.reload();
+    await page.waitForSelector(".toast:has-text('buzilgan')");
+    assert.equal(await page.evaluate(() => localStorage.getItem(STORE_KEY + "_buzilgan")), "{buzilgan");
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const r = await page.evaluate(async () => {
+      const d = normalize({classes: [{name: "7-A", students: [{name: "Ali Valiyev"}, {name: "ali  valiyev"}, {name: "Ali Valiyev"}]}]});
+      const names = d.classes[0].students.map((s) => s.name), ids = d.classes[0].students.map((s) => s.id);
+      // ism o'zgargandan keyin ham tarixdagi baho qaytariladi (doimiy id orqali)
+      const c = D.classes[0], s = c.students[0], t = c.dates.find((x) => x <= todayIso() && !isNoLesson(c, x) && !sumOn(c, x));
+      D.web.past = "all"; D.settings.protect.enabled = false;
+      s.marks[t] = "7"; putMark(c, 0, t, "9", true);
+      const e = D.changelog[D.changelog.length - 1]; s.name = s.name + " Qayta";
+      const ok = await revertEntry(e);
+      return {names, uniq: new Set(ids).size, ok, back: s.marks[t], sid: e.sid === s.id};
+    });
+    assert.deepEqual(r.names, ["Ali Valiyev", "ali  valiyev (2)", "Ali Valiyev (3)"]);
+    assert.equal(r.uniq, 3); assert.equal(r.ok, true); assert.equal(r.back, "7"); assert.equal(r.sid, true);
+    // ismni boshqa o'quvchi ismiga o'zgartirib bo'lmaydi
+    await page.evaluate(() => { window.__n = D.classes[0].students[1].name; renameStudent(0, 0); });
+    await page.fill("#ask", await page.evaluate(() => window.__n)); await page.click(".modal [data-ok]");
+    await page.waitForSelector(".toast:has-text('shunday ismli')");
+    // BSB kunidagi eski baho FBga kirmaydi
+    const fb = await page.evaluate(() => {
+      const c = D.classes[0], s = c.students[0], w = c.works.find((x) => x.type === "bsb"), rng = [w.date, w.date];
+      s.marks[w.date] = "10"; return formativeGrades(c, s, rng).length;
+    });
+    assert.equal(fb, 0);
+    // to'lov o'chirilsa «Qaytarish» tugmasi bilan tiklanadi
+    await page.evaluate(() => {
+      const c = normalize({classes: [{name: "Ingliz", kind: "paid", fee: {month: 100, day: 10}, students: [{name: "Pul To'lovchi", pays: [{id: "p1", no: 1, d: todayIso(), m: todayIso().slice(0, 7), sum: 5000, how: "Naqd"}]}]}]}).classes[0];
+      D.classes.push(c); payDialog(D.classes.length - 1, 0, todayIso().slice(0, 7));
+    });
+    page.once("dialog", (d) => d.accept());
+    await page.click(".modal [data-pdel]"); await page.click(".modal [data-ok]");
+    await page.waitForSelector(".toast .tact");
+    assert.equal(await page.evaluate(() => D.classes[D.classes.length - 1].students[0].pays.length), 0);
+    await page.click(".toast .tact");
+    assert.equal(await page.evaluate(() => D.classes[D.classes.length - 1].students[0].pays[0].id), "p1");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
 test("jurnal: Kun ko'rinishi, katak yonidagi belgi oynasi, sinf tanlash", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
@@ -321,11 +370,9 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
   test(`${name}: BSB tahlili — ball kiritish, saqlash, eksport va summativga o'tkazish`, async () => {
     const {readFile} = await import("node:fs/promises");
     const XLSX = (await import("xlsx")).default;
-    const lib = fileURLToPath(new URL("../node_modules/xlsx/dist/xlsx.full.min.js", import.meta.url));
     const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
     try {
       const ctx = await browser.newContext({viewport, acceptDownloads: true});
-      await ctx.route("https://cdnjs.cloudflare.com/**", async (r) => r.fulfill({body: await readFile(lib), contentType: "text/javascript"}));
       const page = await ctx.newPage();
       const errors = []; page.on("pageerror", (e) => errors.push(e.message));
       await page.goto(APP);
@@ -586,6 +633,21 @@ test("Telegram: ulash, avtomatik zaxira va boshqa qurilmadan yuklash (soxta bot 
     // keyingi zaxira oldingi bo'laklarni o'chiradi
     await page.evaluate(async () => { D.classes[0].name = "5-V"; await tgBackup(false); });
     assert.equal(docs.length, 2); assert.ok(deleted.includes(95) && deleted.includes(96), deleted.join());
+    // parol bilan shifrlash: fayl ham, matn bo'laklari ham o'qib bo'lmaydi; parol bilan ochiladi
+    await page.evaluate(async () => { tgSet({pass: "maxfiy123"}); D.classes[0].name = "5-G"; await tgBackup(false); });
+    assert.equal(docs.length, 3);
+    assert.ok(docs[2].includes("jurnal-sealed") && !docs[2].includes("5-G") && !docs[2].includes("Boshqa Qurilma"));
+    const sp = (pinned.caption.match(/#d([\d.]+)/) || [])[1].split(".").map(Number);
+    await page.evaluate(async (ids) => { window.__s = await tgReadParts(ids); }, sp);
+    assert.equal(await page.evaluate(() => window.__s.type), "jurnal-sealed");
+    assert.equal(await page.evaluate(async () => (await openSealed(window.__s)).classes[0].name), "5-G");
+    // boshqa qurilma: parol saqlanmagan — so'raladi, noto'g'risi qabul qilinmaydi
+    await page.evaluate(() => { const c = tgCfg(); delete c.pass; localStorage.setItem(TG_KEY, JSON.stringify(c)); window.__o = null; openSealed(window.__s).then((d) => { window.__o = d; }); });
+    await page.fill("#ask", "notogri"); await page.click(".modal [data-ok]");
+    await page.waitForSelector(".modal >> text=Qayta kiriting");
+    await page.fill("#ask", "maxfiy123"); await page.click(".modal [data-ok]");
+    await page.waitForFunction(() => window.__o && window.__o.classes[0].name === "5-G");
+    assert.equal(await page.evaluate(() => tgCfg().pass), "maxfiy123");
     // so'rovlar «oddiy» (OPTIONS'siz) ko'rinishda: JSON sarlavhasi yo'q
     assert.ok(ctypes.every((t) => !t.includes("application/json")), ctypes.join());
     // Telegram umuman ochilmasa — VPN haqida tushunarli xabar
@@ -601,11 +663,9 @@ test("Dars jadvali: Excel'dan yuklash, saqlash va dars kunlari", async () => {
   const {readFile, writeFile, mkdtemp} = await import("node:fs/promises");
   const {tmpdir} = await import("node:os"); const {join} = await import("node:path");
   const XLSX = (await import("xlsx")).default;
-  const lib = fileURLToPath(new URL("../node_modules/xlsx/dist/xlsx.full.min.js", import.meta.url));
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     const ctx = await browser.newContext({viewport: {width: 390, height: 844}, acceptDownloads: true});
-    await ctx.route("https://cdnjs.cloudflare.com/**", async (r) => r.fulfill({body: await readFile(lib), contentType: "text/javascript"}));
     const page = await ctx.newPage();
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
@@ -1422,7 +1482,6 @@ test("Jurnal: xavf ostidagi o'quvchi qatori va tartib raqami rang bilan ajratila
 
 test("KTR: Excel faylidan choraklari bilan yuklash, «BSB tahlili» summativ ish emas", async () => {
   const XLSX = (await import("xlsx")).default;
-  const lib = fileURLToPath(new URL("../node_modules/xlsx/dist/xlsx.full.min.js", import.meta.url));
   const rows = (n) => [["TAQVIM-MAVZU REJA\n[Algebra] — [10] sinf"], ["Dars tartibi", "Dars mavzusi", "Soat", "Taqvimiy muddat"],
     ["I CHORAK"], [1, `${n} 1`, 1], [2, `${n} 2`, 2], [3, "BSB-1 (25 ball)", 1], [4, "BSB tahlili", 1], ["II CHORAK"], [5, `${n} 3`, ""], [6, "CHSB-1 ( 40 ball)", 1]];
   const wb = XLSX.utils.book_new();
@@ -1432,7 +1491,6 @@ test("KTR: Excel faylidan choraklari bilan yuklash, «BSB tahlili» summativ ish
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     const ctx = await browser.newContext({serviceWorkers: "block", viewport: {width: 390, height: 844}});
-    await ctx.route("https://cdnjs.cloudflare.com/**", (r) => r.fulfill({path: lib, contentType: "application/javascript"}));
     const page = await ctx.newPage();
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
@@ -1452,6 +1510,8 @@ test("KTR: Excel faylidan choraklari bilan yuklash, «BSB tahlili» summativ ish
     assert.deepEqual(r.w, [["bsb", 25], null, ["chsb", 40], ["bsb", null]]);
     await page.click(".modal [data-ok]");
     assert.equal(await page.evaluate(() => D.classes[0].plan.topics.length), 6);
+    // Excel kutubxonasi ilova ichidan (docs/vendor), zaifliklari tuzatilgan versiya
+    assert.equal(await page.evaluate(() => XLSX.version), "0.20.3");
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
@@ -1460,7 +1520,6 @@ test("emaktab: yil boshidan barcha choraklar, ilova oynasi ochilmasa — fayl or
   const {readFile} = await import("node:fs/promises");
   const XLSX = (await import("xlsx")).default;
   const docs = fileURLToPath(new URL("../docs/", import.meta.url));
-  const lib = fileURLToPath(new URL("../node_modules/xlsx/dist/xlsx.full.min.js", import.meta.url));
   const rows = JSON.parse(await readFile(fileURLToPath(new URL("inputs.json", import.meta.url)), "utf8")).emaktab[0].rows;
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "Matematika");
   const xls = XLSX.write(wb, {type: "buffer", bookType: "xls"});
@@ -1468,7 +1527,6 @@ test("emaktab: yil boshidan barcha choraklar, ilova oynasi ochilmasa — fayl or
   try {
     const ctx = await browser.newContext({serviceWorkers: "block", acceptDownloads: true});
     const asked = [];
-    await ctx.route("https://cdnjs.cloudflare.com/**", async (r) => r.fulfill({body: await readFile(lib), contentType: "text/javascript"}));
     await ctx.route("https://app.test/**", async (r) => {
       const p = new URL(r.request().url()).pathname.slice(1) || "index.html";
       try { r.fulfill({body: await readFile(docs + p), contentType: p.endsWith(".html") ? "text/html" : p.endsWith(".js") ? "text/javascript" : undefined}); } catch { r.fulfill({status: 404}); }

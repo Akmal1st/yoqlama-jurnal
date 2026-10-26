@@ -2972,11 +2972,13 @@ class Store:
         return {"dates": dates, "points": pts, "run": run, "cls_run": crun, "abs": absn, "works": works}
 
     def formative_grades(self, cls, st, rng):
-        """Davrdagi barcha formativ baholar ro'yxati (X kunlarisiz)."""
+        """Davrdagi barcha formativ baholar ro'yxati (X kunlarisiz va BSB/CHSB kunlarisiz —
+        u kuni oddiy dars o'tilmaydi, web ilovadagi formativeGrades bilan bir xil)."""
         if not rng:
             return []
+        sum_days = {w.get("date") for w in cls.get("works", []) if w.get("type") in ("bsb", "chsb")}
         return [g for d, m in st["marks"].items()
-                if rng[0] <= d <= rng[1] and not self.is_nolesson(cls, d) for g in grades_of(m)]
+                if rng[0] <= d <= rng[1] and not self.is_nolesson(cls, d) and d not in sum_days for g in grades_of(m)]
 
     def year_result(self, cls, st):
         """Yillik va yakuniy tavsiya etilgan ball (emaktab qo'llanmasi matniga ko'ra):

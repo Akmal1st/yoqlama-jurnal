@@ -293,6 +293,7 @@ table.r td.act{white-space:nowrap;text-align:right}table.r td.act .btn+.btn{marg
 .modal .card{width:min(560px,100%);max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:12px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:var(--base);padding:10px 18px;border-radius:10px;z-index:60;font-weight:600;max-width:90vw}
 @media (max-width:820px){.toast{bottom:80px}}
+.toast .tact{margin-left:10px;background:none;border:0;color:inherit;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:0}
 .opt{display:block;width:100%;text-align:left;border:2px solid var(--line);background:var(--base);border-radius:var(--r);padding:14px 16px}
 .opt:hover{border-color:var(--acc)}
 .opt b{display:block;font-size:16px}
@@ -806,6 +807,17 @@ function designCss(w) {
     @media (prefers-color-scheme: dark){:root:not([data-theme="light"]):not([data-theme="dark"]){${dark}}}
     body,button,input,select,textarea{font-family:${f}}@media screen{main{zoom:${z}}${st[4]}}`;
 }
+// o'quvchining doimiy belgisi: ism o'zgarsa ham o'zgarmaydi (o'zgarishlar tarixi, qaytarish shu orqali topadi)
+const newSid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+// bir sinfda bir xil ism bo'lmasin — aks holda kartochka, tarix va import ularni aralashtirib yuboradi: «Ali Valiyev (2)»
+function uniqNames(list) {
+  const seen = new Set();
+  for (const s of list) {
+    let n = s.name, k = 2;
+    while (seen.has(normName(n))) n = `${s.name} (${k++})`;
+    s.name = n; seen.add(normName(n));
+  }
+}
 function normalize(d) {
   d = d && typeof d === "object" ? d : {};
   d.version = d.version || 2;
@@ -824,9 +836,12 @@ function normalize(d) {
     c.extra_x = c.extra_x || []; c.held = c.held || []; c.lessons = c.lessons || {}; c.works = c.works || [];
     c.att_ok = c.att_ok || []; c.analyses = Array.isArray(c.analyses) ? c.analyses : []; c.students_off = c.students_off || []; c.students = (Array.isArray(c.students) ? c.students : []).filter((s) => s && typeof s === "object").map((s) => {
       s = Object.assign({marks: {}}, s); s.name = String(s.name || "?");
+      if (!s.id) s.id = newSid();
       if (!s.marks || typeof s.marks !== "object" || Array.isArray(s.marks)) s.marks = {};
       return s;
     });
+    for (const s of c.students_off) if (s && typeof s === "object" && !s.id) s.id = newSid();
+    uniqNames(c.students.concat(c.students_off));
   }
   d.web = Object.assign({density: "oddiy", theme: "auto", gen: []}, DESIGN_DEF, d.web || {});
   d.v2 = d.v2 || {};
@@ -865,8 +880,17 @@ function migrate(d) {
   d.settings.method_weekday = null;   // metod kuni ilovadan olib tashlangan (Akmal, 2026-10-25): o'sha kunlar oddiy dars kuni
   d.web.dv = DATA_VER; return d;
 }
+// xotiradagi matn o'qilmasa (buzilgan) — u yo'qolib ketmasin: alohida kalitga ko'chiriladi, idbBoot zaxiradan tiklaydi yoki ogohlantiradi
+let LOAD_BROKEN = false;
 function load() {
-  try { const t = localStorage.getItem(STORE_KEY); if (t) return migrate(normalize(JSON.parse(t))); } catch (e) { console.warn(e); }
+  let t = null;
+  try { t = localStorage.getItem(STORE_KEY); } catch (e) { console.warn(e); }
+  if (t) {
+    try { return migrate(normalize(JSON.parse(t))); } catch (e) {
+      console.warn(e); LOAD_BROKEN = true;
+      try { localStorage.setItem(STORE_KEY + "_buzilgan", t); } catch (e2) { /* joy yo'q — IndexedDB'dagi nusxa qoladi */ }
+    }
+  }
   return migrate(normalize({web: {off: Object.fromEntries(SIMPLE_OFF.map((k) => [k, 1]))}}));
 }
 // ko'p belgini birdan qo'yishda (hammasi keldi) har biri uchun butun jurnalni qayta yozmaslik: oxirida bir marta saqlanadi
@@ -888,7 +912,7 @@ function save() {
 
 /* ───────── IndexedDB: asosiy xotiraning nusxasi va kunlik avtomatik nusxalar ───────── */
 // "kv": main → oxirgi holat (JSON matn); "snap": YYYY-MM-DD → {at, txt} — oxirgi SNAP_DAYS kun
-const IDB = {db: null, ok: false, ready: false, pend: null, timer: null};
+const IDB = {db: null, ok: false, ready: false, pend: null, timer: null, pruned: ""};
 const SNAP_DAYS = 14;
 function idbOpen() {
   return new Promise((res) => {
@@ -917,9 +941,13 @@ async function idbFlush() {
   try {
     await idbReq("kv", "readwrite", (st) => st.put(txt, "main"));
     await idbReq("snap", "readwrite", (st) => st.put({at: new Date().toISOString(), txt}, day));
-    const keys = (await idbReq("snap", "readonly", (st) => st.getAllKeys())) || [];
-    const old = keys.sort().slice(0, Math.max(0, keys.length - SNAP_DAYS));
-    if (old.length) await idbReq("snap", "readwrite", (st) => old.forEach((k) => st.delete(k)));
+    // eski nusxalarni tozalash — kuniga bir marta yetadi
+    if (IDB.pruned !== day) {
+      const keys = (await idbReq("snap", "readonly", (st) => st.getAllKeys())) || [];
+      const old = keys.sort().slice(0, Math.max(0, keys.length - SNAP_DAYS));
+      if (old.length) await idbReq("snap", "readwrite", (st) => old.forEach((k) => st.delete(k)));
+      IDB.pruned = day;
+    }
     IDB.ok = true;
   } catch (e) { IDB.ok = false; console.warn("IndexedDB:", e); }
 }
@@ -939,6 +967,7 @@ async function idbBoot() {
       }
     } catch (e) { console.warn("IndexedDB:", e); }
   }
+  if (LOAD_BROKEN && !D.classes.length) toast("Brauzer xotirasidagi jurnal buzilgan, zaxira xotirada ham nusxa topilmadi. Buzilgan matn alohida saqlab qo'yildi. Faylga yoki Telegram'ga saqlangan zaxiradan yuklang (Sozlamalar → Ma'lumotlar).");
   IDB.ready = true;
   if (!NEWER) idbSave(JSON.stringify(D));
   // brauzer joy tanqisligida ma'lumotni o'chirib yubormasligi uchun
@@ -1391,7 +1420,8 @@ function worksInQuarter(c, q) {
 function newWorkId(c) { const ids = c.works.map((w) => String(w.id)).filter((x) => /^w\d+$/.test(x)).map((x) => +x.slice(1)); return "w" + (Math.max(0, ...ids) + 1); }
 function formativeGrades(c, s, rng) {
   if (!rng) return [];
-  return Object.entries(s.marks).filter(([d]) => rng[0] <= d && d <= rng[1] && !isNoLesson(c, d)).flatMap(([, m]) => gradesOf(m));
+  // BSB/CHSB kuni oddiy dars o'tilmaydi — o'sha kunga avval qo'yilgan baho ham FBga kirmaydi (kompyuter dasturida ham shunday)
+  return Object.entries(s.marks).filter(([d]) => rng[0] <= d && d <= rng[1] && !isNoLesson(c, d) && !sumOn(c, d)).flatMap(([, m]) => gradesOf(m));
 }
 function fbInfo(c, s, rng) {
   const gr = formativeGrades(c, s, rng); if (!gr.length) return [0, 0, null];
@@ -1657,7 +1687,7 @@ function mergeImport(imp, overwrite) {
   let prev = null; const touched = new Set(), pairs = [], inFile = new Set();
   for (const st of imp.students) {
     const key = normName(st.name); inFile.add(key); let cs = idx[key];
-    if (!cs) { cs = {name: st.name, marks: {}, scores: {}}; const pos = prev ? c.students.indexOf(prev) + 1 : 0; c.students.splice(pos, 0, cs); idx[key] = cs; rep.new_students.push(st.name); }
+    if (!cs) { cs = {id: newSid(), name: st.name, marks: {}, scores: {}}; const pos = prev ? c.students.indexOf(prev) + 1 : 0; c.students.splice(pos, 0, cs); idx[key] = cs; rep.new_students.push(st.name); }
     else if (c.students_off.includes(cs)) (rep.inactive = rep.inactive || []).push(cs.name);
     else rep.matched++;
     if (c.students.includes(cs)) prev = cs; pairs.push([st, cs]);
@@ -1691,12 +1721,15 @@ function mergeImport(imp, overwrite) {
   if (!c.weekdays || !c.weekdays.length) { const seen = [...new Set(Object.values(c.students).flatMap((s) => Object.keys(s.marks)).map(pyWd))].filter((x) => x < 6).sort(); if (seen.length) c.weekdays = seen; }
   return rep;
 }
+// SheetJS ilova bilan birga turadi (docs/vendor): CDN'ga bog'liq emas, oflayn ishlaydi. 0.18.5 da ma'lum zaifliklar bor edi
+// (CVE-2023-30533, CVE-2024-22363). Yangilaganda fayl nomini va sw.js dagi XLSX_PATH ni birga o'zgartiring.
+const XLSX_SRC = "vendor/xlsx-0.20.3.full.min.js";
 let XLSX_P = null;
 function loadXlsx() {
   if (window.XLSX) return Promise.resolve(window.XLSX);
   if (!XLSX_P) XLSX_P = new Promise((res, rej) => {
-    const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-    s.onload = () => res(window.XLSX); s.onerror = () => { XLSX_P = null; rej(new Error("Excel o'quvchi kutubxonasini yuklab bo'lmadi — internetga ulanib, qayta urinib ko'ring")); };
+    const s = document.createElement("script"); s.src = XLSX_SRC;
+    s.onload = () => res(window.XLSX); s.onerror = () => { XLSX_P = null; rej(new Error("Excel o'quvchi kutubxonasini yuklab bo'lmadi — sahifani internetga ulangan holda bir marta yangilang")); };
     document.head.append(s);
   });
   return XLSX_P;
@@ -1736,7 +1769,7 @@ async function unlock() {
 function log(c, s, date, old, nw) {
   if (!old) return;
   const lg = D.changelog = D.changelog || [];
-  lg.push({t: new Date().toISOString().slice(0, 19), cls: label(c), student: s.name, date, old, new: nw, kind: nw ? "edit" : "clear"});
+  lg.push({t: new Date().toISOString().slice(0, 19), cls: label(c), student: s.name, sid: s.id, date, old, new: nw, kind: nw ? "edit" : "clear"});
   if (lg.length > 5000) lg.splice(0, lg.length - 5000);
 }
 /* bitta katakka belgi: faqat bugungi kun; mavjud baho — qulf ochiq bo'lsa */
@@ -1770,10 +1803,11 @@ function putMark(c, si, date, nw, quiet) {
 const $ = (sel, el = document) => el.querySelector(sel);
 function h(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; }
 let toastT = null;
-function toast(msg) {
+function toast(msg, act) {
   document.querySelectorAll(".toast").forEach((e) => e.remove());
-  const el = h(`<div class="toast">${esc(msg)}</div>`); document.body.append(el);
-  clearTimeout(toastT); toastT = setTimeout(() => el.remove(), Math.max(3500, String(msg).length * 55));
+  const el = h(`<div class="toast">${esc(msg)}${act ? ` <button class="tact">${esc(act[0])}</button>` : ""}</div>`); document.body.append(el);
+  if (act) $(".tact", el).onclick = () => { el.remove(); act[1](); };
+  clearTimeout(toastT); toastT = setTimeout(() => el.remove(), Math.max(act ? 8000 : 3500, String(msg).length * 55));
 }
 // ixcham dizaynda qisqargan tugma yozuvi — sichqoncha ustiga borganda to'liq ko'rinadi
 function fitTitles(root) {
@@ -2217,7 +2251,7 @@ function addMembers(ci) {
     $("#sl", mm).focus(); $("[data-x]", mm).onclick = () => close();
     $("[data-ok]", mm).onclick = () => {
       const have = new Set(c.students.map((s) => normName(s.name))), list = parseMembers($("#sl", mm).value, c).filter((s) => !have.has(normName(s.name)));
-      list.forEach((s) => c.students.push(s)); save(); close(); render(); toast(`${list.length} kishi qo'shildi`);
+      list.forEach((s) => { s.id = s.id || newSid(); c.students.push(s); }); save(); close(); render(); toast(`${list.length} kishi qo'shildi`);
     };
   });
 }
@@ -2308,7 +2342,10 @@ function payDialog(ci, si, mo) {
     mm.querySelectorAll("[data-rc]").forEach((b) => b.onclick = () => printReceipt(c, s, s.pays.find((p) => p.id === b.dataset.rc)));
     mm.querySelectorAll("[data-pdel]").forEach((b) => b.onclick = async () => {
       const p = s.pays.find((x) => x.id === b.dataset.pdel); close();
-      if (await confirmBox("To'lovni o'chirish", `${s.name}: ${fmt(p.d)} dagi ${som(p.sum)} to'lov o'chirilsinmi?`, "O'chirish")) { s.pays = s.pays.filter((x) => x !== p); save(); }
+      if (await confirmBox("To'lovni o'chirish", `${s.name}: ${fmt(p.d)} dagi ${som(p.sum)} to'lov o'chirilsinmi?`, "O'chirish")) {
+        const i = s.pays.indexOf(p); s.pays.splice(i, 1); pushUndo([{kind: "pay", c, s, p, i}]); save();
+        toast(`To'lov o'chirildi (${som(p.sum)})`, ["Qaytarish", undoLast]);
+      }
       render(); payDialog(ci, si, mo);
     });
   });
@@ -3329,7 +3366,8 @@ function pageSettings(m) {
     const p = st.protect;
     body = sgroup("", srow("Qo'yilgan baholarni himoyalash", "Mavjud bahoni o'zgartirishdan oldin qulfni ochish kerak (bo'sh katakka baho qo'yish erkin)", swt('data-a="prot"', p.enabled)) +
       srow("Parol", p.pin ? "O'rnatilgan" : "O'rnatilmagan — qulf bitta bosish bilan ochiladi", `<button class="btn" data-a="pin">${p.pin ? "O'zgartirish" : "O'rnatish"}</button>${p.pin ? `<button class="btn danger" data-a="nopin">Olib tashlash</button>` : ""}`) +
-      srow("Avtomatik qulflash", "Harakatsiz qolgandan keyin, daqiqa", `<input type="number" min="1" id="alm" value="${p.auto_lock_min || 10}" style="width:90px">`));
+      srow("Avtomatik qulflash", "Harakatsiz qolgandan keyin, daqiqa", `<input type="number" min="1" id="alm" value="${p.auto_lock_min || 10}" style="width:90px">`)) +
+      `<p class="muted shint">Parol baholarni tasodifan o'zgartirishdan va to'lov summalarini begona ko'zdan saqlaydi. U ma'lumotni shifrlamaydi: brauzerni yaxshi biladigan odam telefon yoki kompyuteringizdan jurnalni o'qiy oladi. Shuning uchun qurilmaning o'z ekran qulfini yoqing va uni boshqalarga qoldirmang. Telegram zaxirasini parol bilan shifrlash — Sozlamalar → Ma'lumotlar → Telegram.</p>`;
   } else if (S.sec === 6) {
     const nOn = FEATS.filter(([k]) => feat(k)).length;
     body = `<p class="muted shint">Ishlatmaydigan funksiyalaringizni o'chirib qo'ying — ular menyu, «Bugun» sahifasi va darsdan yo'qoladi. Kiritilgan ma'lumotlar o'chmaydi, qayta yoqsangiz hammasi joyida bo'ladi. Yo'qlama, baholar, BSB/CHSB va hisobotlar doim yoqilgan.</p>` +
@@ -3343,7 +3381,10 @@ function pageSettings(m) {
       sgroup("Zaxira", (() => { const c = tgCfg(), on = tgOn(), l = c.last ? new Date(c.last) : null;
         return srow("✈️ Telegram'ga avtomatik zaxira", on ? `Ulangan: @${esc(c.bot || "bot")} · oxirgi zaxira: ${l ? `${fmt(iso(l))} ${pad(l.getHours())}:${pad(l.getMinutes())}` : "hali yo'q"}. Boshqa qurilmada ham shu botni ulasangiz, ma'lumotlar ular orasida almashinadi.`
           : "Ma'lumotlar har kuni o'zingizning Telegram botingizga fayl bo'lib boradi. Telefon yo'qolsa yoki brauzer tozalansa ham jurnal saqlanib qoladi.",
-          on ? `<button class="btn pri" data-a="tgsend">📤 Hozir yuborish</button><button class="btn" data-a="tgload">📥 Telegram'dan yuklash</button><button class="btn" data-a="tgoff">Uzish</button>` : `<button class="btn pri" data-a="tgon">🔗 Ulash</button>`); })() +
+          on ? `<button class="btn pri" data-a="tgsend">📤 Hozir yuborish</button><button class="btn" data-a="tgload">📥 Telegram'dan yuklash</button><button class="btn" data-a="tgoff">Uzish</button>` : `<button class="btn pri" data-a="tgon">🔗 Ulash</button>`) +
+          (on ? srow("🔐 Zaxirani parol bilan shifrlash", c.pass ? "Yoqilgan. Boshqa qurilmada yuklashda shu parol so'raladi. Parolni unutsangiz, shifrlangan zaxirani ochib bo'lmaydi — eslab qoling."
+            : "Telegram akkauntingizga begona kirsa ham o'quvchilar ma'lumoti o'qilmasin. Parolni unutsangiz, zaxirani ochib bo'lmaydi.",
+            c.pass ? `<button class="btn" data-a="tgpass">Parolni o'zgartirish</button><button class="btn danger" data-a="tgnopass">O'chirish</button>` : `<button class="btn" data-a="tgpass">Yoqish</button>`) : ""); })() +
       srow("Faylga saqlash (zaxira)" + (age === null ? "" : ` <span class="muted" style="font-weight:500">· oxirgisi ${age ? age + " kun oldin" : "bugun"}</span>`), "journal.json — kompyuterdagi dastur yoki boshqa qurilmada ochish uchun. Vaqti-vaqti bilan saqlab qo'ying.", `<button class="btn pri" data-a="exp">💾 Yuklab olish</button>`) +
       srow("🕒 Kunlik avtomatik nusxalar", `Ilova har kuni jurnal holatini brauzerning zaxira xotirasiga o'zi saqlaydi (oxirgi ${SNAP_DAYS} kun) — xato o'chirilgan ma'lumotni qaytarish mumkin.${IDB.db ? "" : " <span class='warn'>Bu brauzerda zaxira xotira ishlamayapti.</span>"}`, `<button class="btn" data-a="snaps">Ko'rish</button>`)) +
       sgroup("Yuklash va import", srow("Fayldan yuklash", "Kompyuterdagi dasturning journal.json fayli yoki oldin saqlangan zaxira. Hozirgi ma'lumotlar almashtiriladi.", `<button class="btn" data-a="imp">📂 Faylni tanlash</button>`) +
@@ -3455,7 +3496,8 @@ function importJson() {
   f.onchange = async () => {
     const file = f.files[0]; if (!file) return;
     try {
-      const data = JSON.parse(await file.text());
+      let data = JSON.parse(await file.text());
+      data = await openSealed(data);
       if (data && data.type === "emaktab-bundle") { importEmaktabFiles(bundleFiles(data)); return; }
       if (!data || !Array.isArray(data.classes)) throw new Error("bu jurnal fayli emas");
       if (tooNew(data)) throw new Error("fayl ilovaning yangiroq versiyasida saqlangan — sahifani yangilang");
@@ -3553,14 +3595,16 @@ async function addStudents(i) {
       const names = $("#sl", mm).value.split(/\r?\n/).map((s) => s.replace(/^\s*\d+[.)]?\s*/, "").trim()).filter((n) => n && !have.has(normName(n)));
       const back = c.students_off.filter((st) => names.some((n) => normName(n) === normName(st.name))), fresh = names.filter((n) => !back.some((st) => normName(st.name) === normName(n)));
       if (back.length) activate(c, back);
-      fresh.forEach((n) => c.students.push({name: n, marks: {}})); save(); close(); render();
+      fresh.forEach((n) => c.students.push({id: newSid(), name: n, marks: {}})); save(); close(); render();
       toast(`${fresh.length} ta o'quvchi qo'shildi${back.length ? `, ${back.length} tasi qayta faollashtirildi` : ""}`);
     };
   });
 }
 async function renameStudent(ci, si) {
   const s = D.classes[ci].students[si]; const n = await ask("Ismni o'zgartirish", "Yangi ism:", s.name);
-  if (n && n.trim()) { s.name = n.trim(); save(); render(); }
+  if (!n || !n.trim()) return;
+  if (D.classes[ci].students.concat(D.classes[ci].students_off).some((x) => x !== s && normName(x.name) === normName(n.trim()))) { toast("Bu sinfda shunday ismli o'quvchi bor — farqlash uchun ismga harf yoki raqam qo'shing"); return; }
+  s.name = n.trim(); save(); render();
 }
 /* ───────── o'quvchini faolsizlantirish: jurnal, hisobot va hisob-kitoblardan yashiriladi, ma'lumoti saqlanadi ─────────
    Faolsizlar c.students_off da turadi (kompyuter dasturi bu kalitni bilmaydi, shuning uchun u yerda ham ko'rinmaydi). */
@@ -3670,6 +3714,13 @@ async function undoLast() {
     if (!n) { toast("Bu o'quvchilar allaqachon faol"); return; }
     render(); toast(`${batch.length > 1 ? `${batch.length} ta fanda ` : ""}${n} ta o'quvchi qayta faollashtirildi`); return;
   }
+  if (batch[0].kind === "pay") {
+    const {c, s, p, i} = batch[0];
+    if (!D.classes.includes(c) || !c.students.includes(s)) { toast("Bu o'quvchi endi jurnalda yo'q — to'lov qaytarilmadi"); return; }
+    if (isLocked() && !await unlock()) { UNDO.push(batch); return; }
+    s.pays = s.pays || []; if (!s.pays.includes(p)) s.pays.splice(Math.min(i, s.pays.length), 0, p);
+    save(); render(); toast(`To'lov qaytarildi: ${s.name}, ${som(p.sum)}`); return;
+  }
   const live = batch.filter((u) => D.classes.includes(u.c) && u.c.students.includes(u.s) &&
     ((u.kind === "mark" ? u.s.marks[u.key] : (u.s.scores || {})[u.key]) ?? "") === u.nw);
   if (!live.length) { toast("Bu o'zgarish keyin yana o'zgargan — bekor qilinmadi"); return; }
@@ -3689,7 +3740,7 @@ function logScore(c, s, key, old, nw) {
   if (old === "" || old === undefined) return;
   const w = c.works.find((x) => x.id === key), lg = D.changelog = D.changelog || [];
   const wt = w ? w.type.toUpperCase() : ({exam: "IMTIHON", "final:y": "YILLIK", "final:f": "YAKUNIY"}[key] || (key.startsWith("final:q") ? `${key.slice(7)}-CHORAK` : key));
-  lg.push({t: new Date().toISOString().slice(0, 19), cls: label(c), student: s.name, date: w ? w.date : "", old, new: nw, kind: nw === "" ? "clear" : "edit", work: key, wt});
+  lg.push({t: new Date().toISOString().slice(0, 19), cls: label(c), student: s.name, sid: s.id, date: w ? w.date : "", old, new: nw, kind: nw === "" ? "clear" : "edit", work: key, wt});
 }
 async function putScore(c, s, key, nv, batch) {
   const sc = s.scores = s.scores || {}, old = sc[key] ?? "";
@@ -3701,7 +3752,8 @@ async function putScore(c, s, key, nv, batch) {
 }
 async function revertEntry(e) {
   const c = D.classes.find((x) => label(x) === e.cls) || (D.classes.filter((x) => x.name === e.cls).length === 1 ? D.classes.find((x) => x.name === e.cls) : null);
-  const s = c && c.students.find((x) => x.name === e.student);
+  // avval doimiy belgi (ism keyin o'zgargan bo'lishi mumkin), eski yozuvlarda — ism
+  const s = c && ((e.sid && c.students.find((x) => x.id === e.sid)) || c.students.find((x) => x.name === e.student));
   if (!s) { toast("Sinf yoki o'quvchi topilmadi"); return false; }
   const wid = e.work;
   if (wid && !wid.startsWith("final:") && wid !== "exam" && !c.works.some((w) => w.id === wid)) { toast("Bu summativ ish endi mavjud emas"); return false; }
@@ -3709,7 +3761,7 @@ async function revertEntry(e) {
   if (cur !== (e.new ?? "")) { toast("Katakdagi qiymat keyin yana o'zgargan — qaytarib bo'lmaydi"); return false; }
   if (isLocked() && !await unlock()) return false;
   if (e.old !== "") b[key] = e.old; else delete b[key];
-  (D.changelog = D.changelog || []).push({t: new Date().toISOString().slice(0, 19), cls: label(c), student: s.name, date: e.date, old: cur, new: e.old, kind: "revert", ...(wid ? {work: wid, wt: e.wt} : {})});
+  (D.changelog = D.changelog || []).push({t: new Date().toISOString().slice(0, 19), cls: label(c), student: s.name, sid: s.id, date: e.date, old: cur, new: e.old, kind: "revert", ...(wid ? {work: wid, wt: e.wt} : {})});
   save(); toast("Baho qaytarildi"); return true;
 }
 const shownVal = (e, v) => e.work ? fmtNum(v) : /activate/.test(e.kind) ? v : (displayMark(v) || v);
@@ -5549,6 +5601,37 @@ const b64u = (u8) => { let t = ""; for (let i = 0; i < u8.length; i += 0x8000) t
 const unb64u = (t) => { const b = atob(t.replace(/-/g, "+").replace(/_/g, "/")), u8 = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u8[i] = b.charCodeAt(i); return u8; };
 async function gzipTxt(t) { return new Uint8Array(await new Response(new Blob([t]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer()); }
 async function gunzipTxt(u8) { return new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream("gzip"))).text(); }
+/* Zaxirani parol bilan shifrlash (ixtiyoriy): PBKDF2-SHA256 → AES-GCM 256, brauzerning o'z crypto.subtle vositasi.
+   Telegram akkauntiga begona kirsa ham o'quvchilar ma'lumoti o'qilmaydi. Parol shu qurilmada (bot tokeni yonida) turadi. */
+const SEAL_ITER = 310000;
+async function sealKey(pass, salt, use) {
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({name: "PBKDF2", salt, iterations: SEAL_ITER, hash: "SHA-256"}, base, {name: "AES-GCM", length: 256}, false, [use]);
+}
+async function sealTxt(txt, pass) {
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name: "AES-GCM", iv}, await sealKey(pass, salt, "encrypt"), new TextEncoder().encode(txt)));
+  return JSON.stringify({type: "jurnal-sealed", v: 1, salt: b64u(salt), iv: b64u(iv), ct: b64u(ct)});
+}
+const isSealed = (d) => !!d && d.type === "jurnal-sealed";
+async function unsealTxt(d, pass) {
+  try {
+    const pt = await crypto.subtle.decrypt({name: "AES-GCM", iv: unb64u(d.iv)}, await sealKey(pass, unb64u(d.salt), "decrypt"), unb64u(d.ct));
+    return new TextDecoder().decode(pt);
+  } catch (e) { throw new Error("Parol noto'g'ri yoki zaxira buzilgan"); }
+}
+// shifrlangan zaxirani ochish: saqlangan parol bilan, bo'lmasa so'raladi (3 marta)
+async function openSealed(d) {
+  if (!isSealed(d)) return d;
+  const saved = tgCfg().pass;
+  if (saved) try { return JSON.parse(await unsealTxt(d, saved)); } catch (e) { /* parol o'zgargan — so'raymiz */ }
+  for (let i = 0; i < 3; i++) {
+    const p = await ask("Shifrlangan zaxira", i ? "Parol noto'g'ri. Qayta kiriting:" : "Bu zaxira parol bilan shifrlangan. Parolni kiriting:", "", "password");
+    if (p === null) throw new Error("Parol kiritilmadi — zaxira yuklanmadi");
+    try { const out = JSON.parse(await unsealTxt(d, p)); if (tgOn()) tgSet({pass: p}); return out; } catch (e) { /* yana */ }
+  }
+  throw new Error("Parol noto'g'ri — zaxira yuklanmadi");
+}
 const tgBtn = () => ({inline_keyboard: [[{text: "📒 Ilovani ochish", url: `https://akmal1st.github.io/yoqlama-jurnal/#${Date.now().toString(36)}`}]]});
 async function tgSendParts(chat, json) {
   if (typeof CompressionStream === "undefined") return [];
@@ -5572,16 +5655,17 @@ async function tgReadParts(ids) {
 const tgPartIds = (pm) => (((pm.caption || "").match(/#d([\d.]+)/) || [])[1] || "").split(".").filter(Boolean).map(Number);
 async function tgBackup(force) {
   const c = tgCfg(); if (!c.token || !c.chat || tgBusy) return false;
-  const json = JSON.stringify(D), hash = djbData();
+  const hash = djbData();
   if (!force && c.hash === hash) return false;
   tgBusy = true;
   try {
+    const json = c.pass ? await sealTxt(JSON.stringify(D), c.pass) : JSON.stringify(D);
     const now = new Date(), hm = `${pad(now.getHours())}:${pad(now.getMinutes())}`, fd = new FormData();
     let parts = [];
     try { parts = await tgSendParts(c.chat, json); } catch (e) { console.warn("Telegram bo'laklar:", e.message); }
     fd.append("chat_id", c.chat);
     fd.append("document", new Blob([json], {type: "application/json"}), `journal_${iso(now)}_${hm.replace(":", "")}.json`);
-    fd.append("caption", `📒 Yo'qlama jurnali zaxirasi\n${fmt(iso(now))} ${hm} · ${D.classes.length} ta sinf\nTiklash: ilovada «Sozlamalar → Ma'lumotlar → Telegram'dan yuklash» yoki faylni «Fayldan yuklash» orqali oching.\n#q${tgDev()}${parts.length ? " #d" + parts.join(".") : ""}`);
+    fd.append("caption", `📒 Yo'qlama jurnali zaxirasi\n${fmt(iso(now))} ${hm} · ${D.classes.length} ta sinf\n${c.pass ? "🔐 Parol bilan shifrlangan.\n" : ""}Tiklash: ilovada «Sozlamalar → Ma'lumotlar → Telegram'dan yuklash» yoki faylni «Fayldan yuklash» orqali oching.\n#q${tgDev()}${parts.length ? " #d" + parts.join(".") : ""}`);
     fd.append("disable_notification", "true");
     const msg = await tgApi("sendDocument", fd);
     try { await tgApi("pinChatMessage", {chat_id: c.chat, message_id: msg.message_id, disable_notification: true}); } catch (e) { /* qadash shart emas */ }
@@ -5606,6 +5690,7 @@ async function tgPull(pm) {
     try { data = await (await tgFetch(`https://api.telegram.org/file/bot${tgCfg().token}/${f.file_path}`)).json(); }
     catch (e) { if (e.net === "cors") throw Object.assign(new Error("Bu zaxira eski usulda yuborilgan — brauzer uni o'qiy olmaydi. Uni yuborgan qurilmada ilovani yangilab, «Sozlamalar → Ma'lumotlar → 📤 Hozir yuborish»ni bosing, so'ng shu yerda qayta yuklang. Yoki botdagi faylni telefonga saqlab, «Fayldan yuklash» orqali oching"), {net: "file"}); throw e; }
   }
+  data = await openSealed(data);
   if (!data || !Array.isArray(data.classes)) throw new Error("bu jurnal fayli emas");
   if (tooNew(data)) throw new Error("zaxira ilovaning yangiroq versiyasida saqlangan — sahifani yangilang");
   await keepBefore();
@@ -5661,6 +5746,15 @@ function tgSetup() {
 async function tgAction(a) {
   try {
     if (a === "tgon") { if (await tgSetup()) { render(); toast(TG_NEW ? "Ulandi. Botda boshqa qurilmadan zaxira bor — «Bugun» sahifasiga qarang" : "Ulandi va birinchi zaxira yuborildi"); } }
+    else if (a === "tgpass") {
+      const p1 = await ask("Zaxira paroli", "Kamida 6 belgi. Unutsangiz, shifrlangan zaxirani hech kim (biz ham) ocha olmaydi:", "", "password"); if (p1 === null) return;
+      if (p1.length < 6) { toast("Parol kamida 6 belgidan iborat bo'lishi kerak"); return; }
+      const p2 = await ask("Zaxira paroli", "Parolni takrorlang:", "", "password"); if (p2 !== p1) { toast("Parollar mos kelmadi"); return; }
+      tgSet({pass: p1}); toast("Yuborilmoqda…"); await tgBackup(true); render(); toast("Shifrlash yoqildi — zaxira parol bilan yuborildi");
+    } else if (a === "tgnopass") {
+      if (!await confirmBox("Shifrlashni o'chirish", "Keyingi zaxiralar shifrlanmagan holda yuboriladi.", "O'chirish")) return;
+      const c = tgCfg(); delete c.pass; localStorage.setItem(TG_KEY, JSON.stringify(c)); await tgBackup(true); render(); toast("Shifrlash o'chirildi");
+    }
     else if (a === "tgsend") { toast("Yuborilmoqda…"); await tgBackup(true); TG_NEW = null; render(); toast("Zaxira Telegram'ga yuborildi"); }
     else if (a === "tgload" || a === "tgnew") {
       const pm = a === "tgnew" ? TG_NEW : await tgPinned();
