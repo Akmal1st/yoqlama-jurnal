@@ -4745,11 +4745,26 @@ function bsbFormHtml(meta, an, c, B, H) {
     + `<div class="sign">${F.sign.map(([l, n]) => `<div>${esc(l)}: <span class="ln"></span> ${esc(n)}</div>`).join("")}${F.date ? `<div>Sana: «____» ______________ ${meta.date.slice(6)} y.</div>` : ""}</div>`;
   return `<div class="form2">${hdr}${tbl}${ftr}</div>`;
 }
-function printDoc(html, land) {
+function printDoc(html, land, fit) {
   let el = document.getElementById("pdoc"); if (!el) { el = document.createElement("div"); el.id = "pdoc"; document.body.append(el); }
   el.innerHTML = `<div class="pd">${html}</div>`; document.body.classList.add("pdoc");
   let st = document.getElementById("pdoc-css"); if (!st) { st = document.createElement("style"); st.id = "pdoc-css"; document.head.append(st); }
-  st.textContent = `@media print{@page{size:A4 ${land ? "landscape" : "portrait"};margin:12mm}}`;
+  let zoom = 1, mg = 12;
+  if (fit) {                       // bitta varaqqa sig'dirish: har ikki yo'nalishda o'lchab, yozuv kattaroq chiqqanini olamiz
+    mg = 10; const pd = el.firstChild, mm = 96 / 25.4, keep = el.getAttribute("style");
+    el.setAttribute("style", "display:block;position:absolute;left:-99999px;top:0;visibility:hidden");
+    const best = (lnd) => {
+      const pw = (lnd ? 277 : 190) * mm, ph = (lnd ? 190 : 277) * mm;
+      const fits = (z) => { pd.style.width = pw / z + "px"; return pd.scrollHeight * z <= ph * 0.96 && pd.scrollWidth <= pw / z + 1; };
+      if (fits(1)) return 1;
+      let lo = 0.25, hi = 1; for (let i = 0; i < 12; i++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+      return lo;
+    };
+    const zp = best(!!land), zo = best(!land);
+    if (zo > zp * 1.05) { land = !land; zoom = zo; } else zoom = zp;
+    pd.style.width = ""; if (keep === null) el.removeAttribute("style"); else el.setAttribute("style", keep);
+  }
+  st.textContent = `@media print{@page{size:A4 ${land ? "landscape" : "portrait"};margin:${mg}mm}${fit ? `#pdoc>.pd{zoom:${zoom.toFixed(3)}}` : ""}}`;
   window.print();                // tozalash keyingi render() da (ba'zi telefonlarda print() kutmaydi)
 }
 function clearPrintDoc() { document.body.classList.remove("pdoc"); const st = document.getElementById("pdoc-css"); if (st) st.remove(); }
@@ -4816,7 +4831,7 @@ function baExportDialog(c, B) {
       H.school = $("#hs", mm).value.trim(); H.teacher = $("#ht", mm).value.trim(); H.deputy = $("#hd", mm).value.trim(); save();
       const an = baAnalysis(c, B), rec = bsbRecs(an); close(); fn(an, rec); };
     $("[data-x]", mm).onclick = () => close();
-    $("[data-pdf]", mm).onclick = () => run((an, rec) => printDoc(v === 1 ? bsbReportHtml(baMeta(c, B), an, rec, true) : bsbFormHtml(baMeta(c, B), an, c, B, H), v === 2 && an.qmax.length > 12));
+    $("[data-pdf]", mm).onclick = () => run((an, rec) => printDoc(v === 1 ? bsbReportHtml(baMeta(c, B), an, rec, true) : bsbFormHtml(baMeta(c, B), an, c, B, H), v === 2 && an.qmax.length > 12, v === 2));
     $("[data-xl]", mm).onclick = () => run((an, rec) => baExcel(v, c, B, an, rec, H).catch((e) => toast(e.message)));
   });
 }
