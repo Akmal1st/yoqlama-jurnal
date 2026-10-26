@@ -443,14 +443,14 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]');
       await page.fill("#hs", "12-maktab"); await page.fill("#ht", "Karimova N."); await page.click(".modal [data-pdf]");
       txt = await page.evaluate(() => window.__printed);
-      for (const s of ["12-maktab", "Bo'lim bo'yicha summativ baholash (BSB) natijalari", "Kasrlar", "qatnashmadi", "Qatnashdi", "direktor o'rinbosari", "Karimova N.", "O'zlashtirish, %", "To'liq yechganlar", "Taqsimot", "Bilim sifati"]) assert.ok(txt.includes(s), s);
+      for (const s of ["12-maktab", "Bo'lim bo'yicha summativ baholash (BSB) natijalari", "Kasrlar", "qatnashmadi", "Qatnashdi", "Metod birlashma rahbari", "Karimova N.", "O'zlashtirish, %", "To'liq yechganlar", "Taqsimot", "Bilim sifati"]) assert.ok(txt.includes(s), s);
       assert.ok(!txt.includes("Yutuqlar"));
       assert.equal(await page.evaluate(() => D.web.bsb_hdr.school), "12-maktab", "header ma'lumoti eslab qolinadi");
       await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]');
       const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".modal [data-xl]")]);
       const wb = XLSX.read(await readFile(await dl.path()));
       const aoa = XLSX.utils.sheet_to_json(wb.Sheets.BSB, {header: 1});
-      assert.equal(aoa[0][0], "12-maktab"); assert.ok(aoa.some((r) => r[1] === "O'zlashtirish, %") && aoa.some((r) => r[0] === "Baho" && r[1] === "Soni"), "yangi qatorlar Excelda"); assert.ok(aoa.some((r) => String(r[0]).startsWith("O'quv ishlari bo'yicha direktor")));
+      assert.equal(aoa[0][0], "12-maktab"); assert.ok(aoa.some((r) => r[1] === "O'zlashtirish, %") && aoa.some((r) => r[0] === "Baho" && r[1] === "Soni"), "yangi qatorlar Excelda"); assert.ok(aoa.some((r) => String(r[0]).startsWith("Metod birlashma rahbari")));
       // jami ballni summativga o'tkazish (yangi BSB ishi)
       await page.click("[data-btr]"); await page.click(".modal [data-ok]");
       const w = await page.evaluate((d) => { const c = D.classes[S.ci], w = c.works.find((x) => x.type === "bsb" && x.date === d && x.title === "Kasrlar"); return w && [w.max, c.students.map((s) => (s.scores || {})[w.id] ?? null)]; }, qd);
@@ -508,14 +508,14 @@ test("BSB tahlili: strelka tugmalari, Excel'dan joylash, savol nomlari va xatola
     await page.click(".modal [data-pdf]");
     let ft = await page.evaluate(() => window.__printed);
     for (const x of ["Yakuniy natijalar bayonnomasi", "2026-2027 o'quv yili", "Metodbirlashmada ko'rildi", "Sinf rahbari", "Valiyev S."]) assert.ok(ft.includes(x), x);
-    assert.ok(!ft.includes("Taqsimot") && !ft.includes("direktor o'rinbosari"), "o'chirilgan bloklar chiqmaydi");
+    assert.ok(!ft.includes("Taqsimot") && !ft.includes("Metod birlashma rahbari"), "o'chirilgan bloklar chiqmaydi");
     assert.deepEqual(await page.evaluate(() => [D.web.bsb_hdr.hide, D.web.bsb_hdr.title]), [{fan: 1, dist: 1}, "Yakuniy natijalar bayonnomasi"]);
     await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]');
     const [dl2] = await Promise.all([page.waitForEvent("download"), page.click(".modal [data-xl]")]);
     const wb2 = XLSX.read(await readFile(await dl2.path())), a2 = XLSX.utils.sheet_to_json(wb2.Sheets.BSB, {header: 1});
     assert.equal(a2[1][0], "Yakuniy natijalar bayonnomasi"); assert.ok(a2.some((r) => String(r[0]).startsWith("Sinf rahbari")));
     await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]'); await page.click(".modal .hfopt summary"); await page.click(".modal [data-hreset]"); await page.click(".modal [data-pdf]");
-    ft = await page.evaluate(() => window.__printed); assert.ok(ft.includes("Taqsimot") && ft.includes("direktor o'rinbosari"), "asl holiga qaytdi");
+    ft = await page.evaluate(() => window.__printed); assert.ok(ft.includes("Taqsimot") && ft.includes("Metod birlashma rahbari"), "asl holiga qaytdi");
     assert.ok(wb.SheetNames.includes("Xatolar kesimi"));
     const aoa = XLSX.utils.sheet_to_json(wb.Sheets["Xatolar kesimi"], {header: 1});
     assert.equal(aoa[0][0], "O'rin"); assert.ok(aoa.some((r) => String(r[1]).includes("Kasrni qisqartirish")));
