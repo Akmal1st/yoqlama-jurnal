@@ -319,6 +319,44 @@ test("Tavsiyalar: o'quvchi id va bir xil ismlar, to'lovni qaytarish, buzilgan xo
   } finally { await browser.close(); }
 });
 
+test("Yangi dizayn: Ctrl+K buyruqlar oynasi, Alt+raqam, ? tezkor tugmalar, telefonda pastki varaq", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    // o'quvchini yozib topish → kartochka ochiladi
+    const nm = await page.evaluate(() => D.classes[1].students[2].name);
+    await page.keyboard.press("Control+k"); await page.waitForSelector(".modal .cmdl");
+    await page.keyboard.type(nm.split(" ")[0]);
+    await page.waitForSelector(`.cmdl button.on:has-text("${nm}")`);
+    await page.keyboard.press("Enter");
+    await page.waitForSelector(`.modal h2:has-text("${nm.split(" ")[0]}")`);
+    await page.keyboard.press("Escape"); assert.equal(await page.locator(".modal").count(), 0);
+    // sinfga o'tish: ↓ bilan tanlab Enter
+    await page.click("[data-cmdk]"); await page.keyboard.type(await page.evaluate(() => label(D.classes[1])));
+    await page.keyboard.press("Enter");
+    assert.deepEqual(await page.evaluate(() => [S.page, S.ci]), ["journal", 1]);
+    // Alt+raqam — bo'limlar
+    await page.keyboard.press("Alt+4"); assert.equal(await page.evaluate(() => S.page), "reports");
+    await page.keyboard.press("Alt+1"); assert.equal(await page.evaluate(() => S.page), "today");
+    // ? — tezkor tugmalar ro'yxati
+    await page.keyboard.press("Shift+Slash"); await page.waitForSelector(".modal .kbdl");
+    await page.keyboard.press("Escape");
+    // qidiruv maydoniga «?» yozilsa ro'yxat ochilmaydi
+    await page.keyboard.press("Alt+2"); await page.focus("#jq"); await page.keyboard.type("?");
+    assert.equal(await page.locator(".modal .kbdl").count(), 0);
+    // telefonda oynalar pastdan chiqadi (bosh barmoq yetadigan joy)
+    await page.setViewportSize({width: 390, height: 844});
+    await page.evaluate(() => { confirmBox("Sinov", "matn"); });
+    const r = await page.evaluate(() => { const c = $(".modal .card").getBoundingClientRect(); return [Math.round(innerHeight - c.bottom), Math.round(c.width)]; });
+    assert.ok(r[0] <= 1 && r[1] >= 389, String(r));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
 test("jurnal: Kun ko'rinishi, katak yonidagi belgi oynasi, sinf tanlash", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
@@ -442,8 +480,8 @@ test("Sozlamalar → Dizayn: mavzu, yozuv turi, o'lcham va rang", async () => {
     await page.click("[data-th=light]");
     assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--acc").trim()), "#1f5fae");
     await page.click("[data-a=dreset]");
-    assert.deepEqual(await page.evaluate(() => [D.web.font, D.web.fsize, D.web.accent, D.web.radius]), ["lserif", "m", "teal", "round"]);
-    assert.match(await page.evaluate(() => getComputedStyle(document.body).fontFamily), /Liberation Serif/);
+    assert.deepEqual(await page.evaluate(() => [D.web.font, D.web.fsize, D.web.accent, D.web.radius, D.web.style]), ["system", "m", "teal", "round", "zamonaviy"]);
+    assert.match(await page.evaluate(() => getComputedStyle(document.body).fontFamily), /system-ui/);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
     assert.deepEqual(errors, []);
@@ -1613,17 +1651,19 @@ test("Dizayn: uslublar va kompyuterdagi shriftlar", async () => {
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     await page.evaluate(() => { S.sec = 3; go("settings"); });
-    assert.equal(await page.locator(".stys [data-sty]").count(), 5);
+    assert.equal(await page.locator(".stys [data-sty]").count(), 6);
+    // yangi «Zamonaviy» dizayn eski jurnalga ham bir marta yoqiladi
+    assert.equal(await page.evaluate(() => D.web.style), "zamonaviy");
     const win = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--win").trim());
     const before = await win();
-    for (const st of ["rasmiy", "ilova", "rangli", "qorongi"]) {
+    for (const st of ["klassik", "rasmiy", "ilova", "rangli", "qorongi"]) {
       await page.click(`[data-sty="${st}"]`);
       assert.equal(await page.evaluate(() => D.web.style), st);
       assert.notEqual(await win(), before, `${st}: fon o'zgarishi kerak`);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1, `${st}: ekrandan chiqmasin`);
     }
     await page.click('[data-a="dreset"]');
-    assert.equal(await page.evaluate(() => D.web.style), "klassik");
+    assert.equal(await page.evaluate(() => D.web.style), "zamonaviy");
     // shriftlar: ro'yxatdan tanlash, qo'lda yozish, mavjud bo'lmagani rad etiladi
     await page.click('[data-a="sysfont"]');
     const first = await page.getAttribute(".flist [data-fn]", "data-fn");
