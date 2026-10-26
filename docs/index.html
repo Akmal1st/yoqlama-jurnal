@@ -177,6 +177,7 @@ table.j td.s.a{color:var(--muted);font-weight:600}
   .foot .muted{font-size:13px}
 }
 .key{min-width:44px;height:44px;border-radius:10px;border:1px solid var(--line);font-weight:800;font-size:16px}
+.key.wide,.dense .key.wide{padding:0 16px;min-width:120px}.da.wide{width:auto;padding:0 12px;white-space:nowrap}.cell.pre{display:flex;align-items:center;justify-content:center;background:transparent;color:var(--muted);opacity:.5;cursor:default}
 .dense .key{min-width:36px;height:34px;font-size:14px}
 .keys .hint{flex-basis:100%;font-weight:700;font-size:14px}
 @media (min-width:821px){.keys .hint{flex-basis:auto;margin-right:6px}}
@@ -423,6 +424,7 @@ table.r tr:hover td{background:var(--alt)}
   .keys{display:grid;grid-template-columns:repeat(9,1fr);overflow:visible;gap:4px;padding:8px}
   .keys .hint{grid-column:1/-1;max-width:none;font-size:13px;white-space:normal;margin:0 2px 2px}
   .keys .key{min-width:0;width:100%;height:40px;font-size:14px;padding:0}
+  .keys .key.wide{grid-column:span 4;white-space:nowrap}.keys .key[data-k=""]{grid-column:span 1}
   table.j .nm{white-space:nowrap;text-overflow:ellipsis;max-width:150px;font-size:13.5px;padding:2px 6px 2px 2px}
   table.j .nm .fn,table.attm .an .fn{display:none}table.j .nm .sn,table.attm .an .sn{display:inline}
   table.j .nm i{min-width:18px}
@@ -538,6 +540,7 @@ body.pmeas .noprint{display:none!important}
 .cpi:hover{border-color:var(--acc)}
 .keys .hint small{display:block;font-weight:500;color:var(--muted);font-size:12px}
 @media screen and (min-width:821px){.keys{flex-wrap:nowrap}.keys .hint{flex:0 1 auto;min-width:96px}.keys .key{flex:1 1 0;min-width:0;max-width:54px;padding:0}}
+@media screen and (min-width:821px){.keys .key.wide{flex:0 0 auto;max-width:none;padding:0 18px;white-space:nowrap}}
 @media screen and (max-width:820px){
   .jpick{display:grid;place-items:center}
   .jtitle{flex:1 1 0}
@@ -820,9 +823,26 @@ function normalize(d) {
 }
 /* Ma'lumot versiyasi: D.web.dv. Tuzilma o'zgarsa DATA_VER oshiriladi va MIGRATE ga [eski dv] → yangi qadam qo'shiladi.
    Yangiroq ilovada saqlangan ma'lumotni eski ilova ustidan yozmaydi (NEWER). */
-const DATA_VER = 1;
+const DATA_VER = 2;
 const MIGRATE = {
   0: (d) => d,   // 0 → 1: versiya belgisi va saqlash vaqti qo'shildi, tuzilma o'zgarmagan
+  // 1 → 2: guruhlarda yo'qlama o'rniga «dars o'tildi» (ot) / «o'tilmadi» (ox). Yo'qlama qilingan kunlarda:
+  // belgisiz yoki kech qolgan → o'tildi, kelmagan (s/dq/k) → o'tilmadi
+  1: (d) => {
+    const t = todayIso();
+    for (const c of d.classes) {
+      if (!(c.kind === "club" || c.kind === "paid")) continue;
+      for (const dt of c.dates) {
+        if (dt > t || !((c.att_ok || []).includes(dt) || c.students.some((s) => s.marks[dt]))) continue;
+        for (const s of c.students) {
+          if (s.joined && dt < s.joined) continue;
+          const mk = s.marks[dt] || "";
+          if (["s", "dq", "k"].includes(mk)) s.marks[dt] = "ox"; else if (!mk || mk === "kq") s.marks[dt] = "ot";
+        }
+      }
+    }
+    return d;
+  },
 };
 let NEWER = false;
 const tooNew = (d) => (+((d && d.web) || {}).dv || 0) > DATA_VER;
@@ -942,7 +962,7 @@ const buildMark = (gs, late) => gs.join("/") + (late ? "kq" : "");
 function displayMark(m) {
   if (!m) return ""; const gs = gradesOf(m);
   if (gs.length) return (lateOf(m) ? "KQ " : "") + gs.join("/");
-  return m === "x" ? "×" : m.toUpperCase();
+  return m === "x" ? "×" : GRP_ATT[m] ? GRP_ATT[m][1] : m.toUpperCase();
 }
 function gradeColor(v) { let c = null; for (const r of ranges()) if (v >= r.min) c = r.color; return c; }
 const ranges = () => D.settings.ranges.slice().sort((a, b) => a.min - b.min);
@@ -952,7 +972,7 @@ function contrast(hex) {
 }
 function markColors(m) {
   if (!m) return null; const gs = gradesOf(m);
-  const c = gs.length ? gradeColor(gs.reduce((a, b) => a + b, 0) / gs.length) : D.settings.attendance[m];
+  const c = gs.length ? gradeColor(gs.reduce((a, b) => a + b, 0) / gs.length) : D.settings.attendance[m] || (GRP_ATT[m] || [])[0];
   return c ? [c, contrast(c)] : null;
 }
 function combineMark(old, v) {
@@ -1068,7 +1088,8 @@ function reportRows(c, lo, hi, q = null) {
     const cnt = {s: 0, dq: 0, k: 0, kq: 0};
     for (const v of vals) { if (lateOf(v)) cnt.kq++; else if (cnt[v] !== undefined) cnt[v]++; }
     const absent = cnt.s + cnt.dq + cnt.k, nch = vals.filter((v) => v === "ch").length, own = lessons - nch;
-    const att = own > 0 ? +pyFixed(100 * (own - absent) / own, 1) : null;
+    let att = own > 0 ? +pyFixed(100 * (own - absent) / own, 1) : null;
+    if (isGrp(c)) { const ot = vals.filter((v) => v === "ot").length, ox = vals.filter((v) => v === "ox").length; att = ot + ox ? +pyFixed(100 * ot / (ot + ox), 1) : null; }
     const avg = gr.length ? +pyFixed(gr.reduce((a, b) => a + b, 0) / gr.length, 2) : null;
     const qr = hasQ ? quarterResult(c, s, q, works) : null;
     const why = [];
@@ -1711,6 +1732,7 @@ function putMark(c, si, date, nw, quiet) {
   if (!canEdit(date)) { if (!quiet) toast(date > todayIso() ? "Kelgusi kunga belgi qo'yib bo'lmaydi" : (D.web.past || "today") === "today" ? "Faqat bugungi kunga belgi qo'yish mumkin. O'tgan darslar: Sozlamalar → Baholash → «O'tgan darslarga belgi qo'yish»" : "Bu kun 7 kundan oldin — Sozlamalar → Baholash da «Istalgan o'tgan kun»ni tanlang"); return false; }
   if (isNoLesson(c, date)) { if (!quiet) toast("Bu kunda dars yo'q (X)"); return false; }
   const s = c.students[si], old = s.marks[date] || "";
+  if (preJoin(c, s, date)) { if (!quiet) toast(`${s.name} ${fmt(s.joined)} dan qo'shilgan — undan oldingi darslarga belgi qo'yilmaydi`); return false; }
   if (old === nw) return false;
   if (old && !isAdditive(old, nw) && isLocked()) { toast("🔒 Qo'yilgan baho himoyalangan. O'zgartirish uchun qulfni oching."); return false; }
   if (nw) s.marks[date] = nw; else delete s.marks[date];
@@ -1919,10 +1941,10 @@ function pageToday(m) {
     const prev = c.dates.filter((d) => d < t && !isNoLesson(c, d)).pop(), phw = prev && c.lessons[prev] && c.lessons[prev].hw;
     const note = w ? `Bugun ${w.type.toUpperCase()}${w.max ? ` (${w.max} ball)` : ""} — natijalarni kiritish` : topic ? `Mavzu: ${esc(topic)}` : "Mavzu kiritilmagan";
     return `<article class="card ${done ? "" : "hot"} col" style="${ccOf(ci)}"><div class="row"><span class="tag">${tag}</span>${live}<span class="sp"></span>
-      <span class="${done ? "ok" : "warn"}">${done ? `Yo'qlama ✓ · ${n} belgi` : "Yo'qlama qilinmagan"}</span></div>
+      <span class="${done ? "ok" : "warn"}">${done ? `${isGrp(c) ? "Belgilandi" : "Yo'qlama"} ✓ · ${n} belgi` : isGrp(c) ? "Dars belgilanmagan" : "Yo'qlama qilinmagan"}</span></div>
       <div class="big">${esc(c.name)}</div><div class="muted">${esc(c.subject || "Fan ko'rsatilmagan")} · ${c.students.length} o'quvchi</div>
       <div>${note}</div>${phw ? `<div class="muted">🏠 Uyga berilgan (${fmt(prev).slice(0, 5)}): ${esc(phw)}</div>` : ""}<div class="sp"></div>
-      ${done ? `<button class="btn" data-open="${ci}">Jurnalni ochish</button>` : `<div class="row wrap" style="gap:8px"><button class="btn pri" data-start="${ci}">▶ Darsni boshlash</button><button class="btn" data-allok="${ci}" title="Hech kim qoldirmagan bo'lsa — bitta bosishda yo'qlama tugaydi">✓ Hamma keldi</button></div>`}</article>`;
+      ${done ? `<button class="btn" data-open="${ci}">Jurnalni ochish</button>` : `<div class="row wrap" style="gap:8px"><button class="btn pri" data-start="${ci}">▶ Darsni boshlash</button><button class="btn" data-allok="${ci}" title="${isGrp(c) ? "Hammaga «dars o'tildi»" : "Hech kim qoldirmagan bo'lsa — bitta bosishda yo'qlama tugaydi"}">${isGrp(c) ? "✓ Hammaga o'tildi" : "✓ Hamma keldi"}</button></div>`}</article>`;
   }).join("") : `<article class="card col"><b>Bugun jadvalda dars yo'q</b><div class="muted">Kerak bo'lsa, istalgan sinf jurnalini ochib baho qo'yishingiz mumkin.</div>
       <div><button class="btn" data-go2="journal">Jurnalni ochish</button></div></article>`;
   m.innerHTML = `<div class="col" style="gap:18px">
@@ -1945,7 +1967,7 @@ function pageToday(m) {
     ${(() => { if (!feat("gaps")) return ""; const g = lessonGaps(); if (!g.length) return "";
       return `<section class="card col gaps"><div class="row"><h2 class="sp">📝 To'ldirilmagan darslar — ${g.length} ta</h2><span class="muted">oxirgi ${GAP_DAYS} kun</span></div>
         ${g.slice(0, 5).map((x) => `<div class="row wrap" style="gap:8px"><div class="sp" style="flex:1 1 200px;min-width:0"><b>${esc(label(x.c))}</b> · ${fmt(x.d).slice(0, 5)} ${WD[pyWd(x.d)]}<div class="muted">${[x.noAtt ? "yo'qlama belgilanmagan" : "", x.noTopic ? "mavzu yozilmagan" : ""].filter(Boolean).join(", ")}</div></div>
-          ${x.noAtt ? `<button class="btn sm" data-gapok="${x.ci}|${x.d}" title="Hech kim qoldirmagan bo'lsa">✓ Hamma keldi</button>` : ""}<button class="btn sm" data-gap="${x.ci}|${x.d}|${x.noAtt ? 1 : 0}">To'ldirish</button></div>`).join("")}
+          ${x.noAtt ? `<button class="btn sm" data-gapok="${x.ci}|${x.d}" title="${isGrp(x.c) ? "Hammaga «dars o'tildi»" : "Hech kim qoldirmagan bo'lsa"}">${isGrp(x.c) ? "✓ Hammaga o'tildi" : "✓ Hamma keldi"}</button>` : ""}<button class="btn sm" data-gap="${x.ci}|${x.d}|${x.noAtt ? 1 : 0}">To'ldirish</button></div>`).join("")}
         ${g.length > 5 ? `<div class="muted">va yana ${g.length - 5} ta</div>` : ""}</section>`; })()}
     ${(() => { const wr = feat("week") && weekCardRange(); if (!wr || D.web.wk_seen === wr[0]) return ""; const [lo, hi, back] = wr, T = weekTotals(weekSummary(lo, hi)); if (!T.planned && !T.grades) return "";
       return `<section class="card col wkc"><div class="row"><h2 class="sp">📊 ${back ? "O'tgan hafta" : "Hafta"} xulosasi · ${fmt(lo).slice(0, 5)}–${fmt(hi).slice(0, 5)}</h2><button class="btn sm" data-wkx="${lo}" title="Yopish">✕</button></div>
@@ -1970,15 +1992,15 @@ function pageToday(m) {
   m.querySelectorAll("[data-open]").forEach((b) => b.onclick = () => { S.ci = +b.dataset.open; go("journal"); });
   // tezkor yo'qlama: hamma darsda — kelmaganlar belgisi yo'q, kun «yo'qlama qilindi» deb belgilanadi
   m.querySelectorAll("[data-allok]").forEach((b) => b.onclick = () => {
-    const c = D.classes[+b.dataset.allok]; if (!c.att_ok.includes(t)) c.att_ok.push(t); save(); render();
-    toast(`${label(c)}: hamma keldi ✓ — kimdir kelmagan bo'lsa, «Jurnalni ochish» orqali belgilang`);
+    const c = D.classes[+b.dataset.allok]; allDone(c, t); save(); render();
+    toast(isGrp(c) ? `${label(c)}: hammaga dars o'tildi ✓` : `${label(c)}: hamma keldi ✓ — kimdir kelmagan bo'lsa, «Jurnalni ochish» orqali belgilang`);
   });
   m.querySelectorAll("[data-go2]").forEach((b) => b.onclick = () => go(b.dataset.go2));
   m.querySelectorAll("[data-payci]").forEach((b) => b.onclick = () => { S.ci = +b.dataset.payci; S.jpage = "pay"; S.pm = monthOf(t); go("journal"); });
   m.querySelectorAll("[data-ktr]").forEach((b) => b.onclick = () => ktrDialog(+b.dataset.ktr));
   m.querySelectorAll("[data-wk]").forEach((b) => b.onclick = () => weekDialog(+b.dataset.wk));
   m.querySelectorAll("[data-wkx]").forEach((b) => b.onclick = () => { D.web.wk_seen = b.dataset.wkx; save(); render(); });
-  m.querySelectorAll("[data-gapok]").forEach((b) => b.onclick = () => { const [ci, d] = b.dataset.gapok.split("|"), c = D.classes[+ci]; if (!c.att_ok.includes(d)) c.att_ok.push(d); save(); render(); toast(`${label(c)} · ${fmt(d)}: hamma keldi ✓`); });
+  m.querySelectorAll("[data-gapok]").forEach((b) => b.onclick = () => { const [ci, d] = b.dataset.gapok.split("|"), c = D.classes[+ci]; allDone(c, d); save(); render(); toast(`${label(c)} · ${fmt(d)}: ${isGrp(c) ? "dars o'tildi" : "hamma keldi"} ✓`); });
   m.querySelectorAll("[data-gap]").forEach((b) => b.onclick = () => {
     const [ci, d, na] = b.dataset.gap.split("|"); S.ci = +ci; V.anchor = d;
     if (na === "1") { S.page = "journal"; S.jpage = "j"; S.sel = [0, d]; go("journal"); toast(`${fmt(d)}: kelmaganlarni belgilang`); }
@@ -2035,23 +2057,24 @@ function jFilter(root) {
 }
 function colStat(c, d) {
   let sum = 0, n = 0, ab = 0;
-  for (const s of c.students) { const mk = s.marks[d] || ""; for (const g of gradesOf(mk)) { sum += g; n++; } if (["s", "dq", "k"].includes(attPart(mk))) ab++; }
+  for (const s of c.students) { const mk = s.marks[d] || ""; for (const g of gradesOf(mk)) { sum += g; n++; } if (["s", "dq", "k", "ox"].includes(attPart(mk))) ab++; }
   return {n, avg: n ? sum / n : null, ab};
 }
 function nextRow(si, step) { const o = S.jord || [], i = o.indexOf(si); return i < 0 ? si + step : o[Math.min(Math.max(i + step, 0), o.length - 1)]; }
 // sana ustuni menyusi: mavzu va uy vazifasi, «hamma keldi», dars yo'q, xulosa
 function colMenu(ci, d) {
   const c = D.classes[ci], x = isNoLesson(c, d), cs = colStat(c, d), l = c.lessons[d] || {}, ed = canEdit(d);
-  const absent = c.students.filter((s) => ["s", "dq", "k"].includes(attPart(s.marks[d] || ""))).map((s) => s.name);
+  const grp = isGrp(c), absent = c.students.filter((s) => ["s", "dq", "k", "ox"].includes(attPart(s.marks[d] || ""))).map((s) => s.name);
   modal(`<h2>${fmt(d)} · ${WD[pyWd(d)]}${d === todayIso() ? " · bugun" : ""}</h2>
     <div class="muted">${esc(label(c))}${x ? " · dars yo'q (X)" : ""}</div>
-    ${x ? "" : `<div class="tiles" style="grid-template-columns:repeat(3,1fr)"><div class="tile"><div>Baholar</div><div>${cs.n}</div></div><div class="tile"><div>O'rtacha</div><div>${cs.avg !== null ? cs.avg.toFixed(1) : "—"}</div></div><div class="tile"><div>Qoldirgan</div><div>${cs.ab}</div></div></div>
-    ${absent.length ? `<div class="muted">Qoldirganlar: ${esc(absent.join(", "))}</div>` : ""}
+    ${x ? "" : `${grp ? "" : `<div class="tiles" style="grid-template-columns:repeat(3,1fr)"><div class="tile"><div>Baholar</div><div>${cs.n}</div></div><div class="tile"><div>O'rtacha</div><div>${cs.avg !== null ? cs.avg.toFixed(1) : "—"}</div></div><div class="tile"><div>Qoldirgan</div><div>${cs.ab}</div></div></div>`}
+    ${absent.length ? `<div class="muted">${grp ? "Dars o'tilmagan" : "Qoldirganlar"}: ${esc(absent.join(", "))}</div>` : ""}
     <label class="col"><b>Mavzu</b><input type="text" id="cmt" value="${esc(l.topic || "")}" placeholder="Dars mavzusi"></label>
     <label class="col"><b>Uy vazifasi</b><input type="text" id="cmh" value="${esc(l.hw || "")}" placeholder="Uy vazifasi"></label>`}
     <div class="row wrap" style="gap:8px">${x ? "" : `<button class="btn pri" data-sv>💾 Saqlash</button>`}
-      ${!x && ed && !absent.length && !c.att_ok.includes(d) ? `<button class="btn" data-ok title="Hech kim qoldirmagan — yo'qlama tugadi">✓ Hamma keldi</button>` : ""}
-      ${!x && c.att_ok.includes(d) ? `<span class="ok">✓ Yo'qlama: hamma kelgan</span>` : ""}
+      ${grp ? (!x && ed ? `<button class="btn" data-ok title="Belgisiz qolganlarning hammasiga «dars o'tildi»">✓ Qolganlarga o'tildi</button>` : "")
+        : `${!x && ed && !absent.length && !c.att_ok.includes(d) ? `<button class="btn" data-ok title="Hech kim qoldirmagan — yo'qlama tugadi">✓ Hamma keldi</button>` : ""}
+      ${!x && c.att_ok.includes(d) ? `<span class="ok">✓ Yo'qlama: hamma kelgan</span>` : ""}`}
       <button class="btn" data-x2>${x ? "↺ Dars kuni qilish" : "✕ Dars yo'q (X)"}</button><span class="sp"></span><button class="btn" data-cl>Yopish</button></div>`, (mm, close) => {
     $("[data-cl]", mm).onclick = () => close();
     $("[data-x2]", mm).onclick = () => { close(); toggleX(c, d); };
@@ -2061,13 +2084,23 @@ function colMenu(ci, d) {
       if (tp || hw) c.lessons[d] = nl; else delete c.lessons[d];
       close(); save(); render(); toast("Saqlandi");
     };
-    const ok = $("[data-ok]", mm); if (ok) ok.onclick = () => { if (!c.att_ok.includes(d)) c.att_ok.push(d); close(); save(); render(); toast(`${fmt(d).slice(0, 5)}: hamma keldi ✓`); };
+    const ok = $("[data-ok]", mm); if (ok) ok.onclick = () => { allDone(c, d); close(); save(); render(); toast(`${fmt(d).slice(0, 5)}: ${grp ? "dars o'tildi" : "hamma keldi"} ✓`); };
   });
 }
 /* ───────── to'garak va pullik ta'lim: guruh jurnallari (c.kind = "club" | "paid") ─────────
    a'zo: s.cls (sinfi), s.joined, s.plan {t: "month"|"day", sum}, s.pays [{id, no, d, m, sum, how, note}], s.ach [{d, t, lvl, pl}], s.skill {"2026-10": 8} */
 const KINDS = {club: ["To'garak", "to'garak"], paid: ["Pullik ta'lim", "pullik"]};
 const isGrp = (c) => !!(c && KINDS[c.kind]);
+// guruhlarda yo'qlama o'rniga har o'quvchiga: «ot» — dars o'tildi (kunlik narxda pul hisoblanadi), «ox» — o'tilmadi
+const GRP_ATT = {ot: ["#81c784", "✓", "O'tildi", "Dars o'tildi"], ox: ["#ef9a9a", "✗", "O'tilmadi", "Dars o'tilmadi (puli olinmaydi)"]};
+const GRP_KEYS = ["ot", "ox"];
+// o'quvchi qo'shilgan sanadan oldingi darslar uning uchun yo'q
+const preJoin = (c, s, d) => isGrp(c) && !!(s && s.joined) && d < s.joined;
+// «hamma keldi»: sinfda — kun yo'qlama qilingan deb belgilanadi; guruhda — belgisizlarga «o'tildi» qo'yiladi
+function allDone(c, d) {
+  if (isGrp(c)) c.students.forEach((s, si) => { if (!s.marks[d] && !preJoin(c, s, d)) putMark(c, si, d, "ot", true); });
+  if (!c.att_ok.includes(d)) c.att_ok.push(d);
+}
 const kindTag = (c) => isGrp(c) ? `<span class="ktag ${c.kind}">${KINDS[c.kind][1]}</span>` : "";
 const som = (n) => `${String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm`;
 const PAY_HOW = ["Naqd", "Karta", "Click", "Payme"];
@@ -2077,14 +2110,15 @@ const monthOf = (d) => d.slice(0, 7);
 const monthName = (m) => `${MONTHS[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}`;
 const shiftMonth = (m, n) => iso(new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + n, 1)).slice(0, 7);
 function grpTabs(c) {
-  return c.kind === "club" ? [["cards", "A'zolar"], ["j", "Davomat"], ["ach", "Yutuqlar"], ["mem", "Ro'yxat"]]
-    : c.kind === "paid" ? [["cards", "O'quvchilar"], ["j", "Davomat"], ["pay", "To'lovlar"], ["mem", "Ro'yxat"]] : null;
+  return c.kind === "club" ? [["cards", "A'zolar"], ["j", "Darslar"], ["ach", "Yutuqlar"], ["mem", "Ro'yxat"]]
+    : c.kind === "paid" ? [["cards", "O'quvchilar"], ["j", "Darslar"], ["pay", "To'lovlar"], ["mem", "Ro'yxat"]] : null;
 }
 // narx: har o'quvchi bilan kelishiladi — maktabda oylik, uyida kunlik (o'tilgan dars × narx)
 function planOf(c, s) { const p = s.plan || {}, t = p.t === "day" ? "day" : "month"; return {t, sum: +p.sum || +(c.fee || {})[t] || 0}; }
 const planTxt = (c, s) => { const p = planOf(c, s); return p.t === "day" ? `uyda · ${som(p.sum)} / dars` : `maktabda · ${som(p.sum)} / oy`; };
-const absentMark = (mk) => ["s", "dq", "k"].includes(attPart(mk || ""));
-function heldIn(c, s, m, t = todayIso()) { return c.dates.filter((d) => d.startsWith(m) && d <= t && !isNoLesson(c, d) && !absentMark(s.marks[d])).length; }
+const absentMark = (mk) => ["s", "dq", "k", "ox"].includes(attPart(mk || ""));
+// shu oy o'tilgan darslar: faqat «o'tildi» belgisi qo'yilganlari
+function heldIn(c, s, m, t = todayIso()) { return c.dates.filter((d) => d.startsWith(m) && d <= t && !isNoLesson(c, d) && s.marks[d] === "ot").length; }
 function chargeOf(c, s, m, t = todayIso()) {
   if (m > monthOf(t) || (s.joined && monthOf(s.joined) > m)) return 0;
   const p = planOf(c, s);
@@ -2106,13 +2140,13 @@ function bindLocked(m) { const u = $("[data-unl]", m); if (u) u.onclick = async 
 function pageMem(m) {
   const c = D.classes[S.ci], paid = c.kind === "paid", mo = monthOf(todayIso()), lock = paid && moneyLocked();
   const rows = c.students.map((s, si) => {
-    const p = planOf(c, s), held = c.dates.filter((d) => d.startsWith(mo) && d <= todayIso() && !isNoLesson(c, d)), came = held.filter((d) => !absentMark(s.marks[d])).length;
+    const p = planOf(c, s), held = c.dates.filter((d) => d.startsWith(mo) && d <= todayIso() && !isNoLesson(c, d) && GRP_KEYS.includes(s.marks[d])), came = held.filter((d) => s.marks[d] === "ot").length;
     return `<tr><td><button class="link" data-st="${si}" title="Kartochkani ochish">${esc(s.name)}</button></td>
-      <td><input class="mi" data-mf="${si}|cls" value="${esc(s.cls || "")}" placeholder="7-B" aria-label="Sinfi"></td>
-      <td><input class="mi ph" data-mf="${si}|phone" value="${esc((s.par || {}).phone || "")}" placeholder="+998 90 …" inputmode="tel" aria-label="Ota-ona telefoni"></td>
+      <td><input class="mi" type="text" data-mf="${si}|cls" value="${esc(s.cls || "")}" placeholder="7-B" aria-label="Sinfi"></td>
+      <td><input class="mi ph" type="tel" data-mf="${si}|phone" value="${esc((s.par || {}).phone || "")}" placeholder="+998 90 …" inputmode="tel" aria-label="Ota-ona telefoni"></td>
       <td><input class="mi" type="date" data-mf="${si}|joined" value="${esc(s.joined || "")}" aria-label="Qo'shilgan sana"></td>
       ${paid ? `<td><select class="mi" data-mf="${si}|pt" aria-label="Narx turi"><option value="month" ${p.t === "month" ? "selected" : ""}>Maktabda (oylik)</option><option value="day" ${p.t === "day" ? "selected" : ""}>Uyida (kunlik)</option></select></td>
-        <td>${lock ? `<span class="muted">🔒</span>` : `<input class="mi sum" data-mf="${si}|ps" value="${p.sum || ""}" inputmode="numeric" aria-label="Narx, so'm">`}</td>`
+        <td>${lock ? `<span class="muted">🔒</span>` : `<input class="mi sum" type="text" data-mf="${si}|ps" value="${p.sum || ""}" inputmode="numeric" aria-label="Narx, so'm">`}</td>`
       : `<td><select class="mi" data-mf="${si}|skill" aria-label="Ko'nikma bahosi">${["", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((g) => `<option ${String((s.skill || {})[mo] ?? "") === String(g) ? "selected" : ""} value="${g}">${g || "—"}</option>`).join("")}</select></td>
         <td class="s">${(s.ach || []).length || "—"}</td>`}
       <td class="s">${held.length ? Math.round(100 * came / held.length) + "%" : "—"}</td></tr>`;
@@ -2121,7 +2155,7 @@ function pageMem(m) {
     ${c.students.length ? `<div class="tblwrap"><table class="r mem"><tr><th>${paid ? "O'quvchi" : "A'zo"}</th><th>Sinfi</th><th>Ota-ona telefoni</th><th>Qo'shilgan</th>
       ${paid ? `<th>Narx turi</th><th>Narx, so'm</th>` : `<th title="Oyda bir marta qo'yiladigan ko'nikma bahosi">Ko'nikma · ${MONTHS[+mo.slice(5) - 1]}</th><th>Yutuqlar</th>`}<th>Qatnashuv · ${MONTHS[+mo.slice(5) - 1]}</th></tr>${rows}</table></div>`
       : `<div class="card muted">Hali ${paid ? "o'quvchi" : "a'zo"} yo'q. «＋ ${paid ? "O'quvchi" : "A'zo"} qo'shish» tugmasini bosing.</div>`}
-    <p class="muted" style="margin:0">${paid ? "Narx har o'quvchi bilan alohida kelishiladi: maktabda — oylik, uyida — har o'tilgan dars uchun. Sababli qoldirilgan dars puli o'tkazilmaydi — dars boshqa kuni o'tib beriladi." : "Ko'nikma bahosi ixtiyoriy — oyda bir marta. Yutuqlar «Yutuqlar» bo'limida."} O'zgarish o'zi saqlanadi.</p></div>`;
+    <p class="muted" style="margin:0">${paid ? "Narx har o'quvchi bilan alohida kelishiladi: maktabda — oylik, uyida — har o'tilgan dars uchun. Uyida — faqat «✓ o'tildi» belgilangan darslar hisoblanadi; dars o'tilmasa (✗) puli olinmaydi, u boshqa kuni o'tib beriladi." : "Ko'nikma bahosi ixtiyoriy — oyda bir marta. Yutuqlar «Yutuqlar» bo'limida."} O'zgarish o'zi saqlanadi.</p></div>`;
   bindJHead(m);
   m.querySelectorAll("[data-st]").forEach((b) => b.onclick = () => studentCard(S.ci, c.students[+b.dataset.st].name));
   m.querySelectorAll("[data-mf]").forEach((x) => x.onchange = () => {
@@ -2131,7 +2165,7 @@ function pageMem(m) {
     else if (f === "ps") { const n = +v.replace(/\D/g, ""); s.plan = {t: planOf(c, s).t, sum: n}; }
     else if (f === "skill") { s.skill = s.skill || {}; if (v) s.skill[mo] = +v; else delete s.skill[mo]; }
     else if (v) s[f] = v; else delete s[f];
-    save(); if (f === "pt") render(); else toast("Saqlandi");
+    save(); if (f === "pt" || f === "joined") render(); else toast("Saqlandi");
   });
   m.querySelectorAll(".mi.ph").forEach((x) => { if (x.value) x.value = fmtPhone(x.value); });
   $("[data-addm]", m).onclick = () => addMembers(S.ci);
@@ -2205,7 +2239,7 @@ function pagePay(m) {
         <td class="s"><b>${r.rest > 0 ? som(r.rest) : r.ch || r.pd ? "✓" : "—"}</b></td><td class="s">${r.debt > 0 ? `<b class="warn">${som(r.debt)}</b>` : r.debt < 0 ? `<span class="ok" title="Oldindan to'langan">+${som(-r.debt)}</span>` : "—"}</td>
         <td class="act"><button class="btn sm pri" data-pay="${r.si}">＋ To'lov</button>${r.debt > 0 ? `<button class="btn sm" data-prem="${r.si}" title="Ota-onaga eslatma">✉</button>` : ""}</td></tr>`).join("")}</table></div>`
       : `<div class="card muted">Hali o'quvchi yo'q. «O'quvchilar» bo'limida qo'shing.</div>`}
-    <p class="muted" style="margin:0">Maktabda — oylik narx (oyda dars bo'lsa). Uyida — har o'tilgan dars uchun: sababli qoldirilgan dars puli o'tkazilmaydi, dars boshqa kuni o'tib beriladi. Ilova pul qabul qilmaydi — faqat yozib boradi.</p></div>`;
+    <p class="muted" style="margin:0">Maktabda — oylik narx (oyda dars bo'lsa). Uyida — har «✓ o'tildi» belgilangan dars uchun: o'tilmagan dars puli olinmaydi, u boshqa kuni o'tib beriladi. Ilova pul qabul qilmaydi — faqat yozib boradi.</p></div>`;
   bindJHead(m);
   m.querySelectorAll("[data-pm]").forEach((b) => b.onclick = () => { const n = +b.dataset.pm; S.pm = n ? shiftMonth(mo, n) : monthOf(t); render(); });
   m.querySelectorAll("[data-st]").forEach((b) => b.onclick = () => studentCard(S.ci, c.students[+b.dataset.st].name));
@@ -2220,7 +2254,7 @@ function payDialog(ci, si, mo) {
   const list = () => (s.pays || []).slice().sort((a, b) => (b.d || "").localeCompare(a.d || ""));
   modal(`<h2>To'lov — ${esc(s.name)}</h2><div class="muted">${esc(label(c))} · ${esc(planTxt(c, s))} · umumiy qarz: ${som(Math.max(0, debtOf(c, s, t)))}</div>
     <div class="row wrap"><label class="f">Qaysi oy uchun<select id="pm">${months.map((x) => `<option value="${x}" ${x === mo ? "selected" : ""}>${monthName(x)}</option>`).join("")}</select></label>
-      <label class="f">Summa, so'm<input type="text" id="ps" inputmode="numeric" value="${rest > 0 ? rest : planOf(c, s).t === "month" ? planOf(c, s).sum : ""}"></label>
+      <label class="f">Summa, so'm<input type="text" id="ps" inputmode="numeric" value="${rest > 0 ? rest : planOf(c, s).sum || ""}"></label>
       <label class="f">Sana<input type="date" id="pd" value="${t}"></label>
       <label class="f">Usul<select id="ph">${PAY_HOW.map((h) => `<option>${h}</option>`).join("")}</select></label></div>
     <label class="f">Izoh<input type="text" id="pn" placeholder="ixtiyoriy"></label>
@@ -2282,10 +2316,10 @@ function payCard() {
 
 /* «Guruhlar» bo'limi: to'garak va pullik guruhlar sinf jurnallaridan alohida */
 const grpIdx = () => D.classes.map((c, i) => isGrp(c) ? i : -1).filter((i) => i >= 0);
-function grpAtt(c, mo, t = todayIso()) {   // shu oy qatnashuv foizi (o'tgan, yo'qlama qilingan darslar bo'yicha)
-  const ds = c.dates.filter((d) => d.startsWith(mo) && d <= t && !isNoLesson(c, d) && taken(c, d));
-  const n = ds.length * c.students.length; if (!n) return null;
-  return Math.round(100 * (n - ds.reduce((a, d) => a + c.students.filter((s) => absentMark(s.marks[d])).length, 0)) / n);
+function grpAtt(c, mo, t = todayIso()) {   // shu oy: «o'tildi» belgilari ulushi (o'tildi + o'tilmadi ichida)
+  let ot = 0, n = 0;
+  for (const d of c.dates) { if (!d.startsWith(mo) || d > t || isNoLesson(c, d)) continue; for (const s of c.students) { const k = s.marks[d]; if (GRP_KEYS.includes(k)) { n++; ot += k === "ot"; } } }
+  return n ? Math.round(100 * ot / n) : null;
 }
 const taken = (c, d) => c.att_ok.includes(d) || c.students.some((s) => s.marks[d]);
 const wdTxt = (c) => (c.weekdays || []).map((k) => WD[k]).join(" · ");
@@ -2303,7 +2337,7 @@ function pageGroups(m) {
       <div class="gcb"><div class="row"><span class="muted sp">${c.kind === "club" ? "A'zolar" : "O'quvchilar"}</span><b>${c.students.length}</b></div>
         <div class="row"><span class="muted sp">Qatnashuv · ${MONTHS[+mo.slice(5) - 1]}</span><b>${att === null ? "—" : att + "%"}</b></div>
         <div class="row"><span class="muted sp">${c.kind === "paid" ? "Shu oy to'lamagan" : "Yutuqlar"}</span><b class="${un ? "warn" : ""}">${c.kind === "paid" ? `${un} kishi` : `${ach} ta`}</b></div>
-        <div class="row" style="gap:8px"><button class="btn pri sp" data-gopen="${ci}|j">Davomat</button><button class="btn sp" data-gopen="${ci}|${c.kind === "paid" ? "pay" : "ach"}">${c.kind === "paid" ? "To'lovlar" : "Yutuqlar"}</button></div></div></article>`;
+        <div class="row" style="gap:8px"><button class="btn pri sp" data-gopen="${ci}|j">Darslar</button><button class="btn sp" data-gopen="${ci}|${c.kind === "paid" ? "pay" : "ach"}">${c.kind === "paid" ? "To'lovlar" : "Yutuqlar"}</button></div></div></article>`;
   };
   m.innerHTML = `<div class="col" style="gap:18px">
     <header class="row wrap"><div class="col sp" style="gap:4px;flex:1 1 260px"><h1>Guruhlar</h1><span class="muted">To'garaklar va pullik ta'lim — sinf jurnallaridan alohida</span></div>
@@ -2322,7 +2356,7 @@ function gHead(per, row2, tools) {
   else st.push(["Yutuqlar", c.students.reduce((a, s) => a + (s.ach || []).length, 0)]);
   return `<div class="jhead ghead"><div class="gband ${c.kind}">
       <div class="row gb1"><button class="btn sm gback" data-gback aria-label="Guruhlar">‹<span class="lg">&nbsp;Guruhlar</span></button><span class="gkind">${KINDS[c.kind][0]}</span><span class="gwd">${esc(wdTxt(c))}</span><span class="sp"></span>
-        ${UNDO.length ? `<button class="btn sm" data-undo title="Bekor qilish (Ctrl+Z)">↶</button>` : ""}<button class="btn gstart" data-start>▶ Davomat</button><button class="btn sm more" data-more title="Yana: boshqa amallar" aria-label="Yana">⋯</button></div>
+        ${UNDO.length ? `<button class="btn sm" data-undo title="Bekor qilish (Ctrl+Z)">↶</button>` : ""}<button class="btn gstart" data-start>▶ Bugungi dars</button><button class="btn sm more" data-more title="Yana: boshqa amallar" aria-label="Yana">⋯</button></div>
       <h1>${esc(label(c))}</h1>
       <div class="gstats">${st.map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join("")}</div></div>
     ${row2 ? `<div class="row jr2">${row2}</div>` : ""}
@@ -2332,9 +2366,8 @@ function gHead(per, row2, tools) {
 function pageCards(m) {
   const c = D.classes[S.ci], t = todayIso(), mo = S.pm = S.pm || monthOf(t), paid = c.kind === "paid", lk = paid && moneyLocked();
   const ds = c.dates.filter((d) => d.startsWith(mo) && !isNoLesson(c, d)), tOk = c.dates.includes(t) && !isNoLesson(c, t) && canEdit(t);
-  const dot = (s, d) => { const mk = s.marks[d] || "", a = attPart(mk);
-    const k = d > t || !(taken(c, d) || mk) ? "" : absentMark(mk) ? "no" : a === "kq" ? "late" : "yes";
-    return `<i class="gd ${k} ${d === t ? "t" : ""}" title="${fmt(d)}: ${{yes: "keldi", no: ABSENT_NAMES[a] || "kelmadi", late: "kech qoldi", "": d > t ? "hali bo'lmagan" : "belgilanmagan"}[k]}"></i>`; };
+  const dot = (s, d) => { const mk = s.marks[d] || "", k = mk === "ot" ? "yes" : mk === "ox" ? "no" : "";
+    return `<i class="gd ${k} ${d === t ? "t" : ""}" title="${fmt(d)}: ${{yes: "dars o'tildi", no: "dars o'tilmadi", "": d > t ? "hali bo'lmagan" : "belgilanmagan"}[k]}"></i>`; };
   const cards = c.students.map((s, si) => {
     let badge = "", acts = "";
     if (paid) {
@@ -2346,16 +2379,16 @@ function pageCards(m) {
       badge = `<span class="gpay">${sk ? `Ko'nikma: ${sk}` : "Ko'nikma: —"}</span>${n ? `<span class="gpay ok">🏆 ${n}</span>` : ""}`;
       acts = `<button class="btn sm" data-cach="${si}">＋ Yutuq</button>`;
     }
-    const ab = absentMark(s.marks[t]);
+    const tm = s.marks[t] || "", sd = ds.filter((d) => !preJoin(c, s, d)), tg = tOk && !preJoin(c, s, t);
     return `<article class="mcard"><div class="row" style="gap:10px;flex-wrap:nowrap"><span class="av">${esc(initials(s.name))}</span>
         <div class="sp" style="min-width:0"><button class="link mname" data-st="${si}">${esc(s.name)}</button><div class="muted msub">${esc([s.cls, paid ? planTxt(c, s) : "", fmtPhone((s.par || {}).phone || "")].filter(Boolean).join(" · ") || "—")}</div></div>
-        ${tOk ? `<button class="btn sm mtog ${ab ? "no" : "yes"}" data-tog="${si}" title="Bugungi davomat: bosib almashtiring">${ab ? "✗ kelmadi" : "✓ keldi"}</button>` : ""}</div>
-      <div class="gdots" aria-label="${MONTHS[+mo.slice(5) - 1]} davomati">${ds.map((d) => dot(s, d)).join("") || `<span class="muted">bu oyda dars yo'q</span>`}</div>
+        ${tg ? `<button class="btn sm mtog ${tm === "ot" ? "yes" : tm === "ox" ? "no" : ""}" data-tog="${si}" title="Bugungi dars: bosib almashtiring (o'tildi → o'tilmadi → belgisiz)">${tm === "ot" ? "✓ o'tildi" : tm === "ox" ? "✗ o'tilmadi" : "Bugun: belgilash"}</button>` : ""}</div>
+      <div class="gdots" aria-label="${MONTHS[+mo.slice(5) - 1]} darslari">${sd.map((d) => dot(s, d)).join("") || `<span class="muted">${ds.length ? `${fmt(s.joined)} dan qo'shilgan` : "bu oyda dars yo'q"}</span>`}</div>
       <div class="row" style="gap:6px">${badge}<span class="sp"></span>${acts}</div></article>`;
   }).join("");
   m.innerHTML = `<div class="col" style="gap:14px">
     ${jHead(`<div class="pernav"><button class="btn sm" data-pm="-1" aria-label="Oldingi oy">‹</button><span class="perbtn" style="cursor:default"><h2>${monthName(mo)}</h2></span><button class="btn sm" data-pm="1" aria-label="Keyingi oy">›</button>${mo !== monthOf(t) ? `<button class="btn sm today" data-pm="0">Shu oy</button>` : ""}</div>`, "", `<button class="btn" data-addm>＋ ${paid ? "O'quvchi" : "A'zo"}</button>`)}
-    ${c.students.length ? `<div class="mgrid2">${cards}</div><p class="muted" style="margin:0">Nuqtalar — ${MONTHS_GEN[+mo.slice(5) - 1]} darslari: yashil — keldi, qizil — kelmadi, sariq — kech qoldi, bo'sh — hali bo'lmagan yoki belgilanmagan.${tOk ? " «✓ keldi» tugmasi — bugungi davomat." : ""}</p>`
+    ${c.students.length ? `<div class="mgrid2">${cards}</div><p class="muted" style="margin:0">Nuqtalar — ${MONTHS_GEN[+mo.slice(5) - 1]} darslari (o'quvchi qo'shilgan kundan): yashil — dars o'tildi, qizil — o'tilmadi, bo'sh — hali bo'lmagan yoki belgilanmagan.${tOk ? " Bugungi tugma: bir bosish — o'tildi, ikki — o'tilmadi, uch — belgisiz." : ""}</p>`
       : `<div class="card muted">Hali ${paid ? "o'quvchi" : "a'zo"} yo'q. «＋ ${paid ? "O'quvchi" : "A'zo"}» tugmasini bosing.</div>`}</div>`;
   bindJHead(m);
   m.querySelectorAll("[data-pm]").forEach((b) => b.onclick = () => { const n = +b.dataset.pm; S.pm = n ? shiftMonth(mo, n) : monthOf(t); render(); });
@@ -2365,7 +2398,7 @@ function pageCards(m) {
   m.querySelectorAll("[data-cach]").forEach((b) => b.onclick = () => { S.achSel = +b.dataset.cach; S.jpage = "ach"; render(); });
   m.querySelectorAll("[data-tog]").forEach((b) => b.onclick = () => {
     const si = +b.dataset.tog, old = c.students[si].marks[t] || "", y = window.scrollY;
-    if (putMark(c, si, t, absentMark(old) ? (lateOf(old) ? "kq" : "") : "s")) { if (!c.att_ok.includes(t)) c.att_ok.push(t); save(); render(); window.scrollTo(0, y); }
+    if (putMark(c, si, t, old === "ot" ? "ox" : old === "ox" ? "" : "ot")) { save(); render(); window.scrollTo(0, y); }
   });
   $("[data-addm]", m).onclick = () => addMembers(S.ci);
 }
@@ -2404,6 +2437,7 @@ function pageJournal(m) {
     const rw = riskWhy.get(s.name);
     body += `<tr class="${S.sel && S.sel[0] === si ? "cur" : ""} ${rw ? "risk" : ""}" data-q="${esc(normName(s.name))}"><td class="nm" data-st="${si}" title="${esc(s.name)}${rw ? ` — ⚠ xavf: ${esc(rw.join("; "))}` : ""} — kartochkani ochish"><i>${si + 1}</i>${s.star ? "⭐ " : ""}${nmHtml(s.name)}</td>`;
     ds.forEach((d, di) => {
+      if (preJoin(c, s, d)) { body += `<td class="c"><span class="cell pre" title="${esc(s.name)} ${fmt(s.joined)} dan qo'shilgan">·</span></td>`; return; }
       const mk = isNoLesson(c, d) ? "x" : (s.marks[d] || ""); const col = markColors(mk);
       const st = col ? `background:${col[0]};color:${col[1]}` : "";
       const sel = S.sel && S.sel[0] === si && S.sel[1] === d;
@@ -2421,8 +2455,8 @@ function pageJournal(m) {
     });
     body += `${grp ? "" : "<td></td>"}<td></td></tr>`;
   }
-  const keys = (grp ? ["s", "dq", "k", "kq"] : ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "s", "dq", "k", "kq", "ch"]).map((v) => {
-    const col = markColors(v); return `<button class="key" data-k="${v}" style="${col ? `background:${col[0]};color:${col[1]};border-color:transparent` : ""}">${v.toUpperCase()}</button>`;
+  const keys = (grp ? GRP_KEYS : ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "s", "dq", "k", "kq", "ch"]).map((v) => {
+    const col = markColors(v); return `<button class="key ${grp ? "wide" : ""}" data-k="${v}" style="${col ? `background:${col[0]};color:${col[1]};border-color:transparent` : ""}"${grp ? ` title="${GRP_ATT[v][3]}"` : ""}>${grp ? `${GRP_ATT[v][1]} ${GRP_ATT[v][2]}` : v.toUpperCase()}</button>`;
   }).join("") + (grp ? "" : `<button class="key ${S.second ? "on2" : ""}" data-two title="Ikkinchi baho qo'shish (masalan 8/9)">＋2</button>`) + `<button class="key" data-k="" title="Tozalash">⌫</button>`;
   const nx = S.sel && nextRow(S.sel[0], 1), nxt = S.sel && nx !== S.sel[0] && c.students[nx] ? `<small>keyingisi: ${esc(shortName(c.students[nx].name))} ↓</small>` : "";
   const selTxt = S.sel ? `<b>${esc(shortName(c.students[S.sel[0]].name))} · ${fmt(S.sel[1]).slice(0, 5)}${canEdit(S.sel[1]) ? "" : " (faqat ko'rish)"}</b>${nxt}` : (D.web.past || "today") === "today" ? "Katakni tanlang (bugungi ustun)" : "Katakni tanlang";
@@ -2540,11 +2574,12 @@ function pageDay(m) {
   const x = isNoLesson(c, d), ed = canEdit(d) && !x, cs = colStat(c, d), l = c.lessons[d] || {};
   const [plo, phi, pq] = periodNow(), pr = reportRows(c, plo, phi, pq).rows, order = S.jord = jOrder(c, pr);
   const grp = isGrp(c), risk = new Set(grp ? [] : pr.filter((r) => r.why.some((w) => !w.startsWith("baholar soni"))).map((r) => r.name));
-  const absent = c.students.filter((s) => ["s", "dq", "k"].includes(attPart(s.marks[d] || "")));
-  const btn = (cls, data, v, on, title) => { const col = on && markColors(v); return `<button class="${cls} ${on ? "on" : ""}" ${data} style="${col ? `background:${col[0]};color:${col[1]};border-color:transparent` : ""}"${title ? ` title="${title}"` : ""}>${v.toUpperCase()}</button>`; };
+  const absent = c.students.filter((s) => ["s", "dq", "k", "ox"].includes(attPart(s.marks[d] || "")));
+  const btn = (cls, data, v, on, title) => { const col = on && markColors(v); return `<button class="${cls} ${on ? "on" : ""}" ${data} style="${col ? `background:${col[0]};color:${col[1]};border-color:transparent` : ""}"${title ? ` title="${title}"` : ""}>${GRP_ATT[v] ? `${GRP_ATT[v][1]} ${GRP_ATT[v][2]}` : v.toUpperCase()}</button>`; };
   const rows = order.map((si) => {
     const s = c.students[si], mk = s.marks[d] || "", ap = attPart(mk), gs = gradesOf(mk);
-    const att = DAY_ATT.map(([v, ti]) => btn("da", `data-a="${si}|${v}"`, v, v === "kq" ? lateOf(mk) : ap === v, ti)).join("");
+    if (preJoin(c, s, d)) return `<div class="drow" data-q="${esc(normName(s.name))}"><span class="dn" data-st="${si}"><i>${si + 1}</i>${nmHtml(s.name)}</span><span class="muted">${fmt(s.joined)} dan qo'shilgan</span></div>`;
+    const att = (grp ? GRP_KEYS.map((v) => [v, GRP_ATT[v][3]]) : DAY_ATT).map(([v, ti]) => btn(grp ? "da wide" : "da", `data-a="${si}|${v}"`, v, v === "kq" ? lateOf(mk) : ap === v, ti)).join("");
     const gr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((g) => btn("dg", `data-g="${si}|${g}"`, String(g), gs.includes(g))).join("");
     return `<div class="drow ${risk.has(s.name) ? "risk" : ""}" data-q="${esc(normName(s.name))}"><span class="dn" data-st="${si}" title="${esc(s.name)} — kartochkani ochish"><i>${si + 1}</i>${s.star ? "⭐ " : ""}${nmHtml(s.name)}</span>
       <div class="datt" role="group" aria-label="Yo'qlama">${att}</div>${grp ? "" : `<div class="dgr" role="group" aria-label="Baho">${gr}</div>`}</div>`;
@@ -2559,12 +2594,14 @@ function pageDay(m) {
           ${x ? `<span class="muted">Dars yo'q (X)</span>` : `<label class="col"><span class="muted">Mavzu</span><input type="text" id="dmt" value="${esc(l.topic || "")}" placeholder="Dars mavzusi"></label>
           <label class="col"><span class="muted">Uy vazifasi</span><input type="text" id="dmh" value="${esc(l.hw || "")}" placeholder="Uy vazifasi"></label>`}
           ${ed || x ? "" : `<span class="muted">${d > t ? "Kelgusi dars — belgi qo'yib bo'lmaydi" : "Faqat ko'rish: o'tgan darslarga belgi qo'yish Sozlamalar → Baholash da yoqiladi"}</span>`}</div>
-        ${x ? "" : `<div class="card dstats">${tile("Keldi", `${c.students.length - absent.length} / ${c.students.length}`)}${tile("Qoldirgan", absent.length)}${grp ? "" : tile("Baholar", cs.n) + tile("O'rtacha", cs.avg !== null ? cs.avg.toFixed(1) : "—")}</div>`}
-        <div class="row wrap" style="gap:8px">${ed && !absent.length && !c.att_ok.includes(d) ? `<button class="btn" data-ok title="Hech kim qoldirmagan — yo'qlama tugadi">✓ Hamma keldi</button>` : ""}
-          ${!x && c.att_ok.includes(d) ? `<span class="ok">✓ Yo'qlama tugagan</span>` : ""}
+        ${x ? "" : `<div class="card dstats">${grp ? tile("O'tildi", c.students.filter((s) => s.marks[d] === "ot").length) + tile("O'tilmadi", absent.length)
+          : tile("Keldi", `${c.students.length - absent.length} / ${c.students.length}`) + tile("Qoldirgan", absent.length) + tile("Baholar", cs.n) + tile("O'rtacha", cs.avg !== null ? cs.avg.toFixed(1) : "—")}</div>`}
+        <div class="row wrap" style="gap:8px">${grp ? (ed && c.students.some((s) => !s.marks[d] && !preJoin(c, s, d)) ? `<button class="btn" data-ok title="Belgisiz qolganlarga «dars o'tildi»">✓ Qolganlarga o'tildi</button>` : "")
+          : `${ed && !absent.length && !c.att_ok.includes(d) ? `<button class="btn" data-ok title="Hech kim qoldirmagan — yo'qlama tugadi">✓ Hamma keldi</button>` : ""}
+          ${!x && c.att_ok.includes(d) ? `<span class="ok">✓ Yo'qlama tugagan</span>` : ""}`}
           ${ed && !grp ? `<button class="btn ${S.second ? "pri" : ""}" data-two2 title="Keyingi bosilgan baho ikkinchi baho bo'ladi (masalan 8/9)">＋2 baho</button>` : ""}
           <button class="btn" data-colm>⋯ Dars menyusi</button></div>
-        <p class="muted dtip">Yo'qlama chapda, baho o'ngda. Kelgan o'quvchiga hech narsa bosmang — bo'sh qolsa «keldi» hisoblanadi. Belgini qayta bossangiz o'chadi.</p>
+        <p class="muted dtip">${grp ? "Har o'quvchiga: «✓ O'tildi» yoki «✗ O'tilmadi». Uyida o'qiydiganlarga faqat «o'tildi» darslar hisoblanadi. Belgini qayta bossangiz o'chadi." : "Yo'qlama chapda, baho o'ngda. Kelgan o'quvchiga hech narsa bosmang — bo'sh qolsa «keldi» hisoblanadi. Belgini qayta bossangiz o'chadi."}</p>
       </aside></div></div>`;
   bindJHead(m); bindJTools(m);
   m.querySelectorAll("[data-sh]").forEach((b) => b.onclick = () => { V.anchor = L[Math.min(Math.max(i + +b.dataset.sh, 0), L.length - 1)]; render(); });
@@ -2592,7 +2629,7 @@ function pageDay(m) {
     save(); toast("Saqlandi");
   };
   if (!x) { $("#dmt", m).onchange = save2; $("#dmh", m).onchange = save2; }
-  const ok = $("[data-ok]", m); if (ok) ok.onclick = () => { c.att_ok.push(d); save(); render(); toast(`${fmt(d).slice(0, 5)}: hamma keldi ✓`); };
+  const ok = $("[data-ok]", m); if (ok) ok.onclick = () => { allDone(c, d); save(); render(); toast(`${fmt(d).slice(0, 5)}: ${grp ? "dars o'tildi" : "hamma keldi"} ✓`); };
   const two = $("[data-two2]", m); if (two) two.onclick = () => { S.second = !S.second; render(); if (S.second) toast("Keyingi bosilgan baho ikkinchi baho sifatida qo'shiladi"); };
   $("[data-colm]", m).onclick = () => colMenu(S.ci, d);
 }
@@ -2611,7 +2648,16 @@ function snapCols() {
   tb.style.marginRight = "0px";
   const max = tw.scrollWidth - tw.clientWidth;
   const stop = max > 0 && [...tb.querySelectorAll("th:not(.nm)")].map((t) => x(t) - x(d) + sp).find((v) => v >= max - 0.5);
-  if (stop) tb.style.marginRight = Math.ceil(stop - max) + 1 + "px";
+  if (stop) {
+    tb.style.marginRight = Math.ceil(stop - max) + 1 + "px";
+    // kattalashtirilgan yozuvda (zoom) kasr piksellar oxirgi holatni ustun chegarasidan biroz o'tkazib yuborishi mumkin —
+    // oxiriga surib o'lchaymiz va ortiqchasini olib tashlaymiz
+    const sl = tw.scrollLeft; tw.scrollLeft = 1e6;
+    const edge = tw.querySelector("th.nm").getBoundingClientRect().right, f = [...tb.querySelectorAll("th:not(.nm)")].map((t) => t.getBoundingClientRect()).find((q) => q.right > edge + 1);
+    const over = f ? edge - f.left : 0;
+    if (over > 0 && over < f.width) tb.style.marginRight = Math.max(0, parseFloat(tb.style.marginRight) - over / z - 0.5) + "px";
+    tw.scrollLeft = sl;
+  }
   // ism ustuni kengligi keyin o'zgarsa (yozuv o'lchami, ekran burilishi) qayta hisoblaymiz
   if (typeof ResizeObserver === "function" && snapTb !== tb) { snapRO = snapRO || new ResizeObserver(() => snapCols()); snapRO.disconnect(); snapRO.observe(tb); snapTb = tb; }
 }
@@ -2622,7 +2668,7 @@ function scrollToday() {
 }
 function applyKey(v) {
   const c = D.classes[S.ci]; if (!S.sel) { toast("Avval katakni tanlang"); return; }
-  if (isGrp(c) && /^\d+$|^ch$/.test(v)) { toast("To'garak / pullik ta'lim jurnalida faqat davomat belgilanadi"); return; }
+  if (isGrp(c) && v && !GRP_KEYS.includes(v)) { toast("Guruh jurnalida «✓ O'tildi» yoki «✗ O'tilmadi» belgilanadi"); return; }
   const [si, d, part] = S.sel, old = c.students[si].marks[d] || "";
   let nw = combineMark(old, v);
   if (v === "" && part) {         // Kun rejimi: ⌫ faqat tanlangan katakni (yo'qlama yoki baho) tozalaydi
@@ -2636,7 +2682,7 @@ function applyKey(v) {
 document.addEventListener("keydown", (e) => {
   if (S.page !== "journal" || !S.sel || $(".modal") || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
   const c = D.classes[S.ci], ds = visDates(c); let [si, d, part] = S.sel; let di = ds.indexOf(d);
-  const map = {s: "s", d: "dq", k: "k", q: "kq", c: "ch"};
+  const map = isGrp(c) ? {o: "ot", x: "ox", n: "ox"} : {s: "s", d: "dq", k: "k", q: "kq", c: "ch"};
   if (e.key === "ArrowDown") si = Math.min(nextRow(si, 1), c.students.length - 1);
   else if (e.key === "ArrowUp") si = Math.max(nextRow(si, -1), 0);
   else if (part && (e.key === "ArrowRight" || e.key === "ArrowLeft")) part = e.key === "ArrowRight" ? "g" : "a";
@@ -2758,15 +2804,16 @@ async function startLesson(ci) {
   S.ci = ci; S.lesson = ci; S.step = 0; S.cur = 0; V.anchor = t; go("lesson");
 }
 const OPTS = [["", "Keldi", "#0b6f79", "✓"], ["s", "Sababsiz", "#c62828", "S"], ["dq", "Sababli", "#1565c0", "DQ"], ["k", "Kasal", "#7b1fa2", "K"], ["kq", "Kech qoldi", "#6d4c41", "KQ"]];
-function attOf(c, si) { const a = attPart(c.students[si].marks[todayIso()] || ""); return ["s", "dq", "k", "kq"].includes(a) ? a : ""; }
+const GOPTS = [["ot", "O'tildi", "#2e7d32", "✓"], ["ox", "O'tilmadi", "#c62828", "✗"]];
+function attOf(c, si) { const a = attPart(c.students[si].marks[todayIso()] || ""); return (isGrp(c) ? GRP_KEYS : ATT).includes(a) ? a : ""; }
 function pageLesson(m) {
   const c = D.classes[S.lesson], t = todayIso(), les = c.lessons[t] || {};
-  const n = c.students.length, absent = c.students.filter((_, i) => ["s", "dq", "k"].includes(attOf(c, i))).length;
+  const n = c.students.length, absent = c.students.filter((_, i) => ["s", "dq", "k", "ox"].includes(attOf(c, i))).length;
   const late = c.students.filter((_, i) => attOf(c, i) === "kq").length, graded = c.students.filter((s) => gradesOf(s.marks[t] || "").length).length;
   const grp = isGrp(c); if (grp && S.step === 1) S.step = 2;
-  const steps = ["1 · Yo'qlama", "2 · Baholar", "3 · Mavzu va uy vazifasi"].map((s, i) => grp && i === 1 ? "" : `<button class="${i === S.step ? "on" : ""}" data-step="${i}">${grp && i === 2 ? "2 · Mavzu" : s}</button>`).join("");
+  const steps = ["1 · Yo'qlama", "2 · Baholar", "3 · Mavzu va uy vazifasi"].map((s, i) => grp && i === 1 ? "" : `<button class="${i === S.step ? "on" : ""}" data-step="${i}">${grp ? ["1 · Dars", "", "2 · Mavzu"][i] : s}</button>`).join("");
   let body = "";
-  const card = attMode() === "card";
+  const card = !grp && attMode() === "card";
   if (S.step === 0 && card) {
     const i = Math.min(S.cur || 0, n), s = c.students[i], a = s ? attOf(c, i) : "";
     body = `<div class="row wrap"><h1 class="sp" style="flex:1 1 240px">Kim darsda? ${n - absent} / ${n} keldi</h1>${attModeSeg()}</div>
@@ -2779,13 +2826,23 @@ function pageLesson(m) {
       : `<div class="swc"><div class="big">Hamma ko'rib chiqildi ✓</div><div>Keldi: ${n - absent} · kelmadi: ${absent}${late ? ` · kech qoldi: ${late}` : ""}</div>
           <div class="muted">${c.students.map((x, k) => [x, attOf(c, k)]).filter(([, v]) => v).map(([x, v]) => `${esc(x.name)} — ${ABSENT_NAMES[v]}`).join("<br>") || "Hamma darsda"}</div>
           <div class="row" style="justify-content:center"><button class="btn" data-swb>‹ Oxirgisiga qaytish</button><button class="btn" data-sw0>Boshidan</button></div></div>`}</div>`;
-  } else if (S.step === 0 && attMode() === "map") {
+  } else if (S.step === 0 && !grp && attMode() === "map") {
     const st = seatsOf(c), placed = new Set(st ? Object.values(st.at) : []), free = c.students.map((x, i) => [x, i]).filter(([x]) => !placed.has(x.name));
     body = `<div class="row wrap"><h1 class="sp" style="flex:1 1 240px">Kim darsda? ${n - absent} / ${n} keldi</h1>${attModeSeg()}<button class="btn" data-seats>🪑 Xaritani tahrirlash</button></div>
       ${st && placed.size ? `<p class="muted" style="margin:6px 0">Kelmagan o'quvchining joyini bosing: har bosishda Sababsiz → Sababli → Kasal → Kech qoldi → Keldi.</p>
         <div class="smap">${seatGrid(c, st, {att: true})}</div>
         ${free.length ? `<div class="row wrap" style="gap:6px"><b>Xaritada yo'q:</b>${free.map(([x, i]) => { const a = attOf(c, i); return `<button class="chip" data-satt="${i}" ${a ? `style="background:${ATT_COL[a]};border-color:${ATT_COL[a]};color:#fff"` : ""}>${esc(x.name)}${a ? ` · ${a.toUpperCase()}` : ""}</button>`; }).join("")}</div>` : ""}`
       : `<div class="card col" style="gap:10px;align-items:flex-start"><b>Bu sinf uchun o'rindiq xaritasi hali tuzilmagan</b><div class="muted">Bir marta partalar bo'yicha joylashtiring — keyin yo'qlamani xaritadan bosib qilasiz.</div><button class="btn pri" data-seats>🪑 Xaritani tuzish</button></div>`}`;
+  } else if (S.step === 0 && grp) {
+    const ot = c.students.filter((x) => x.marks[t] === "ot").length;
+    body = `<div class="row wrap"><h1 class="sp" style="flex:1 1 240px">Dars o'tildimi? ${ot} / ${n}</h1><button class="btn" data-all>✓ Qolganlarga o'tildi</button></div>
+      <p class="muted" style="margin:6px 0">Har o'quvchiga «✓ O'tildi» yoki «✗ O'tilmadi» (o'tilmagan dars puli olinmaydi — boshqa kuni o'tib beriladi). Belgisiz qolganlar dars yakunlanganda «o'tildi» bo'ladi.</p>
+      <div class="card" style="padding:4px 14px">${c.students.map((s, si) => {
+        if (preJoin(c, s, t)) return `<div class="lrow"><span class="n">${si + 1}</span><span class="who dim">${esc(s.name)}</span><span class="muted">${fmt(s.joined)} dan qo'shilgan</span></div>`;
+        const a = attOf(c, si);
+        return `<div class="lrow"><span class="n">${si + 1}</span><span class="who">${esc(s.name)}</span><span class="tgs">${GOPTS.map(([v, l, col, sh]) =>
+          `<button class="tg wide" data-att="${si}|${v}" title="${GRP_ATT[v][3]}" style="${a === v ? `background:${col};border-color:${col};color:#fff` : ""}">${sh} ${l}</button>`).join("")}</span></div>`;
+      }).join("")}</div>`;
   } else if (S.step === 0) {
     body = `<div class="row wrap"><h1 class="sp" style="flex:1 1 240px">Kim darsda? ${n - absent} / ${n} keldi</h1>${attModeSeg()}<button class="btn" data-all>Hammasi keldi</button></div>
       <p class="muted" style="margin:6px 0">Belgilanmagan o'quvchi darsda bo'lgan hisoblanadi. Faqat kelmaganlarni bosing — bitta bosish yetarli.</p>
@@ -2821,14 +2878,14 @@ function pageLesson(m) {
     <div class="col sp" style="gap:0"><h2>${esc(label(c))}</h2><span class="muted">${longDate(t)}${les.topic ? " · " + esc(les.topic) : ""}</span></div>
     <div class="steps">${steps}</div></div>
     ${(() => { const b = feat("bday") ? birthdays(0).filter((x) => x.ci === S.lesson) : []; return b.length ? `<div class="card row bday" style="padding:10px 14px">🎂 Bugun tug'ilgan kun: <b>${b.map((x) => esc(x.s.name)).join(", ")}</b></div>` : ""; })()}
-    ${feat("call") || feat("groups") ? `<div class="row wrap" style="gap:8px">${feat("call") ? `<button class="btn sm" data-call>🎲 Doskaga chaqirish</button>` : ""}${feat("groups") ? `<button class="btn sm" data-grp>👥 Guruhlarga bo'lish</button>` : ""}</div>` : ""}${body}
-    <div class="foot"><span class="muted sp">Kelmagan: ${absent} · kech qolgan: ${late} · baho qo'yilgan: ${graded}${(() => { const no = c.students.filter((x) => x.hwd && x.hwd[t] === 0).length; return no ? ` · UV bajarmagan: ${no}` : ""; })()}</span>
+    ${!grp && (feat("call") || feat("groups")) ? `<div class="row wrap" style="gap:8px">${feat("call") ? `<button class="btn sm" data-call>🎲 Doskaga chaqirish</button>` : ""}${feat("groups") ? `<button class="btn sm" data-grp>👥 Guruhlarga bo'lish</button>` : ""}</div>` : ""}${body}
+    <div class="foot"><span class="muted sp">${grp ? `O'tildi: ${c.students.filter((x) => x.marks[t] === "ot").length} · o'tilmadi: ${absent}` : `Kelmagan: ${absent} · kech qolgan: ${late} · baho qo'yilgan: ${graded}`}${(() => { const no = c.students.filter((x) => x.hwd && x.hwd[t] === 0).length; return no ? ` · UV bajarmagan: ${no}` : ""; })()}</span>
       ${S.step ? `<button class="btn" data-back>‹ Orqaga</button>` : ""}<button class="btn pri" data-next>${[grp ? "Saqlash va mavzuga o'tish ›" : "Saqlash va baholarga o'tish ›", "Keyingi: mavzu ›", "✓ Darsni yakunlash"][S.step]}</button></div></div>`;
   const keepY = () => { const y = window.scrollY; render(); window.scrollTo(0, y); };
   m.querySelectorAll("[data-step]").forEach((b) => b.onclick = () => { saveTopic(); S.step = +b.dataset.step; render(); });
   m.querySelectorAll("[data-att]").forEach((b) => b.onclick = () => {
     const [si, v] = b.dataset.att.split("|"); const old = c.students[+si].marks[t] || "", gs = gradesOf(old);
-    putMark(c, +si, t, ["s", "dq", "k"].includes(v) ? v : buildMark(gs, v === "kq")); S.cur = +si; keepY();
+    putMark(c, +si, t, grp ? (old === v ? "" : v) : ["s", "dq", "k"].includes(v) ? v : buildMark(gs, v === "kq")); S.cur = +si; keepY();
   });
   m.querySelectorAll("[data-gr]").forEach((b) => b.onclick = () => {
     const [si, g] = b.dataset.gr.split("|").map(Number); const old = c.students[si].marks[t] || "", gs = gradesOf(old);
@@ -2864,7 +2921,7 @@ function pageLesson(m) {
   });
   m.querySelectorAll("[data-actu]").forEach((b) => b.onclick = () => { const st = c.students[+b.dataset.actu]; if (st.act && st.act[t]) { delete st.act[t]; save(); keepY(); } });
   m.querySelectorAll("[data-actg]").forEach((b) => b.onclick = () => actGrade(c, +b.dataset.actg, keepY));
-  const all = $("[data-all]", m); if (all) all.onclick = () => { c.students.forEach((_, si) => { if (["s", "dq", "k"].includes(attOf(c, si))) putMark(c, si, t, "", true); }); keepY(); };
+  const all = $("[data-all]", m); if (all) all.onclick = grp ? () => { allDone(c, t); save(); keepY(); } : () => { c.students.forEach((_, si) => { if (["s", "dq", "k"].includes(attOf(c, si))) putMark(c, si, t, "", true); }); keepY(); };
   $("[data-exit]", m).onclick = () => { saveTopic(); go("today"); };
   const cl = $("[data-call]", m); if (cl) cl.onclick = () => { saveTopic(); callDialog(S.lesson); };
   const gp = $("[data-grp]", m); if (gp) gp.onclick = () => { saveTopic(); groupsDialog(S.lesson); };
@@ -2872,8 +2929,8 @@ function pageLesson(m) {
   $("[data-next]", m).onclick = () => {
     saveTopic();
     if (S.step < 2) { S.step = grp ? 2 : S.step + 1; render(); window.scrollTo(0, 0); return; }
-    if (!c.att_ok.includes(t)) c.att_ok.push(t); save();
-    toast(`${label(c)}: ${fmt(t)} darsi saqlandi — davomat tasdiqlandi`); S.ci = S.lesson; go("journal"); scrollToday();
+    allDone(c, t); save();
+    toast(`${label(c)}: ${fmt(t)} darsi saqlandi — ${grp ? "belgilar tasdiqlandi" : "davomat tasdiqlandi"}`); S.ci = S.lesson; go("journal"); scrollToday();
   };
 }
 const attModeSeg = () => { const am = attMode(); if (!feat("attmodes")) return ""; return `<div class="seg">${[["list", "Ro'yxat"], ["card", "Kartochka"], feat("seats") && ["map", "Xarita"]].filter(Boolean).map(([k, n]) => `<button class="${am === k ? "on" : ""}" data-am="${k}">${n}</button>`).join("")}</div>`; };
@@ -5338,7 +5395,7 @@ async function tgBackup(force) {
     const msg = await tgApi("sendDocument", fd);
     try { await tgApi("pinChatMessage", {chat_id: c.chat, message_id: msg.message_id, disable_notification: true}); } catch (e) { /* qadash shart emas */ }
     // oldingi zaxiraning matn bo'laklari endi kerak emas (fayllar tarix uchun qoladi)
-    if (c.parts && c.parts.length) tgApi("deleteMessages", {chat_id: c.chat, message_ids: c.parts}).catch(() => {});
+    if (c.parts && c.parts.length) try { await tgApi("deleteMessages", {chat_id: c.chat, message_ids: c.parts}); } catch (e) { /* 48 soatdan eski xabar o'chmaydi — zarari yo'q */ }
     tgSet({hash, last: now.toISOString(), seen: msg.message_id, parts});
     return true;
   } finally { tgBusy = false; }

@@ -855,7 +855,7 @@ test("Zaxira xotira (IndexedDB): tiklash, kunlik nusxalar va ma'lumot versiyasi"
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     await page.waitForFunction(() => IDB.ready);
     const n = await page.evaluate(async () => { D.classes[0].students[0].name = "Tiklangan Bola"; save(); await idbFlush(); return D.classes.length; });
-    assert.equal(await page.evaluate(() => D.web.dv), 1);
+    assert.equal(await page.evaluate(() => D.web.dv), await page.evaluate(() => DATA_VER));
     // localStorage o'chirildi (masalan, brauzer tozaladi) — IndexedDB'dan tiklanadi
     await page.evaluate(() => localStorage.removeItem("yoqlama_jurnal"));
     await page.reload(); await page.waitForFunction(() => IDB.ready);
@@ -1598,20 +1598,31 @@ test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqla
     await page.click("[data-jp=mem]");
     await page.selectOption("[data-mf='1|pt']", "day");
     assert.deepEqual(await page.evaluate((i) => D.classes[i].students[1].plan, ci), {t: "day", sum: 50000});
-    // hisob: oylik — oyda dars bo'lsa; kunlik — qatnashgan darslar × narx; sababli qoldirilgani hisoblanmaydi
+    // maydonlar matn turida (qorong'i uslubda yozuv ko'rinsin)
+    assert.equal(await page.getAttribute("[data-mf='0|cls']", "type"), "text");
+    // hisob: oylik — oyda dars bo'lsa; kunlik — «o'tildi» belgilangan darslar × narx; «o'tilmadi» va belgisiz hisoblanmaydi
     const calc = await page.evaluate((i) => {
       const c = D.classes[i]; c.dates = ["2026-03-02", "2026-03-04", "2026-03-09"]; c.students.forEach((s) => delete s.joined);
-      c.students[1].marks = {"2026-03-04": "s"}; c.students[0].pays = [{id: "a", no: 1, d: "2026-03-05", m: "2026-03", sum: 200000}];
+      c.students[1].marks = {"2026-03-02": "ot", "2026-03-04": "ox"}; c.students[0].pays = [{id: "a", no: 1, d: "2026-03-05", m: "2026-03", sum: 200000}];
       const t = "2026-03-31", [a, b] = c.students;
       return [chargeOf(c, a, "2026-03", t), chargeOf(c, b, "2026-03", t), debtOf(c, a, t), debtOf(c, b, t), unpaidNow(c, t).length];
     }, ci);
-    assert.deepEqual(calc, [360000, 100000, 160000, 100000, 2]);
+    assert.deepEqual(calc, [360000, 50000, 160000, 50000, 2]);
+    // eski ma'lumot: guruhdagi yo'qlama belgilari «o'tildi / o'tilmadi»ga o'tadi
+    const mig = await page.evaluate(() => migrate(normalize({web: {dv: 1}, classes: [{name: "G", kind: "paid", dates: ["2026-03-02", "2026-03-04", "2099-01-01"], att_ok: ["2026-03-02"],
+      students: [{name: "A", marks: {"2026-03-04": "dq"}}, {name: "B", marks: {}}, {name: "C", joined: "2026-03-03", marks: {}}]}]})).classes[0].students.map((s) => s.marks));
+    assert.deepEqual(mig, [{"2026-03-02": "ot", "2026-03-04": "ox"}, {"2026-03-02": "ot", "2026-03-04": "ot"}, {"2026-03-04": "ot"}]);
     // davomat: baho yo'q
     await page.evaluate(() => { D.classes[D.classes.length - 1].dates.push(todayIso()); save(); render(); });
     await page.click("[data-jp=j]");
     assert.equal(await page.locator("table.j th", {hasText: "O'rt."}).count(), 0);
     assert.equal(await page.locator(".keys [data-k='5']").count(), 0);
-    assert.equal(await page.locator(".keys [data-k='s']").count(), 1);
+    assert.equal(await page.locator(".keys [data-k='s']").count(), 0);
+    assert.equal(await page.locator(".keys [data-k='ot']").count(), 1);
+    // qo'shilgan sanadan oldingi darslar: katak bo'sh, belgi qo'yilmaydi
+    const pre = await page.evaluate((i) => { const c = D.classes[i], s = c.students[0]; s.joined = "2099-01-01"; render();
+      const n = document.querySelectorAll(".cell.pre").length, ok = putMark(c, 0, todayIso(), "ot", true); delete s.joined; render(); return [n > 0, ok]; }, ci);
+    assert.deepEqual(pre, [true, false]);
     // to'lov yozish va hisobot
     await page.click("[data-jp=pay]");
     await page.click("[data-pay='1']"); await page.fill(".modal #ps", "50000"); await page.click(".modal [data-ok]");
@@ -1625,8 +1636,10 @@ test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqla
     await page.click(`[data-gopen='${ci}']`);
     assert.equal(await page.evaluate(() => S.jpage), "cards");
     await page.click("[data-tog='0']");
-    assert.equal(await page.evaluate((i) => D.classes[i].students[0].marks[todayIso()], ci), "s");
+    assert.equal(await page.evaluate((i) => D.classes[i].students[0].marks[todayIso()], ci), "ot");
     await page.evaluate(() => { unlockedUntil = Date.now() + 60000; });   // qo'yilgan belgini o'zgartirish — qulf ochiq bo'lsa
+    await page.click("[data-tog='0']");
+    assert.equal(await page.evaluate((i) => D.classes[i].students[0].marks[todayIso()], ci), "ox");
     await page.click("[data-tog='0']");
     assert.equal(await page.evaluate((i) => D.classes[i].students[0].marks[todayIso()] || "", ci), "");
     // «Jurnal» bosilsa — sinf ochiladi, guruh emas
@@ -1642,15 +1655,18 @@ test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqla
     assert.equal(await page.locator("table.pay").count(), 0);
     await page.waitForSelector("text=To'lovlar himoyalangan");
     await page.evaluate(() => { D.settings.protect.pin = null; render(); });
-    // darsni boshlash: baholar qadami yo'q
+    // darsni boshlash: baholar qadami yo'q; «o'tildi / o'tilmadi»; yakunlanganda belgisizlarga «o'tildi»
     await page.evaluate((i) => startLesson(i), ci);
+    await page.click("[data-att='1|ox']");
     await page.click("[data-next]");
     assert.equal(await page.evaluate(() => S.step), 2);
+    await page.click("[data-next]");
+    assert.deepEqual(await page.evaluate((i) => D.classes[i].students.map((s) => s.marks[todayIso()]), ci), ["ot", "ox"]);
     // to'garak: yutuq va ko'nikma bahosi
     await page.evaluate(() => addClassDialog("club"));
     await page.fill(".modal #cn", "Robototexnika"); await page.fill(".modal #cl", "Aliyev Sardor, 7-B"); await page.click(".modal [data-ok]");
     const k = await page.evaluate(() => D.classes.length - 1);
-    assert.equal(await page.locator(".jtabs [data-jp]").allTextContents().then((x) => x.join("|")), "A'zolar|Davomat|Yutuqlar|Ro'yxat");
+    assert.equal(await page.locator(".jtabs [data-jp]").allTextContents().then((x) => x.join("|")), "A'zolar|Darslar|Yutuqlar|Ro'yxat");
     await page.click("[data-jp=mem]"); await page.selectOption("[data-mf='0|skill']", "8");
     await page.click("[data-jp=ach]"); await page.fill("#at", "Robototexnika tanlovi"); await page.selectOption("#al", "Tuman"); await page.click("[data-adda]");
     const st = await page.evaluate((i) => D.classes[i].students[0], k);
