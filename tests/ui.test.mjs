@@ -1274,14 +1274,14 @@ test("Sinf hisoboti: saralash, xavf filtri, sifat/o'zlashtirish va Excel", async
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     await page.evaluate(() => { S.rep = {ci: 0, per: "cur", kind: "cls"}; go("reports"); });
-    const avgs = () => page.$$eval("table.rcls tr", (tr) => tr.slice(1).map((r) => parseFloat(r.cells[2].textContent)).filter((x) => !isNaN(x)));
+    const avgs = () => page.$$eval("table.rcls tr:not(.tot)", (tr) => tr.slice(1).map((r) => parseFloat(r.cells[2].textContent)).filter((x) => !isNaN(x)));
     await page.click('th[data-rs="avg"]');
     let a = await avgs(); assert.deepEqual(a, a.slice().sort((x, y) => y - x), "kamayish tartibida");
     await page.click('th[data-rs="avg"]');
     a = await avgs(); assert.deepEqual(a, a.slice().sort((x, y) => x - y), "o'sish tartibida");
     const nRisk = await page.evaluate(() => { const [lo, hi] = repRange("cur"); return reportRows(D.classes[0], lo, hi).rows.filter((r) => r.risk).length; });
     await page.click('[data-rf="risk"]');
-    assert.equal(await page.$$eval("table.rcls tr", (tr) => tr.length - 1), nRisk);
+    assert.equal(await page.$$eval("table.rcls tr:not(.tot)", (tr) => tr.length - 1), nRisk);
     // sifat va o'zlashtirish: chorak bahosi 4–5 va 3–5 ulushi
     const ql = await page.evaluate(() => qualityOf([{q: {complete: true, grade: 5}}, {q: {complete: true, grade: 3}}, {q: {complete: true, grade: 2}}, {q: {complete: false}}]));
     assert.equal(ql.n, 3); assert.equal(Math.round(ql.q), 33); assert.equal(Math.round(ql.u), 67);
@@ -1377,10 +1377,10 @@ test("Hisobotlar: tur kartochkalari, telefonda saralash, solishtirishdan sinfga 
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     await page.click(".tabbar [data-go=reports]");
-    assert.equal(await page.$$eval(".rk", (x) => x.length), 7);
+    assert.equal(await page.$$eval(".rk", (x) => x.length), 8);
     // telefonda ustun sarlavhasi yo'q — saralash ro'yxatdan
     await page.selectOption("#rsort", "avg|1");
-    const avgs = await page.$$eval("table.rcls tr", (tr) => tr.slice(1).map((r) => parseFloat(r.cells[2].textContent)).filter((x) => !isNaN(x)));
+    const avgs = await page.$$eval("table.rcls tr:not(.tot)", (tr) => tr.slice(1).map((r) => parseFloat(r.cells[2].textContent)).filter((x) => !isNaN(x)));
     assert.deepEqual(avgs, avgs.slice().sort((a, b) => a - b));
     await page.click("[data-kind=cmp]"); await page.click('[data-cmpc="1"]');
     assert.deepEqual(await page.evaluate(() => [S.rep.kind, S.rep.ci]), ["cls", 1]);
@@ -1870,11 +1870,34 @@ test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqla
     await page.click("[data-band=cls]");
     assert.ok(await page.evaluate(() => [...document.querySelectorAll("#rc option")].every((o) => !isGrp(D.classes[+o.value]))), "sinf hisobotida guruh bo'lmasin");
     await page.click("[data-band=grp]");
-    for (const kk of ["gsum", "gdays", "gpay", "gdebt", "gach", "gcmp"]) { await page.click(`[data-gkind=${kk}]`); await page.waitForSelector(`[data-gkind=${kk}].on`); }
+    for (const kk of ["gsum", "gdays", "gmem", "gfill", "gsched", "gcmp", "gach", "gpay", "gmat", "gcon", "gfin", "gdebt"]) { await page.click(`[data-gkind=${kk}]`); await page.waitForSelector(`[data-gkind=${kk}].on`); }
     await page.click("[data-gkind=gach]"); await page.selectOption("#rgm", "all");
     await page.waitForSelector("section.card >> text=Robototexnika tanlovi");
     await page.click("[data-gkind=gpay]");
     assert.match(await page.textContent("section.card"), /50 000 so'm/);
+    // guruh sozlamalari: sig'im, vaqt, xizmat turi (maktab xizmati — 343-son nizom)
+    await page.evaluate((i) => editClass(i), ci);
+    await page.fill(".modal #ccap", "12"); await page.fill(".modal #ctm", "15:00–16:20"); await page.click(".modal [data-svc=school]"); await page.click(".modal [data-ok]");
+    assert.deepEqual(await page.evaluate((i) => [D.classes[i].cap, D.classes[i].time, D.classes[i].svc], ci), [12, "15:00–16:20", "school"]);
+    // shartnoma reestri: yozish → holat «amal qilmoqda»
+    await page.click("[data-gkind=gcon]");
+    await page.click(`[data-gcon='${ci}|0']`); await page.fill(".modal #kp", "Aliyeva Gulnora"); await page.check(".modal #kdisc"); await page.click(".modal [data-ok]");
+    const k0 = await page.evaluate((i) => D.classes[i].students[0].contract, ci);
+    assert.equal(k0.payer, "Aliyeva Gulnora"); assert.equal(k0.disc, true); assert.ok(k0.no);
+    await page.waitForSelector("section.card >> text=amal qilmoqda");
+    // moliyaviy hisobot: tenglik va o'qituvchilar ulushi; maktab xizmatida naqd to'lov ogohlantiriladi
+    await page.click("[data-gkind=gfin]"); await page.selectOption("#rgfp", "y");
+    const F = await page.evaluate((i) => { const [lo, hi] = finRange("y", [i]); return finOf(D.classes[i], lo, hi); }, ci);
+    assert.equal(F.close, F.open + F.charged - F.got);
+    await page.fill("#fshare", "40"); await page.dispatchEvent("#fshare", "change");
+    assert.equal(await page.evaluate(() => D.web.fin.share), 40);
+    await page.waitForSelector("text=kamida 50%");
+    // maktab xizmatida to'lov usuli odatda — bank
+    await page.evaluate((i) => payDialog(i, 0, monthOf(todayIso())), ci);
+    assert.equal(await page.inputValue(".modal #ph"), "Bank"); await page.click(".modal [data-x]");
+    // oylik holat jadvali — har o'quvchi uchun qator
+    await page.click("[data-gkind=gmat]");
+    assert.ok(await page.locator("table.gmat tr").count() >= 2);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });

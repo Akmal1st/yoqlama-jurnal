@@ -20,3 +20,7 @@ def test_class(ci):
     assert got["quarters"] == exp["quarters"], "chorak natijalari / tayyorlik"
     assert got["year"] == exp["year"], "yillik natijalar"
     assert got["report"] == exp["report"], "hisobot va xavf belgilari"
+
+
+# SQLite hisobotlari ham shu qadamda tekshiriladi (CI faqat test_python.py ni ishga tushiradi)
+from test_sqlite import *  # noqa: E402,F401,F403
