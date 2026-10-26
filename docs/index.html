@@ -817,10 +817,16 @@ function normalize(d) {
   st.risk = Object.assign(clone(DEFAULTS.risk), r);
   st.risk.on = Object.assign(clone(DEFAULTS.risk.on), r.on || {});
   if (!Array.isArray(st.quarters) || st.quarters.length !== 4) st.quarters = [null, null, null, null];
+  d.classes = d.classes.filter((c) => c && typeof c === "object");
   for (const c of d.classes) {
-    c.subject = c.subject || ""; c.dates = (c.dates || []).slice().sort();
+    // qo'lda tahrirlangan yoki buzilgan fayl: nomsiz sinf/o'quvchi va takroriy sanalar ilovani yiqitmasin
+    c.name = String(c.name || "?"); c.subject = String(c.subject || ""); c.dates = [...new Set(Array.isArray(c.dates) ? c.dates.filter((x) => typeof x === "string") : [])].sort();
     c.extra_x = c.extra_x || []; c.held = c.held || []; c.lessons = c.lessons || {}; c.works = c.works || [];
-    c.att_ok = c.att_ok || []; c.analyses = Array.isArray(c.analyses) ? c.analyses : []; c.students_off = c.students_off || []; c.students = (c.students || []).map((s) => Object.assign({marks: {}}, s));
+    c.att_ok = c.att_ok || []; c.analyses = Array.isArray(c.analyses) ? c.analyses : []; c.students_off = c.students_off || []; c.students = (Array.isArray(c.students) ? c.students : []).filter((s) => s && typeof s === "object").map((s) => {
+      s = Object.assign({marks: {}}, s); s.name = String(s.name || "?");
+      if (!s.marks || typeof s.marks !== "object" || Array.isArray(s.marks)) s.marks = {};
+      return s;
+    });
   }
   d.web = Object.assign({density: "oddiy", theme: "auto", gen: []}, DESIGN_DEF, d.web || {});
   d.v2 = d.v2 || {};
@@ -863,7 +869,14 @@ function load() {
   try { const t = localStorage.getItem(STORE_KEY); if (t) return migrate(normalize(JSON.parse(t))); } catch (e) { console.warn(e); }
   return migrate(normalize({web: {off: Object.fromEntries(SIMPLE_OFF.map((k) => [k, 1]))}}));
 }
+// ko'p belgini birdan qo'yishda (hammasi keldi) har biri uchun butun jurnalni qayta yozmaslik: oxirida bir marta saqlanadi
+const SAVE_HOLD = {n: 0, dirty: false};
+function batch(fn) {
+  SAVE_HOLD.n++;
+  try { return fn(); } finally { if (!--SAVE_HOLD.n && SAVE_HOLD.dirty) { SAVE_HOLD.dirty = false; save(); } }
+}
 function save() {
+  if (SAVE_HOLD.n) { SAVE_HOLD.dirty = true; return; }
   if (NEWER) { toast("Bu ma'lumot ilovaning yangiroq versiyasida saqlangan — o'zgarish saqlanmadi. Sahifani yangilang."); return; }
   D.web.dv = DATA_VER; D.web.saved = new Date().toISOString();
   const txt = JSON.stringify(D); let ok = true;
@@ -931,6 +944,12 @@ async function idbBoot() {
   // brauzer joy tanqisligida ma'lumotni o'chirib yubormasligi uchun
   try { if (navigator.storage && navigator.storage.persist && !(await navigator.storage.persisted())) await navigator.storage.persist(); } catch (e) { /* qo'llab-quvvatlanmaydi */ }
 }
+// jurnal butunlay almashtirilishidan oldin (fayldan, Telegram'dan, nusxadan tiklash) hozirgi holat alohida nusxa bo'lib qoladi:
+// aks holda keyingi saqlash bugungi kunlik nusxani yangi ma'lumot bilan bosib ketadi va bugungi ish qaytarib bo'lmaydi
+async function keepBefore() {
+  if (!IDB.db || !D.classes.length) return;
+  try { const cur = JSON.stringify(D); await idbReq("snap", "readwrite", (st) => st.put({at: new Date().toISOString(), txt: cur}, todayIso() + "~")); } catch (e) { /* bo'lmasa ham davom etamiz */ }
+}
 async function snapsDialog() {
   if (!IDB.db) { toast("Bu brauzerda zaxira xotira (IndexedDB) ishlamayapti"); return; }
   await idbFlush();
@@ -949,7 +968,7 @@ async function snapsDialog() {
       const x = snaps[+b.dataset.srs]; close();
       if (!await confirmBox("Nusxadan tiklash", `Jurnal ${fmt(x.k.slice(0, 10))} kundagi holatiga qaytariladi. Hozirgi holat bugungi nusxa sifatida saqlanib qoladi — kerak bo'lsa unga qaytishingiz mumkin.`, "Tiklash")) return;
       // tiklangan holat bugungi nusxani bosib ketadi — shuning uchun hozirgisini alohida kalit bilan saqlab qo'yamiz
-      try { const cur = JSON.stringify(D); await idbReq("snap", "readwrite", (st) => st.put({at: new Date().toISOString(), txt: cur}, todayIso() + "~")); } catch (e) { /* bo'lmasa ham davom etamiz */ }
+      await keepBefore();
       D = migrate(normalize(JSON.parse(x.txt))); autoDates(); save(); S.ci = 0; go("today"); toast(`${fmt(x.k.slice(0, 10))} holati tiklandi`);
     });
   });
@@ -1763,19 +1782,26 @@ function fitTitles(root) {
 }
 function modal(inner, onMount) {
   return new Promise((res) => {
-    const m = h(`<div class="modal"><div class="card">${inner}</div></div>`);
+    const m = h(`<div class="modal" role="dialog" aria-modal="true"><div class="card">${inner}</div></div>`);
     const close = (v) => { m.remove(); res(v); };
+    m._close = close;
     m.addEventListener("click", (e) => { if (e.target === m) close(null); });
     document.body.append(m); labelTables(m); onMount && onMount(m, close); fitTitles(m);
   });
 }
+// Escape — eng ustidagi oynani yopadi (oyna ichidagi maydon o'zi ishlatgan bo'lsa — yo'q)
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape" || e.defaultPrevented) return;
+  const ms = document.querySelectorAll(".modal"), m = ms[ms.length - 1];
+  if (m && m._close) { e.preventDefault(); m._close(null); }
+});
 function ask(title, text, val = "", type = "text") {
   return modal(`<h2>${esc(title)}</h2><div class="muted">${esc(text)}</div><input type="${type}" id="ask" value="${esc(val)}">
     <div class="row"><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn pri" data-ok>OK</button></div>`,
     (m, close) => {
       const inp = $("#ask", m); inp.focus(); inp.select();
       $("[data-x]", m).onclick = () => close(null); $("[data-ok]", m).onclick = () => close(inp.value);
-      inp.onkeydown = (e) => { if (e.key === "Enter") close(inp.value); if (e.key === "Escape") close(null); };
+      inp.onkeydown = (e) => { if (e.key === "Enter") close(inp.value); if (e.key === "Escape") { e.preventDefault(); close(null); } };
     });
 }
 function confirmBox(title, text, yes = "Ha") {
@@ -1784,7 +1810,7 @@ function confirmBox(title, text, yes = "Ha") {
 }
 function download(name, text, type = "application/json") {
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], {type})); a.download = name;
-  document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 10000);   // iOS Safari faylni sekin ochadi
 }
 const initials = (n) => n.split(/\s+/).filter((p) => /\p{L}/u.test(p[0] || "")).slice(0, 2).map((p) => p[0].toUpperCase()).join("") || "?";
 
@@ -2109,7 +2135,7 @@ const sumOn = (c, d) => isGrp(c) ? null : (c.works || []).find((w) => w.date ===
 const sumTag = (w) => w.type.toUpperCase();
 // «hamma keldi»: sinfda — kun yo'qlama qilingan deb belgilanadi; guruhda — belgisizlarga «o'tildi» qo'yiladi
 function allDone(c, d) {
-  if (isGrp(c)) c.students.forEach((s, si) => { if (!s.marks[d] && !preJoin(c, s, d)) putMark(c, si, d, "ot", true); });
+  batch(() => { if (isGrp(c)) c.students.forEach((s, si) => { if (!s.marks[d] && !preJoin(c, s, d)) putMark(c, si, d, "ot", true); }); });
   if (!c.att_ok.includes(d)) c.att_ok.push(d);
 }
 const kindTag = (c) => isGrp(c) ? `<span class="ktag ${c.kind}">${KINDS[c.kind][1]}</span>` : "";
@@ -2129,7 +2155,7 @@ function planOf(c, s) { const p = s.plan || {}, t = p.t === "day" ? "day" : "mon
 const planTxt = (c, s) => { const p = planOf(c, s); return p.t === "day" ? `uyda · ${som(p.sum)} / dars` : `maktabda · ${som(p.sum)} / oy`; };
 const absentMark = (mk) => ["s", "dq", "k", "ox"].includes(attPart(mk || ""));
 // shu oy o'tilgan darslar: faqat «o'tildi» belgisi qo'yilganlari
-function heldIn(c, s, m, t = todayIso()) { return c.dates.filter((d) => d.startsWith(m) && d <= t && !isNoLesson(c, d) && s.marks[d] === "ot").length; }
+function heldIn(c, s, m, t = todayIso()) { return c.dates.filter((d) => d.startsWith(m) && d <= t && !isNoLesson(c, d) && !preJoin(c, s, d) && s.marks[d] === "ot").length; }
 function chargeOf(c, s, m, t = todayIso()) {
   if (m > monthOf(t) || (s.joined && monthOf(s.joined) > m)) return 0;
   const p = planOf(c, s);
@@ -2693,7 +2719,8 @@ function applyKey(v) {
   if (putMark(c, si, d, nw)) { const nx = nextRow(si, 1); if (nx !== si && nx < c.students.length) S.sel = part ? [nx, d, part] : [nx, d]; const sl = $("#tw") ? $("#tw").scrollLeft : 0; render(); if ($("#tw")) $("#tw").scrollLeft = sl; }
 }
 document.addEventListener("keydown", (e) => {
-  if (S.page !== "journal" || !S.sel || $(".modal") || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+  // Ctrl/Cmd/Alt bilan bosilgan tugmalar (nusxa olish, saqlash, brauzer buyruqlari) belgi qo'ymasin
+  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || S.page !== "journal" || !S.sel || $(".modal") || /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName)) return;
   const c = D.classes[S.ci], ds = visDates(c); let [si, d, part] = S.sel; let di = ds.indexOf(d);
   const map = isGrp(c) ? {o: "ot", x: "ox", n: "ox"} : {s: "s", d: "dq", k: "k", q: "kq", c: "ch"};
   if (e.key === "ArrowDown") si = Math.min(nextRow(si, 1), c.students.length - 1);
@@ -2936,7 +2963,7 @@ function pageLesson(m) {
   });
   m.querySelectorAll("[data-actu]").forEach((b) => b.onclick = () => { const st = c.students[+b.dataset.actu]; if (st.act && st.act[t]) { delete st.act[t]; save(); keepY(); } });
   m.querySelectorAll("[data-actg]").forEach((b) => b.onclick = () => actGrade(c, +b.dataset.actg, keepY));
-  const all = $("[data-all]", m); if (all) all.onclick = grp ? () => { allDone(c, t); save(); keepY(); } : () => { c.students.forEach((_, si) => { if (["s", "dq", "k"].includes(attOf(c, si))) putMark(c, si, t, "", true); }); keepY(); };
+  const all = $("[data-all]", m); if (all) all.onclick = grp ? () => { allDone(c, t); save(); keepY(); } : () => { batch(() => c.students.forEach((_, si) => { if (["s", "dq", "k"].includes(attOf(c, si))) putMark(c, si, t, "", true); })); keepY(); };
   $("[data-exit]", m).onclick = () => { saveTopic(); go("today"); };
   const cl = $("[data-call]", m); if (cl) cl.onclick = () => { saveTopic(); callDialog(S.lesson); };
   const gp = $("[data-grp]", m); if (gp) gp.onclick = () => { saveTopic(); groupsDialog(S.lesson); };
@@ -2997,7 +3024,7 @@ function saveTopic() {
   save();
 }
 document.addEventListener("keydown", (e) => {
-  if (S.page !== "lesson" || S.step !== 0 || $(".modal") || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || S.page !== "lesson" || S.step !== 0 || $(".modal") || /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName)) return;
   const c = D.classes[S.lesson], keys = {s: "s", d: "dq", k: "k", q: "kq", " ": ""};
   if (attMode() === "card") {
     const v = e.key === "ArrowRight" ? "" : e.key === "ArrowLeft" ? "s" : keys[e.key.toLowerCase()];
@@ -3433,6 +3460,7 @@ function importJson() {
       if (!data || !Array.isArray(data.classes)) throw new Error("bu jurnal fayli emas");
       if (tooNew(data)) throw new Error("fayl ilovaning yangiroq versiyasida saqlangan — sahifani yangilang");
       if (D.classes.length && !await confirmBox("Fayldan yuklash", `Hozirgi ${D.classes.length} ta sinf o'rniga fayldagi ${data.classes.length} ta sinf yuklanadi. Davom etamizmi?`, "Yuklash")) return;
+      await keepBefore();
       D = migrate(normalize(data)); autoDates(); save(); S.ci = 0; go("today"); toast(`${D.classes.length} ta sinf yuklandi`);
     } catch (e) { toast("Faylni o'qib bo'lmadi: " + e.message); }
   };
@@ -5580,6 +5608,7 @@ async function tgPull(pm) {
   }
   if (!data || !Array.isArray(data.classes)) throw new Error("bu jurnal fayli emas");
   if (tooNew(data)) throw new Error("zaxira ilovaning yangiroq versiyasida saqlangan — sahifani yangilang");
+  await keepBefore();
   D = migrate(normalize(data)); autoDates(); save(); TG_NEW = null;
   tgSet({seen: pm.message_id, hash: djbData(), last: new Date(pm.date * 1000).toISOString(), parts: ids});
 }

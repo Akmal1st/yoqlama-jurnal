@@ -40,11 +40,20 @@ footer{font-size:13px;color:var(--muted);text-align:center}
     return JSON.parse(new TextDecoder().decode(bytes));
   }
   let P = null;
-  try { P = decode(location.hash.slice(1)); if (!P || P.v !== 1) P = null; } catch (e) { P = null; }
+  try { P = decode(location.hash.slice(1)); if (!P || typeof P !== "object" || P.v !== 1) P = null; } catch (e) { P = null; }
   if (!P) {
     app.innerHTML = `<div class="card"><h1>Havola ochilmadi</h1><p class="muted">Havola noto'g'ri yoki to'liq nusxalanmagan. O'qituvchidan qayta yuborishni so'rang.</p><p class="muted">Ссылка повреждена или скопирована не полностью. Попросите учителя отправить её ещё раз.</p></div>`;
     return;
   }
+  // havolani istalgan kishi yasashi mumkin: matn — esc, rang — faqat #hex, son — faqat son (aks holda sahifaga skript kiritilardi)
+  const str = (v) => (typeof v === "string" ? v : v == null ? "" : String(v));
+  const col = (v) => (/^#[0-9a-f]{3,8}$/i.test(str(v)) ? v : null);
+  const num = (v) => (typeof v === "number" && isFinite(v) ? v : 0);
+  const arr = (v) => (Array.isArray(v) ? v : []);
+  ["lo", "hi", "g", "n", "c", "f", "t", "sc"].forEach((k) => { P[k] = str(P[k]); });
+  P.m = arr(P.m).filter((x) => Array.isArray(x)).map(([md, m]) => [str(md), str(m)]);
+  P.w = arr(P.w).filter((x) => Array.isArray(x));
+  P.hw = Array.isArray(P.hw) ? P.hw : null;
   const ru = P.l === "ru";
   document.documentElement.lang = ru ? "ru" : "uz";
   const T = ru ? {title: "Результаты ученика", avg: "Средний балл", att: "Посещаемость", n: "Оценок", ab: "Пропущено", marks: "Оценки и посещаемость", none: "За этот период отметок нет.",
@@ -55,17 +64,18 @@ footer{font-size:13px;color:var(--muted);text-align:center}
       per: "Davr", qn: "-chorak", gen: "Ma'lumot holati", priv: "Ma'lumot faqat shu havolaning o'zida — hech qayerga yuborilmaydi.", s: "sababsiz", dq: "sababli", k: "kasal", kq: "kech qoldi", ch: "ozod"};
   const fmt = (d) => d ? `${d.slice(8)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : "";
   const y = (P.lo || "").slice(0, 4), full = (md) => (md >= (P.lo || "").slice(5) ? y : String(+y + 1)) + "-" + md;
-  const gradeColor = (v) => { let c = null; for (const [min, col] of P.rg || []) if (v >= min) c = col; return c; };
+  const gradeColor = (v) => { let c = null; for (const r of arr(P.rg)) if (Array.isArray(r) && v >= num(r[0])) c = col(r[1]); return c; };
   const ink = (hex) => { if (!hex || hex[0] !== "#") return "inherit"; const n = parseInt(hex.slice(1), 16); return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) > 150 ? "#12303a" : "#ffffff"; };
   const grades = (m) => { const g = m.endsWith("kq") ? m.slice(0, -2) : m; const p = g ? g.split("/") : []; return p.length && p.every((x) => /^\d+$/.test(x)) ? p.map(Number) : []; };
-  const AC = P.ac || {};
+  const AC = {}; for (const [k, v] of Object.entries(P.ac && typeof P.ac === "object" ? P.ac : {})) if (col(v)) AC[k] = v;
+  const tx = (a) => (Object.prototype.hasOwnProperty.call(T, a) ? T[a] : "");
   const cell = (md, m) => {
     const gs = grades(m), late = m.endsWith("kq"), a = gs.length ? (late ? "kq" : "") : m;
-    const bg = gs.length ? gradeColor(gs.reduce((s, x) => s + x, 0) / gs.length) : AC[a];
+    const bg = gs.length ? gradeColor(gs.reduce((s, x) => s + x, 0) / gs.length) : AC[a] || null;
     const txt = gs.length ? gs.join("/") + (late ? " · KQ" : "") : (a || "").toUpperCase();
-    return `<span class="mk" title="${esc(T[a] || "")}"><i>${esc(md.slice(3))}.${esc(md.slice(0, 2))}</i><b style="background:${bg || "transparent"};color:${ink(bg)}">${esc(txt)}</b></span>`;
+    return `<span class="mk" title="${esc(tx(a))}"><i>${esc(md.slice(3))}.${esc(md.slice(0, 2))}</i><b style="background:${bg || "transparent"};color:${ink(bg)}">${esc(txt)}</b></span>`;
   };
-  const ab = P.ab || [0, 0, 0, 0], abN = ab[0] + ab[1] + ab[2];
+  const ab = [0, 1, 2, 3].map((i) => num(arr(P.ab)[i])), abN = ab[0] + ab[1] + ab[2];
   const per = (P.q ? P.q + T.qn + " · " : "") + `${fmt(P.lo).slice(0, 5)} – ${fmt(P.hi)}`;
   const used = new Set((P.m || []).map(([, m]) => grades(m).length ? (m.endsWith("kq") ? "kq" : "") : m).filter(Boolean));
   app.innerHTML = `
@@ -74,17 +84,17 @@ footer{font-size:13px;color:var(--muted);text-align:center}
       <div class="muted">${esc(P.c)}${P.f ? " · " + esc(P.f) : ""}</div>
       <div class="muted small">${T.per}: ${esc(per)}${P.t ? ` · ${T.teacher}: ${esc(P.t)}` : ""}</div></div>
     <div class="tiles">
-      <div class="tile"><span>${T.avg}</span><b>${P.a != null ? Number(P.a).toFixed(1) : "—"}</b></div>
-      <div class="tile"><span>${T.att}</span><b>${P.d != null ? Math.round(P.d) + "%" : "—"}</b></div>
+      <div class="tile"><span>${T.avg}</span><b>${P.a != null && isFinite(Number(P.a)) ? Number(P.a).toFixed(1) : "—"}</b></div>
+      <div class="tile"><span>${T.att}</span><b>${P.d != null && isFinite(Number(P.d)) ? Math.round(P.d) + "%" : "—"}</b></div>
       <div class="tile"><span>${T.n}</span><b>${(P.m || []).reduce((s, [, m]) => s + grades(m).length, 0)}</b></div>
       <div class="tile"><span>${T.ab}</span><b>${abN}</b></div></div>
     ${abN || ab[3] ? `<div class="card small">${[[ab[0], T.s], [ab[1], T.dq], [ab[2], T.k], [ab[3], T.kq]].filter(([n]) => n).map(([n, l], i) => `${i ? l : l[0].toUpperCase() + l.slice(1)}: <b>${n}</b>`).join(" · ")}</div>` : ""}
-    ${P.qg ? `<div class="card"><b>${T.q}: ${P.qg}</b>${P.qt != null ? ` <span class="muted">(${P.qt} ${T.pts})</span>` : ""}</div>` : ""}
+    ${P.qg ? `<div class="card"><b>${T.q}: ${esc(P.qg)}</b>${P.qt != null ? ` <span class="muted">(${esc(P.qt)} ${T.pts})</span>` : ""}</div>` : ""}
     <div class="card"><h2>${T.marks}</h2>${(P.m || []).length ? `<div class="marks">${P.m.map(([md, m]) => cell(md, m)).join("")}</div>
-      ${used.size ? `<div class="legend">${[...used].map((a) => `<span><i style="background:${AC[a] || "transparent"}"></i>${a.toUpperCase()} — ${esc(T[a] || a)}</span>`).join("")}</div>` : ""}` : `<div class="muted">${T.none}</div>`}</div>
+      ${used.size ? `<div class="legend">${[...used].map((a) => `<span><i style="background:${AC[a] || "transparent"}"></i>${esc(a.toUpperCase())} — ${esc(tx(a) || a)}</span>`).join("")}</div>` : ""}` : `<div class="muted">${T.none}</div>`}</div>
     ${(P.w || []).length ? `<div class="card"><h2>${T.works}</h2><table><tr><th>${T.work}</th><th>${T.date}</th><th>${T.score}</th></tr>
-      ${P.w.map(([tp, md, v, mx]) => `<tr><td>${esc(String(tp).toUpperCase())}</td><td>${esc(fmt(full(md)).slice(0, 5))}</td><td>${v == null || v === "" ? `<span class="warn">${T.notyet}</span>` : `<b>${esc(v)}</b>${mx ? ` / ${esc(mx)}` : ""}`}</td></tr>`).join("")}</table></div>` : ""}
-    ${P.hw ? `<div class="card"><h2>${T.hw}</h2><div class="muted small">${esc(fmt(full(P.hw[0])).slice(0, 5))}</div><div>${esc(P.hw[1])}</div></div>` : ""}
+      ${P.w.map(([tp, md, v, mx]) => `<tr><td>${esc(String(tp).toUpperCase())}</td><td>${esc(fmt(full(str(md))).slice(0, 5))}</td><td>${v == null || v === "" ? `<span class="warn">${T.notyet}</span>` : `<b>${esc(v)}</b>${mx ? ` / ${esc(mx)}` : ""}`}</td></tr>`).join("")}</table></div>` : ""}
+    ${P.hw ? `<div class="card"><h2>${T.hw}</h2><div class="muted small">${esc(fmt(full(str(P.hw[0]))).slice(0, 5))}</div><div>${esc(P.hw[1])}</div></div>` : ""}
     <footer>${T.gen}: ${esc(fmt(P.g))}<br>${T.priv}</footer>`;
   document.title = `${P.n} — ${T.title}`;
 })();

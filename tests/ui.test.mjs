@@ -229,6 +229,47 @@ test("jurnal: KQ katagiga himoya yoqilgan holda ham baho qo'yiladi", async () =>
   } finally { await browser.close(); }
 });
 
+test("Tahlil tuzatishlari: Ctrl tugmalari belgi qo'ymaydi, Escape, bir marta saqlash, almashtirishdan oldin nusxa", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => {
+      const c = D.classes[0], t = todayIso(); c.extra_x = []; c.works = c.works.filter((w) => w.date !== t);
+      if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); }
+      delete c.students[0].marks[t]; S.ci = 0; go("journal"); S.sel = [0, t]; render();
+    });
+    const mk = () => page.evaluate(() => D.classes[0].students[0].marks[todayIso()] || "");
+    // Ctrl+C / Ctrl+S / Ctrl+D / Ctrl+8 — brauzer buyruqlari, belgi emas
+    for (const k of ["Control+c", "Control+s", "Control+d", "Control+8", "Alt+k", "Meta+c"]) await page.keyboard.press(k);
+    assert.equal(await mk(), "");
+    await page.keyboard.press("c"); assert.equal(await mk(), "ch");
+    // Escape eng ustidagi oynani yopadi, ask() maydonidagi Escape esa faqat o'zini
+    await page.evaluate(() => { confirmBox("a", "b"); });
+    await page.evaluate(() => { window.__r = "?"; ask("x", "y").then((v) => { window.__r = v; }); });
+    await page.keyboard.press("Escape");
+    assert.equal(await page.locator(".modal").count(), 1); assert.equal(await page.evaluate(() => window.__r), null);
+    assert.equal(await page.getAttribute(".modal", "role"), "dialog");
+    await page.keyboard.press("Escape"); assert.equal(await page.locator(".modal").count(), 0);
+    // ko'p belgi — bitta saqlash
+    const n = await page.evaluate(() => {
+      let k = 0; const o = Storage.prototype.setItem; Storage.prototype.setItem = function (...a) { if (a[0] === STORE_KEY) k++; return o.apply(this, a); };
+      batch(() => { save(); batch(() => save()); save(); }); Storage.prototype.setItem = o; return k;
+    });
+    assert.equal(n, 1);
+    // buzilgan fayl: takroriy sana, nomsiz o'quvchi, null yozuvlar
+    const z = await page.evaluate(() => { const d = normalize({classes: [{dates: ["2026-01-02", "2026-01-02", 5], students: [{marks: null}, null]}, null]}); const c = d.classes[0]; return [d.classes.length, c.dates, c.students.length, c.students[0].name, c.name]; });
+    assert.deepEqual(z, [1, ["2026-01-02"], 1, "?", "?"]);
+    // jurnal almashtirilishidan oldingi holat alohida nusxa bo'lib qoladi
+    const snap = await page.evaluate(async () => { for (let i = 0; i < 50 && !IDB.ready; i++) await new Promise((r) => setTimeout(r, 50)); await keepBefore(); const x = await idbReq("snap", "readonly", (st) => st.get(todayIso() + "~")); return !!x && JSON.parse(x.txt).classes.length === D.classes.length; });
+    assert.equal(snap, true);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
 test("jurnal: Kun ko'rinishi, katak yonidagi belgi oynasi, sinf tanlash", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
@@ -1343,6 +1384,14 @@ test("Haftalik xulosa, faollik belgilari va ota-onaga natija havolasi", async ()
     assert.ok(await p2.locator(".mk").count() > 0);
     const p3 = await browser.newPage(); await p3.goto(new URL("../docs/natija.html", APP).href + "#buzilgan");
     assert.ok((await p3.textContent("h1")).includes("Havola ochilmadi"));
+    // havolani begona odam yasasa ham sahifaga skript kirmaydi, noto'g'ri turdagi qiymatlar sahifani buzmaydi
+    const evil = {v: 1, n: "X", c: "6-A", lo: "2026-09-01", hi: "2026-10-01", g: 5, rg: [[1, '"><img src=x onerror="window.__x=1">']], ac: {s: '"><img src=x onerror="window.__y=1">'},
+      m: [["10-01", "8"], ["10-02", "s"], [3, 4], "x"], ab: ['<img src=x onerror="window.__z=1">', 0, 0, 0], qg: '<img src=x onerror="window.__q=1">', qt: '<img src=x onerror="window.__t=1">', w: 7, hw: "y"};
+    const p4 = await browser.newPage(); p4.on("pageerror", (e) => errors.push(e.message));
+    await p4.goto(new URL("../docs/natija.html", APP).href + "#" + Buffer.from(JSON.stringify(evil)).toString("base64url"));
+    await p4.waitForTimeout(200);
+    assert.deepEqual(await p4.evaluate(() => [window.__x, window.__y, window.__z, window.__q, window.__t]), [undefined, undefined, undefined, undefined, undefined]);
+    assert.equal(await p4.locator("img").count(), 0);
     // butun sinf xabarlari: belgilansa har xabarga havola qo'shiladi
     await page.evaluate(() => { document.querySelectorAll(".modal").forEach((x) => x.remove()); parentBulk(0); });
     await page.check("#pbl");
