@@ -5395,7 +5395,7 @@ async function tgBackup(force) {
     const msg = await tgApi("sendDocument", fd);
     try { await tgApi("pinChatMessage", {chat_id: c.chat, message_id: msg.message_id, disable_notification: true}); } catch (e) { /* qadash shart emas */ }
     // oldingi zaxiraning matn bo'laklari endi kerak emas (fayllar tarix uchun qoladi)
-    if (c.parts && c.parts.length) tgApi("deleteMessages", {chat_id: c.chat, message_ids: c.parts}).catch(() => {});
+    if (c.parts && c.parts.length) try { await tgApi("deleteMessages", {chat_id: c.chat, message_ids: c.parts}); } catch (e) { /* 48 soatdan eski xabar o'chmaydi — zarari yo'q */ }
     tgSet({hash, last: now.toISOString(), seen: msg.message_id, parts});
     return true;
   } finally { tgBusy = false; }
