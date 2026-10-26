@@ -462,6 +462,49 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
   });
 }
 
+test("BSB tahlili: strelka tugmalari, Excel'dan joylash, savol nomlari va xatolar kesimi", async () => {
+  const {readFile} = await import("node:fs/promises");
+  const XLSX = (await import("xlsx")).default;
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const ctx = await browser.newContext({viewport: {width: 1440, height: 900}, acceptDownloads: true});
+    const page = await ctx.newPage();
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => { D.settings.protect.enabled = false; });
+    await page.click(".side [data-go=journal]"); await page.click("[data-jp=bsb]"); await page.waitForSelector("table.bsa");
+    const focused = async () => { await page.waitForTimeout(60); return page.evaluate(() => document.activeElement.dataset.bp || "mx" + document.activeElement.dataset.bx); };
+    await page.focus('[data-bp="0|0"]');
+    await page.keyboard.press("ArrowRight"); assert.equal(await focused(), "0|1");
+    await page.keyboard.press("ArrowDown"); assert.equal(await focused(), "1|1");
+    await page.keyboard.press("ArrowLeft"); assert.equal(await focused(), "1|0");
+    await page.keyboard.press("ArrowUp"); await focused(); await page.keyboard.press("ArrowUp"); assert.equal(await focused(), "mx0", "birinchi qator — maksimal ball");
+    await page.keyboard.press("Enter"); assert.equal(await focused(), "0|0");
+    await page.keyboard.type("1,5"); await page.keyboard.press("ArrowLeft"); assert.equal(await focused(), "0|0", "matn o'rtasida ← kursorni suradi");
+    await page.keyboard.press("Home"); await page.keyboard.press("ArrowLeft"); assert.equal(await focused(), "0|0", "chetdagi katakda joyida qoladi");
+    // Excel'dan ko'p katakli joylash
+    await page.evaluate(() => { const i = document.querySelector('[data-bp="1|0"]'); i.focus(); const dt = new DataTransfer(); dt.setData("text", "2\t1\n0\t2\n"); i.dispatchEvent(new ClipboardEvent("paste", {clipboardData: dt, bubbles: true, cancelable: true})); });
+    const pts = await page.evaluate(() => { const r = (n) => D.classes[S.ci].students.map((s) => (S.bas[label(D.classes[S.ci])].rows[s.name] || {pts: []}).pts); return r().slice(0, 3); });
+    assert.deepEqual([pts[1][0], pts[1][1], pts[2][0], pts[2][1]], [2, 1, 0, 2]);
+    // savol nomlari + xatolar kesimi
+    await page.click("[data-bnames]"); await page.fill('[data-qn="0"]', "Kasrni qisqartirish"); await page.click(".modal [data-ok]");
+    await page.click("[data-btab=er]"); await page.waitForSelector(".paper >> text=Topshiriqlar kesimi");
+    assert.ok(await page.isVisible(".paper >> text=Kasrni qisqartirish"));
+    assert.ok(await page.isVisible(".tiles >> text=Bilim sifati"));
+    await page.click("[data-bsave]");
+    assert.equal(await page.evaluate(() => D.classes[S.ci].analyses[0].names[0]), "Kasrni qisqartirish");
+    await page.click("[data-bexp]"); await page.click('.modal [data-v="1"]');
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".modal [data-xl]")]);
+    const wb = XLSX.read(await readFile(await dl.path()));
+    assert.ok(wb.SheetNames.includes("Xatolar kesimi"));
+    const aoa = XLSX.utils.sheet_to_json(wb.Sheets["Xatolar kesimi"], {header: 1});
+    assert.equal(aoa[0][0], "O'rin"); assert.ok(aoa.some((r) => String(r[1]).includes("Kasrni qisqartirish")));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
 test("Sozlamalar → Dizayn: mavzu, yozuv turi, o'lcham va rang", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
