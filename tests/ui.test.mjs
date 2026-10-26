@@ -1638,6 +1638,35 @@ test("Sozlamalar: bo'limlar guruhlangan, kalitlar holatni ko'rsatadi, telefonda 
     // kalit sarlavha bilan bir qatorda
     const same = await page.evaluate(() => { const row = $("[data-ft=bday]").closest(".srow"), a = row.firstElementChild.getBoundingClientRect(), b = $("[data-ft=bday]").getBoundingClientRect(); return b.top < a.bottom && b.left > a.left; });
     assert.ok(same);
+    // sinf qatori: xavfli amal ko'rinmaydi, tugmalar bitta qatorga sig'adi; o'chirish «⋯» menyusida, alohida ajratilgan
+    await page.evaluate(() => { S.sec = 0; go("settings"); });
+    assert.equal(await page.locator(".scls .sact .btn.danger").count(), 0, "o'chirish tugmasi qatorda turmasin");
+    const oneLine = await page.evaluate(() => { const bs = [...$(".scls").querySelectorAll(".sact .btn")]; return bs.length === 3 && new Set(bs.map((b) => Math.round(b.getBoundingClientRect().top))).size === 1; });
+    assert.ok(oneLine, "sinf qatoridagi tugmalar bitta qatorda bo'lsin");
+    await page.click('[data-a=cmore][data-i="0"]');
+    await page.waitForSelector(".modal .mdang");
+    assert.equal(await page.locator(".modal .mgrid .btn.danger").count(), 0);
+    assert.match(await page.textContent(".modal .mdang"), /Sinfni o'chirish/);
+    await page.click(".modal [data-x]");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("Bugun: keng ekranda ma'lumot kartochkalari ikki ustunda, telefonda bitta", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1400, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.click(".side [data-go=today]");
+    const cols = () => page.evaluate(() => new Set([...$(".tgrid").children].map((x) => Math.round(x.getBoundingClientRect().left))).size);
+    assert.equal(await cols(), 2, "kompyuterda ikki ustun");
+    await page.setViewportSize({width: 390, height: 844});
+    await page.evaluate(() => render());
+    assert.equal(await cols(), 1, "telefonda bitta ustun");
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "yonga chiqmasin");
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });

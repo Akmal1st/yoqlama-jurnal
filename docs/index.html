@@ -86,8 +86,9 @@ a.btn{text-decoration:none;color:inherit}a.btn.pri{color:var(--acc-fg)}
 .ok{color:var(--ok);font-weight:700}.warn{color:var(--danger);font-weight:700}
 .grid{display:grid;gap:16px}
 .lessons{grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
-.two{grid-template-columns:3fr 2fr;align-items:start}
-@media (max-width:1000px){.two{grid-template-columns:1fr}}
+/* «Bugun»: ma'lumot kartochkalari — keng ekranda ikki ustun, telefonda bitta */
+.tgrid{display:grid;gap:16px;align-items:start;grid-template-columns:1fr}
+@media (min-width:1180px){.tgrid{grid-template-columns:1fr 1fr}}
 .big{font-size:24px;font-weight:800}
 .item{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--soft)}
 .av{width:38px;height:38px;border-radius:12px;background:var(--soft);color:var(--acc);display:grid;place-items:center;font-weight:800;flex:none}
@@ -269,14 +270,16 @@ table.r th,table.r td{padding:8px 8px;border-bottom:1px solid var(--soft);text-a
 table.r th{color:var(--muted);font-weight:700}
 table.r td.n{text-align:center}
 /* to'garak va pullik ta'lim */
-.gband{--gc:#7a3e9d;background:var(--gc);color:#fff;border-radius:var(--r);padding:16px 20px;display:flex;flex-direction:column;gap:10px}.gband.club,.gbandc.club{--gc:#2f6e3a}.gbandc{--gc:#7a3e9d}
-.gband h1{margin:0;color:#fff;font-size:30px;-webkit-text-fill-color:#fff;background:none;text-decoration:none;border:0;padding:0}.gb1{gap:8px;align-items:center;flex-wrap:nowrap}
-.gband .btn{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.28);color:#fff;box-shadow:none}.gband .btn:hover{background:rgba(255,255,255,.26)}
-.gband .gstart{background:#fff;color:var(--gc);border-color:#fff;font-weight:800}.gkind{background:rgba(255,255,255,.2);border-radius:99px;padding:2px 10px;font-size:12.5px;font-weight:700}.gwd{font-size:13px;opacity:.85}
-.gstats{display:flex;gap:10px;flex-wrap:wrap}.gstats div{background:rgba(255,255,255,.14);border-radius:12px;padding:8px 14px;min-width:120px}.gstats small{display:block;font-size:12px;opacity:.85}.gstats b{font-size:20px}
+.gband{--gc:#7a3e9d;background:color-mix(in srgb,var(--gc) 9%,var(--base));color:var(--text);border:1px solid color-mix(in srgb,var(--gc) 26%,var(--line));border-left:4px solid var(--gc);border-radius:var(--r);padding:14px 18px;display:flex;flex-direction:column;gap:10px}
+.gband.club,.gbandc.club{--gc:#2f6e3a}.gbandc{--gc:#7a3e9d}
+.gband h1{margin:0;font-size:26px}.gb1{gap:8px;align-items:center;flex-wrap:nowrap}
+.gkind{background:color-mix(in srgb,var(--gc) 16%,var(--base));color:var(--gc);border-radius:99px;padding:2px 10px;font-size:12.5px;font-weight:700}.gwd{font-size:13px;color:var(--muted)}
+.gstats{display:flex;gap:10px;flex-wrap:wrap}.gstats div{background:var(--base);border:1px solid var(--line);border-radius:12px;padding:8px 14px;min-width:120px}.gstats small{display:block;font-size:12px;color:var(--muted)}.gstats b{font-size:20px}
 .ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
 .gcard{background:var(--base);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--sh)}
-.gbandc{background:var(--gc);color:#fff;border:0;text-align:left;padding:14px 18px;display:flex;flex-direction:column;gap:3px;font:inherit}.gbandc small{font-size:11.5px;font-weight:700;letter-spacing:.08em;opacity:.9}.gbandc b{font-size:20px}.gbandc span{font-size:13px;opacity:.9}
+.gbandc{background:color-mix(in srgb,var(--gc) 8%,var(--base));color:var(--text);border:0;border-left:4px solid var(--gc);text-align:left;padding:13px 16px;display:flex;flex-direction:column;gap:3px;font:inherit}
+.gbandc:hover{background:color-mix(in srgb,var(--gc) 14%,var(--base))}
+.gbandc small{font-size:11.5px;font-weight:700;letter-spacing:.08em;color:var(--gc)}.gbandc b{font-size:19px}.gbandc span{font-size:13px;color:var(--muted)}
 .gcb{padding:14px 18px;display:flex;flex-direction:column;gap:8px}
 .mgrid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
 .mcard{background:var(--base);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--sh)}
@@ -284,6 +287,13 @@ table.r td.n{text-align:center}
 .gdots{display:flex;flex-wrap:wrap;gap:5px;min-height:14px}.gd{width:14px;height:14px;border-radius:50%;background:transparent;border:2px solid var(--line);box-sizing:border-box}.gd.yes{background:var(--ok);border-color:var(--ok)}.gd.no{background:var(--danger);border-color:var(--danger)}.gd.late{background:var(--today);border-color:var(--today)}.gd.t{outline:2px solid var(--acc);outline-offset:1px}
 .gpay{border-radius:8px;padding:3px 9px;font-size:12.5px;font-weight:700;background:var(--soft);color:var(--muted);white-space:nowrap}.gpay.ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}.gpay.no{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}
 .mtog{flex:none;font-weight:700}.mtog.yes{color:var(--ok)}.mtog.no{background:color-mix(in srgb,var(--danger) 14%,var(--base));color:var(--danger);border-color:transparent}
+/* telefonda «Darsni boshlash» — yuqori o'ng burchak o'rniga pastda, bosh barmoq yetadigan joyda */
+@media (max-width:560px){
+  .jr1>.btn.pri,.gband .gstart{position:fixed;right:14px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:19;height:52px;min-height:52px;line-height:50px;
+    border-radius:999px;padding:0 22px;font-size:16px;box-shadow:0 12px 26px -10px rgba(0,0,0,.5)}
+  .jr1>.btn.pri .sh{display:none}.jr1>.btn.pri .lg{display:inline}
+  main:has(.jr1),main:has(.gband){padding-bottom:168px}
+  .lessons .card{padding:12px 14px;gap:6px}.lessons .big{font-size:20px}.item .av{display:none}.item{padding:8px 0}}
 @media (max-width:820px){.gback .lg{display:none}.gband h1{font-size:24px}.gstats div{min-width:0;flex:1 1 40%}.gwd{display:none}}
 .ktag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;font-size:10.5px;font-weight:700;line-height:1.5;vertical-align:middle;background:var(--acc-soft);color:var(--acc);white-space:nowrap}
 .ktag.paid{background:color-mix(in srgb,var(--today) 18%,transparent);color:var(--text)}
@@ -306,6 +316,7 @@ table.r td.act{white-space:nowrap;text-align:right}table.r td.act .btn+.btn{marg
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]):not([data-theme="dark"]) .cell[style*="background"],:root:not([data-theme="light"]):not([data-theme="dark"]) .pill[style*="background"],:root:not([data-theme="light"]):not([data-theme="dark"]) .key[style*="background"]{filter:brightness(.8) saturate(.85)}}
 /* xavfli tugma qolganlaridan uzoqroq turadi — adashib bosilmasin */
 .sact .btn.danger:not(:first-child),td.act .btn.danger:not(:first-child){margin-left:12px}
+.mdang{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
 /* buyruqlar oynasi (Ctrl+K) va tezkor tugmalar */
 kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;background:var(--alt);color:var(--muted);white-space:nowrap}
 .cmdl{display:flex;flex-direction:column;gap:1px;max-height:min(58vh,440px);overflow:auto;margin:0 -6px}
@@ -336,6 +347,7 @@ input.sc.bad{border-color:var(--danger);background:#fde8e6}
 select.g5{width:62px;min-height:34px;padding:0 4px}
 .warnbox{border-color:#f0b4ae;background:#fff4f2;color:#8a1c12}
 :root[data-theme="dark"] .warnbox{background:#3a2020;color:#ffb4a8}
+:root[data-theme="dark"] .gband,:root[data-theme="dark"] .gbandc{--gc:#b47ad6}:root[data-theme="dark"] .gband.club,:root[data-theme="dark"] .gbandc.club{--gc:#6fbf7e}
 .key.on2{background:var(--acc);color:var(--acc-fg)}
 table.j td.nm[data-st]{cursor:pointer}
 .nmlink{padding:0;text-align:left;color:var(--text)}
@@ -2187,14 +2199,14 @@ function pageToday(m) {
     ${TG_NEW ? (() => { const w = new Date(TG_NEW.date * 1000); return `<div class="card hot row"><span class="sp">🔄 Telegram'da boshqa qurilmadan yangiroq zaxira bor (${fmt(iso(w))} ${pad(w.getHours())}:${pad(w.getMinutes())}). Shu qurilmaga yuklaysizmi?</span><button class="btn pri" data-tg="tgnew">Yuklash</button><button class="btn" data-tg="tgkeep">Yo'q, menikini saqlash</button></div>`; })() : ""}
     ${(() => { const a = backupAge(), t = tgAge(); return (a === null || a > 7) && (t === null || t > 7) ? `<div class="card row"><span class="sp">💾 ${a === null ? "Ma'lumotlar hali faylga saqlanmagan." : `Oxirgi zaxira ${a} kun oldin olingan.`} Brauzer tozalansa, ma'lumot yo'qolishi mumkin — faylga saqlab qo'ying.</span><button class="btn pri" data-backup2>Saqlash</button></div>` : ""; })()}
     ${(() => { const b = feat("bday") ? birthdays(0) : []; return b.length ? `<div class="card row bday"><span style="font-size:28px">🎂</span><span class="sp">Bugun tug'ilgan kun: ${b.map((x) => `<button class="link" data-stud="${x.ci}|${esc(x.s.name)}"><b>${esc(x.s.name)}</b></button> (${esc(D.classes[x.ci].name)}${x.age ? `, ${x.age} yosh` : ""})`).join(", ")}. Tabriklashni unutmang!</span></div>` : ""; })()}
-    ${(() => { const qe = feat("qend") && quarterEnd(); if (!qe) return "";
+    <div id="found"></div>
+    <section class="grid lessons">${cards}</section>
+    <div class="tgrid">${payCard()}
+${(() => { const qe = feat("qend") && quarterEnd(); if (!qe) return "";
       const rows = D.classes.map((c, ci) => ({c, ci, g: quarterGaps(c, qe.q)})).filter((x) => !isGrp(x.c) && (x.g.low.length || x.g.noScore.length));
       return `<section class="card col qend"><h2>📋 ${qe.q}-chorak tugashiga ${qe.left ? `${qe.left} kun` : "bugun"} qoldi (${fmt(qe.end)})</h2>
         ${rows.length ? rows.map(({c, ci, g}) => `<div class="row" style="gap:8px;flex-wrap:nowrap"><div class="sp" style="min-width:0"><b>${esc(label(c))}</b><div class="muted">${[g.low.length ? `${g.low.length} o'quvchida formativ baho kam (kamida ${fbMin()} ta kerak)` : "", g.noScore.length ? `${g.noScore.length} o'quvchida BSB/CHSB balli yo'q` : "", feat("debts") && (() => { const [lo, hi] = periodNow(), n = c.students.reduce((a, st) => a + debtsOf(c, st, lo, hi).filter((d) => !d.done).length, 0); return n ? `qarzlar: ${n}` : ""; })(), `qolgan darslar: ${g.left}`].filter(Boolean).join(" · ")}</div></div>
           <button class="btn sm" data-qready="${ci}">Ko'rish</button></div>`).join("") : `<div class="ok">✓ Hamma sinflarda baholar va ballar yetarli — chorak bahosini qo'yishga tayyor.</div>`}</section>`; })()}
-    <div id="found"></div>
-    ${payCard()}
-    <section class="grid lessons">${cards}</section>
     ${(() => { if (!feat("gaps")) return ""; const g = lessonGaps(); if (!g.length) return "";
       return `<section class="card col gaps"><div class="row"><h2 class="sp">📝 To'ldirilmagan darslar — ${g.length} ta</h2><span class="muted">oxirgi ${GAP_DAYS} kun</span></div>
         ${g.slice(0, 5).map((x) => `<div class="row wrap" style="gap:8px"><div class="sp" style="flex:1 1 200px;min-width:0"><b>${esc(label(x.c))}</b> · ${fmt(x.d).slice(0, 5)} ${WD[pyWd(x.d)]}<div class="muted">${[x.noAtt ? "yo'qlama belgilanmagan" : "", x.noTopic ? "mavzu yozilmagan" : ""].filter(Boolean).join(", ")}</div></div>
@@ -2207,7 +2219,6 @@ function pageToday(m) {
         <div><button class="btn" data-wk="${back}">Batafsil</button></div></section>`; })()}
     ${(() => { if (!feat("ktr")) return ""; const ks = D.classes.map((c, ci) => ({c, ci, k: ktrProgress(c)})).filter((x) => x.k && (x.k.behind >= 2 || x.k.short));
       return ks.length ? `<section class="card col gaps"><h2>📚 KTR: rejadan orqada</h2>${ks.map(({c, ci, k}) => `<div class="row" style="gap:8px;flex-wrap:nowrap"><div class="sp" style="min-width:0"><b>${esc(label(c))}</b><div class="muted">${ktrLine(k)}</div></div><button class="btn sm" data-ktr="${ci}">Reja</button></div>`).join("")}</section>` : ""; })()}
-    <div class="grid two">
       <section class="card"><div class="row"><h2 class="sp">E'tibor talab qiladi${risk.length ? ` — ${risk.length} o'quvchi` : ""}</h2>${risk.length ? `<button class="link" data-go2="reports">Hammasi</button>` : ""}</div>
         ${risk.length ? risk.slice(0, 6).map((r) => `<div class="item"><div class="av">${esc(initials(r.name))}</div><div class="sp"><b>${esc(r.name)}</b> <span class="muted">· ${esc(label(D.classes[r.ci]))}</span><div class="muted">${esc(r.why.slice(0, 2).join("; "))}</div></div>
           <button class="btn sm" data-stud="${r.ci}|${esc(r.name)}">Ko'rish</button></div>`).join("") + (risk.length > 6 ? `<div class="muted" style="padding-top:8px">va yana ${risk.length - 6} ta</div>` : "")
@@ -2613,7 +2624,7 @@ function gHead(per, row2, tools) {
   else st.push(["Yutuqlar", c.students.reduce((a, s) => a + (s.ach || []).length, 0)]);
   return `<div class="jhead ghead"><div class="gband ${c.kind}">
       <div class="row gb1"><button class="btn sm gback" data-gback aria-label="Guruhlar">‹<span class="lg">&nbsp;Guruhlar</span></button><span class="gkind">${KINDS[c.kind][0]}${c.kind === "paid" && c.svc ? ` · ${SVC[c.svc][0]}` : ""}</span><span class="gwd">${esc(wdTxt(c))}</span><span class="sp"></span>
-        ${UNDO.length ? `<button class="btn sm" data-undo title="Bekor qilish (Ctrl+Z)">↶</button>` : ""}<button class="btn gstart" data-start>▶ Bugungi dars</button><button class="btn sm more" data-more title="Yana: boshqa amallar" aria-label="Yana">⋯</button></div>
+        ${UNDO.length ? `<button class="btn sm" data-undo title="Bekor qilish (Ctrl+Z)">↶</button>` : ""}<button class="btn pri gstart" data-start>▶ Bugungi dars</button><button class="btn sm more" data-more title="Yana: boshqa amallar" aria-label="Yana">⋯</button></div>
       <h1>${esc(label(c))}</h1>
       <div class="gstats">${st.map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join("")}</div></div>
     ${row2 ? `<div class="row jr2">${row2}</div>` : ""}
@@ -2748,7 +2759,7 @@ function perNav() {
 function bindJHead(m) {
   bindTop(m);
   const ud = $("[data-undo]", m); if (ud) ud.onclick = undoLast;
-  $("[data-start]", m).onclick = () => startLesson(S.ci);
+  m.querySelectorAll("[data-start]").forEach((b) => b.onclick = () => startLesson(S.ci));
   const gb = $("[data-gback]", m); if (gb) gb.onclick = () => go("groups");
   $("[data-more]", m).onclick = moreMenu;
   const pb = $("[data-per]", m); if (pb) pb.onclick = () => perPop(pb);
@@ -2976,6 +2987,19 @@ const FEATS = [
 const SIMPLE_OFF = ["call", "groups", "seats", "attmodes", "debts"];
 function feat(id) { return !(D.web.off || {})[id]; }
 function attMode() { const v = D.web.att_mode || "list"; return !feat("attmodes") || (v === "map" && !feat("seats")) ? "list" : v; }
+/* kichik amallar menyusi: [matn, amal, xavfli?] — xavfli amal pastda, chiziq bilan ajratilgan */
+function rowMenu(title, items) {
+  return new Promise((done) => {
+    const safe = items.filter((x) => !x[2]), bad = items.filter((x) => x[2]);
+    const btn = (x, k) => `<button class="btn ${x[2] ? "danger" : ""}" data-mi="${k}">${x[0]}</button>`;
+    modal(`<h2>${esc(title)}</h2><div class="mgrid">${safe.map((x, k) => btn(x, items.indexOf(x))).join("")}</div>
+      ${bad.length ? `<div class="mdang"><div class="muted">Ehtiyot bo'ling — qaytarib bo'lmaydi</div>${bad.map((x) => btn(x, items.indexOf(x))).join("")}</div>` : ""}
+      <div class="row"><span class="sp"></span><button class="btn" data-x>Yopish</button></div>`, (mm, close) => {
+      $("[data-x]", mm).onclick = () => close();
+      mm.querySelectorAll("[data-mi]").forEach((b) => b.onclick = () => { close(); items[+b.dataset.mi][1](); done(true); });
+    });
+  });
+}
 async function moreMenu() {
   const c = D.classes[S.ci], t = todayIso(), sel = S.sel && c.students[S.sel[0]];
   // bo'limlar: [sarlavha, [[matn, amal], ...]] — false bo'lgan bandlar tushib qoladi
@@ -3708,7 +3732,7 @@ function pageSettings(m) {
       srow("To'garak yoki pullik ta'lim", "Baho qo'yilmaydigan guruh: davomat, a'zolar (sinfi, ota-ona telefoni). To'garakda — yutuqlar va oylik ko'nikma bahosi; pullik ta'limda — narx (maktabda oylik, uyida kunlik), to'lovlar, qarz va kvitansiya", `<button class="btn" data-a="addclub">＋ To'garak</button><button class="btn" data-a="addpaid">＋ Pullik ta'lim</button>`)) +
       sgroup(`Sinflaringiz · ${D.classes.length}`, D.classes.map((c, i) => `<div class="srow scls"><div class="av">${esc(c.name.slice(0, 3))}</div><div class="sp" style="min-width:0"><b>${esc(label(c))}</b>
         <div class="muted">${c.students.length} o'quvchi${c.students_off.length ? ` (+${c.students_off.length} faolsiz)` : ""} · ${c.dates.length} dars kuni</div></div>
-        <div class="row sact"><button class="btn sm" data-a="stud" data-i="${i}">＋ O'quvchi</button><button class="btn sm" data-a="rmst" data-i="${i}">⏸ Faolsiz${c.students_off.length ? ` (${c.students_off.length})` : ""}</button><button class="btn sm" data-a="edit" data-i="${i}" title="Nomi va fanini o'zgartirish">✎</button><button class="btn sm danger" data-a="del" data-i="${i}" title="Sinfni o'chirish">🗑</button></div></div>`).join(""));
+        <div class="row sact"><button class="btn sm" data-a="stud" data-i="${i}">＋ O'quvchi</button><button class="btn sm" data-a="rmst" data-i="${i}">⏸ Faolsiz${c.students_off.length ? ` (${c.students_off.length})` : ""}</button><button class="btn sm" data-a="cmore" data-i="${i}" title="Yana: tahrirlash, o'chirish" aria-label="Yana">⋯</button></div></div>`).join(""));
   } else if (S.sec === 1) {
     const qs = `<div class="qgrid"><span></span><span class="gh">Boshlanishi</span><span class="gh">Tugashi</span>${[1, 2, 3, 4].map((q) => { const r = st.quarters[q - 1] || ["", ""]; return `<b>${q}-chorak</b><input type="date" data-q="${q}|0" value="${r[0] || ""}" aria-label="${q}-chorak boshlanishi"><input type="date" data-q="${q}|1" value="${r[1] || ""}" aria-label="${q}-chorak tugashi">`; }).join("")}</div>`;
     const sc = sched(), nL = sc ? sc.days.reduce((a, d) => a + d.filter(Boolean).length, 0) : 0;
@@ -3836,6 +3860,13 @@ async function settingsAction(a, i) {
   else if (a === "sysfont") fontDialog();
   else if (a === "stud") addStudents(i);
   else if (a === "rmst") studentsDialog(i);
+  else if (a === "jur") { S.ci = i; S.jpage = isGrp(D.classes[i]) ? "cards" : "j"; go("journal"); }
+  else if (a === "cmore") { const c = D.classes[i]; await rowMenu(label(c), [
+    ["📖 Jurnalni ochish", () => { S.ci = i; S.jpage = isGrp(c) ? "cards" : "j"; go("journal"); }],
+    [isGrp(c) ? "✎ Sozlamalar: nomi, narx, sig'im" : "✎ Nomi va fanini o'zgartirish", () => editClass(i)],
+    ["📅 Dars kunlari qo'shish", () => addDatesDialog(i)],
+    [`🗑 ${isGrp(c) ? "Guruhni" : "Sinfni"} o'chirish`, () => settingsAction("del", i), true],
+  ]); }
   else if (a === "edit") editClass(i);
   else if (a === "del") {
     const c = D.classes[i]; const n = c.students.reduce((x, s) => x + Object.keys(s.marks).length, 0);
