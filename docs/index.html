@@ -118,7 +118,9 @@ table.j .sn,table.attm .sn{display:none}
 .pcon.one{grid-template-columns:auto minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);padding:0}
 @media (max-width:560px){.pcon{grid-template-columns:1fr 1fr;border-bottom:1px solid var(--soft);padding-bottom:8px}.pcon b{grid-column:1/-1}.pcon input[data-pn]{grid-column:1/-1}.pcon.one{grid-template-columns:1fr 1fr}.pcon.one span,.pcon.one #cpn{grid-column:1/-1}}
 .tag.now{background:var(--acc);color:#fff;padding:2px 8px;border-radius:99px;margin-left:6px}
-table.sch td{padding:0}table.sch select{min-width:96px;min-height:36px;padding:4px 6px;font-size:13px}table.sch td.bl{display:flex;flex-direction:column;gap:2px;align-items:center;padding:2px 4px}table.sch td.bl input{width:104px;min-height:32px;padding:2px 6px;font-size:13px;text-align:center}
+.schtabs{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;background:var(--soft);border-radius:12px;padding:4px;margin:10px 0 8px}.schtabs button{border:0;background:transparent;border-radius:9px;padding:6px 0 4px;font-weight:700;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:1px;min-height:44px;cursor:pointer}.schtabs button small{font-size:11px;font-weight:600;opacity:.8}.schtabs button.on{background:var(--base);color:var(--acc);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.schlist{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow:auto;margin-bottom:10px}.schrow{display:grid;grid-template-columns:26px 112px 1fr;gap:8px;align-items:center}.schrow b{text-align:center;color:var(--muted)}.schrow input{text-align:center;padding:6px 4px;font-size:14px}.schrow.free select{color:var(--muted)}.schrow select{min-width:0}.schx{gap:8px;align-items:center;border-top:1px solid var(--line);padding-top:10px;margin-top:10px}.schx .muted{flex-basis:100%}
+@media (max-width:380px){.schrow{grid-template-columns:22px 96px 1fr;gap:6px}.schrow input{font-size:13px}}
 .badge{font-size:11px;font-weight:800;color:#b42318;background:#fde8e6;padding:1px 7px;border-radius:99px;margin-left:6px;white-space:nowrap}
 input[type=text],input[type=search],input[type=tel],input[type=date],input[type=password],input[type=number],select,textarea{background:var(--base);border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-height:40px;width:100%}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:-1px}
@@ -3242,8 +3244,8 @@ function pageSettings(m) {
   } else if (S.sec === 1) {
     const qs = `<div class="qgrid"><span></span><span class="gh">Boshlanishi</span><span class="gh">Tugashi</span>${[1, 2, 3, 4].map((q) => { const r = st.quarters[q - 1] || ["", ""]; return `<b>${q}-chorak</b><input type="date" data-q="${q}|0" value="${r[0] || ""}" aria-label="${q}-chorak boshlanishi"><input type="date" data-q="${q}|1" value="${r[1] || ""}" aria-label="${q}-chorak tugashi">`; }).join("")}</div>`;
     const sc = sched(), nL = sc ? sc.days.reduce((a, d) => a + d.filter(Boolean).length, 0) : 0;
-    body = sgroup("Haftalik jadval", srow("📅 Dars jadvali", sc ? `Haftasiga ${nL} ta dars · ${sc.bells.length} soatlik kun. Dars kunlari va «Bugun» sahifasi shu jadvalga qarab ishlaydi.` : "Haftalik jadvalni bir marta kiriting yoki Excel fayldan yuklang — «Bugun» sahifasi darslarni soat tartibida ko'rsatadi, dars kunlari o'zi belgilanadi.",
-      `<button class="btn pri" data-a="sch">${sc ? "Tahrirlash" : "Kiritish"}</button><button class="btn" data-a="schx">📊 Excel'dan yuklash</button><button class="btn" data-a="scht">⬇ Namuna Excel</button>`)) +
+    body = sgroup("Haftalik jadval", srow("📅 Dars jadvali", sc ? `Haftasiga ${nL} ta dars · ${sc.bells.length} soatlik kun. Dars kunlari va «Bugun» sahifasi shu jadvalga qarab ishlaydi.` : "Haftalik jadvalni bir marta kiriting — «Bugun» sahifasi darslarni soat tartibida ko'rsatadi, dars kunlari o'zi belgilanadi.",
+      `<button class="btn pri" data-a="sch">${sc ? "Tahrirlash" : "Kiritish"}</button>`)) +
       sgroup("Eslatmalar", (() => { const r = remCfg(), perm = "Notification" in window ? Notification.permission : "denied";
         return srow("🔔 Dars eslatmasi", `Jadvaldagi har bir darsdan oldin telefonga/kompyuterga bildirishnoma keladi: soat, sinf, mavzu va oldingi uy vazifasi.${r.on && perm !== "granted" ? " <span class='warn'>Bildirishnomaga ruxsat yo'q — eslatma faqat ilova ichida chiqadi.</span>" : ""} Ilova ochiq yoki fonda turganda ishlaydi.`,
           `<select id="remm" style="width:auto" ${r.on ? "" : "disabled"}>${[0, 2, 5, 10, 15].map((k) => `<option value="${k}" ${r.min === k ? "selected" : ""}>${k ? `${k} daqiqa oldin` : "Dars boshlanganda"}</option>`).join("")}</select>
@@ -3392,8 +3394,6 @@ async function settingsAction(a, i) {
   else if (a === "sch") scheduleEditor();
   else if (a === "rem") remToggle();
   else if (a === "remt") { const p = remPlan()[0] || {title: "1-soat · 08:00 — Sinov", body: "Eslatma shunday ko'rinadi"}; remShow(Object.assign({}, p, {key: "test" + Date.now()})); }
-  else if (a === "schx") scheduleImport();
-  else if (a === "scht") scheduleTemplate().catch((e) => toast(e.message));
   else if (a === "exp") exportJson();
   else if (a === "snaps") snapsDialog();
   else if (a === "imp") importJson();
@@ -5352,7 +5352,7 @@ async function scheduleTemplate() {
   const ws = X.utils.aoa_to_sheet(aoa); ws["!cols"] = [{wch: 6}, {wch: 13}, ...WD_FULL.slice(0, 6).map(() => ({wch: 18}))];
   const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, "Dars jadvali"); X.writeFile(wb, "dars_jadvali.xlsx");
 }
-function scheduleImport() {
+function scheduleImport(onOk = scheduleEditor) {
   const f = document.createElement("input"); f.type = "file"; f.accept = ".xls,.xlsx,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
   f.onchange = async () => {
     const file = f.files[0]; if (!file) return;
@@ -5361,33 +5361,42 @@ function scheduleImport() {
       let res = null, err = null;
       for (const n of wb.SheetNames) { try { res = parseSchedule(X.utils.sheet_to_json(wb.Sheets[n], {header: 1, raw: false, defval: ""})); if (res.schedule.days.some((d) => d.some(Boolean))) break; } catch (e) { err = e; } }
       if (!res || !res.schedule.days.some((d) => d.some(Boolean))) throw err || new Error("Jadvalda sizning sinflaringiz topilmadi");
-      scheduleEditor(res.schedule, res.missing);
+      onOk(res.schedule, res.missing);
     } catch (e) { toast("Jadvalni o'qib bo'lmadi: " + e.message); }
   };
   f.click();
 }
 function scheduleEditor(init, missing = []) {
   const s = clone(init || sched() || schedEmpty());
-  const opts = (k) => `<option value="">—</option>${D.classes.map((c) => `<option value="${esc(ckey(c))}" ${ckey(c) === k ? "selected" : ""}>${esc(label(c))}</option>`).join("")}`;
-  const draw = () => `<div class="tblwrap"><table class="j sch"><tr><th>Soat</th>${WD.slice(0, 6).map((w) => `<th>${w}</th>`).join("")}</tr>
-    ${s.bells.map((b, i) => `<tr><td class="bl"><b>${i + 1}</b><input type="text" inputmode="numeric" data-bf="${i}" value="${b[0] ? `${b[0]}-${b[1]}` : ""}" placeholder="08:00-08:45" aria-label="${i + 1}-soat vaqti"></td>
-      ${s.days.map((d, k) => `<td><select data-sd="${k}|${i}">${opts(d[i])}</select></td>`).join("")}</tr>`).join("")}</table></div>`;
-  return modal(`<h2>📅 Dars jadvali</h2><div class="muted">Har bir soat va kun uchun sinfni tanlang. Saqlaganda sinflarning dars kunlari shu jadvaldan olinadi, «Bugun» sahifasi darslarni soat tartibida ko'rsatadi.</div>
+  let day = Math.min(5, Math.max(0, (new Date().getDay() + 6) % 7));
+  const opts = (k) => `<option value="">— dars yo'q —</option>${D.classes.map((c) => `<option value="${esc(ckey(c))}" ${ckey(c) === k ? "selected" : ""}>${esc(label(c))}</option>`).join("")}`;
+  const tabs = () => WD.slice(0, 6).map((w, k) => { const n = s.days[k].filter(Boolean).length;
+    return `<button class="${k === day ? "on" : ""}" data-day="${k}" aria-pressed="${k === day}">${w}<small>${n || "·"}</small></button>`; }).join("");
+  const list = () => s.bells.map((b, i) => `<div class="schrow${s.days[day][i] ? "" : " free"}"><b>${i + 1}</b>
+      <input type="text" inputmode="numeric" data-bf="${i}" value="${b[0] ? `${b[0]}-${b[1]}` : ""}" placeholder="08:00-08:45" aria-label="${i + 1}-soat vaqti">
+      <select data-sd="${day}|${i}" aria-label="${WD[day]}, ${i + 1}-soat">${opts(s.days[day][i])}</select></div>`).join("");
+  return modal(`<h2>📅 Dars jadvali</h2><div class="muted">Kunni tanlang va har bir soatga sinfni belgilang. Soat vaqtlari hamma kunlar uchun bir xil.</div>
     ${missing.length ? `<div class="card hot" style="padding:10px 12px">Jurnalda topilmagan yozuvlar (e'tiborsiz qoldirildi): ${missing.slice(0, 12).map(esc).join(", ")}${missing.length > 12 ? " …" : ""}</div>` : ""}
-    <div id="schg">${draw()}</div>
-    <div class="row wrap" style="gap:8px"><button class="btn sm" data-add>＋ Soat</button><button class="btn sm" data-del>− Soat</button><span class="sp"></span>
-      <button class="btn" data-x>Bekor qilish</button><button class="btn pri" data-ok>Saqlash</button></div>`, (m, close) => {
+    <div class="schtabs" role="tablist" id="scht">${tabs()}</div>
+    <div class="schlist" id="schg">${list()}</div>
+    <div class="row wrap" style="gap:8px"><button class="btn sm" data-add>＋ Soat</button><button class="btn sm" data-del>− Soat</button></div>
+    <div class="row wrap schx"><span class="muted">Jadval Excel'da bormi?</span><button class="btn sm" data-sx title="Maktab jadvalini Excel fayldan o'qish">📊 Excel'dan yuklash</button><button class="btn sm" data-st title="To'ldirish uchun namuna fayl">⬇ Namuna</button></div>
+    <div class="row" style="gap:8px"><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn pri" data-ok>Saqlash</button></div>`, (m, close) => {
     const bind = () => {
-      m.querySelectorAll("[data-sd]").forEach((x) => x.onchange = () => { const [k, i] = x.dataset.sd.split("|").map(Number); s.days[k][i] = x.value; });
+      m.querySelectorAll("[data-day]").forEach((x) => x.onclick = () => { day = +x.dataset.day; redraw(); });
+      m.querySelectorAll("[data-sd]").forEach((x) => x.onchange = () => { const [k, i] = x.dataset.sd.split("|").map(Number); s.days[k][i] = x.value;
+        x.parentNode.classList.toggle("free", !x.value); $("#scht", m).innerHTML = tabs(); bind(); });
       m.querySelectorAll("[data-bf]").forEach((x) => x.onchange = () => {
         const t = x.value.match(/(\d{1,2})[:.](\d{2})\s*[-–—]\s*(\d{1,2})[:.](\d{2})/);
         if (!t && x.value.trim()) { toast("Vaqtni 08:00-08:45 ko'rinishida yozing"); return; }
         s.bells[+x.dataset.bf] = t ? [`${pad(+t[1])}:${t[2]}`, `${pad(+t[3])}:${t[4]}`] : ["", ""];
       });
     };
-    const redraw = () => { $("#schg", m).innerHTML = draw(); bind(); }; bind();
+    const redraw = () => { $("#scht", m).innerHTML = tabs(); $("#schg", m).innerHTML = list(); bind(); }; bind();
     $("[data-add]", m).onclick = () => { s.bells.push(SCH_DEF_BELLS[s.bells.length] ? SCH_DEF_BELLS[s.bells.length].slice() : ["", ""]); s.days.forEach((d) => d.push("")); redraw(); };
     $("[data-del]", m).onclick = () => { if (s.bells.length > 1) { s.bells.pop(); s.days.forEach((d) => d.pop()); redraw(); } };
+    $("[data-sx]", m).onclick = () => scheduleImport((sc, miss) => { close(false); scheduleEditor(sc, miss); });
+    $("[data-st]", m).onclick = () => scheduleTemplate().catch((e) => toast(e.message));
     $("[data-x]", m).onclick = () => close(false);
     $("[data-ok]", m).onclick = () => {
       D.web.schedule = s; const n = schedApplyWeekdays(); save(); remSchedule(); close(true); render();
