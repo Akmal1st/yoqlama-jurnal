@@ -450,7 +450,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".modal [data-xl]")]);
       const wb = XLSX.read(await readFile(await dl.path()));
       const aoa = XLSX.utils.sheet_to_json(wb.Sheets.BSB, {header: 1});
-      assert.equal(aoa[0][0], "12-maktab"); assert.ok(aoa.some((r) => r[1] === "O'zlashtirish, %") && aoa.some((r) => r[0] === "Baho" && r[1] === "Soni"), "yangi qatorlar Excelda"); assert.ok(aoa.some((r) => String(r[0]).startsWith("Metod birlashma rahbari")));
+      assert.equal(aoa[0][0], "12-maktab"); assert.ok(aoa.some((r) => r[1] === "O'zlashtirish, %") && aoa.some((r) => r[0] === "Baho" && r[1] === "Soni"), "yangi qatorlar Excelda"); assert.ok(aoa.some((r) => r.some((x) => String(x).startsWith("Metod birlashma rahbari"))));
       // jami ballni summativga o'tkazish (yangi BSB ishi)
       await page.click("[data-btr]"); await page.click(".modal [data-ok]");
       const w = await page.evaluate((d) => { const c = D.classes[S.ci], w = c.works.find((x) => x.type === "bsb" && x.date === d && x.title === "Kasrlar"); return w && [w.max, c.students.map((s) => (s.scores || {})[w.id] ?? null)]; }, qd);
@@ -513,7 +513,7 @@ test("BSB tahlili: strelka tugmalari, Excel'dan joylash, savol nomlari va xatola
     await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]');
     const [dl2] = await Promise.all([page.waitForEvent("download"), page.click(".modal [data-xl]")]);
     const wb2 = XLSX.read(await readFile(await dl2.path())), a2 = XLSX.utils.sheet_to_json(wb2.Sheets.BSB, {header: 1});
-    assert.equal(a2[1][0], "Yakuniy natijalar bayonnomasi"); assert.ok(a2.some((r) => String(r[0]).startsWith("Sinf rahbari")));
+    assert.equal(a2[1][0], "Yakuniy natijalar bayonnomasi"); assert.ok(a2.some((r) => r.some((x) => String(x).startsWith("Sinf rahbari"))));
     await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]'); await page.click(".modal .hfopt summary"); await page.click(".modal [data-hreset]"); await page.click(".modal [data-pdf]");
     ft = await page.evaluate(() => window.__printed); assert.ok(ft.includes("Taqsimot") && ft.includes("Metod birlashma rahbari"), "asl holiga qaytdi");
     assert.ok(wb.SheetNames.includes("Xatolar kesimi"));
