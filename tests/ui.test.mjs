@@ -493,6 +493,8 @@ test("BSB tahlili: strelka tugmalari, Excel'dan joylash, savol nomlari va xatola
     await page.click("[data-btab=er]"); await page.waitForSelector(".paper >> text=Topshiriqlar kesimi");
     assert.ok(await page.isVisible(".paper >> text=Kasrni qisqartirish"));
     assert.ok(await page.isVisible(".tiles >> text=Bilim sifati"));
+    const ph = await page.evaluate(() => { const e = document.querySelector(".paper"); return e.scrollHeight - e.clientHeight; });
+    assert.ok(ph <= 1, `hisobot qutisi kesilgan: ${ph}px`);
     await page.click("[data-bsave]");
     assert.equal(await page.evaluate(() => D.classes[S.ci].analyses[0].names[0]), "Kasrni qisqartirish");
     await page.click("[data-bexp]"); await page.click('.modal [data-v="1"]');
