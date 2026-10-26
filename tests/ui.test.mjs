@@ -523,6 +523,29 @@ test("BSB tahlili: strelka tugmalari, Excel'dan joylash, savol nomlari va xatola
   } finally { await browser.close(); }
 });
 
+test("BSB «Header, jadval va footer»: uzun jadval ham 1 ta varaqqa sig'adi", async () => {
+  const {readFile} = await import("node:fs/promises");
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1200, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const zoom = await page.evaluate(() => { window.print = () => {}; const c = D.classes[0], B = baBlank(); B.q = 6; B.max = Array(6).fill(2); B.title = "Kasrlar";
+      while (c.students.length < 45) c.students.push({...clone(c.students[0]), name: "Talaba " + c.students.length, id: "t" + c.students.length});
+      c.students.forEach((s, i) => { B.rows[s.name] = {in: true, pts: B.max.map((m, k) => (i + k) % 3)}; });
+      printDoc(bsbFormHtml(baMeta(c, B), baAnalysis(c, B), c, B, {school: "12-maktab"}), false, true);
+      return +/zoom:([\d.]+)/.exec(document.getElementById("pdoc-css").textContent)[1]; });
+    assert.ok(zoom < 1 && zoom > 0.4, `zoom ${zoom}`);
+    await page.emulateMedia({media: "print"});
+    await page.pdf({path: "/tmp/bsb-fit.pdf", preferCSSPageSize: true});
+    const pages = (await readFile("/tmp/bsb-fit.pdf")).toString("latin1").match(/\/Type\s*\/Page[^s]/g).length;
+    assert.equal(pages, 1, "bitta varaq");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
 test("Sozlamalar → Dizayn: mavzu, yozuv turi, o'lcham va rang", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
