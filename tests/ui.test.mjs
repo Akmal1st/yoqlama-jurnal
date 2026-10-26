@@ -500,6 +500,22 @@ test("BSB tahlili: strelka tugmalari, Excel'dan joylash, savol nomlari va xatola
     await page.click("[data-bexp]"); await page.click('.modal [data-v="1"]');
     const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".modal [data-xl]")]);
     const wb = XLSX.read(await readFile(await dl.path()));
+    // header va footerni o'zgartirish
+    await page.evaluate(() => { window.print = () => { window.__printed = document.getElementById("pdoc").innerText; }; });
+    await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]'); await page.click(".modal .hfopt summary");
+    await page.fill("#hti", "Yakuniy natijalar bayonnomasi"); await page.fill("#hn", "2026-2027 o'quv yili"); await page.fill("#hfn", "Metodbirlashmada ko'rildi");
+    await page.fill("#hsg", "Sinf rahbari | Aliyev B.\nDirektor | Valiyev S."); await page.uncheck('[data-hf="dist"]'); await page.uncheck('[data-hf="fan"]');
+    await page.click(".modal [data-pdf]");
+    let ft = await page.evaluate(() => window.__printed);
+    for (const x of ["Yakuniy natijalar bayonnomasi", "2026-2027 o'quv yili", "Metodbirlashmada ko'rildi", "Sinf rahbari", "Valiyev S."]) assert.ok(ft.includes(x), x);
+    assert.ok(!ft.includes("Taqsimot") && !ft.includes("direktor o'rinbosari"), "o'chirilgan bloklar chiqmaydi");
+    assert.deepEqual(await page.evaluate(() => [D.web.bsb_hdr.hide, D.web.bsb_hdr.title]), [{fan: 1, dist: 1}, "Yakuniy natijalar bayonnomasi"]);
+    await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]');
+    const [dl2] = await Promise.all([page.waitForEvent("download"), page.click(".modal [data-xl]")]);
+    const wb2 = XLSX.read(await readFile(await dl2.path())), a2 = XLSX.utils.sheet_to_json(wb2.Sheets.BSB, {header: 1});
+    assert.equal(a2[1][0], "Yakuniy natijalar bayonnomasi"); assert.ok(a2.some((r) => String(r[0]).startsWith("Sinf rahbari")));
+    await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]'); await page.click(".modal .hfopt summary"); await page.click(".modal [data-hreset]"); await page.click(".modal [data-pdf]");
+    ft = await page.evaluate(() => window.__printed); assert.ok(ft.includes("Taqsimot") && ft.includes("direktor o'rinbosari"), "asl holiga qaytdi");
     assert.ok(wb.SheetNames.includes("Xatolar kesimi"));
     const aoa = XLSX.utils.sheet_to_json(wb.Sheets["Xatolar kesimi"], {header: 1});
     assert.equal(aoa[0][0], "O'rin"); assert.ok(aoa.some((r) => String(r[1]).includes("Kasrni qisqartirish")));
