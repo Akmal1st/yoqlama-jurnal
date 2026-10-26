@@ -397,6 +397,11 @@ test("jurnal: telefonda sinf ☰ ro'yxatdan tanlanadi", async () => {
     assert.equal(await page.evaluate(() => S.ci), last);
     assert.ok((await page.textContent(".jtt b")).startsWith(multi));
     for (const jp of ["sum", "bsb", "year"]) { await page.click(`[data-jp=${jp}]`); assert.equal(await page.locator("[data-cpick]:visible").count(), 1); }
+    // BSB/CHSB jadvali yonga surilganda joyida qoladi (ustunga tortib, orqaga qaytarib yubormaydi)
+    await page.click("[data-jp=sum]");
+    const sl = await page.evaluate(async () => { const c = D.classes[S.ci]; c.works.push({id: "wsn", type: "bsb", date: c.dates[1], max: 25, q: 1}); render();
+      const tw = $("table.sum").closest(".tblwrap"); tw.scrollLeft = 25; await new Promise((r) => setTimeout(r, 500)); return [tw.scrollWidth > tw.clientWidth + 25, tw.scrollLeft]; });
+    if (sl[0]) assert.equal(sl[1], 25);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
