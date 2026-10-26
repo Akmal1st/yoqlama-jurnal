@@ -141,7 +141,7 @@ table.j th.nm{box-shadow:-8px 0 0 var(--base),1px 0 0 var(--base),0 4px 0 var(--
 table.j th.d{min-width:40px;text-align:center;line-height:1.15;border-radius:8px}
 table.j th.d small{display:block;font-size:11px;font-weight:600}
 table.j th.d.today{background:var(--today);color:#12303a}
-table.j th.d.x{opacity:.55}
+table.j th.d.x{opacity:.55}table.j th.d.bsbd small{color:#7b1fa2;font-weight:800;letter-spacing:-.3px}.keys .key:disabled{opacity:.3;cursor:not-allowed}
 table.j th.d.m small{color:var(--acc);font-weight:800}
 table.j .nm{position:sticky;left:0;background:var(--base);box-shadow:-8px 0 0 var(--base),1px 0 0 var(--base);z-index:1;white-space:nowrap;font-weight:600;padding:0 8px 0 2px;max-width:240px;overflow:hidden;text-overflow:ellipsis}
 table.j th.nm{z-index:3}
@@ -539,7 +539,7 @@ body.pmeas .noprint{display:none!important}
 .pnote{font-size:12px}
 /* sinf tanlash oynasi (telefon) */
 .cpick{display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow:auto;padding:2px}
-.cpick .tag{padding-top:6px}
+.cpick .tag{padding-top:6px}.cpick .cpi.one{margin-top:8px}
 .cpi{display:flex;align-items:center;gap:10px;min-height:50px;padding:0 14px;border:1px solid var(--line);border-radius:14px;background:var(--base);color:var(--text);font-size:16px;text-align:left}
 .cpi small{color:var(--muted)}
 .cpi.on{background:var(--acc-soft);border-color:var(--acc)}
@@ -1740,6 +1740,8 @@ function putMark(c, si, date, nw, quiet) {
   const s = c.students[si], old = s.marks[date] || "";
   if (preJoin(c, s, date)) { if (!quiet) toast(`${s.name} ${fmt(s.joined)} dan qo'shilgan — undan oldingi darslarga belgi qo'yilmaydi`); return false; }
   if (old === nw) return false;
+  const sw = sumOn(c, date);
+  if (sw && gradesOf(nw).length && gradesOf(nw).join("/") !== gradesOf(old).join("/")) { if (!quiet || quiet === "batch") toast(`${fmt(date).slice(0, 5)} — ${sumTag(sw)} kuni: oddiy dars bahosi qo'yilmaydi, faqat yo'qlama. Ballni «BSB / CHSB» sahifasiga kiriting.`); return false; }
   if (old && !isAdditive(old, nw) && isLocked()) { toast("🔒 Qo'yilgan baho himoyalangan. O'zgartirish uchun qulfni oching."); return false; }
   if (nw) s.marks[date] = nw; else delete s.marks[date];
   log(c, s, date, old, nw); if (!quiet || quiet === "batch") pushUndo([{kind: "mark", c, s, key: date, old, nw}]); touchLock(); save(); return true;
@@ -1808,8 +1810,8 @@ function sideView() {
   if (S.page !== "journal" || !D.classes.length || D.web.sidemin || isGrp(D.classes[S.ci])) return "";
   const today = new Set(lessonsToday().map((x) => x.ci));
   return `<div class="clsside" aria-label="Sinflar"><div class="tag">Sinflar</div>${D.classes.length > 8 ? `<input type="search" class="csq" placeholder="🔍 Sinf qidirish" aria-label="Sinf qidirish">` : ""}
-    <div class="csl">${classGroups().map(([k, ids]) => `<div class="cg" data-cg="${esc(normName(k + " " + ids.map((i) => D.classes[i].subject || "").join(" ")))}"><div class="cgn">${esc(k)}</div><div class="vseg">${ids.map((i) =>
-      `<button class="cs ${i === S.ci ? "on" : ""}" style="${ccOf(i)}" data-ci="${i}" title="${esc(label(D.classes[i]))}"><span>${esc(D.classes[i].subject || k)}</span>${kindTag(D.classes[i])}${today.has(i) ? `<small>bugun</small>` : ""}</button>`).join("")}</div></div>`).join("")}</div></div>`;
+    <div class="csl">${classGroups().map(([k, ids]) => `<div class="cg" data-cg="${esc(normName(k + " " + ids.map((i) => D.classes[i].subject || "").join(" ")))}">${ids.length > 1 ? `<div class="cgn">${esc(k)}</div>` : ""}<div class="vseg">${ids.map((i) =>
+      `<button class="cs ${i === S.ci ? "on" : ""}" style="${ccOf(i)}" data-ci="${i}" title="${esc(label(D.classes[i]))}"><span>${ids.length === 1 && D.classes[i].subject ? `${esc(k)} · ${esc(D.classes[i].subject)}` : esc(D.classes[i].subject || k)}</span>${kindTag(D.classes[i])}${today.has(i) ? `<small>bugun</small>` : ""}</button>`).join("")}</div></div>`).join("")}</div></div>`;
 }
 function pickClass(i) { S.ci = i; S.sel = null; S.jq = ""; render(); }
 function renderNav() {
@@ -2102,6 +2104,9 @@ const GRP_ATT = {ot: ["#81c784", "✓", "O'tildi", "Dars o'tildi"], ox: ["#ef9a9
 const GRP_KEYS = ["ot", "ox"];
 // o'quvchi qo'shilgan sanadan oldingi darslar uning uchun yo'q
 const preJoin = (c, s, d) => isGrp(c) && !!(s && s.joined) && d < s.joined;
+// BSB/CHSB o'tkazilgan kuni oddiy dars o'tilmaydi: jurnalga baho qo'yilmaydi, faqat yo'qlama
+const sumOn = (c, d) => isGrp(c) ? null : (c.works || []).find((w) => w.date === d && (w.type === "bsb" || w.type === "chsb")) || null;
+const sumTag = (w) => w.type.toUpperCase();
 // «hamma keldi»: sinfda — kun yo'qlama qilingan deb belgilanadi; guruhda — belgisizlarga «o'tildi» qo'yiladi
 function allDone(c, d) {
   if (isGrp(c)) c.students.forEach((s, si) => { if (!s.marks[d] && !preJoin(c, s, d)) putMark(c, si, d, "ot", true); });
@@ -2430,10 +2435,10 @@ function pageJournal(m) {
   ds.forEach((d, i) => {
     const sc = S.sel && S.sel[1] === d ? "selc" : "";
     const x = isNoLesson(c, d), mo = V.mode === "quarter" && (i === 0 || ds[i - 1].slice(5, 7) !== d.slice(5, 7));
-    const sub = x ? "X" : mo ? MONTHS_GEN[+d.slice(5, 7) - 1].slice(0, 3) : WD[pyWd(d)];
+    const sw = !x && sumOn(c, d), sub = x ? "X" : sw ? sumTag(sw) : mo ? MONTHS_GEN[+d.slice(5, 7) - 1].slice(0, 3) : WD[pyWd(d)];
     const top = V.mode === "week" && !dense ? fmt(d).slice(0, 5) : +d.slice(8);
     const les = c.lessons[d]; const tip = les ? `Mavzu: ${les.topic || "—"}${les.hw ? "\nUy vazifasi: " + les.hw : ""}` : "";
-    head += `<th class="d ${d === t ? "today" : ""} ${x ? "x" : ""} ${mo ? "m" : ""} ${sc}" data-col="${d}" title="${esc(tip ? tip + "\n" : "")}Bosing: mavzu, «hamma keldi», ustun xulosasi">${top}${les && d !== t ? "•" : ""}<small>${sub}</small></th>`;
+    head += `<th class="d ${d === t ? "today" : ""} ${x ? "x" : ""} ${sw ? "bsbd" : ""} ${mo ? "m" : ""} ${sc}" data-col="${d}" title="${sw ? `${sumTag(sw)} kuni — faqat yo'qlama, baho qo'yilmaydi\n` : ""}${esc(tip ? tip + "\n" : "")}Bosing: mavzu, «hamma keldi», ustun xulosasi">${top}${les && d !== t ? "•" : ""}<small>${sub}</small></th>`;
   });
   head += `${grp ? "" : "<th>O'rt.</th>"}<th>Dav.</th></tr>`;
   let body = "";
@@ -2461,11 +2466,12 @@ function pageJournal(m) {
     });
     body += `${grp ? "" : "<td></td>"}<td></td></tr>`;
   }
+  const selSw = S.sel && sumOn(c, S.sel[1]);
   const keys = (grp ? GRP_KEYS : ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "s", "dq", "k", "kq", "ch"]).map((v) => {
-    const col = markColors(v); return `<button class="key ${grp ? "wide" : ""}" data-k="${v}" style="${col ? `background:${col[0]};color:${col[1]};border-color:transparent` : ""}"${grp ? ` title="${GRP_ATT[v][3]}"` : ""}>${grp ? `${GRP_ATT[v][1]} ${GRP_ATT[v][2]}` : v.toUpperCase()}</button>`;
-  }).join("") + (grp ? "" : `<button class="key ${S.second ? "on2" : ""}" data-two title="Ikkinchi baho qo'shish (masalan 8/9)">＋2</button>`) + `<button class="key" data-k="" title="Tozalash">⌫</button>`;
+    const col = markColors(v), off = selSw && /^\d+$/.test(v); return `<button class="key ${grp ? "wide" : ""}" data-k="${v}" ${off ? "disabled" : ""} style="${col && !off ? `background:${col[0]};color:${col[1]};border-color:transparent` : ""}"${grp ? ` title="${GRP_ATT[v][3]}"` : ""}>${grp ? `${GRP_ATT[v][1]} ${GRP_ATT[v][2]}` : v.toUpperCase()}</button>`;
+  }).join("") + (grp ? "" : `<button class="key ${S.second ? "on2" : ""}" ${selSw ? "disabled" : ""} data-two title="Ikkinchi baho qo'shish (masalan 8/9)">＋2</button>`) + `<button class="key" data-k="" title="Tozalash">⌫</button>`;
   const nx = S.sel && nextRow(S.sel[0], 1), nxt = S.sel && nx !== S.sel[0] && c.students[nx] ? `<small>keyingisi: ${esc(shortName(c.students[nx].name))} ↓</small>` : "";
-  const selTxt = S.sel ? `<b>${esc(shortName(c.students[S.sel[0]].name))} · ${fmt(S.sel[1]).slice(0, 5)}${canEdit(S.sel[1]) ? "" : " (faqat ko'rish)"}</b>${nxt}` : (D.web.past || "today") === "today" ? "Katakni tanlang (bugungi ustun)" : "Katakni tanlang";
+  const selTxt = S.sel ? `<b>${esc(shortName(c.students[S.sel[0]].name))} · ${fmt(S.sel[1]).slice(0, 5)}${canEdit(S.sel[1]) ? "" : " (faqat ko'rish)"}</b>${selSw ? `<small>${sumTag(selSw)} kuni — faqat yo'qlama</small>` : nxt}` : (D.web.past || "today") === "today" ? "Katakni tanlang (bugungi ustun)" : "Katakni tanlang";
   const tools = ds.length ? jTools(c) : "";
   m.innerHTML = `<div class="col" style="gap:12px">
     ${jHead(perNav(), "", tools)}
@@ -2540,9 +2546,10 @@ function bindJTools(m) {
 // sinf tanlash oynasi: sinflar guruhlab, har birida fanlari
 function classPicker() {
   const today = new Set(lessonsToday().map((x) => x.ci));
-  modal(`<h2>Sinfni tanlang</h2><div class="cpick">${classGroups().map(([k, ids]) => `<div class="tag">${esc(k)}</div>${ids.map((i) => {
-    const c = D.classes[i];
-    return `<button class="cpi ${i === S.ci ? "on" : ""}" style="${ccOf(i)}" data-pci="${i}"><b>${esc(c.subject || k)}</b>${kindTag(c)}<span class="sp"></span><small>${today.has(i) ? "bugun dars bor · " : ""}${c.students.length} ${c.kind === "club" ? "a'zo" : "o'quvchi"}</small></button>`;
+  modal(`<h2>Sinfni tanlang</h2><div class="cpick">${classGroups().map(([k, ids]) => `${ids.length > 1 ? `<div class="tag">${esc(k)}</div>` : ""}${ids.map((i) => {
+    // sinfda bitta fan bo'lsa — alohida sarlavhasiz, «6-A · Matematika»
+    const c = D.classes[i], one = ids.length === 1;
+    return `<button class="cpi ${one ? "one" : ""} ${i === S.ci ? "on" : ""}" style="${ccOf(i)}" data-pci="${i}"><b>${one && c.subject ? `${esc(k)} · ${esc(c.subject)}` : esc(c.subject || k)}</b>${kindTag(c)}<span class="sp"></span><small>${today.has(i) ? "bugun dars bor · " : ""}${c.students.length} ${c.kind === "club" ? "a'zo" : "o'quvchi"}</small></button>`;
   }).join("")}`).join("")}</div>
     <div class="row"><button class="btn" data-add>＋ Jurnal qo'shish</button><span class="sp"></span><button class="btn" data-cl>Yopish</button></div>`, (mm, close) => {
     mm.querySelectorAll("[data-pci]").forEach((b) => b.onclick = () => { close(); pickClass(+b.dataset.pci); });
@@ -2579,7 +2586,7 @@ function pageDay(m) {
     return `<button class="dday ${x === d ? "on" : ""} ${x === t ? "today" : ""} ${k}" data-dd="${x}" title="${fmt(x)} · ${WD_FULL[pyWd(x)]}${lb ? " · " + lb : ""}"><small>${WD[pyWd(x)]}</small><b>${+x.slice(8)}</b><i>${lb}</i></button>`; }).join("");
   const x = isNoLesson(c, d), ed = canEdit(d) && !x, cs = colStat(c, d), l = c.lessons[d] || {};
   const [plo, phi, pq] = periodNow(), pr = reportRows(c, plo, phi, pq).rows, order = S.jord = jOrder(c, pr);
-  const grp = isGrp(c), risk = new Set(grp ? [] : pr.filter((r) => r.why.some((w) => !w.startsWith("baholar soni"))).map((r) => r.name));
+  const sw = sumOn(c, d), grp = isGrp(c), risk = new Set(grp ? [] : pr.filter((r) => r.why.some((w) => !w.startsWith("baholar soni"))).map((r) => r.name));
   const absent = c.students.filter((s) => ["s", "dq", "k", "ox"].includes(attPart(s.marks[d] || "")));
   const btn = (cls, data, v, on, title) => { const col = on && markColors(v); return `<button class="${cls} ${on ? "on" : ""}" ${data} style="${col ? `background:${col[0]};color:${col[1]};border-color:transparent` : ""}"${title ? ` title="${title}"` : ""}>${GRP_ATT[v] ? `${GRP_ATT[v][1]} ${GRP_ATT[v][2]}` : v.toUpperCase()}</button>`; };
   const rows = order.map((si) => {
@@ -2588,13 +2595,13 @@ function pageDay(m) {
     const att = (grp ? GRP_KEYS.map((v) => [v, GRP_ATT[v][3]]) : DAY_ATT).map(([v, ti]) => btn(grp ? "da wide" : "da", `data-a="${si}|${v}"`, v, v === "kq" ? lateOf(mk) : ap === v, ti)).join("");
     const gr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((g) => btn("dg", `data-g="${si}|${g}"`, String(g), gs.includes(g))).join("");
     return `<div class="drow ${risk.has(s.name) ? "risk" : ""}" data-q="${esc(normName(s.name))}"><span class="dn" data-st="${si}" title="${esc(s.name)} — kartochkani ochish"><i>${si + 1}</i>${s.star ? "⭐ " : ""}${nmHtml(s.name)}</span>
-      <div class="datt" role="group" aria-label="Yo'qlama">${att}</div>${grp ? "" : `<div class="dgr" role="group" aria-label="Baho">${gr}</div>`}</div>`;
+      <div class="datt" role="group" aria-label="Yo'qlama">${att}</div>${grp || sw ? "" : `<div class="dgr" role="group" aria-label="Baho">${gr}</div>`}</div>`;
   }).join("");
   const tile = (k, v) => `<div><small>${k}</small><b>${v}</b></div>`;
   m.innerHTML = `<div class="col" style="gap:12px">
     ${jHead(perNav(), `<div class="dstrip">${strip}</div>`, jTools(c))}
     <div class="dview">
-      <div class="dlist ${ed ? "" : "ro"}">${x ? `<div class="muted" style="padding:14px">${fmt(d)} — dars yo'q (X). «Dars menyusi»dan dars kuni qilishingiz mumkin.</div>` : rows}</div>
+      <div class="dlist ${ed ? "" : "ro"}">${sw && !x ? `<div class="warn" style="padding:10px 14px">📝 ${sumTag(sw)} kuni${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars o'tilmaydi — faqat yo'qlama. Ballar «BSB / CHSB» sahifasida.</div>` : ""}${x ? `<div class="muted" style="padding:14px">${fmt(d)} — dars yo'q (X). «Dars menyusi»dan dars kuni qilishingiz mumkin.</div>` : rows}</div>
       <aside class="dinfo" aria-label="Dars">
         <div class="card col"><b>${WD_FULL[pyWd(d)]}, ${fmt(d)}${d === t ? " · bugun" : ""}</b>
           ${x ? `<span class="muted">Dars yo'q (X)</span>` : `<label class="col"><span class="muted">Mavzu</span><input type="text" id="dmt" value="${esc(l.topic || "")}" placeholder="Dars mavzusi"></label>
@@ -2605,7 +2612,7 @@ function pageDay(m) {
         <div class="row wrap" style="gap:8px">${grp ? (ed && c.students.some((s) => !s.marks[d] && !preJoin(c, s, d)) ? `<button class="btn" data-ok title="Belgisiz qolganlarga «dars o'tildi»">✓ Qolganlarga o'tildi</button>` : "")
           : `${ed && !absent.length && !c.att_ok.includes(d) ? `<button class="btn" data-ok title="Hech kim qoldirmagan — yo'qlama tugadi">✓ Hamma keldi</button>` : ""}
           ${!x && c.att_ok.includes(d) ? `<span class="ok">✓ Yo'qlama tugagan</span>` : ""}`}
-          ${ed && !grp ? `<button class="btn ${S.second ? "pri" : ""}" data-two2 title="Keyingi bosilgan baho ikkinchi baho bo'ladi (masalan 8/9)">＋2 baho</button>` : ""}
+          ${ed && !grp && !sw ? `<button class="btn ${S.second ? "pri" : ""}" data-two2 title="Keyingi bosilgan baho ikkinchi baho bo'ladi (masalan 8/9)">＋2 baho</button>` : ""}
           <button class="btn" data-colm>⋯ Dars menyusi</button></div>
         <p class="muted dtip">${grp ? "Har o'quvchiga: «✓ O'tildi» yoki «✗ O'tilmadi». Uyida o'qiydiganlarga faqat «o'tildi» darslar hisoblanadi. Belgini qayta bossangiz o'chadi." : "Yo'qlama chapda, baho o'ngda. Kelgan o'quvchiga hech narsa bosmang — bo'sh qolsa «keldi» hisoblanadi. Belgini qayta bossangiz o'chadi."}</p>
       </aside></div></div>`;
@@ -2817,8 +2824,8 @@ function pageLesson(m) {
   const c = D.classes[S.lesson], t = todayIso(), les = c.lessons[t] || {};
   const n = c.students.length, absent = c.students.filter((_, i) => ["s", "dq", "k", "ox"].includes(attOf(c, i))).length;
   const late = c.students.filter((_, i) => attOf(c, i) === "kq").length, graded = c.students.filter((s) => gradesOf(s.marks[t] || "").length).length;
-  const grp = isGrp(c); if (grp && S.step === 1) S.step = 2;
-  const steps = ["1 · Yo'qlama", "2 · Baholar", "3 · Mavzu va uy vazifasi"].map((s, i) => grp && i === 1 ? "" : `<button class="${i === S.step ? "on" : ""}" data-step="${i}">${grp ? ["1 · Dars", "", "2 · Mavzu"][i] : s}</button>`).join("");
+  const grp = isGrp(c), sw = sumOn(c, t), noGr = grp || !!sw; if (noGr && S.step === 1) S.step = 2;
+  const steps = ["1 · Yo'qlama", "2 · Baholar", "3 · Mavzu va uy vazifasi"].map((s, i) => noGr && i === 1 ? "" : `<button class="${i === S.step ? "on" : ""}" data-step="${i}">${grp ? ["1 · Dars", "", "2 · Mavzu"][i] : sw ? ["1 · Yo'qlama", "", "2 · Mavzu va uy vazifasi"][i] : s}</button>`).join("");
   let body = "";
   const card = !grp && attMode() === "card";
   if (S.step === 0 && card) {
@@ -2884,6 +2891,7 @@ function pageLesson(m) {
   m.innerHTML = `<div class="col" style="gap:12px"><div class="row"><button class="btn sm" data-exit>‹ Chiqish</button>
     <div class="col sp" style="gap:0"><h2>${esc(label(c))}</h2><span class="muted">${longDate(t)}${les.topic ? " · " + esc(les.topic) : ""}</span></div>
     <div class="steps">${steps}</div></div>
+    ${sw ? `<p class="warn" style="margin:0">📝 Bugun ${sumTag(sw)}${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars bahosi qo'yilmaydi — faqat yo'qlama. Ballar «BSB / CHSB» sahifasida.</p>` : ""}
     ${(() => { const b = feat("bday") ? birthdays(0).filter((x) => x.ci === S.lesson) : []; return b.length ? `<div class="card row bday" style="padding:10px 14px">🎂 Bugun tug'ilgan kun: <b>${b.map((x) => esc(x.s.name)).join(", ")}</b></div>` : ""; })()}
     ${!grp && (feat("call") || feat("groups")) ? `<div class="row wrap" style="gap:8px">${feat("call") ? `<button class="btn sm" data-call>🎲 Doskaga chaqirish</button>` : ""}${feat("groups") ? `<button class="btn sm" data-grp>👥 Guruhlarga bo'lish</button>` : ""}</div>` : ""}${body}
     <div class="foot"><span class="muted sp">${grp ? `O'tildi: ${c.students.filter((x) => x.marks[t] === "ot").length} · o'tilmadi: ${absent}` : `Kelmagan: ${absent} · kech qolgan: ${late} · baho qo'yilgan: ${graded}`}${(() => { const no = c.students.filter((x) => x.hwd && x.hwd[t] === 0).length; return no ? ` · UV bajarmagan: ${no}` : ""; })()}</span>
@@ -2932,10 +2940,10 @@ function pageLesson(m) {
   $("[data-exit]", m).onclick = () => { saveTopic(); go("today"); };
   const cl = $("[data-call]", m); if (cl) cl.onclick = () => { saveTopic(); callDialog(S.lesson); };
   const gp = $("[data-grp]", m); if (gp) gp.onclick = () => { saveTopic(); groupsDialog(S.lesson); };
-  const bk = $("[data-back]", m); if (bk) bk.onclick = () => { saveTopic(); S.step = grp && S.step === 2 ? 0 : S.step - 1; render(); };
+  const bk = $("[data-back]", m); if (bk) bk.onclick = () => { saveTopic(); S.step = noGr && S.step === 2 ? 0 : S.step - 1; render(); };
   $("[data-next]", m).onclick = () => {
     saveTopic();
-    if (S.step < 2) { S.step = grp ? 2 : S.step + 1; render(); window.scrollTo(0, 0); return; }
+    if (S.step < 2) { S.step = noGr ? 2 : S.step + 1; render(); window.scrollTo(0, 0); return; }
     allDone(c, t); save();
     toast(`${label(c)}: ${fmt(t)} darsi saqlandi — ${grp ? "belgilar tasdiqlandi" : "davomat tasdiqlandi"}`); S.ci = S.lesson; go("journal"); scrollToday();
   };

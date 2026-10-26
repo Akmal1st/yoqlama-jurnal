@@ -392,6 +392,11 @@ test("jurnal: telefonda sinf ☰ ro'yxatdan tanlanadi", async () => {
     assert.ok(multi, "fixture'da bir sinfning 2 ta fani bor");
     await page.click("[data-cpick]");
     assert.equal(await page.locator(".modal [data-pci]").count(), names.length);
+    // bitta fanli sinf: sarlavhasiz, «6-A · Matematika»
+    const one = names.findIndex((n) => names.indexOf(n) === names.lastIndexOf(n));
+    const lb = await page.evaluate((i) => `${D.classes[i].name} · ${D.classes[i].subject}`, one);
+    assert.equal((await page.textContent(`.modal [data-pci="${one}"] b`)).trim(), lb);
+    assert.equal(await page.locator(".modal .cpick .tag", {hasText: names[one]}).count(), 0);
     const last = names.lastIndexOf(multi);
     await page.click(`.modal [data-pci="${last}"]`);
     assert.equal(await page.evaluate(() => S.ci), last);
@@ -596,6 +601,37 @@ test("Dars jadvali: Excel'dan yuklash, saqlash va dars kunlari", async () => {
     const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-a=sch]").then(() => page.click(".modal [data-st]"))]);
     const back = XLSX.utils.sheet_to_json(XLSX.read(await readFile(await dl.path())).Sheets["Dars jadvali"], {header: 1});
     assert.equal(back[0][2], "Dushanba"); assert.equal(back[1][2], "6-A Matematika");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("BSB/CHSB kuni: jurnalga baho qo'yilmaydi, faqat yo'qlama", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const r = await page.evaluate(() => {
+      const t = todayIso(), ci = D.classes.findIndex((c) => !isGrp(c)), c = D.classes[ci];
+      if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); }
+      c.students.forEach((s) => delete s.marks[t]); c.att_ok = c.att_ok.filter((d) => d !== t);
+      c.works.push({id: "wsd", type: "bsb", date: t, max: 10, title: "Kasrlar"}); save();
+      S.page = "journal"; S.ci = ci; S.jpage = "j"; V.mode = "week"; V.anchor = t; render();
+      return {ci, g: putMark(c, 0, t, "8", true), a: putMark(c, 1, t, "s", true), m1: c.students[1].marks[t] || ""};
+    });
+    assert.deepEqual([r.g, r.a, r.m1], [false, true, "s"], "BSB kuni baho emas, faqat yo'qlama");
+    const t = await page.evaluate(() => todayIso());
+    assert.equal(await page.textContent(`th[data-col="${t}"] small`), "BSB");
+    await page.click(`[data-c="0|${t}"]`);
+    assert.ok(await page.isDisabled('.keys [data-k="8"]'), "baho tugmalari o'chiq");
+    assert.ok(!(await page.isDisabled('.keys [data-k="s"]')), "yo'qlama tugmalari ishlaydi");
+    await page.evaluate(() => { V.mode = "day"; render(); });
+    assert.equal(await page.locator(".dgr").count(), 0, "kun rejimida baho tugmalari yo'q");
+    assert.ok(await page.isVisible("text=BSB kuni"));
+    await page.evaluate((ci) => startLesson(ci), r.ci); await page.waitForSelector(".steps");
+    assert.deepEqual(await page.locator(".steps button").allTextContents(), ["1 · Yo'qlama", "2 · Mavzu va uy vazifasi"]);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
@@ -1510,7 +1546,7 @@ test("Jurnal: o'tgan darslar, sana menyusi, qidiruv va saralash", async () => {
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     await page.evaluate(() => { S.ci = 0; go("journal"); });
     // 7 kun ichidagi o'tgan dars va 7 kundan eskisi
-    const [near, far] = await page.evaluate(() => { const c = D.classes[0], t = todayIso(), ok = c.dates.filter((d) => d < t && !isNoLesson(c, d));
+    const [near, far] = await page.evaluate(() => { const c = D.classes[0], t = todayIso(), ok = c.dates.filter((d) => d < t && !isNoLesson(c, d) && !sumOn(c, d));
       return [ok.filter((d) => (pdate(t) - pdate(d)) / 864e5 <= 7).pop(), ok.find((d) => (pdate(t) - pdate(d)) / 864e5 > 7)]; });
     assert.ok(near && far);
     // bo'sh katakli o'quvchi (himoya faqat qo'yilgan bahoni o'zgartirishni to'sadi)
