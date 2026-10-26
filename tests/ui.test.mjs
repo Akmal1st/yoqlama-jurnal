@@ -1672,6 +1672,16 @@ test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqla
     const st = await page.evaluate((i) => D.classes[i].students[0], k);
     assert.equal(st.ach.length, 1); assert.equal(st.ach[0].lvl, "Tuman"); assert.equal(Object.values(st.skill)[0], 8);
     assert.ok(await page.evaluate((i) => riskOverview().every((r) => r.ci !== i), k));
+    // Hisobotlar: sinflar va guruhlar alohida bandda
+    await page.click(".side [data-go=reports]");
+    await page.click("[data-band=cls]");
+    assert.ok(await page.evaluate(() => [...document.querySelectorAll("#rc option")].every((o) => !isGrp(D.classes[+o.value]))), "sinf hisobotida guruh bo'lmasin");
+    await page.click("[data-band=grp]");
+    for (const kk of ["gsum", "gdays", "gpay", "gdebt", "gach", "gcmp"]) { await page.click(`[data-gkind=${kk}]`); await page.waitForSelector(`[data-gkind=${kk}].on`); }
+    await page.click("[data-gkind=gach]"); await page.selectOption("#rgm", "all");
+    await page.waitForSelector("section.card >> text=Robototexnika tanlovi");
+    await page.click("[data-gkind=gpay]");
+    assert.match(await page.textContent("section.card"), /50 000 so'm/);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
