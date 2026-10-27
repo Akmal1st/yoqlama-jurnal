@@ -102,6 +102,11 @@ PERIODS = (("cur", "Joriy chorak"), ("q1", "1-chorak"), ("q2", "2-chorak"), ("q3
 
 
 # ------------------------------------------------------------------ Telegram
+def _form_safe(v):
+    """multipart sarlavhasiga tushadigan nomlar: qo'shtirnoq, CR/LF va yo'l belgilarisiz."""
+    return re.sub(r'[\r\n"\\/]', "_", str(v))
+
+
 def tg(method, params=None, files=None, timeout=70):
     url = f"{API}/bot{TOKEN}/{method}"
     if files:
@@ -110,10 +115,11 @@ def tg(method, params=None, files=None, timeout=70):
         for k, v in (params or {}).items():
             if isinstance(v, (dict, list)):
                 v = json.dumps(v, ensure_ascii=False)
-            buf.write(f'--{b}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode())
+            buf.write(f'--{b}\r\nContent-Disposition: form-data; name="{_form_safe(k)}"\r\n\r\n{v}\r\n'.encode())
         for k, (fname, raw) in files.items():
+            fname = _form_safe(fname)
             ct = mimetypes.guess_type(fname)[0] or "application/octet-stream"
-            buf.write(f'--{b}\r\nContent-Disposition: form-data; name="{k}"; filename="{fname}"\r\n'
+            buf.write(f'--{b}\r\nContent-Disposition: form-data; name="{_form_safe(k)}"; filename="{fname}"\r\n'
                       f"Content-Type: {ct}\r\n\r\n".encode())
             buf.write(raw)
             buf.write(b"\r\n")
@@ -131,6 +137,8 @@ def tg(method, params=None, files=None, timeout=70):
             return json.loads(e.read().decode("utf-8"))
         except Exception:                                      # noqa: BLE001
             return {"ok": False, "description": str(e)}
+    except (urllib.error.URLError, OSError, ValueError) as e:  # tarmoq uzilishi, timeout: URL (token) chiqarilmaydi
+        return {"ok": False, "description": f"tarmoq xatosi: {type(e).__name__}"}
 
 
 def kb(rows):
@@ -194,6 +202,8 @@ def next_updates(timeout=50):
     r = tg("getUpdates", {"timeout": timeout, "offset": OFFSET, "allowed_updates": ["message", "callback_query"]},
            timeout=timeout + 20)
     out = []
+    if not r.get("ok"):
+        time.sleep(5)       # tarmoq/Telegram xatosida band aylanmasin
     for u in r.get("result", []) if r.get("ok") else []:
         OFFSET = u["update_id"] + 1
         if "message" in u or "callback_query" in u:
