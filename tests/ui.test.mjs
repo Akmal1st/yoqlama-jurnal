@@ -2014,3 +2014,29 @@ test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqla
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("zararli jurnal (import): skript bajarilmaydi, maydonlar tozalanadi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const r = await page.evaluate(() => {
+      window.__pwn = 0;
+      const X = `"><img src=x onerror="window.__pwn++">`;
+      const d = normalize({classes: [{name: "7-A", kind: X, svc: X, dates: [X, "2026-03-02"], works: [{id: X, type: X, date: X}, {id: "w1", type: "bsb", date: "2026-03-02"}],
+        analyses: [{id: X, date: X}], students: [{name: "Ali Valiyev", id: X, joined: X, par: {phone: X, tg: X},
+          pays: [{id: X, no: X, d: X, m: X, sum: X}, {id: "p1", no: 1, d: "2026-03-02", m: "2026-03", sum: 5000}]}]}]});
+      const c = d.classes[0], s = c.students[0];
+      return {kind: c.kind, svc: c.svc, dates: c.dates, works: c.works.length, analyses: c.analyses.length, joined: s.joined,
+        phone: s.par.phone, tg: s.par.tg, pays: s.pays.map((p) => p.id), fmt: fmt(X)};
+    });
+    assert.ok(r.dates.every((x) => /^\d{4}-\d{2}-\d{2}$/.test(x)) && r.dates.includes("2026-03-02"), "sana ro'yxati tozalanmadi");
+    assert.equal(r.works, 1); assert.equal(r.analyses, 0);
+    assert.ok(!r.phone && !r.tg, "telefon/Telegram nomi tekshiruvdan o'tmadi");
+    assert.deepEqual(r.pays, ["p1"]);
+    assert.ok(!/[<>"]/.test(r.fmt), "fmt() HTMLni tozalamadi");
+    assert.equal(await page.evaluate(() => window.__pwn), 0);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});

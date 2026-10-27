@@ -917,6 +917,36 @@ function uniqNames(list) {
     s.name = n; seen.add(normName(n));
   }
 }
+/* Tashqaridan kelgan jurnal (fayl, Telegram, emaktab) ishonchsiz: HTMLga o'zgartirishsiz tushadigan tuzilmaviy maydonlar
+   (sana, id, tur, telefon, telegram, to'lov raqami) shu yerda qat'iy shaklga keltiriladi — aks holda zararli fayl
+   ilova sahifasida skript ishga tushirib, brauzerdagi barcha ma'lumotni (Telegram tokeni ham) o'qiy olardi. */
+const SAFE_ID = /^[\w.:-]{1,64}$/, ISO_D = /^\d{4}-\d{2}-\d{2}$/, ISO_M = /^\d{4}-\d{2}$/;
+const num0 = (v) => { v = Number(v); return isFinite(v) ? v : 0; };
+function cleanStudent(s) {
+  if (!SAFE_ID.test(String(s.id))) s.id = newSid();
+  for (const k of ["joined", "off_at", "bday"]) if (s[k] != null && !(typeof s[k] === "string" && ISO_D.test(s[k]))) delete s[k];
+  if (s.par && typeof s.par === "object") {
+    const p = s.par = {name: s.par.name == null ? undefined : String(s.par.name), phone: s.par.phone, tg: s.par.tg};
+    if (!(typeof p.phone === "string" && /^\+\d{9,15}$/.test(p.phone))) delete p.phone;
+    if (!(typeof p.tg === "string" && /^[A-Za-z][A-Za-z0-9_]{3,31}$/.test(p.tg))) delete p.tg;
+    if (p.name === undefined) delete p.name;
+  } else delete s.par;
+  if (s.plan && typeof s.plan === "object") s.plan = {t: s.plan.t === "day" ? "day" : "month", sum: num0(s.plan.sum)}; else delete s.plan;
+  if (Array.isArray(s.pays)) s.pays = s.pays.filter((p) => p && typeof p === "object" && SAFE_ID.test(String(p.id))).map((p) => Object.assign({}, p, {
+    id: String(p.id), no: Math.trunc(num0(p.no)) || "", d: ISO_D.test(String(p.d)) ? String(p.d) : "", m: ISO_M.test(String(p.m)) ? String(p.m) : "", sum: num0(p.sum), how: p.how == null ? "" : String(p.how), note: p.note == null ? "" : String(p.note)}));
+  else delete s.pays;
+  return s;
+}
+function cleanClass(c) {
+  if (c.kind != null && c.kind !== "club" && c.kind !== "paid") delete c.kind;
+  if (c.svc != null && c.svc !== "school" && c.svc !== "private") delete c.svc;
+  c.dates = c.dates.filter((x) => ISO_D.test(x));
+  c.rc = Math.trunc(num0(c.rc));
+  c.works = (Array.isArray(c.works) ? c.works : []).filter((w) => w && typeof w === "object" && SAFE_ID.test(String(w.id)) && (w.type === "bsb" || w.type === "chsb") && ISO_D.test(String(w.date)))
+    .map((w) => Object.assign({}, w, {id: String(w.id), max: num0(w.max)}));
+  c.analyses = c.analyses.filter((a) => a && typeof a === "object" && SAFE_ID.test(String(a.id)) && ISO_D.test(String(a.date)));
+  c.students.forEach(cleanStudent); c.students_off = c.students_off.filter((s) => s && typeof s === "object").map(cleanStudent);
+}
 function normalize(d) {
   d = d && typeof d === "object" ? d : {};
   d.version = d.version || 2;
@@ -940,6 +970,7 @@ function normalize(d) {
       return s;
     });
     for (const s of c.students_off) if (s && typeof s === "object" && !s.id) s.id = newSid();
+    cleanClass(c);
     uniqNames(c.students.concat(c.students_off));
   }
   d.web = Object.assign({density: "oddiy", theme: "auto", gen: []}, DESIGN_DEF, d.web || {});
@@ -1159,7 +1190,7 @@ const pdate = (s) => { const [y, m, d] = s.split("-").map(Number); return new Da
 const pyWd = (s) => (pdate(s).getDay() + 6) % 7;
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const todayIso = () => iso(new Date());
-const fmt = (s) => `${s.slice(8)}.${s.slice(5, 7)}.${s.slice(0, 4)}`;
+const fmt = (s) => ISO_D.test(s) ? `${s.slice(8)}.${s.slice(5, 7)}.${s.slice(0, 4)}` : esc(String(s).slice(0, 12));   // HTMLga to'g'ridan-to'g'ri tushadi: noto'g'ri sana hech qachon markup bo'lmaydi
 const longDate = (s) => `${WD_FULL[pyWd(s)]}, ${+s.slice(8)}-${MONTHS_GEN[+s.slice(5, 7) - 1]}`;
 const label = (c) => c.subject ? `${c.name} · ${c.subject}` : c.name;
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[ch]));
@@ -2532,7 +2563,7 @@ function payDialog(ci, si, mo) {
     <label class="f">Izoh<input type="text" id="pn" placeholder="ixtiyoriy"></label>
     <div class="row"><span class="sp"></span><button class="btn" data-x>Yopish</button><button class="btn pri" data-ok>💾 Saqlash</button></div>
     ${(s.pays || []).length ? `<h3 style="margin:6px 0 0">To'lovlar tarixi</h3><div class="tblwrap"><table class="r"><tr><th>№</th><th>Sana</th><th>Oy</th><th>Summa</th><th>Usul</th><th></th></tr>
-      ${list().map((p) => `<tr><td>${p.no || ""}</td><td>${fmt(p.d)}</td><td>${monthName(p.m)}</td><td class="s">${som(p.sum)}</td><td>${esc(p.how || "")}</td><td class="act"><button class="btn sm" data-rc="${p.id}" title="Kvitansiya">🧾</button><button class="btn sm" data-pdel="${p.id}" title="O'chirish">🗑</button></td></tr>`).join("")}</table></div>` : ""}`, (mm, close) => {
+      ${list().map((p) => `<tr><td>${esc(p.no || "")}</td><td>${fmt(p.d)}</td><td>${monthName(p.m)}</td><td class="s">${som(p.sum)}</td><td>${esc(p.how || "")}</td><td class="act"><button class="btn sm" data-rc="${esc(p.id)}" title="Kvitansiya">🧾</button><button class="btn sm" data-pdel="${p.id}" title="O'chirish">🗑</button></td></tr>`).join("")}</table></div>` : ""}`, (mm, close) => {
     $("[data-x]", mm).onclick = () => { close(); render(); };
     const phw = $("#phw", mm); if (phw) $("#ph", mm).onchange = () => phw.classList.toggle("warn", $("#ph", mm).value === "Naqd");
     $("[data-ok]", mm).onclick = () => {
@@ -2574,7 +2605,7 @@ function printDebtors(c, rows) {
     ${rows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.s.name)}</td><td>${esc(r.s.cls || "")}</td><td>${esc(fmtPhone((r.s.par || {}).phone || ""))}</td><td>${som(r.debt)}</td></tr>`).join("")}</table>`);
 }
 function printReceipt(c, s, p) {
-  const one = `<div class="rcpt"><h2 style="margin:0">KVITANSIYA № ${p.no || ""}</h2><table class="r">
+  const one = `<div class="rcpt"><h2 style="margin:0">KVITANSIYA № ${esc(p.no || "")}</h2><table class="r">
     <tr><td>Guruh</td><td>${esc(label(c))}</td></tr><tr><td>O'quvchi</td><td>${esc(s.name)}${s.cls ? ` (${esc(s.cls)})` : ""}</td></tr>
     <tr><td>Qaysi oy uchun</td><td>${monthName(p.m)}</td></tr><tr><td>Summa</td><td><b>${som(p.sum)}</b></td></tr><tr><td>To'lov usuli</td><td>${esc(p.how || "")}</td></tr>
     <tr><td>Sana</td><td>${fmt(p.d)}</td></tr>${p.note ? `<tr><td>Izoh</td><td>${esc(p.note)}</td></tr>` : ""}</table>
@@ -3489,7 +3520,7 @@ function grPay(P, mo) {
     ${gTable(["Guruh", "O'quvchi", "Hisoblangan", "To'langan", "Qoldiq", "Umumiy qarz"], rows.map((r) => `<tr><td><button class="link" data-gopen2="${r.ci}">${esc(label(r.c))}</button></td><td class="s">${r.n}</td><td class="s">${som(r.ch)}</td><td class="s">${som(r.pd)}</td><td class="s">${r.rest ? `<b>${som(r.rest)}</b>` : "✓"}</td><td class="s">${r.debt ? `<b class="warn">${som(r.debt)}</b>` : "—"}</td></tr>`),
       `<tr class="tot"><th>Jami</th><th class="s">${tot("n")}</th><th class="s">${som(tot("ch"))}</th><th class="s">${som(tot("pd"))}</th><th class="s">${som(tot("rest"))}</th><th class="s">${som(tot("debt"))}</th></tr>`)}
     <h3 style="margin:4px 0 0">Kelgan to'lovlar (${pays.length} ta)${byHow.length ? ` <span class="muted" style="font-weight:400">· ${byHow.map(([h, v]) => `${h}: ${som(v)}`).join(" · ")}</span>` : ""}</h3>
-    ${pays.length ? gTable(["№", "Sana", "O'quvchi", "Guruh", "Qaysi oy uchun", "Summa", "Usul"], pays.map(({ci, si, s, p}) => `<tr><td>${p.no || ""}</td><td>${fmt(p.d)}</td><td><button class="link" data-gst="${ci}|${si}">${esc(s.name)}</button></td><td>${esc(label(D.classes[ci]))}</td><td>${p.m ? monthName(p.m) : ""}</td><td class="s">${som(p.sum)}</td><td>${esc(p.how || "")}</td></tr>`))
+    ${pays.length ? gTable(["№", "Sana", "O'quvchi", "Guruh", "Qaysi oy uchun", "Summa", "Usul"], pays.map(({ci, si, s, p}) => `<tr><td>${esc(p.no || "")}</td><td>${fmt(p.d)}</td><td><button class="link" data-gst="${ci}|${si}">${esc(s.name)}</button></td><td>${esc(label(D.classes[ci]))}</td><td>${p.m ? monthName(p.m) : ""}</td><td class="s">${som(p.sum)}</td><td>${esc(p.how || "")}</td></tr>`))
       : `<div class="muted">Bu oyda to'lov yozilmagan.</div>`}`;
   const aoa = [[`To'lovlar · ${monthName(mo)}`], [], ["Guruh", "O'quvchi", "Hisoblangan", "To'langan", "Qoldiq", "Umumiy qarz"], ...rows.map((r) => [label(r.c), r.n, r.ch, r.pd, r.rest, r.debt]),
     [], ["№", "Sana", "O'quvchi", "Guruh", "Qaysi oy uchun", "Summa", "Usul"], ...pays.map(({ci, s, p}) => [p.no || "", fmt(p.d), s.name, label(D.classes[ci]), p.m ? monthName(p.m) : "", +p.sum || 0, p.how || ""])];
@@ -4251,13 +4282,13 @@ function pageSum(m) {
   else {
     const works = worksInQuarter(c, q), [cp] = readiness(c, q);
     const sb = works.filter((w) => w.type === "bsb").reduce((a, w) => a + +w.max, 0), sc = works.filter((w) => w.type !== "bsb").reduce((a, w) => a + +w.max, 0);
-    let head = `<tr><th class="nm">O'quvchi</th>${works.map((w) => `<th class="wk"><button class="wbtn ${w.type}" data-we="${w.id}" title="${esc(w.title || "")}">${w.type.toUpperCase()}<small>${fmt(w.date).slice(0, 5)} · /${fmtNum(w.max)}</small></button></th>`).join("")}
+    let head = `<tr><th class="nm">O'quvchi</th>${works.map((w) => `<th class="wk"><button class="wbtn ${esc(w.type)}" data-we="${esc(w.id)}" title="${esc(w.title || "")}">${w.type.toUpperCase()}<small>${fmt(w.date).slice(0, 5)} · /${fmtNum(w.max)}</small></button></th>`).join("")}
       <th>BSB<small>/${BSB_TOTAL}</small></th><th>CHSB<small>/${CHSB_TOTAL}</small></th><th title="Formativ baho: kundalik baholar o'rtachasi (kamida ${fbMin()} ta)">FB<small>/${FB_TOTAL}</small></th><th>Jami<small>/100</small></th><th>Tavsiya</th><th>Chorak<small>bahosi</small></th></tr>`;
     const body2 = c.students.map((s, si) => {
       const r = quarterResult(c, s, q, works), scs = s.scores || {};
       return `<tr><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>${works.map((w) => {
         const v = scs[w.id] ?? ""; const bad = isNum(v) && v > w.max, lt = isNum(v) && lateOf(s.marks[w.date]);
-        return `<td class="c"><input class="sc ${v === "" ? "" : isNum(v) ? "" : "ab"} ${bad ? "bad" : ""} ${lt ? "lt" : ""}" data-sc="${si}|${w.id}" value="${esc(isNum(v) ? fmtNum(v) + (lt ? " KQ" : "") : String(v).toUpperCase())}" inputmode="decimal" enterkeyhint="next" autocomplete="off"></td>`;
+        return `<td class="c"><input class="sc ${v === "" ? "" : isNum(v) ? "" : "ab"} ${bad ? "bad" : ""} ${lt ? "lt" : ""}" data-sc="${si}|${esc(w.id)}" value="${esc(isNum(v) ? fmtNum(v) + (lt ? " KQ" : "") : String(v).toUpperCase())}" inputmode="decimal" enterkeyhint="next" autocomplete="off"></td>`;
       }).join("")}
         <td class="s">${fmtNum(r.bsb)}</td><td class="s">${fmtNum(r.chsb)}</td><td class="s" title="${r.n_fb} ta baho${r.avg !== null ? ", o'rtacha " + r.avg.toFixed(2) : ""}">${r.n_fb >= fbMin() ? r.fb : `<span class="warn" title="Formativ baholar kam">${r.n_fb}/${fbMin()}</span>`}</td>
         <td class="s"><b>${fmtNum(r.total)}</b></td><td class="s">${r.grade ? g5pill(r.grade, "100–86 → 5, 85–66 → 4, 65–30 → 3, qolgani → 2") : `<span class="muted" title="${r.missing ? r.missing + " ta ball kiritilmagan" : "Maksimal ballar 50/40 emas"}">…</span>`}</td>
@@ -4574,7 +4605,7 @@ function pageBsb(m) {
     <div class="row" style="gap:8px">${jpSeg()}<span class="sp"></span>${sel}<button class="btn" data-bnew>＋ Yangi</button><button class="btn pri" data-bsave>💾 Saqlash</button>${B.id ? `<button class="btn" data-bdel title="O'chirish">🗑</button>` : ""}</div>
     <div class="card row bahd" style="gap:10px;align-items:flex-end">
       <label class="f sp" style="min-width:200px">Bo'lim / mavzu<input type="text" id="bt" value="${esc(B.title)}" placeholder="Masalan: «Kasrlar» bo'limi"></label>
-      <label class="f">Sana<input type="date" id="bdt" value="${B.date}"></label>
+      <label class="f">Sana<input type="date" id="bdt" value="${esc(B.date)}"></label>
       <label class="f" style="width:110px">Savollar soni<input type="number" id="bnq" min="1" max="30" value="${B.q}" inputmode="numeric"></label>
       <div class="muted" style="padding-bottom:10px">Maksimal ball: <b>${gnum(tot)}</b></div></div>
     <div class="row" style="gap:8px"><div class="seg"><button class="${tab === "tbl" ? "on" : ""}" data-btab="tbl">✎ Ballar jadvali</button><button class="${tab === "an" ? "on" : ""}" data-btab="an">🔍 Tahlil</button><button class="${tab === "er" ? "on" : ""}" data-btab="er">❌ Xatolar kesimi</button></div>
@@ -4842,7 +4873,7 @@ async function baTransfer(c, B) {
   const works = c.works.filter((w) => w.type === "bsb").sort((a, b) => a.date < b.date ? -1 : 1), tot = an.tot_max;
   const def = (works.find((w) => w.date === B.date) || {}).id || "";
   const wid = await modal(`<h2>Ballarni summativga o'tkazish</h2><div class="muted">Har bir o'quvchining jami bali qaysi BSB ishiga yozilsin?</div>
-    <label class="f">BSB ishi<select id="tw">${works.map((w) => `<option value="${w.id}" ${w.id === def ? "selected" : ""}>BSB · ${fmt(w.date)} · maks. ${fmtNum(w.max)}${w.title ? " · " + esc(w.title) : ""}</option>`).join("")}
+    <label class="f">BSB ishi<select id="tw">${works.map((w) => `<option value="${esc(w.id)}" ${w.id === def ? "selected" : ""}>BSB · ${fmt(w.date)} · maks. ${fmtNum(w.max)}${w.title ? " · " + esc(w.title) : ""}</option>`).join("")}
       <option value="" ${def ? "" : "selected"}>＋ Yangi BSB ishi (${fmt(B.date)}, maks. ${gnum(tot)})</option></select></label>
     <div class="muted" id="ti"></div>
     <div class="row"><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn pri" data-ok>O'tkazish</button></div>`, (mm, close) => {
@@ -5228,7 +5259,7 @@ function studentCard(ci, name, tab = "sum") {
       <div>S ${r.s} · DQ ${r.dq} · K ${r.k} · KQ ${r.kq}</div>
       ${s.bday ? `<div>🎂 Tug'ilgan kun: ${fmtBday(s.bday)}</div>` : ""}
       ${(() => { const ds = feat("debts") ? debtsOf(c, s, lo, hi).filter((d) => !d.done) : []; return ds.length ? `<div class="warn">📌 Qarzlar: ${esc(ds.map((d) => d.what).join("; "))}</div>` : ""; })()}
-      ${s.par ? `<div>👪 ${esc(s.par.name || "Ota-ona")}${s.par.phone ? ` · <a href="tel:${s.par.phone}">${fmtPhone(s.par.phone)}</a>` : ""}${s.par.tg ? ` · <a href="https://t.me/${s.par.tg}" target="_blank" rel="noopener">@${esc(s.par.tg)}</a>` : ""}</div>` : ""}
+      ${s.par ? `<div>👪 ${esc(s.par.name || "Ota-ona")}${s.par.phone ? ` · <a href="tel:${esc(s.par.phone)}">${fmtPhone(s.par.phone)}</a>` : ""}${s.par.tg ? ` · <a href="https://t.me/${esc(s.par.tg)}" target="_blank" rel="noopener">@${esc(s.par.tg)}</a>` : ""}</div>` : ""}
       ${(() => { const a = actStat(s, lo, hi); return (a.p || a.n) && feat("act") ? `<div>✋ Faollik (${per}): +${a.p}${a.n ? ` / −${a.n}` : ""}${a.x ? ` · ${a.x} ta baho qo'yilgan` : ""}${a.bank ? ` · to'plangan: ${a.bank}` : ""}</div>` : ""; })()}
       ${(() => { const h = hwStat(s, lo, hi); return h.n && feat("hw") ? `<div class="${h.no >= HW_WARN ? "warn" : ""}">🏠 Uy vazifasi (${per}): ${h.ok} / ${h.n} bajarilgan${h.no ? ` · ${h.no} marta bajarmagan` : ""}</div>` : ""; })()}
       ${r.why.length ? `<div class="warn">⚠ ${esc(r.why.join("; "))}</div>` : `<div class="ok">✓ Xavf belgilari yo'q</div>`}
@@ -5941,7 +5972,7 @@ function normPhone(t) {
   return d.length >= 10 && d.length <= 15 ? "+" + d : null;
 }
 const normTg = (t) => { const m = String(t || "").trim().match(/^(?:https?:\/\/)?(?:t\.me\/|@)?([A-Za-z][A-Za-z0-9_]{3,31})$/); return m ? m[1] : null; };
-const fmtPhone = (p) => /^\+998\d{9}$/.test(p) ? `+998 ${p.slice(4, 6)} ${p.slice(6, 9)}-${p.slice(9, 11)}-${p.slice(11)}` : p;
+const fmtPhone = (p) => /^\+998\d{9}$/.test(p) ? `+998 ${p.slice(4, 6)} ${p.slice(6, 9)}-${p.slice(9, 11)}-${p.slice(11)}` : esc(p);
 // shu ismli o'quvchiga barcha fan jurnallarida yozish
 function setStudentAll(name, key, v) {
   const k = normName(name);
@@ -5950,10 +5981,10 @@ function setStudentAll(name, key, v) {
 // xabar yuborish tugmalari: kontakt bo'lsa — to'g'ridan-to'g'ri o'sha odamga
 function contactBtns(s, text, i = "") {
   const p = s.par || {}, t = encodeURIComponent(text), out = [];
-  if (p.tg) out.push(`<a class="btn sm" data-ctg="${i}" target="_blank" rel="noopener" href="https://t.me/${p.tg}" title="Matn nusxalanadi — chatga qo'ying">✈️ @${esc(p.tg)}</a>`);
+  if (p.tg) out.push(`<a class="btn sm" data-ctg="${i}" target="_blank" rel="noopener" href="https://t.me/${esc(p.tg)}" title="Matn nusxalanadi — chatga qo'ying">✈️ @${esc(p.tg)}</a>`);
   else out.push(`<a class="btn sm" data-ptg="${i}" target="_blank" rel="noopener" href="https://t.me/share/url?url=%20&text=${t}">✈️ Telegram</a>`);
-  out.push(`<a class="btn sm" data-psms="${i}" href="sms:${p.phone || ""}?body=${t}">💬 SMS</a>`);
-  if (p.phone) out.push(`<a class="btn sm" data-pwa="${i}" target="_blank" rel="noopener" href="https://wa.me/${p.phone.slice(1)}?text=${t}">WhatsApp</a><a class="btn sm" href="tel:${p.phone}">📞</a>`);
+  out.push(`<a class="btn sm" data-psms="${i}" href="sms:${esc(p.phone || "")}?body=${t}">💬 SMS</a>`);
+  if (p.phone) out.push(`<a class="btn sm" data-pwa="${i}" target="_blank" rel="noopener" href="https://wa.me/${esc(p.phone.slice(1))}?text=${t}">WhatsApp</a><a class="btn sm" href="tel:${esc(p.phone)}">📞</a>`);
   return out.join("");
 }
 // matn o'zgarganda havolalarni yangilash; Telegram'ga (username) bosilganda matn nusxalanadi
