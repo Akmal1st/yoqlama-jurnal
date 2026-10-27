@@ -2391,13 +2391,14 @@ const kindTag = (c) => isGrp(c) ? `<span class="ktag ${c.kind}">${KINDS[c.kind][
 const som = (n) => `${String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ")} so'm`;
 const PAY_HOW = ["Naqd", "Karta", "Click", "Payme", "Bank"];
 const ACH_LVL = ["Maktab", "Tuman", "Shahar", "Viloyat", "Respublika", "Xalqaro"];
+const ACH_KIND = ["Musobaqa", "Sertifikat", "Ijodiy ish", "Faollik", "Boshqa"];
 const ACH_PL = ["1-o'rin", "2-o'rin", "3-o'rin", "Faxriy yorliq", "Ishtirok"];
 const monthOf = (d) => d.slice(0, 7);
 const monthName = (m) => `${MONTHS[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}`;
 const shiftMonth = (m, n) => iso(new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + n, 1)).slice(0, 7);
 function grpTabs(c) {
   return c.kind === "club" ? [["cards", "A'zolar"], ["j", "Darslar"], ["ach", "Yutuqlar"], ["mem", "Ro'yxat"]]
-    : c.kind === "paid" ? [["cards", "O'quvchilar"], ["j", "Darslar"], ["pay", "To'lovlar"], ["mem", "Ro'yxat"]] : null;
+    : c.kind === "paid" ? [["cards", "O'quvchilar"], ["j", "Darslar"], ["pay", "To'lovlar"], ["ach", "Yutuqlar"], ["mem", "Ro'yxat"]] : null;
 }
 // narx: har o'quvchi bilan kelishiladi — maktabda oylik, uyida kunlik (o'tilgan dars × narx)
 function planOf(c, s) { const p = s.plan || {}, t = p.t === "day" ? "day" : "month"; return {t, sum: +p.sum || +(c.fee || {})[t] || 0}; }
@@ -2505,18 +2506,20 @@ function pageAch(m) {
       <label class="f">A'zo<select id="aw">${c.students.map((s, si) => `<option value="${si}" ${S.achSel === si ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label>
       <label class="f">Sana<input type="date" id="ad" value="${todayIso()}"></label>
       <label class="f" style="flex:2 1 220px">Tanlov / musobaqa<input type="text" id="at" placeholder="Matematika olimpiadasi"></label>
+      <label class="f">Turi<select id="ak">${ACH_KIND.map((l) => `<option>${l}</option>`).join("")}</select></label>
       <label class="f">Daraja<select id="al">${ACH_LVL.map((l) => `<option>${l}</option>`).join("")}</select></label>
       <label class="f">Natija<select id="ap">${ACH_PL.map((l) => `<option>${l}</option>`).join("")}</select></label>
+      <label class="f" style="flex:2 1 220px">Izoh (ixtiyoriy)<input type="text" id="an" placeholder="Sertifikat raqami, ijodiy ish nomi…"></label>
       <button class="btn pri" data-adda ${c.students.length ? "" : "disabled"}>＋ Qo'shish</button></div></div>
     ${all.length ? `<div class="tiles"><div class="tile"><div>Jami</div><div>${all.length}</div></div>${by.map(([l, n]) => `<div class="tile"><div>${l}</div><div>${n}</div></div>`).join("")}</div>
-      <div class="tblwrap"><table class="r"><tr><th>Sana</th><th>A'zo</th><th>Tanlov</th><th>Daraja</th><th>Natija</th><th></th></tr>
-      ${all.map(({s, si, k, a}) => `<tr><td>${a.d ? fmt(a.d) : "—"}</td><td><button class="link" data-st="${si}">${esc(s.name)}</button></td><td>${esc(a.t)}</td><td>${esc(a.lvl)}</td><td>${esc(a.pl)}</td><td><button class="btn sm" data-dela="${si}|${k}" title="O'chirish">🗑</button></td></tr>`).join("")}</table></div>`
+      <div class="tblwrap"><table class="r"><tr><th>Sana</th><th>A'zo</th><th>Tanlov</th><th>Turi</th><th>Daraja</th><th>Natija</th><th>Izoh</th><th></th></tr>
+      ${all.map(({s, si, k, a}) => `<tr><td>${a.d ? fmt(a.d) : "—"}</td><td><button class="link" data-st="${si}">${esc(s.name)}</button></td><td>${esc(a.t)}</td><td>${esc(a.k || "—")}</td><td>${esc(a.lvl)}</td><td>${esc(a.pl)}</td><td>${esc(a.n || "")}</td><td><button class="btn sm" data-dela="${si}|${k}" title="O'chirish">🗑</button></td></tr>`).join("")}</table></div>`
       : `<div class="card muted">Hali yutuq yozilmagan. Tanlov, ko'rgazma yoki musobaqada qatnashgan a'zoni yuqorida qo'shing.</div>`}</div>`;
   bindJHead(m);
   m.querySelectorAll("[data-st]").forEach((b) => b.onclick = () => studentCard(S.ci, c.students[+b.dataset.st].name));
   const ad = $("[data-adda]", m); ad.onclick = () => {
     const t = $("#at", m).value.trim(); if (!t) { toast("Tanlov nomini yozing"); return; }
-    const s = c.students[+$("#aw", m).value]; (s.ach = s.ach || []).push({d: $("#ad", m).value, t, lvl: $("#al", m).value, pl: $("#ap", m).value});
+    const s = c.students[+$("#aw", m).value]; (s.ach = s.ach || []).push({d: $("#ad", m).value, t, k: $("#ak", m).value, lvl: $("#al", m).value, pl: $("#ap", m).value, n: $("#an", m).value.trim().slice(0, 200)});
     save(); render(); toast("Yutuq qo'shildi");
   };
   m.querySelectorAll("[data-dela]").forEach((b) => b.onclick = async () => {
@@ -2672,6 +2675,59 @@ function gHead(per, row2, tools) {
     <div class="row jr3">${jpSeg()}<span class="sp"></span>${per}${tools}</div></div>`;
 }
 // guruh ichi: har o'quvchi kartochkada — oy davomati, to'lov yoki yutuq holati, bugungi belgi
+/* Avtomatik tavsiyalar: davomat, faollik, qarz va yutuqlardan kelib chiqib o'qituvchiga ogohlantirishlar.
+   lv: 0 — jiddiy, 1 — e'tibor, 2 — ma'lumot, 3 — yaxshi xabar. Faqat belgilangan (✓/✗) darslar hisobga olinadi. */
+function grpInsights(c, t = todayIso(), lock = false) {
+  const held = c.dates.filter((d) => d <= t && !isNoLesson(c, d)), mo = monthOf(t), pm = shiftMonth(mo, -1), out = [];
+  const since = (n) => iso(addDays(pdate(t), -n));
+  c.students.forEach((s, si) => {
+    const mk = held.filter((d) => !preJoin(c, s, d) && (s.marks[d] === "ot" || s.marks[d] === "ox")).map((d) => [d, s.marks[d]]);
+    const add = (lv, txt) => out.push({lv, si, txt});
+    let streak = 0; for (let i = mk.length - 1; i >= 0 && mk[i][1] === "ox"; i--) streak++;
+    const miss30 = mk.filter(([d, v]) => v === "ox" && d >= since(30)).length;
+    if (streak >= 3) add(0, `${streak} ta dars ketma-ket qatnashmadi — ota-onasi bilan bog'laning`);
+    else if (miss30 >= 3) add(1, `so'nggi 30 kunda ${miss30} ta darsni qoldirdi`);
+    if (mk.length >= 8) {
+      const rate = (a) => a.filter(([, v]) => v === "ot").length / a.length, last = mk.slice(-4), prev = mk.slice(-8, -4);
+      if (rate(prev) - rate(last) >= 0.5) add(1, `faolligi pasaydi: avvalgi 4 darsda ${Math.round(100 * rate(prev))}% → oxirgi 4 darsda ${Math.round(100 * rate(last))}%`);
+    }
+    if (c.kind === "paid" && !lock) {
+      const dbt = debtOf(c, s, t); if (dbt > 0) add(1, `to'lov qarzi ${som(dbt)}`);
+    }
+    if (c.kind === "club") {
+      const a = (s.ach || []).map((x) => x.d || "").sort(), la = a[a.length - 1] || "";
+      if (la && la >= since(30)) add(3, `yaqinda yutuq qayd etilgan (${(s.ach || []).length} ta jami)`);
+      else if (mk.length >= 4 && (!la || la < since(90))) add(2, `so'nggi 3 oyda yutuq qayd etilmagan — musobaqa yoki ko'rgazmaga taklif qiling`);
+    }
+    const k1 = (s.skill || {})[mo], k0 = (s.skill || {})[pm];
+    if (k1 != null && k0 != null && k0 - k1 >= 2) add(1, `ko'nikma bahosi pasaydi: ${k0} → ${k1}`);
+  });
+  return out.sort((a, b) => a.lv - b.lv || a.si - b.si);
+}
+const INS_ICON = ["🔴", "🟠", "🔵", "🟢"];
+function insightsCard(c, lock) {
+  const L = grpInsights(c, todayIso(), lock); if (!L.length) return "";
+  const row = (x) => `<div class="row" style="gap:8px;flex-wrap:nowrap;align-items:flex-start"><span>${INS_ICON[x.lv]}</span><span><button class="link" data-st="${x.si}">${esc(c.students[x.si].name)}</button> — ${esc(x.txt)}</span></div>`;
+  return `<div class="card col" style="gap:8px"><h2>💡 Tavsiyalar</h2>${L.slice(0, 6).map(row).join("")}${L.length > 6 ? `<details><summary class="muted">Yana ${L.length - 6} ta</summary><div class="col" style="gap:8px;margin-top:8px">${L.slice(6).map(row).join("")}</div></details>` : ""}</div>`;
+}
+/* Tanlangan davr (sana oralig'i) bo'yicha kelgan kunlar va to'lov summasi: kunlik narx = kelgan kun × narx,
+   oylik narx = davrda dars o'tilgan har bir oy uchun bir marta. */
+function grpPeriod(c, s, a, b) {
+  const ds = c.dates.filter((d) => d >= a && d <= b && !isNoLesson(c, d) && !preJoin(c, s, d)), p = planOf(c, s);
+  const came = ds.filter((d) => s.marks[d] === "ot"), miss = ds.filter((d) => s.marks[d] === "ox");
+  const sum = p.t === "day" ? p.sum * came.length : p.sum * new Set(came.map(monthOf)).size;
+  return {came: came.length, miss: miss.length, none: ds.length - came.length - miss.length, sum};
+}
+function periodCard(c, lock) {
+  const t = todayIso(), P = S.gper = S.gper || {a: monthOf(t) + "-01", b: t}, paid = c.kind === "paid", money = paid && !lock;
+  const rows = c.students.map((s) => ({s, r: grpPeriod(c, s, P.a, P.b)}));
+  return `<details class="card" ${S.gperOpen ? "open" : ""}><summary><b>📅 Davr bo'yicha kelgan kunlar${paid ? " va to'lov" : ""}</b></summary>
+    <div class="col" style="gap:10px;margin-top:10px"><div class="row wrap" style="gap:10px"><label class="f">Dan<input type="date" id="gpa" value="${esc(P.a)}"></label><label class="f">Gacha<input type="date" id="gpb" value="${esc(P.b)}"></label></div>
+    <div class="tblwrap"><table class="r"><tr><th>${paid ? "O'quvchi" : "A'zo"}</th><th>Keldi</th><th>Kelmadi</th><th>Belgisiz</th>${money ? "<th>Hisoblangan</th>" : ""}</tr>
+    ${rows.map(({s, r}) => `<tr><td>${esc(s.name)}</td><td class="s">${r.came}</td><td class="s">${r.miss}</td><td class="s">${r.none}</td>${money ? `<td class="s">${som(r.sum)}</td>` : ""}</tr>`).join("")}
+    ${money ? `<tr><td><b>Jami</b></td><td></td><td></td><td></td><td class="s"><b>${som(rows.reduce((x, {r}) => x + r.sum, 0))}</b></td></tr>` : ""}</table></div>
+    <span class="muted">«Keldi» — dars o'tildi (✓) deb belgilangan kunlar${paid ? ". Kunlik narxda summa = kelgan kun × narx, oylikda — dars bo'lgan har oy uchun oylik narx" : ""}.</span></div></details>`;
+}
 function pageCards(m) {
   const c = D.classes[S.ci], t = todayIso(), mo = S.pm = S.pm || monthOf(t), paid = c.kind === "paid", lk = paid && moneyLocked();
   const ds = c.dates.filter((d) => d.startsWith(mo) && !isNoLesson(c, d)), tOk = c.dates.includes(t) && !isNoLesson(c, t) && canEdit(t);
@@ -2682,6 +2738,7 @@ function pageCards(m) {
     if (paid) {
       const ch = chargeOf(c, s, mo, t), pd = paidIn(s, mo), dbt = debtOf(c, s, t);
       badge = lk ? `<span class="gpay">🔒</span>` : ch && pd >= ch ? `<span class="gpay ok">✓ ${MONTHS[+mo.slice(5) - 1]} to'langan</span>` : dbt > 0 ? `<span class="gpay no">Qarz: ${som(dbt)}</span>` : pd ? `<span class="gpay ok">✓ ${som(pd)} to'langan</span>` : `<span class="gpay">To'lov yo'q</span>`;
+      if ((s.ach || []).length) badge += `<span class="gpay ok">🏆 ${(s.ach || []).length}</span>`;
       acts = `<button class="btn sm" data-cpay="${si}">＋ To'lov</button>${!lk && dbt > 0 ? `<button class="btn sm" data-crem="${si}" title="Ota-onaga eslatma" aria-label="Ota-onaga eslatma">✉</button>` : ""}`;
     } else {
       const sk = (s.skill || {})[mo], n = (s.ach || []).length;
@@ -2697,7 +2754,7 @@ function pageCards(m) {
   }).join("");
   m.innerHTML = `<div class="col" style="gap:14px">
     ${jHead(`<div class="pernav"><button class="btn sm" data-pm="-1" aria-label="Oldingi oy">‹</button><span class="perbtn" style="cursor:default"><h2>${monthName(mo)}</h2></span><button class="btn sm" data-pm="1" aria-label="Keyingi oy">›</button>${mo !== monthOf(t) ? `<button class="btn sm today" data-pm="0">Shu oy</button>` : ""}</div>`, "", `<button class="btn" data-addm>＋ ${paid ? "O'quvchi" : "A'zo"}</button>`)}
-    ${c.students.length ? `<div class="mgrid2">${cards}</div><p class="muted" style="margin:0">Nuqtalar — ${MONTHS_GEN[+mo.slice(5) - 1]} darslari (o'quvchi qo'shilgan kundan): yashil — dars o'tildi, qizil — o'tilmadi, bo'sh — hali bo'lmagan yoki belgilanmagan.${tOk ? " Bugungi tugma: bir bosish — o'tildi, ikki — o'tilmadi, uch — belgisiz." : ""}</p>`
+    ${c.students.length ? insightsCard(c, lk) + `<div class="mgrid2">${cards}</div>${periodCard(c, lk)}<p class="muted" style="margin:0">Nuqtalar — ${MONTHS_GEN[+mo.slice(5) - 1]} darslari (o'quvchi qo'shilgan kundan): yashil — dars o'tildi, qizil — o'tilmadi, bo'sh — hali bo'lmagan yoki belgilanmagan.${tOk ? " Bugungi tugma: bir bosish — o'tildi, ikki — o'tilmadi, uch — belgisiz." : ""}</p>`
       : `<div class="card muted">Hali ${paid ? "o'quvchi" : "a'zo"} yo'q. «＋ ${paid ? "O'quvchi" : "A'zo"}» tugmasini bosing.</div>`}</div>`;
   bindJHead(m);
   m.querySelectorAll("[data-pm]").forEach((b) => b.onclick = () => { const n = +b.dataset.pm; S.pm = n ? shiftMonth(mo, n) : monthOf(t); render(); });
@@ -2709,6 +2766,8 @@ function pageCards(m) {
     const si = +b.dataset.tog, old = c.students[si].marks[t] || "", y = window.scrollY;
     if (putMark(c, si, t, old === "ot" ? "ox" : old === "ox" ? "" : "ot")) { save(); render(); window.scrollTo(0, y); }
   });
+  const ga = $("#gpa", m), gb = $("#gpb", m);
+  if (ga && gb) { const ch = () => { if (ISO_D.test(ga.value) && ISO_D.test(gb.value)) { S.gper = {a: ga.value, b: gb.value}; S.gperOpen = true; render(); } }; ga.onchange = gb.onchange = ch; }
   $("[data-addm]", m).onclick = () => addMembers(S.ci);
 }
 function pageJournal(m) {
