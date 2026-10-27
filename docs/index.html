@@ -11,6 +11,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Yo'qlama jurnali</title>
+<link rel="stylesheet" href="vendor/bootstrap-scoped-5.3.3.css">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
@@ -1482,13 +1483,14 @@ function pageToday(m) {
     const w = c.works.find((x) => x.date === t), topic = (c.lessons[t] || {}).topic;
     const prev = c.dates.filter((d) => d < t && !isNoLesson(c, d)).pop(), phw = prev && c.lessons[prev] && c.lessons[prev].hw;
     const note = w ? `Bugun ${w.type.toUpperCase()}${w.max ? ` (${w.max} ball)` : ""} — natijalarni kiritish` : topic ? `Mavzu: ${esc(topic)}` : "Mavzu kiritilmagan";
-    return `<article class="card ${done ? "" : "hot"} col" style="${ccOf(ci)}"><div class="row"><span class="tag">${tag}</span>${live}<span class="sp"></span>
-      <span class="${done ? "ok" : "warn"}">${done ? `${isGrp(c) ? "Belgilandi" : "Yo'qlama"} ✓ · ${n} belgi` : isGrp(c) ? "Dars belgilanmagan" : "Yo'qlama qilinmagan"}</span></div>
-      <div class="big">${esc(c.name)}</div><div class="muted">${esc(c.subject || "Fan ko'rsatilmagan")} · ${c.students.length} o'quvchi</div>
-      <div>${note}</div>${phw ? `<div class="muted">🏠 Uyga berilgan (${fmt(prev).slice(0, 5)}): ${esc(phw)}</div>` : ""}<div class="sp"></div>
-      ${done ? `<button class="btn" data-open="${ci}">Jurnalni ochish</button>` : `<div class="row wrap" style="gap:8px"><button class="btn pri" data-start="${ci}">▶ Darsni boshlash</button><button class="btn" data-allok="${ci}" title="${isGrp(c) ? "Hammaga «dars o'tildi»" : "Hech kim qoldirmagan bo'lsa — bitta bosishda yo'qlama tugaydi"}">${isGrp(c) ? "✓ Hammaga o'tildi" : "✓ Hamma keldi"}</button></div>`}</article>`;
-  }).join("") : `<article class="card col"><b>Bugun jadvalda dars yo'q</b><div class="muted">Kerak bo'lsa, istalgan sinf jurnalini ochib baho qo'yishingiz mumkin.</div>
-      <div><button class="btn" data-go2="journal">Jurnalni ochish</button></div></article>`;
+    const stat = done ? `${isGrp(c) ? "Belgilandi" : "Yo'qlama"} ✓ · ${n} belgi` : isGrp(c) ? "Dars belgilanmagan" : "Yo'qlama qilinmagan";
+    return `<div class="col-12 col-md-6 col-xl-4"><article class="card h-100 shadow-sm ${done ? "" : "border-primary border-2"}"><div class="card-body d-flex flex-column gap-1">
+      <div class="d-flex align-items-center gap-1 flex-wrap"><span class="tag">${tag}</span>${live}<span class="ms-auto small fw-semibold ${done ? "ok" : "warn"}">${stat}</span></div>
+      <div class="big">${esc(c.name)}</div><div class="text-body-secondary small">${esc(c.subject || "Fan ko'rsatilmagan")} · ${c.students.length} o'quvchi</div>
+      <div>${note}</div>${phw ? `<div class="text-body-secondary small">🏠 Uyga berilgan (${fmt(prev).slice(0, 5)}): ${esc(phw)}</div>` : ""}
+      <div class="mt-auto pt-2 d-flex flex-wrap gap-2">${done ? `<button class="btn btn-outline-secondary" data-open="${ci}">Jurnalni ochish</button>` : `<button class="btn btn-primary" data-start="${ci}">▶ Darsni boshlash</button><button class="btn btn-outline-secondary" data-allok="${ci}" title="${isGrp(c) ? "Hammaga «dars o'tildi»" : "Hech kim qoldirmagan bo'lsa — bitta bosishda yo'qlama tugaydi"}">${isGrp(c) ? "✓ Hammaga o'tildi" : "✓ Hamma keldi"}</button>`}</div></div></article></div>`;
+  }).join("") : `<div class="col-12"><article class="card"><div class="card-body d-flex flex-column gap-2"><b>Bugun jadvalda dars yo'q</b><div class="text-body-secondary">Kerak bo'lsa, istalgan sinf jurnalini ochib baho qo'yishingiz mumkin.</div>
+      <div><button class="btn btn-outline-secondary" data-go2="journal">Jurnalni ochish</button></div></div></article></div>`;
   m.innerHTML = `<div class="col" style="gap:18px">
     <header class="row"><div class="col" style="gap:4px;flex:1 1 300px"><span class="muted">${sub}</span>
       <h1>${hello} ${L.length ? `Bugun ${L.length} ta darsingiz bor` : "Bugun darsingiz yo'q"}</h1></div>
@@ -1499,7 +1501,7 @@ function pageToday(m) {
     ${(() => { const a = backupAge(), t = tgAge(); return (a === null || a > 7) && (t === null || t > 7) ? `<div class="card row"><span class="sp">💾 ${a === null ? "Ma'lumotlar hali faylga saqlanmagan." : `Oxirgi zaxira ${a} kun oldin olingan.`} Brauzer tozalansa, ma'lumot yo'qolishi mumkin — faylga saqlab qo'ying.</span><button class="btn pri" data-backup2>Saqlash</button></div>` : ""; })()}
     ${(() => { const b = feat("bday") ? birthdays(0) : []; return b.length ? `<div class="card row bday"><span style="font-size:28px">🎂</span><span class="sp">Bugun tug'ilgan kun: ${b.map((x) => `<button class="link" data-stud="${x.ci}|${esc(x.s.name)}"><b>${esc(x.s.name)}</b></button> (${esc(D.classes[x.ci].name)}${x.age ? `, ${x.age} yosh` : ""})`).join(", ")}. Tabriklashni unutmang!</span></div>` : ""; })()}
     <div id="found"></div>
-    <section class="grid lessons">${cards}</section>
+    <section class="bs"><div class="row g-3">${cards}</div></section>
     <div class="tgrid">${payCard()}
 ${(() => { const qe = feat("qend") && quarterEnd(); if (!qe) return "";
       const rows = D.classes.map((c, ci) => ({c, ci, g: quarterGaps(c, qe.q)})).filter((x) => !isGrp(x.c) && (x.g.low.length || x.g.noScore.length));
