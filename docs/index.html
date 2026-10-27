@@ -139,7 +139,7 @@ const STYLES = {
     .cell{height:48px;min-width:50px;font-size:18px;border:1px solid var(--line)}.key{min-width:54px;height:52px;font-size:19px}.chip{min-height:46px;font-size:16px}
     .da,.dg{min-width:50px;height:50px;font-size:18px;border:2px solid var(--line)}.dg{width:50px}.da.on,.dg.on{outline:3px solid var(--text);outline-offset:1px}
     .drow{flex-wrap:wrap;row-gap:8px;padding:10px 0}.dgr{flex:1 1 100%;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;background:transparent;padding:0}.dgr .dg{width:100%;max-width:64px;height:auto;aspect-ratio:1;justify-self:start}
-    table.r td,table.r th{padding:12px 10px;font-size:17px}table.r th,table.j th{border-bottom:2px solid var(--line)}.toast{font-size:17px;padding:14px 22px}
+    table.r{--tpy:12px;--tpx:10px}table.r td,table.r th{padding:12px 10px;font-size:17px}table.r th,table.j th{border-bottom:2px solid var(--line)}.toast{font-size:17px;padding:14px 22px}
     .tabbar .nav{font-size:12.5px;min-height:60px}.tabbar .nav svg{width:26px;height:26px}main{padding:22px 30px 40px}@media (max-width:820px){main{padding:14px 12px 110px}h1{font-size:24px}}`, "12px"],
   zich: ["Ixcham, zich jadval", "Ko'p o'quvchi, baho va davomat bir ekranda: kichik katak va tugmalar, zich qatorlar",
     "--win:#f3f4f6;--base:#ffffff;--alt:#f7f8fa;--soft:#eceef2;--line:#dcdfe5;--text:#141922;--muted:#5d6675;--acc:#0b6f79;--acc-d:#08525a;--acc-fg:#ffffff;--acc-soft:#e1efee;--side-bg:#fbfbfc;--side-fg:#1b212b;--side-mut:#6b7380;--sh:0 1px 2px rgba(16,24,40,.05);--sh-lg:0 12px 32px -12px rgba(16,24,40,.25);--today:#e9a23b;--today-cell:#fdf3d4;",
@@ -148,7 +148,7 @@ const STYLES = {
       .btn{min-height:28px;padding:0 9px;font-size:12.5px}.btn.btn-sm{min-height:26px;padding:0 8px;font-size:12px}.chip{min-height:26px;font-size:12.5px}
       input[type=text],input[type=search],input[type=tel],input[type=date],input[type=password],input[type=number],select,textarea{min-height:28px;padding:3px 8px;font-size:13px}
       table.j{border-spacing:1px;font-size:12px}.cell{height:24px;min-width:26px;font-size:12px;border-radius:4px}.keys .key{min-width:30px;height:28px;font-size:13px}
-      table.r td,table.r th{padding:4px 6px;font-size:12.5px}.drow{padding:2px 0;gap:6px}.dn{font-size:13px}.da{min-width:30px;height:26px;font-size:12px;border-radius:5px}.dg{width:26px;height:26px;font-size:12px}.datt,.dgr{gap:2px}
+      table.r{--tpy:5px;--tpx:8px}table.r td,table.r th{padding:5px 8px;font-size:12.5px}.drow{padding:2px 0;gap:6px}.dn{font-size:13px}.da{min-width:30px;height:26px;font-size:12px;border-radius:5px}.dg{width:26px;height:26px;font-size:12px}.datt,.dgr{gap:2px}
       .side .nav{padding:6px 10px;font-size:13.5px}.tblwrap{max-height:calc(100vh - 150px)}}
       @media (max-width:820px){body{font-size:14px}.btn{min-height:38px}.cell{height:32px}.drow{padding:3px 0}.da{height:30px}.dgr{padding:3px 2px}}`, "8px"]};
 // «Rangli sinflar» uslubi uchun sinf ranglari (har sinf o'z rangida)
@@ -2454,6 +2454,12 @@ async function startLesson(ci) {
 const OPTS = [["", "Keldi", "#0b6f79", "✓"], ["s", "Sababsiz", "#c62828", "S"], ["dq", "Sababli", "#1565c0", "DQ"], ["k", "Kasal", "#7b1fa2", "K"], ["kq", "Kech qoldi", "#6d4c41", "KQ"]];
 const GOPTS = [["ot", "O'tildi", "#2e7d32", "✓"], ["ox", "O'tilmadi", "#c62828", "✗"]];
 function attOf(c, si) { const a = attPart(c.students[si].marks[todayIso()] || ""); return (isGrp(c) ? GRP_KEYS : ATT).includes(a) ? a : ""; }
+// Sinfning kamida GRADED_MIN foizi baholanganmi: (baholangan / jami) * 100 >= 30 — butun sonlar bilan, qoldiqsiz taqqoslanadi
+const GRADED_MIN = 30;
+function gradedShare(c, d, min = GRADED_MIN) {
+  const total = c.students.length, graded = c.students.filter((x) => gradesOf(x.marks[d] || "").length).length;
+  return {total, graded, pct: total ? Math.round(1000 * graded / total) / 10 : 0, need: Math.ceil(total * min / 100), ok: total > 0 && graded * 100 >= min * total};
+}
 function pageLesson(m) {
   const c = D.classes[S.lesson], t = todayIso(), les = c.lessons[t] || {};
   const n = c.students.length, absent = c.students.filter((_, i) => ["s", "dq", "k", "ox"].includes(attOf(c, i))).length;
@@ -2510,6 +2516,7 @@ function pageLesson(m) {
     (actOn ? `<p class="muted" style="margin:6px 0">✋ Baho qo'ymasdan faollikni belgilash: «+» yoki «−» (adashsangiz, o'rtadagi sonni bosing — bugungisi tozalanadi). ${ACT_N} ta «+» to'planganda ism yonida «⭐ baho» tugmasi chiqadi.</p>` : "") +
     `<div class="hrow"><h1 class="sp">Baholar (ixtiyoriy)</h1><div class="seg"><button class="${S.two ? "" : "on"}" data-two="0">Bitta baho</button><button class="${S.two ? "on" : ""}" data-two="1">Ikkita baho</button></div></div>
       ${Object.keys(lowN).length ? `<p class="warn" style="margin:6px 0">📋 Chorak tugashiga ${qe.left} kun qoldi: ${Object.keys(lowN).length} o'quvchida baho kam («baho kam» belgisi) — imkon bo'lsa, ulardan so'rang.</p>` : ""}
+      ${(() => { const g = gradedShare(c, t); return `<p class="${g.ok ? "ok" : "warn"}" style="margin:6px 0">${g.ok ? "✓" : "⚠"} Baholangan: ${g.graded} / ${g.total} (${g.pct}%) — kamida ${GRADED_MIN}% (${g.need} ta o'quvchi) baholanishi kerak${g.ok ? "" : `; yana ${g.need - g.graded} ta kerak`}.</p>`; })()}
       <p class="muted" style="margin:6px 0">Kimdan so'ragan bo'lsangiz — bahosini bosing. Qayta bosilsa o'chadi.${S.two ? " «Ikkita baho» rejimida ikkinchi bosilgan baho qo'shiladi (masalan 8/9)." : ""}</p>
       <div class="card" style="padding:4px 14px">${c.students.map((s, si) => {
         const a = attOf(c, si), ab = ["s", "dq", "k"].includes(a), gs = gradesOf(s.marks[t] || "");
@@ -2528,7 +2535,7 @@ function pageLesson(m) {
     ${sw ? `<p class="warn" style="margin:0">📝 Bugun ${sumTag(sw)}${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars bahosi qo'yilmaydi — faqat yo'qlama. Ballar «BSB / CHSB» sahifasida.</p>` : ""}
     ${(() => { const b = feat("bday") ? birthdays(0).filter((x) => x.ci === S.lesson) : []; return b.length ? `<div class="card hrow bday" style="padding:10px 14px">🎂 Bugun tug'ilgan kun: <b>${b.map((x) => esc(x.s.name)).join(", ")}</b></div>` : ""; })()}
     ${!grp && (feat("call") || feat("groups")) ? `<div class="hrow wrap" style="gap:8px">${feat("call") ? `<button class="btn btn-sm" data-call>🎲 Doskaga chaqirish</button>` : ""}${feat("groups") ? `<button class="btn btn-sm" data-grp>👥 Guruhlarga bo'lish</button>` : ""}</div>` : ""}${body}
-    <div class="foot"><span class="muted sp">${grp ? `O'tildi: ${c.students.filter((x) => x.marks[t] === "ot").length} · o'tilmadi: ${absent}` : `Kelmagan: ${absent} · kech qolgan: ${late} · baho qo'yilgan: ${graded}`}${(() => { const no = c.students.filter((x) => x.hwd && x.hwd[t] === 0).length; return no ? ` · UV bajarmagan: ${no}` : ""; })()}</span>
+    <div class="foot"><span class="muted sp">${grp ? `O'tildi: ${c.students.filter((x) => x.marks[t] === "ot").length} · o'tilmadi: ${absent}` : `Kelmagan: ${absent} · kech qolgan: ${late} · baho qo'yilgan: ${graded}${noGr ? "" : ` (${gradedShare(c, t).pct}% ${gradedShare(c, t).ok ? "✓" : "⚠"})`}`}${(() => { const no = c.students.filter((x) => x.hwd && x.hwd[t] === 0).length; return no ? ` · UV bajarmagan: ${no}` : ""; })()}</span>
       ${S.step ? `<button class="btn" data-back>‹ Orqaga</button>` : ""}<button class="btn btn-primary" data-next>${[grp ? "Saqlash va mavzuga o'tish ›" : "Saqlash va baholarga o'tish ›", "Keyingi: mavzu ›", "✓ Darsni yakunlash"][S.step]}</button></div></div>`;
   const keepY = () => { const y = window.scrollY; render(); window.scrollTo(0, y); };
   m.querySelectorAll("[data-step]").forEach((b) => b.onclick = () => { saveTopic(); S.step = +b.dataset.step; render(); });
@@ -2575,9 +2582,11 @@ function pageLesson(m) {
   const cl = $("[data-call]", m); if (cl) cl.onclick = () => { saveTopic(); callDialog(S.lesson); };
   const gp = $("[data-grp]", m); if (gp) gp.onclick = () => { saveTopic(); groupsDialog(S.lesson); };
   const bk = $("[data-back]", m); if (bk) bk.onclick = () => { saveTopic(); S.step = noGr && S.step === 2 ? 0 : S.step - 1; render(); };
-  $("[data-next]", m).onclick = () => {
+  $("[data-next]", m).onclick = async () => {
     saveTopic();
     if (S.step < 2) { S.step = noGr ? 2 : S.step + 1; render(); window.scrollTo(0, 0); return; }
+    const g = gradedShare(c, t);
+    if (!noGr && !g.ok && !await confirmBox("Baholar kam", `Sinfning ${GRADED_MIN}% idan kami baholangan: ${g.graded} / ${g.total} (${g.pct}%). Kamida ${g.need} ta o'quvchi baholanishi kerak edi.\n\nBaribir darsni yakunlaymizmi?`, "Baribir yakunlash")) return;
     allDone(c, t); save();
     toast(`${label(c)}: ${fmt(t)} darsi saqlandi — ${grp ? "belgilar tasdiqlandi" : "davomat tasdiqlandi"}`); S.ci = S.lesson; go("journal"); scrollToday();
   };

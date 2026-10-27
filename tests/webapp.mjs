@@ -25,7 +25,7 @@ export function loadApp(today) {
   vm.runInContext(src + `
     ;globalThis.__app = {setData: (x) => { D = normalize(x); }, get D() { return D; }, grade5, parseMark, parseScore, parsePlanText,
       emaktabSheet, bsbStats, bsbRecs, worksInQuarter, quarterResult, yearResult, readiness, reportRows, periodNow, label,
-      compareRows, compareTotal, sumData, ledgerOf, finOf, grpMonths, gYear, gHeld, gMon, grpAtt, svcOf, finCfg};`, ctx);
+      compareRows, compareTotal, sumData, ledgerOf, finOf, grpMonths, gYear, gHeld, gMon, grpAtt, svcOf, finCfg, gradedShare};`, ctx);
   return ctx.__app;
 }
 
