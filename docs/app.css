@@ -755,3 +755,11 @@ body.pmeas .pfit table.r{font-size:11pt}body.pmeas .pfit table.r th,body.pmeas .
 .bs .card.border-primary{border-color:var(--acc)!important}
 .bs .row{gap:0;align-items:normal}
 .text-body-secondary{color:var(--muted)!important}
+/* Formalar va jadvallar: Bootstrap .form-control / .table ilovaning mavjud ko'rinishini o'zgartirmasin */
+.form-control{font:inherit;line-height:inherit;color:var(--text);background-color:var(--base);border-color:var(--line)}
+.form-control:focus{color:var(--text);background-color:var(--base);border-color:var(--line);box-shadow:none}
+.form-control::placeholder{color:var(--muted);opacity:.8}
+.form-control:disabled{background-color:var(--alt);opacity:.7}
+.table{--bs-table-bg:transparent;--bs-table-color:var(--text);--bs-table-border-color:var(--soft);--bs-table-accent-bg:transparent;margin-bottom:0;vertical-align:middle;caption-side:top}
+.table>thead{vertical-align:middle}
+.table>:not(caption)>*>*{box-shadow:none;background-color:transparent;padding:8px 8px}
