@@ -1724,12 +1724,12 @@ test("Sozlamalar: bo'limlar guruhlangan, kalitlar holatni ko'rsatadi, telefonda 
     assert.ok(same);
     // sinf qatori: xavfli amal ko'rinmaydi, tugmalar bitta qatorga sig'adi; o'chirish «⋯» menyusida, alohida ajratilgan
     await page.evaluate(() => { S.sec = 0; go("settings"); });
-    assert.equal(await page.locator(".scls .sact .btn.danger").count(), 0, "o'chirish tugmasi qatorda turmasin");
+    assert.equal(await page.locator(".scls .sact .btn.btn-outline-danger").count(), 0, "o'chirish tugmasi qatorda turmasin");
     const oneLine = await page.evaluate(() => { const bs = [...$(".scls").querySelectorAll(".sact .btn")]; return bs.length === 3 && new Set(bs.map((b) => Math.round(b.getBoundingClientRect().top))).size === 1; });
     assert.ok(oneLine, "sinf qatoridagi tugmalar bitta qatorda bo'lsin");
     await page.click('[data-a=cmore][data-i="0"]');
     await page.waitForSelector(".modal .mdang");
-    assert.equal(await page.locator(".modal .mgrid .btn.danger").count(), 0);
+    assert.equal(await page.locator(".modal .mgrid .btn.btn-outline-danger").count(), 0);
     assert.match(await page.textContent(".modal .mdang"), /Sinfni o'chirish/);
     await page.click(".modal [data-x]");
     assert.deepEqual(errors, []);
