@@ -760,3 +760,15 @@ body.pmeas .pfit table.r{font-size:11pt}body.pmeas .pfit table.r th,body.pmeas .
 .table{--bs-table-bg:transparent;--bs-table-color:var(--text);--bs-table-border-color:var(--soft);--bs-table-accent-bg:transparent;margin-bottom:0;vertical-align:middle;caption-side:top}
 .table>thead{vertical-align:middle}
 .table>:not(caption)>*>*{box-shadow:none;background-color:transparent;padding:8px 8px}
+/* jadvallar: matn chegaraga yopishmasligi uchun ichki masofa (faqat ekranda; chop etish o'lchamlari o'zgarmaydi) */
+@media screen{
+table.r{--tpy:11px;--tpx:14px}
+table.r th,table.r td{padding:var(--tpy,11px) var(--tpx,14px);line-height:1.45;vertical-align:middle}
+table.r th{padding-top:calc(var(--tpy,11px) + 2px);padding-bottom:calc(var(--tpy,11px) + 2px);white-space:nowrap}
+table.r td:first-child,table.r th:first-child{padding-left:calc(var(--tpx,14px) + 4px)}
+table.r td:last-child,table.r th:last-child{padding-right:calc(var(--tpx,14px) + 4px)}
+table.r tbody tr:last-child td{border-bottom:0}
+table.gdays th,table.gdays td{padding:10px 10px}
+table.gdays th.d,table.gdays td.gc,table.gdays th.gc{padding:7px 3px}
+table.attm th,table.attm td{padding:6px 7px}table.attm td.ac{padding:6px 2px}
+}

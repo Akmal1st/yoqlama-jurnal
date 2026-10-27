@@ -2080,3 +2080,30 @@ test("Guruhlar: tavsiyalar, davr bo'yicha kelgan kunlar va yutuqlar (pullik guru
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Dars: 30% dan kam baholangan bo'lsa ogohlantiradi, yetarli bo'lsa to'xtatmaydi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => { const c = D.classes[0], t = todayIso(); c.students.forEach((s) => { delete s.marks[t]; }); delete c.sumdays; S.ci = 0; S.lesson = 0; S.step = 1; go("lesson"); });
+    await page.waitForSelector("[data-step]");
+    await page.click("[data-step='1']");
+    assert.ok((await page.textContent("main")).includes("⚠ Baholangan: 0 /"), "0% — ogohlantirish");
+    await page.click("[data-next]"); await page.click("[data-next]");
+    await page.waitForSelector(".modal");
+    assert.ok((await page.textContent(".modal")).includes("Baholar kam"));
+    await page.click(".modal [data-x]");
+    assert.equal(await page.evaluate(() => S.page), "lesson", "Bekor qilindi — dars yakunlanmadi");
+    // 30% baholash — to'xtatmaydi
+    await page.evaluate(() => { const c = D.classes[0], t = todayIso(), k = Math.ceil(c.students.length * 0.3); c.students.slice(0, k).forEach((s) => { s.marks[t] = "8"; }); });
+    assert.equal(await page.evaluate(() => gradedShare(D.classes[0], todayIso()).ok), true);
+    await page.click("[data-next]");
+    assert.equal(await page.$(".modal"), null);
+    assert.equal(await page.evaluate(() => S.page), "journal");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});

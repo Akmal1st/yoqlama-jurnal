@@ -69,3 +69,14 @@ test("Hisobotlar: solishtirish, ishlar, to'lish, hisob daftari, moliya = hisobot
   const H = JSON.parse(read("fixtures/hisobot.json")), G = JSON.parse(read("hisobot_golden.json"));
   assert.deepEqual(norm(hisobotWeb(loadApp(G.today), H)), G);
 });
+
+test("Baholanganlar ulushi: kamida 30% (baholangan / jami * 100 >= 30)", () => {
+  const mk = (n, g) => ({students: Array.from({length: n}, (_, i) => ({marks: i < g ? {"2026-01-01": "8"} : {"2026-01-01": i % 2 ? "s" : ""}}))});
+  const r = (n, g) => { const x = A.gradedShare(mk(n, g), "2026-01-01"); return [x.ok, x.pct, x.need]; };
+  assert.deepEqual(r(10, 3), [true, 30, 3]);
+  assert.deepEqual(r(10, 2), [false, 20, 3]);
+  assert.deepEqual(r(25, 8), [true, 32, 8]);
+  assert.deepEqual(r(25, 7), [false, 28, 8]);
+  assert.deepEqual(r(3, 1), [true, 33.3, 1]);
+  assert.deepEqual(r(0, 0), [false, 0, 0]);
+});
