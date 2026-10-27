@@ -646,16 +646,18 @@ body.ixcham{--side:204px}
 .dn .sn{display:none}
 .datt,.dgr{display:flex;gap:3px;flex:none}
 .datt{padding-right:10px;border-right:1px solid var(--line)}
-.da,.dg{height:34px;border:1px solid var(--line);border-radius:9px;background:transparent;color:var(--muted);font-weight:800;padding:0;transition:border-color .1s}
-.da{min-width:36px;font-size:13px}.dg{width:29px;font-size:14px}
+.da,.dg{height:34px;border:1px solid var(--line);background:transparent;color:var(--muted);font-weight:800;padding:0;transition:border-color .1s}
+.da{min-width:36px;font-size:13px;border-radius:7px;border-bottom:3px solid var(--c,var(--line));background:color-mix(in srgb,var(--c,transparent) 14%,transparent);color:var(--text)}
+.dg{width:30px;height:30px;font-size:14px;border-radius:50%;align-self:center;border-style:dashed}
 .da:hover,.dg:hover{border-color:var(--acc);color:var(--text)}
-.dg.on,.da.on{color:#12303a}
+.dg:hover{background:color-mix(in srgb,var(--c,transparent) 25%,transparent)}
+.dg.on,.da.on{color:#12303a;border-style:solid}
 .dlist.ro .da,.dlist.ro .dg{opacity:.55;cursor:not-allowed}
 @container (max-width:625px){
   .drow{flex-wrap:wrap;row-gap:6px}
   .datt{border-right:0;padding-right:0}
-  .dgr{flex:1 1 100%;display:grid;grid-template-columns:repeat(10,minmax(0,1fr))}
-  .dg{width:auto}
+  .dgr{flex:1 1 100%;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));background:var(--alt);border-radius:12px;padding:5px 4px;gap:2px}
+  .dg{width:100%;max-width:32px;height:auto;aspect-ratio:1;justify-self:center}
 }
 .dinfo{display:flex;flex-direction:column;gap:12px;position:sticky;top:12px}
 .dinfo .card{padding:14px;gap:8px}
@@ -671,7 +673,7 @@ body.ixcham{--side:204px}
   .dday.ok i{background:var(--ok)}.dday.half i{background:var(--today)}
   .dlist{padding:2px 10px}
   .dn .fn{display:none}.dn .sn{display:inline}
-  .da{min-width:36px;height:32px;font-size:12px}.dg{height:32px;font-size:13px}
+  .da{min-width:36px;height:32px;font-size:12px}.dg{font-size:13px}
   .dstats{grid-template-columns:repeat(4,1fr)}.dstats b{font-size:18px}
 }
 /* kataklar: bo'shi ham aniq ko'rinsin, hammasi bir xil o'lchamda, yozuv katakdan chiqmasin */
@@ -2884,7 +2886,7 @@ function pageDay(m) {
   const [plo, phi, pq] = periodNow(), pr = reportRows(c, plo, phi, pq).rows, order = S.jord = jOrder(c, pr);
   const sw = sumOn(c, d), grp = isGrp(c), risk = new Set(grp ? [] : pr.filter((r) => r.why.some((w) => !w.startsWith("baholar soni"))).map((r) => r.name));
   const absent = c.students.filter((s) => ["s", "dq", "k", "ox"].includes(attPart(s.marks[d] || "")));
-  const btn = (cls, data, v, on, title) => { const col = on && markColors(v); return `<button class="${cls} ${on ? "on" : ""}" ${data} style="${col ? `background:${col[0]};color:${col[1]};border-color:transparent` : ""}"${title ? ` title="${title}"` : ""}>${GRP_ATT[v] ? `${GRP_ATT[v][1]} ${GRP_ATT[v][2]}` : v.toUpperCase()}</button>`; };
+  const btn = (cls, data, v, on, title) => { const col = on && markColors(v), base = markColors(v); return `<button class="${cls} ${on ? "on" : ""}" ${data} style="${base ? `--c:${esc(base[0])};` : ""}${col ? `background:${col[0]};color:${col[1]};border-color:transparent` : ""}"${title ? ` title="${title}"` : ""}>${GRP_ATT[v] ? `${GRP_ATT[v][1]} ${GRP_ATT[v][2]}` : v.toUpperCase()}</button>`; };
   const rows = order.map((si) => {
     const s = c.students[si], mk = s.marks[d] || "", ap = attPart(mk), gs = gradesOf(mk);
     if (preJoin(c, s, d)) return `<div class="drow" data-q="${esc(normName(s.name))}"><span class="dn" data-st="${si}"><i>${si + 1}</i>${nmHtml(s.name)}</span><span class="muted">${fmt(s.joined)} dan qo'shilgan</span></div>`;
