@@ -2040,3 +2040,38 @@ test("zararli jurnal (import): skript bajarilmaydi, maydonlar tozalanadi", async
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Guruhlar: tavsiyalar, davr bo'yicha kelgan kunlar va yutuqlar (pullik guruhda ham)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const r = await page.evaluate(() => {
+      const t = todayIso(), ds = []; for (let i = 9; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); ds.push(iso(d)); }
+      const mk = (a) => Object.fromEntries(a.map((v, i) => [ds[i], v]));
+      const c = normalize({classes: [{name: "Ingliz", kind: "paid", dates: ds, fee: {month: 0, day: 1000}, students: [
+        {name: "Ketma Ket", marks: mk(["ot", "ot", "ot", "ot", "ot", "ot", "ot", "ox", "ox", "ox"]), plan: {t: "day", sum: 1000}},
+        {name: "Pasaygan", marks: mk(["ot", "ot", "ot", "ot", "ox", "ot", "ox", "ox", "ot", "ox"]), plan: {t: "day", sum: 1000}},
+        {name: "Doimiy", marks: mk(Array(10).fill("ot")), plan: {t: "day", sum: 1000}}]}]}).classes[0];
+      D.classes.push(c); const L = grpInsights(c, t, false);
+      return {names: L.map((x) => c.students[x.si].name + ":" + x.lv), per: c.students.map((s) => grpPeriod(c, s, ds[0], t)), n: D.classes.length - 1};
+    });
+    assert.ok(r.names.includes("Ketma Ket:0"), "ketma-ket qoldirish topilmadi: " + r.names);
+    assert.ok(r.names.some((x) => x.startsWith("Pasaygan")), "faollik pasayishi topilmadi");
+    assert.deepEqual(r.names.filter((x) => x.startsWith("Doimiy")), ["Doimiy:1"], "doimiy qatnashchiga faqat qarz haqida tavsiya chiqishi kerak");
+    assert.deepEqual(r.per.map((x) => x.came), [7, 6, 10]);
+    assert.equal(r.per[2].sum, 10000);
+    await page.evaluate((n) => { S.ci = n; S.jpage = "cards"; go("journal"); }, r.n);
+    await page.waitForSelector("text=Tavsiyalar");
+    await page.click("summary:has-text('Davr bo')");
+    await page.waitForSelector("#gpa");
+    await page.evaluate(() => { S.jpage = "ach"; render(); });
+    await page.fill("#at", "Rasm tanlovi"); await page.selectOption("#ak", "Ijodiy ish"); await page.fill("#an", "<b>1-son</b>");
+    await page.click("[data-adda]");
+    const a = await page.evaluate(() => D.classes[D.classes.length - 1].students[0].ach[0]);
+    assert.equal(a.k, "Ijodiy ish"); assert.equal(a.n, "<b>1-son</b>");
+    assert.equal(await page.locator(".tblwrap b").count(), 0, "izoh HTML sifatida chizildi");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
