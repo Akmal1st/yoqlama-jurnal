@@ -564,7 +564,7 @@ test("Sozlamalar → Dizayn: mavzu, yozuv turi, o'lcham va rang", async () => {
     await page.click("[data-th=light]");
     assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--acc").trim()), "#1f5fae");
     await page.click("[data-a=dreset]");
-    assert.deepEqual(await page.evaluate(() => [D.web.font, D.web.fsize, D.web.accent, D.web.radius, D.web.style]), ["system", "m", "teal", "round", "zamonaviy"]);
+    assert.deepEqual(await page.evaluate(() => [D.web.font, D.web.fsize, D.web.accent, D.web.radius, D.web.style]), ["system", "m", "teal", "round", "dash"]);
     assert.match(await page.evaluate(() => getComputedStyle(document.body).fontFamily), /system-ui/);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
@@ -1764,19 +1764,24 @@ test("Dizayn: uslublar va kompyuterdagi shriftlar", async () => {
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     await page.evaluate(() => { S.sec = 3; go("settings"); });
-    assert.equal(await page.locator(".stys [data-sty]").count(), 6);
-    // yangi «Zamonaviy» dizayn eski jurnalga ham bir marta yoqiladi
-    assert.equal(await page.evaluate(() => D.web.style), "zamonaviy");
+    assert.equal(await page.locator(".stys [data-sty]").count(), 3);
+    // uch dizayn: Klassik dashboard (standart), Qulay, Ixcham; eski uslub nomlari standartga qaytadi
+    assert.equal(await page.evaluate(() => D.web.style), "dash");
     const win = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--win").trim());
     const before = await win();
-    for (const st of ["klassik", "rasmiy", "ilova", "rangli", "qorongi"]) {
+    for (const st of ["qulay", "zich"]) {
       await page.click(`[data-sty="${st}"]`);
       assert.equal(await page.evaluate(() => D.web.style), st);
       assert.notEqual(await win(), before, `${st}: fon o'zgarishi kerak`);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1, `${st}: ekrandan chiqmasin`);
     }
+    // yon paneldagi tezkor almashtirgich: zich → dash → qulay
+    await page.evaluate(() => $("[data-dsw]").click());
+    assert.equal(await page.evaluate(() => D.web.style), "dash");
+    await page.evaluate(() => $("[data-dsw]").click());
+    assert.equal(await page.evaluate(() => D.web.style), "qulay");
     await page.click('[data-a="dreset"]');
-    assert.equal(await page.evaluate(() => D.web.style), "zamonaviy");
+    assert.equal(await page.evaluate(() => D.web.style), "dash");
     // shriftlar: ro'yxatdan tanlash, qo'lda yozish, mavjud bo'lmagani rad etiladi
     await page.click('[data-a="sysfont"]');
     const first = await page.getAttribute(".flist [data-fn]", "data-fn");

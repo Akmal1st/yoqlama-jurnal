@@ -44,7 +44,7 @@ const clone = (o) => JSON.parse(JSON.stringify(o));
 let D = null;
 
 /* ───────── dizayn: shrift, mavzu, rang, o'lcham (D.web da saqlanadi) ───────── */
-const DESIGN_DEF = {font: "system", fsize: "m", accent: "teal", radius: "round", style: "zamonaviy"};
+const DESIGN_DEF = {font: "system", fsize: "m", accent: "teal", radius: "round", style: "dash"};
 const FONTS = [["lserif", "Liberation Serif", `"Liberation Serif","Times New Roman",Tinos,Times,serif`], ["times", "Times New Roman", `"Times New Roman",Times,"Liberation Serif",serif`],
   ["georgia", "Georgia", `Georgia,"DejaVu Serif",serif`], ["lsans", "Liberation Sans", `"Liberation Sans",Arial,Helvetica,sans-serif`],
   ["verdana", "Verdana", `Verdana,"DejaVu Sans",Geneva,sans-serif`], ["system", "Tizim shrifti", `system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif`]];
@@ -61,6 +61,20 @@ const ACCENTS = {teal: ["Firuza", "#0b6f79", "#08525a", "#e1efee", "#0c5d66", "#
 const LIGHT_SIDE = `.logo{border-bottom-color:var(--line)}.logo b{background:var(--acc);color:var(--acc-fg);box-shadow:none}
     .side .nav:hover{background:var(--soft)}.side .nav.on{background:var(--soft);color:var(--text);box-shadow:none}.side .btn{background:var(--base);border-color:var(--line);color:var(--side-fg)}.side .btn:hover{background:var(--soft)}
     .clsside{border-top-color:var(--line)}.vseg{background:var(--soft)}.vseg button:hover{background:color-mix(in srgb,var(--acc) 8%,transparent)}.vseg button.on{background:var(--base);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}`;
+// telefon (≤820px) uchun umumiy qoidalar: pastdan chiqadigan oyna, tabbar, yirik tegish nuqtalari — hamma dizaynda
+const MOBILE_CSS = `@media (max-width:820px){
+      body{font-size:15px}main{padding:14px 14px 100px}h1{font-size:21px}
+      .btn{min-height:44px;font-size:15px}.btn.btn-sm{min-height:38px;font-size:14px}.chip{min-height:40px}
+      input[type=text],input[type=search],input[type=tel],input[type=date],input[type=password],input[type=number],select,textarea{min-height:44px;font-size:16px}
+      .tabbar{padding:4px 4px calc(4px + env(safe-area-inset-bottom))}.tabbar .nav{font-size:11px;min-height:52px;gap:3px}
+      .cell{height:38px;border-radius:7px}.keys .key{height:44px;font-size:15px}
+      .modal{padding:0;align-items:end}
+      .modal .card{width:100%;max-width:none;border-radius:18px 18px 0 0;max-height:88vh;padding:10px 16px calc(16px + env(safe-area-inset-bottom))}
+      .modal .card::before{content:"";align-self:center;flex:none;width:40px;height:4px;border-radius:9px;background:var(--line);margin-bottom:2px}
+      .toast{top:calc(10px + env(safe-area-inset-top));bottom:auto}
+      .tblwrap{max-height:none}
+      .jr1>.btn,.perbtn,.jpick{min-height:44px}.jpick{width:44px;height:44px}
+    }`;
 /* «Zamonaviy» (2026-10, standart): neytral kulrang fon, och yon panel, ixcham va zich (kompyuter), katta tegish nuqtalari (telefon).
    Faqat ekran uchun — chop etish o'zgarmaydi. Ranglar: --acc (Asosiy rang), holat ranglari --ok/--danger/--today. */
 const ZAMONAVIY_CSS = LIGHT_SIDE + `body{font-size:14.5px;letter-spacing:-.003em}
@@ -99,71 +113,58 @@ const ZAMONAVIY_CSS = LIGHT_SIDE + `body{font-size:14.5px;letter-spacing:-.003em
     table.r th{font-size:11.5px;letter-spacing:.06em}.pill{border-radius:6px}
     .steps button{padding:5px 12px}.steps button.on{box-shadow:none}
     .foot{box-shadow:0 -1px 0 var(--line)}
-    @media (max-width:820px){
-      body{font-size:15px}main{padding:14px 14px 100px}h1{font-size:21px}
-      .btn{min-height:44px;font-size:15px}.btn.btn-sm{min-height:38px;font-size:14px}.chip{min-height:40px}
-      input[type=text],input[type=search],input[type=tel],input[type=date],input[type=password],input[type=number],select,textarea{min-height:44px;font-size:16px}
-      .tabbar{padding:4px 4px calc(4px + env(safe-area-inset-bottom))}.tabbar .nav{font-size:11px;min-height:52px;gap:3px}
-      .cell{height:38px;border-radius:7px}.keys .key{height:44px;font-size:15px}
-      .modal{padding:0;align-items:end}
-      .modal .card{width:100%;max-width:none;border-radius:18px 18px 0 0;max-height:88vh;padding:10px 16px calc(16px + env(safe-area-inset-bottom))}
-      .modal .card::before{content:"";align-self:center;flex:none;width:40px;height:4px;border-radius:9px;background:var(--line);margin-bottom:2px}
-      .toast{top:calc(10px + env(safe-area-inset-top));bottom:auto}
-      .tblwrap{max-height:none}
-      .jr1>.btn,.perbtn,.jpick{min-height:44px}.jpick{width:44px;height:44px}
-    }`;
+    ${MOBILE_CSS}`;
+/* Uch dizayn (Bootstrap ustida, ranglar --acc/--base/... orqali; och/qorong'i rejim har birida ishlaydi).
+   [nom, tavsif, kunduzgi ranglar, tungi ranglar, qo'shimcha CSS (faqat ekran), burchak radiusi]
+   dash — Klassik dashboard: ko'k-oq, qat'iy tartib; qulay — yirik shrift va tugmalar, yuqori kontrast;
+   zich — ixcham: ko'p qator va katak bir ekranda. */
 const STYLES = {
-  zamonaviy: ["Zamonaviy", "Neytral fon, och yon panel, ixcham va zich; qorong'i rejimda grafit ranglar (standart)",
-    "--win:#f3f4f6;--base:#ffffff;--alt:#f7f8fa;--soft:#eceef2;--line:#e2e5ea;--text:#141922;--muted:#5d6675;--side-bg:#fbfbfc;--side-fg:#1b212b;--side-mut:#6b7380;--sh:0 1px 2px rgba(16,24,40,.05);--sh-lg:0 12px 32px -12px rgba(16,24,40,.25);--today:#e9a23b;--today-cell:#fff5dc;",
-    "--win:#0e1115;--base:#151920;--alt:#191e26;--soft:#1f252e;--line:#2a313b;--text:#e6e9ee;--muted:#98a1ae;--side-bg:#11151a;--side-fg:#e6e9ee;--side-mut:#8a93a0;--sh:0 1px 2px rgba(0,0,0,.4);--sh-lg:0 16px 40px -16px rgba(0,0,0,.8);--today:#d9a23f;--today-cell:#2a2518;",
-    ZAMONAVIY_CSS],
-  klassik: ["Klassik", "Qog'oz fon, to'q yon panel", "", "", ""],
-  rasmiy: ["Rasmiy maktab", "Yuqorida gorizontal menyu, oq fon, to'g'ri burchaklar, aniq jadval chiziqlari",
-    "--win:#f2f4f7;--base:#ffffff;--alt:#f7f9fc;--soft:#e8edf5;--line:#d3d9e3;--text:#1d2330;--muted:#5b6475;--side-bg:#1f3f7a;--side-fg:#ffffff;--side-mut:#c9d5ee;--sh:none;--sh-lg:0 10px 30px -12px rgba(16,32,64,.3);--today-cell:#fff4cc;",
-    "--win:#0f141c;--base:#161d28;--alt:#1a2230;--soft:#202a3a;--line:#2e3a4e;--text:#e6ebf3;--muted:#9aa7bb;--side-bg:#15284d;--side-fg:#ffffff;--side-mut:#9fb2d8;--sh:none;--sh-lg:0 10px 30px -12px rgba(0,0,0,.7);",
-    `.card,.tblwrap,.tile,.opt,.keys,.btn,.chip,.seg,.seg button,input,select,textarea,.modal .card,.cell,.perbtn,.jpick,.gband,.gcard,.mcard{border-radius:4px!important}
-    .card,.tblwrap,.tile,.opt{box-shadow:none;border:1px solid var(--line)}.card.hot{border-top:3px solid var(--acc)}.tile::before{display:none}.tile{border-top:3px solid var(--acc)}
-    .btn{box-shadow:none}.btn.btn-primary{background:var(--side-bg);border-color:var(--side-bg);color:#fff;box-shadow:none}h1{font-size:26px;letter-spacing:0}h2{font-size:18px}
+  dash: ["Klassik dashboard", "Ko'k va oq, qat'iy tartibli boshqaruv paneli: to'q ko'k yon panel, aniq chiziqlar",
+    "--win:#eef2f8;--base:#ffffff;--alt:#f6f8fc;--soft:#e8eef8;--line:#d5deeb;--text:#17233b;--muted:#566177;--acc:#1f5fbf;--acc-d:#174a96;--acc-fg:#ffffff;--acc-soft:#e3edfb;--side-bg:linear-gradient(175deg,#1a3f86 0%,#122c60 100%);--side-fg:#ffffff;--side-mut:#b8c8e8;--sh:0 1px 2px rgba(16,32,64,.08);--sh-lg:0 12px 32px -12px rgba(16,32,64,.35);--today-cell:#fff4cc;",
+    "--win:#0e1522;--base:#151e2d;--alt:#1a2437;--soft:#202c42;--line:#2c3a54;--text:#e6ecf7;--muted:#9fb0cb;--acc:#6ea8ff;--acc-d:#9cc2ff;--acc-fg:#07142b;--acc-soft:#16294a;--side-bg:linear-gradient(175deg,#12213f 0%,#0b1527 100%);--side-fg:#ffffff;--side-mut:#8da2c8;--sh:none;--sh-lg:0 16px 40px -16px rgba(0,0,0,.8);",
+    MOBILE_CSS + `body{font-size:15px}.card,.tblwrap,.tile,.opt,.gcard,.mcard,.keys{border:1px solid var(--line);box-shadow:var(--sh)}.card.hot{border-top:3px solid var(--acc)}.tile::before{display:none}.tile{border-top:3px solid var(--acc)}
+    h1{font-size:24px;font-weight:700;letter-spacing:-.01em}h2{font-size:17px;font-weight:650}.tag,table.r th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase}
+    .btn{box-shadow:none;border-radius:6px}.btn.btn-primary{background:var(--acc);border-color:var(--acc);box-shadow:none}.btn.btn-primary:hover{background:var(--acc-d)}
     table.r th,table.r td,table.j th{border:1px solid var(--line)}table.r th,table.j th{background:var(--soft)}table.r tr:nth-child(even) td{background:var(--alt)}
-    @media (min-width:821px){.app{flex-direction:column}.side,.app.compact .side{width:auto;height:56px;flex-direction:row;align-items:center;gap:2px;padding:0 18px;position:sticky;top:0;z-index:30;box-shadow:0 2px 8px -4px rgba(0,0,0,.3)}
-      .logo{padding:0 22px 0 0;margin:0;border:0}.logo b{width:32px;height:32px;font-size:17px;border-radius:4px}.logo small{display:none}.side .nav{padding:8px 12px;border-radius:4px;font-size:15px;opacity:.85}.side .nav.on{background:rgba(255,255,255,.12);box-shadow:none}
-      .side .nav.on::before{left:12px;right:12px;top:auto;bottom:-10px;width:auto;height:3px;border-radius:0;background:#fff}.compact .side .lbl,.compact .logo span{display:inline}.side .grow{flex:1}.clsside,.sidet{display:none}.sbot{flex-direction:row}.sbot .btn{width:auto}
-      .jpick{display:grid;place-items:center}main{margin:0 auto;width:100%;box-sizing:border-box}}`],
-  ilova: ["Telefon ilovasi", "Katta sarlavha, guruhlangan ro'yxatlar, yumaloq tugmalar (iPhone uslubida)",
-    "--win:#f2f2f7;--base:#ffffff;--alt:#f9f9fb;--soft:#efeff4;--line:#e5e5ea;--text:#111111;--muted:#8a8a8e;--side-bg:#f9f9fb;--side-fg:#111111;--side-mut:#8a8a8e;--sh:none;--sh-lg:0 20px 50px -20px rgba(0,0,0,.35);",
-    "--win:#000000;--base:#1c1c1e;--alt:#1f1f22;--soft:#2c2c2e;--line:#38383a;--text:#ffffff;--muted:#98989f;--side-bg:#111113;--side-fg:#ffffff;--side-mut:#98989f;--sh:none;--sh-lg:0 20px 50px -20px rgba(0,0,0,.9);",
-    LIGHT_SIDE + `body{font-family:-apple-system,"SF Pro Text",system-ui,"Segoe UI",Roboto,sans-serif}.side{border-right:1px solid var(--line)}
-    .card,.tblwrap,.tile,.opt,.gcard,.mcard{border:0;border-radius:14px;box-shadow:none}.tile::before{display:none}.keys{border:0;border-radius:18px}
-    .btn{border-radius:999px;box-shadow:none}.btn.btn-primary{background:var(--acc);border-color:var(--acc);box-shadow:none}.side .nav{border-radius:10px}.side .nav.on{background:var(--acc);color:var(--acc-fg)}.side .nav.on::before{display:none}
-    h1{font-size:34px;font-weight:800;letter-spacing:-.02em}.tag,table.r th{color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
-    .jtabs{border-bottom:0;background:var(--soft);border-radius:10px;padding:3px;gap:2px;flex:0 1 auto}.jtabs button{border:0;border-radius:8px;padding:6px 14px;margin:0}.jtabs button.on{background:var(--base);box-shadow:0 1px 3px rgba(0,0,0,.12)}`],
-  rangli: ["Rangli sinflar", "Har sinfning o'z rangi: yon panelda, darslar kartochkasida va jurnal sarlavhasida",
-    "--win:#fffaf2;--base:#ffffff;--alt:#fffdf8;--soft:#fbf1e2;--line:#f0e2cc;--text:#1e1b2e;--muted:#6b6680;--side-bg:#fffaf2;--side-fg:#1e1b2e;--side-mut:#6b6680;--sh:none;--sh-lg:0 18px 44px -18px rgba(60,40,10,.3);",
-    "--win:#17151f;--base:#211e2b;--alt:#252232;--soft:#2c2839;--line:#3a3549;--text:#f3f0fa;--muted:#aaa4bd;--side-bg:#17151f;--side-fg:#f3f0fa;--side-mut:#aaa4bd;--sh:none;--sh-lg:0 18px 44px -18px rgba(0,0,0,.8);",
-    LIGHT_SIDE + `.card,.tblwrap,.tile,.opt,.gcard,.mcard{border-radius:22px}.tile::before{display:none}.btn{border-radius:999px;box-shadow:none}.btn.btn-primary{background:var(--text);border-color:var(--text);color:var(--base);box-shadow:none}
-    .side .nav{border-radius:14px}.side .nav.on{background:var(--text);color:var(--base)}.side .nav.on::before{display:none}.vseg{background:transparent;gap:6px;padding:0}
-    .cs,.cpi{background:var(--cc,var(--soft))!important;color:#1e1b2e!important;border-radius:14px}.cs.on,.cpi.on{box-shadow:0 0 0 2px var(--text)!important}
-    .lessons .card[style*="--cc"]{background:var(--cc);border-color:transparent;color:#1e1b2e}.lessons .card[style*="--cc"] .muted{color:#4a4560}.lessons .card[style*="--cc"] .btn:not(.btn-primary){background:#fff;color:#1e1b2e}
-    .jhead[style*="--cc"] .jtitle{background:var(--cc);color:#1e1b2e;border-radius:18px;padding:6px 16px 6px 6px}.jhead[style*="--cc"] .jtitle small{color:#4a4560}`],
-  qorongi: ["Qorong'i, jiddiy", "Doim qorong'i fon, ingichka chiziqlar, kam rang — faqat holat ranglari ajralib turadi",
-    "--win:#0f1115;--base:#14171c;--alt:#171a20;--soft:#1c2027;--line:#22262e;--text:#e6e8ec;--muted:#8b93a1;--side-bg:#0b0d10;--side-fg:#e6e8ec;--side-mut:#8b93a1;--sh:none;--sh-lg:0 20px 50px -20px rgba(0,0,0,.9);--today-cell:#2a2616;--acc-soft:#1d2433;",
-    "--win:#0f1115;--base:#14171c;--alt:#171a20;--soft:#1c2027;--line:#22262e;--text:#e6e8ec;--muted:#8b93a1;--side-bg:#0b0d10;--side-fg:#e6e8ec;--side-mut:#8b93a1;--sh:none;--sh-lg:0 20px 50px -20px rgba(0,0,0,.9);--today-cell:#2a2616;--acc-soft:#1d2433;",
-    `:root{color-scheme:dark}.card,.tblwrap,.tile,.opt,.keys,.gcard,.mcard{border:1px solid var(--line);border-radius:10px;box-shadow:none;background:var(--base)}.tile::before{display:none}
-    .btn{border-radius:7px;box-shadow:none;background:var(--soft);border-color:var(--line)}.btn.btn-primary{box-shadow:none}.side{border-right:1px solid var(--line)}.side .nav{border-radius:7px;font-size:15px}.side .nav.on{background:var(--soft);box-shadow:none}.side .nav.on::before{background:var(--acc)}
-    .logo{border-bottom-color:var(--line)}h1{font-size:26px;font-weight:600;letter-spacing:-.01em}h2{font-weight:600}.tag,table.r th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase}
-    input,select,textarea{background:var(--alt);border-color:var(--line);color:var(--text)}.vseg{background:var(--soft)}`]};
+    .side .nav{border-radius:6px}.side .nav.on{background:rgba(255,255,255,.14);box-shadow:inset 3px 0 0 #fff}.side .nav.on::before{display:none}
+    main{padding:22px 30px 34px}@media (max-width:820px){main{padding:14px 14px 100px}h1{font-size:21px}}`, "8px"],
+  qulay: ["Qulay, yuqori kontrast", "Katta shrift va yirik tugmalar, aniq chegaralar: sinfda shoshilib ishlash va ko'z charchamasligi uchun",
+    "--win:#ffffff;--base:#ffffff;--alt:#f4f6f8;--soft:#e9edf1;--line:#6b7280;--text:#0b0f14;--muted:#2f3742;--acc:#0b4fa8;--acc-d:#083b7e;--acc-fg:#ffffff;--acc-soft:#d9e7fb;--side-bg:#ffffff;--side-fg:#0b0f14;--side-mut:#2f3742;--sh:none;--sh-lg:0 10px 30px -12px rgba(0,0,0,.45);--today-cell:#ffe9a8;--ok:#14692a;--danger:#a5170f;",
+    "--win:#000000;--base:#0a0a0a;--alt:#121212;--soft:#1c1c1c;--line:#9a9a9a;--text:#ffffff;--muted:#d6d6d6;--acc:#ffd23f;--acc-d:#ffe07a;--acc-fg:#000000;--acc-soft:#2b2400;--side-bg:#000000;--side-fg:#ffffff;--side-mut:#d6d6d6;--sh:none;--sh-lg:0 10px 30px -12px rgba(0,0,0,.9);--today-cell:#3a3000;--ok:#6be585;--danger:#ff8a80;",
+    LIGHT_SIDE + MOBILE_CSS + `body{font-size:18px;line-height:1.55}.side{border-right:2px solid var(--line)}.side .nav{font-size:17px;padding:12px 12px;border-radius:10px;opacity:1;color:var(--side-fg)}.side .nav.on{background:var(--acc);color:var(--acc-fg)}.side .nav.on::before{display:none}.side .nav svg{width:22px;height:22px}
+    .card,.tblwrap,.tile,.opt,.gcard,.mcard,.keys{border:2px solid var(--line);box-shadow:none}.tile::before{display:none}h1{font-size:28px;font-weight:800}h2{font-size:21px}.muted,.tag{font-size:15px}
+    .btn{min-height:52px;font-size:17px;border:2px solid var(--line);border-radius:12px;box-shadow:none}.btn.btn-sm{min-height:46px;font-size:16px}.btn.btn-primary{border-color:var(--acc)}
+    input[type=text],input[type=search],input[type=tel],input[type=date],input[type=password],input[type=number],select,textarea{min-height:52px;font-size:18px;border:2px solid var(--line);border-radius:12px}
+    a,.link{text-decoration:underline}*:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+    .cell{height:48px;min-width:50px;font-size:18px;border:1px solid var(--line)}.key{min-width:54px;height:52px;font-size:19px}.chip{min-height:46px;font-size:16px}
+    .da,.dg{min-width:50px;height:50px;font-size:18px;border:2px solid var(--line)}.dg{width:50px}.da.on,.dg.on{outline:3px solid var(--text);outline-offset:1px}
+    .drow{flex-wrap:wrap;row-gap:8px;padding:10px 0}.dgr{flex:1 1 100%;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;background:transparent;padding:0}.dgr .dg{width:100%;max-width:64px;height:auto;aspect-ratio:1;justify-self:start}
+    table.r td,table.r th{padding:12px 10px;font-size:17px}table.r th,table.j th{border-bottom:2px solid var(--line)}.toast{font-size:17px;padding:14px 22px}
+    .tabbar .nav{font-size:12.5px;min-height:60px}.tabbar .nav svg{width:26px;height:26px}main{padding:22px 30px 40px}@media (max-width:820px){main{padding:14px 12px 110px}h1{font-size:24px}}`, "12px"],
+  zich: ["Ixcham, zich jadval", "Ko'p o'quvchi, baho va davomat bir ekranda: kichik katak va tugmalar, zich qatorlar",
+    "--win:#f3f4f6;--base:#ffffff;--alt:#f7f8fa;--soft:#eceef2;--line:#dcdfe5;--text:#141922;--muted:#5d6675;--acc:#0b6f79;--acc-d:#08525a;--acc-fg:#ffffff;--acc-soft:#e1efee;--side-bg:#fbfbfc;--side-fg:#1b212b;--side-mut:#6b7380;--sh:0 1px 2px rgba(16,24,40,.05);--sh-lg:0 12px 32px -12px rgba(16,24,40,.25);--today:#e9a23b;--today-cell:#fdf3d4;",
+    "--win:#0e1115;--base:#151920;--alt:#191e26;--soft:#1f252e;--line:#2a313b;--text:#e6e9ee;--muted:#98a1ae;--acc:#3fb8c2;--acc-d:#6ccdd5;--acc-fg:#062427;--acc-soft:#173a3e;--side-bg:#11151a;--side-fg:#e6e9ee;--side-mut:#8a93a0;--sh:0 1px 2px rgba(0,0,0,.4);--sh-lg:0 16px 40px -16px rgba(0,0,0,.8);--today:#d9a23f;--today-cell:#3a3320;",
+    ZAMONAVIY_CSS + `@media screen and (min-width:821px){body{font-size:13px}main{padding:12px 16px 20px}h1{font-size:20px}h2{font-size:15px}.card{padding:10px 12px;border-radius:8px}.tile{padding:8px 10px}.tile div:last-child{font-size:18px}
+      .btn{min-height:28px;padding:0 9px;font-size:12.5px}.btn.btn-sm{min-height:26px;padding:0 8px;font-size:12px}.chip{min-height:26px;font-size:12.5px}
+      input[type=text],input[type=search],input[type=tel],input[type=date],input[type=password],input[type=number],select,textarea{min-height:28px;padding:3px 8px;font-size:13px}
+      table.j{border-spacing:1px;font-size:12px}.cell{height:24px;min-width:26px;font-size:12px;border-radius:4px}.keys .key{min-width:30px;height:28px;font-size:13px}
+      table.r td,table.r th{padding:4px 6px;font-size:12.5px}.drow{padding:2px 0;gap:6px}.dn{font-size:13px}.da{min-width:30px;height:26px;font-size:12px;border-radius:5px}.dg{width:26px;height:26px;font-size:12px}.datt,.dgr{gap:2px}
+      .side .nav{padding:6px 10px;font-size:13.5px}.tblwrap{max-height:calc(100vh - 150px)}}
+      @media (max-width:820px){body{font-size:14px}.btn{min-height:38px}.cell{height:32px}.drow{padding:3px 0}.da{height:30px}.dgr{padding:3px 2px}}`, "8px"]};
 // «Rangli sinflar» uslubi uchun sinf ranglari (har sinf o'z rangida)
 const CLS_COLORS = ["#ffe7a3", "#c9f0dc", "#d8e3ff", "#ffd6e0", "#ead9ff", "#ffdcc2", "#cdeff5", "#e6f0b8"];
 const ccOf = (i) => `--cc:${CLS_COLORS[i % CLS_COLORS.length]}`;
 // kompyuterdagi shrift nomi CSS ga xavfsiz tushishi uchun
 const cleanFont = (n) => String(n || "").replace(/["'\\;{}<>()]/g, "").replace(/\s+/g, " ").trim().slice(0, 80);
+const curStyle = () => (STYLES[D.web.style] ? D.web.style : DESIGN_DEF.style);
 function designCss(w) {
   const cf = cleanFont(w.cfont), f = w.font === "custom" && cf ? `"${cf}",system-ui,sans-serif` : (FONTS.find((x) => x[0] === w.font) || FONTS[0])[2], z = (FSIZES.find((x) => x[0] === w.fsize) || FSIZES[1])[2], a = ACCENTS[w.accent] || ACCENTS.teal;
-  const st = STYLES[w.style] || STYLES.zamonaviy;
-  let light = `--acc:${a[1]};--acc-d:${a[2]};--acc-soft:${a[3]};--side-bg:linear-gradient(175deg,${a[4]} 0%,${a[5]} 100%);${st[2]}`;
-  const dark = `--acc:${a[6]};--acc-d:${a[7]};--acc-soft:${a[8]};--side-bg:linear-gradient(175deg,${a[9]} 0%,${a[10]} 100%);${st[3]}`;
-  if (w.style === "qorongi") light = dark;   // doim qorong'i: kunduzgi mavzuda ham tungi ranglar
-  return `:root{${light}--r:${w.radius === "sharp" ? "6px" : w.style === "zamonaviy" ? "12px" : "18px"}}:root[data-theme="dark"]{${dark}}
+  const st = STYLES[w.style] || STYLES[DESIGN_DEF.style];
+  // foydalanuvchi «Asosiy rang»ni o'zi tanlagan bo'lsa, uslubning o'z rangi (--acc*) uni bosib ketmasin
+  const keep = w.accent && w.accent !== DESIGN_DEF.accent, noAcc = (v) => keep ? v.replace(/--acc(-d|-fg|-soft)?:[^;]+;/g, "") : v;
+  let light = `--acc:${a[1]};--acc-d:${a[2]};--acc-soft:${a[3]};--side-bg:linear-gradient(175deg,${a[4]} 0%,${a[5]} 100%);${noAcc(st[2])}`;
+  const dark = `--acc:${a[6]};--acc-d:${a[7]};--acc-soft:${a[8]};--side-bg:linear-gradient(175deg,${a[9]} 0%,${a[10]} 100%);${noAcc(st[3])}`;
+  return `:root{${light}--r:${w.radius === "sharp" ? "6px" : st[5] || "12px"}}:root[data-theme="dark"]{${dark}}
     @media (prefers-color-scheme: dark){:root:not([data-theme="light"]):not([data-theme="dark"]){${dark}}}
     body,button,input,select,textarea{font-family:${f}}@media screen{main{zoom:${z}}${st[4]}}`;
 }
@@ -269,7 +270,7 @@ function migrate(d) {
   if (v > DATA_VER) { NEWER = true; return d; }
   while (v < DATA_VER) { d = (MIGRATE[v] || ((x) => x))(d); v++; }
   // 2026-10: yangi «Zamonaviy» dizayn hammaga bir marta yoqiladi (Akmal: dizaynni tubdan yangila); eski uslublar Sozlamalar → Dizayn'da qoladi
-  if (!d.web.ui26) { d.web.ui26 = 1; d.web.style = "zamonaviy"; if (!d.web.font || d.web.font === "lserif") d.web.font = "system"; }
+  if (!d.web.ui26) { d.web.ui26 = 1; d.web.style = "dash"; if (!d.web.font || d.web.font === "lserif") d.web.font = "system"; }
   d.settings.method_weekday = null;   // metod kuni ilovadan olib tashlangan (Akmal, 2026-10-25): o'sha kunlar oddiy dars kuni
   d.web.dv = DATA_VER; return d;
 }
@@ -1302,6 +1303,7 @@ function renderNav() {
   const hb = `<button class="nav hlp" data-help title="Shu sahifa bo'yicha qo'llanma">${ICONS.help}<span class="lbl">Yordam</span></button>`;
   $("#side").innerHTML = `<div class="logo"><b>Y</b><span>Yo'qlama jurnali<small>web</small></span></div><button class="btn btn-sm cmdb" data-cmdk title="Qidirish va buyruqlar (Ctrl+K)">🔍<span class="lbl">Qidirish</span><kbd>Ctrl K</kbd></button>${btns}${hb}${sideView()}<div class="grow"></div>
     <div class="sbot"><button class="btn btn-sm sidet" data-sidet title="${D.web.sidemin ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}" aria-label="${D.web.sidemin ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}">${D.web.sidemin ? "»" : "« Yig'ish"}</button>
+    <button class="btn btn-sm" data-dsw title="Dizaynni almashtirish: ${esc(STYLES[curStyle()][0])} (keyingisi uchun bosing)" aria-label="Dizaynni almashtirish">🎨${D.web.sidemin ? "" : " " + esc(STYLES[curStyle()][0])}</button>
     <button class="btn btn-sm" data-lock title="Qo'yilgan baholar himoyasi: ${lockTxt.slice(2)}">${D.web.sidemin ? lockTxt.slice(0, 2) : lockTxt}</button></div>`;
   $("#tabbar").innerHTML = btns + hb;
   document.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => {
@@ -1312,6 +1314,7 @@ function renderNav() {
   document.querySelectorAll("[data-help]").forEach((b) => b.onclick = () => helpDialog());
   document.querySelectorAll("[data-cmdk]").forEach((b) => b.onclick = () => cmdPalette());
   const lb = $("[data-lock]"); if (lb) lb.onclick = toggleLock;
+  const dsw = $("[data-dsw]"); if (dsw) dsw.onclick = () => { const ks = Object.keys(STYLES); D.web.style = ks[(ks.indexOf(curStyle()) + 1) % ks.length]; save(); render(); toast("Dizayn: " + STYLES[D.web.style][0]); };
   $("[data-sidet]").onclick = () => { D.web.sidemin = !D.web.sidemin; save(); render(); };
   $("#side").querySelectorAll("[data-ci]").forEach((b) => b.onclick = () => pickClass(+b.dataset.ci));
   const q = $("#side .csq"); if (q) q.oninput = () => { const v = normName(q.value); $("#side").querySelectorAll(".cg").forEach((g) => g.hidden = !!v && !g.dataset.cg.includes(v)); };
@@ -3132,7 +3135,7 @@ function pageSettings(m) {
         <div class="muted">Aa Bb Oʻoʻ Gʻgʻ 0123456789 — «Yozuv namunasi»</div></div></div>` +
       sgroup("Ko'rinish", srow("Mavzu", "Kunduzgi — och fon; Tungi — qorong'i fon, kechqurun ko'zni charchatmaydi; Avto — telefon/kompyuter sozlamasiga qarab", seg("th", [["light", "☀ Kunduzgi"], ["dark", "🌙 Tungi"], ["auto", "Avto"]], w.theme)) +
       `<div class="srow"><div><b>Uslub</b><div class="muted">Ilovaning umumiy ko'rinishi. Rang, shrift va mavzu (kunduzgi/tungi) har bir uslubda ishlaydi</div></div>
-        <div class="stys">${Object.entries(STYLES).map(([k, [n, d]]) => `<button class="sty ${(w.style || "zamonaviy") === k ? "on" : ""}" data-sty="${k}"><i class="sw sw-${k}"><b></b><u></u><u></u></i><b>${n}</b><span>${d}</span></button>`).join("")}</div></div>` +
+        <div class="stys">${Object.entries(STYLES).map(([k, [n, d]]) => `<button class="sty ${(STYLES[w.style] ? w.style : DESIGN_DEF.style) === k ? "on" : ""}" data-sty="${k}"><i class="sw sw-${k}"><b></b><u></u><u></u></i><b>${n}</b><span>${d}</span></button>`).join("")}</div></div>` +
       `<div class="srow"><div><b>Yozuv turi</b><div class="muted">Butun ilova, hisobotlar va chop etiladigan hujjatlar shu shriftda chiqadi</div></div>
         <div class="fonts">${FONTS.map(([k, n, ff]) => `<button class="fopt ${w.font === k ? "on" : ""}" data-font="${k}" style="font-family:${esc(ff)}"><b>${n}</b><span>Aa Oʻoʻ 123</span></button>`).join("")}${cleanFont(w.cfont) ? `<button class="fopt ${w.font === "custom" ? "on" : ""}" data-font="custom" style="font-family:&quot;${esc(cleanFont(w.cfont))}&quot;,system-ui"><b>${esc(cleanFont(w.cfont))}</b><span>Aa Oʻoʻ 123</span></button>` : ""}
         <button class="fopt fsys" data-a="sysfont"><b>🖥 Kompyuterdagi shriftlar…</b><span style="font-size:13px">Tizimga o'rnatilgan istalgan shrift</span></button></div></div>` +
