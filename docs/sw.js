@@ -1,6 +1,6 @@
 /* Yo'qlama jurnali — oflayn ishlash uchun kesh. Ilova yangilanganda VERSION ni oshiring. */
-const VERSION = "jurnal-v88";
-const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./icon-maskable.png", "./natija.html"];
+const VERSION = "jurnal-v89";
+const CORE = ["./", "./index.html", "./app.css", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./icon-maskable.png", "./natija.html"];
 // Excel kutubxonasi katta (~1 MB) va kam o'zgaradi: alohida keshda turadi, ilova versiyasi oshganda qayta yuklanmaydi
 const XLSX_PATH = "./vendor/xlsx-0.20.3.full.min.js";
 const LIB = "lib-xlsx-0.20.3";
