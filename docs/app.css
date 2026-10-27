@@ -51,17 +51,17 @@ h2{font-size:19px;font-weight:800;margin:0}
 .muted{color:var(--muted)}
 .card{background:var(--base);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px}
 .hot{border:2px solid var(--acc)}
-.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.col{display:flex;flex-direction:column;gap:6px}
+.hrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.vcol{display:flex;flex-direction:column;gap:6px}
 .sp{flex:1}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--base);font-weight:600;white-space:nowrap}
 .btn:hover{background:var(--soft)}
-.btn.pri{background:var(--acc);border-color:var(--acc);color:var(--acc-fg);font-weight:700}
-.btn.pri:hover{background:var(--acc-d)}
-.btn.sm{min-height:34px;padding:0 12px;font-size:14px}
-.btn.danger{color:var(--danger)}
+.btn.btn-primary{background:var(--acc);border-color:var(--acc);color:var(--acc-fg);font-weight:700}
+.btn.btn-primary:hover{background:var(--acc-d)}
+.btn.btn-sm{min-height:34px;padding:0 12px;font-size:14px}
+.btn.btn-outline-danger{color:var(--danger)}
 .btn:disabled{opacity:.5;cursor:default}
-a.btn{text-decoration:none;color:inherit}a.btn.pri{color:var(--acc-fg)}
+a.btn{text-decoration:none;color:inherit}a.btn.btn-primary{color:var(--acc-fg)}
 .link{border:0;background:none;color:var(--acc);font-weight:700;padding:4px}
 .chip{min-height:38px;padding:0 15px;border-radius:99px;border:1px solid var(--line);background:var(--base);font-weight:600;white-space:nowrap}
 .chip.on{background:var(--text);border-color:var(--text);color:var(--base)}
@@ -243,12 +243,12 @@ table.gdays{border-collapse:collapse;font-size:14px;min-width:100%}table.gdays t
 table.gdays th.d{text-align:center;padding:4px 2px;min-width:26px}table.gdays th.d small{display:block;font-weight:400;color:var(--muted);font-size:10px}table.gdays th.today{color:var(--acc)}
 table.gdays td.gc,table.gdays th.gc{text-align:center;padding:4px 2px;font-weight:700}table.gdays td.gy{color:#2e7d32;background:color-mix(in srgb,#81c784 22%,transparent)}table.gdays td.gn{color:#c62828;background:color-mix(in srgb,#ef9a9a 25%,transparent)}table.gdays td.gp{color:var(--muted)}
 table.gdays td.nm{white-space:nowrap}table.r tr.tot th{border-top:2px solid var(--line)}.rband{flex:none}.rbar label.f{min-width:150px;flex:0 1 220px}
-@media(max-width:560px){.rkinds{grid-template-columns:1fr 1fr;gap:6px}.rk{padding:8px 10px;gap:8px}.rk small{display:none}.rk .ic{font-size:18px}.rk b{font-size:13.5px}.rbar label.f{flex:1 1 140px}.rbar .row{width:100%}.rbar .row .btn{flex:1}}
+@media(max-width:560px){.rkinds{grid-template-columns:1fr 1fr;gap:6px}.rk{padding:8px 10px;gap:8px}.rk small{display:none}.rk .ic{font-size:18px}.rk b{font-size:13.5px}.rbar label.f{flex:1 1 140px}.rbar .hrow{width:100%}.rbar .hrow .btn{flex:1}}
 @media screen{table.rcls td:nth-child(2) .nmlink{white-space:nowrap}}
 table.attm .an{position:sticky;left:0;z-index:1;background:var(--base)}table.attm th.an,table.attm tr.tot .an{background:var(--alt)}
 .gaps{gap:10px}.hitem{border-left:3px solid var(--acc);padding:4px 0 4px 12px}.hitem b{display:block;margin-bottom:2px}.nav.hlp{opacity:.8}.kprog{display:flex;flex-direction:column;gap:6px}.kbar{position:relative;height:10px;border-radius:99px;background:var(--soft);overflow:visible}.kbar i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--acc)}.kbar u{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--text);opacity:.6}
 table.r th.srt{cursor:pointer;user-select:none}table.r th.srt:hover{color:var(--text)}
-@media(max-width:820px){.row.chips.repk{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}.row.chips.repk .chip{flex:0 0 auto}.qby{font-size:17px}}
+@media(max-width:820px){.hrow.chips.repk{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none}.hrow.chips.repk .chip{flex:0 0 auto}.qby{font-size:17px}}
 @media (max-width:820px){.tiles{grid-template-columns:repeat(2,1fr)}}
 .tile{background:var(--alt);border-radius:12px;padding:12px 14px}.tile div:last-child{font-size:22px;font-weight:800}
 table.r{border-collapse:collapse;width:100%;font-size:14px}
@@ -275,9 +275,9 @@ table.r td.n{text-align:center}
 .mtog{flex:none;font-weight:700}.mtog.yes{color:var(--ok)}.mtog.no{background:color-mix(in srgb,var(--danger) 14%,var(--base));color:var(--danger);border-color:transparent}
 /* telefonda «Darsni boshlash» — yuqori o'ng burchak o'rniga pastda, bosh barmoq yetadigan joyda */
 @media (max-width:560px){
-  .jr1>.btn.pri,.gband .gstart{position:fixed;right:14px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:19;height:52px;min-height:52px;line-height:50px;
+  .jr1>.btn.btn-primary,.gband .gstart{position:fixed;right:14px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:19;height:52px;min-height:52px;line-height:50px;
     border-radius:999px;padding:0 22px;font-size:16px;box-shadow:0 12px 26px -10px rgba(0,0,0,.5)}
-  .jr1>.btn.pri .sh{display:none}.jr1>.btn.pri .lg{display:inline}
+  .jr1>.btn.btn-primary .sh{display:none}.jr1>.btn.btn-primary .lg{display:inline}
   main:has(.jr1),main:has(.gband){padding-bottom:168px}
   .lessons .card{padding:12px 14px;gap:6px}.lessons .big{font-size:20px}.item .av{display:none}.item{padding:8px 0}}
 @media (max-width:820px){.gback .lg{display:none}.gband h1{font-size:24px}.gstats div{min-width:0;flex:1 1 40%}.gwd{display:none}}
@@ -301,7 +301,7 @@ table.r td.act{white-space:nowrap;text-align:right}table.r td.act .btn+.btn{marg
 :root[data-theme="dark"] .cell[style*="background"],:root[data-theme="dark"] .pill[style*="background"],:root[data-theme="dark"] .key[style*="background"]{filter:brightness(.8) saturate(.85)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]):not([data-theme="dark"]) .cell[style*="background"],:root:not([data-theme="light"]):not([data-theme="dark"]) .pill[style*="background"],:root:not([data-theme="light"]):not([data-theme="dark"]) .key[style*="background"]{filter:brightness(.8) saturate(.85)}}
 /* xavfli tugma qolganlaridan uzoqroq turadi — adashib bosilmasin */
-.sact .btn.danger:not(:first-child),td.act .btn.danger:not(:first-child){margin-left:12px}
+.sact .btn.btn-outline-danger:not(:first-child),td.act .btn.btn-outline-danger:not(:first-child){margin-left:12px}
 .mdang{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
 /* buyruqlar oynasi (Ctrl+K) va tezkor tugmalar */
 kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;background:var(--alt);color:var(--muted);white-space:nowrap}
@@ -390,8 +390,8 @@ h2{font-size:21px;font-weight:700;letter-spacing:-.005em}
 .lessons .card:hover{transform:translateY(-2px);box-shadow:var(--sh-lg)}
 .btn{border-radius:12px;min-height:42px;transition:background .15s,box-shadow .15s,transform .05s;box-shadow:0 1px 0 rgba(60,45,20,.04)}
 .btn:active{transform:translateY(1px)}
-.btn.pri{background:linear-gradient(180deg,color-mix(in srgb,var(--acc) 88%,#fff) 0%,var(--acc) 100%);box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 6px 14px -8px var(--acc)}
-.btn.pri:hover{background:var(--acc-d)}
+.btn.btn-primary{background:linear-gradient(180deg,color-mix(in srgb,var(--acc) 88%,#fff) 0%,var(--acc) 100%);box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 6px 14px -8px var(--acc)}
+.btn.btn-primary:hover{background:var(--acc-d)}
 .chip{transition:background .15s,border-color .15s}
 .chip:hover{border-color:var(--acc)}
 .chip.on{background:var(--acc);border-color:var(--acc);color:var(--acc-fg);box-shadow:0 6px 14px -8px var(--acc)}
@@ -522,7 +522,7 @@ body.pmeas .noprint{display:none!important}
 .cs small{font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px;background:var(--today);color:#12303a;flex:none}
 /* jurnal sarlavhasi: sinf nomi · davr · amallar; bo'limlar (tab) */
 .jhead{display:flex;flex-direction:column;gap:12px}
-.jhead>.row{gap:8px;align-items:center}
+.jhead>.hrow{gap:8px;align-items:center}
 .jr1{flex-wrap:wrap}
 .jtitle{display:flex;align-items:center;gap:10px;min-width:0}
 .jtt{display:flex;flex-direction:column;min-width:0}
@@ -537,7 +537,7 @@ body.pmeas .noprint{display:none!important}
 .perbtn h2{font-size:17px;margin:0;color:inherit;min-width:0!important;white-space:nowrap}
 .perbtn small{font-size:13px;font-weight:700;opacity:.85;white-space:nowrap}
 .perbtn:hover{background:color-mix(in srgb,var(--acc) 16%,var(--base))}
-.pernav>.btn.sm{min-height:44px;border-radius:12px}
+.pernav>.btn.btn-sm{min-height:44px;border-radius:12px}
 .jr3{align-items:flex-end!important;flex-wrap:wrap}
 .jr3>.sp{display:none}
 .jtabs{display:flex;gap:22px;border-bottom:1px solid var(--line);flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}
@@ -596,7 +596,7 @@ body.ixcham{--side:204px}
 .ixcham h1{font-size:24px}.ixcham h2{font-size:18px}
 .ixcham .btn{display:inline-block;height:34px;min-height:34px;line-height:32px;padding:0 11px;font-size:14px;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;max-width:100%;vertical-align:middle;text-align:center}
 .ixcham .btn[hidden]{display:none}
-.ixcham .btn.sm{height:30px;min-height:30px;line-height:28px;padding:0 9px;font-size:13px}
+.ixcham .btn.btn-sm{height:30px;min-height:30px;line-height:28px;padding:0 9px;font-size:13px}
 .ixcham .chip,.ixcham .seg button,.ixcham .vseg button,.ixcham .jtabs button,.ixcham .nav .lbl,.ixcham .cs span{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .ixcham .chip{min-height:30px;padding:0 11px;font-size:13.5px}
 .ixcham .seg button{min-height:28px;padding:0 9px;font-size:13.5px}
@@ -604,7 +604,7 @@ body.ixcham{--side:204px}
 .ixcham .vseg button{padding:6px 10px;font-size:14px}
 .ixcham .jhead{gap:8px}
 .ixcham .jtt b{font-size:20px}.ixcham .jtt small{font-size:12.5px}
-.ixcham .jr1>.btn,.ixcham .pernav>.btn.sm{height:38px;min-height:38px;line-height:36px}
+.ixcham .jr1>.btn,.ixcham .pernav>.btn.btn-sm{height:38px;min-height:38px;line-height:36px}
 .ixcham .perbtn,.ixcham .jpick{min-height:38px;height:38px}.ixcham .perbtn h2{font-size:15px}
 .ixcham .key{min-width:34px;height:34px;font-size:14px}
 .ixcham .mgrid .btn{text-align:left}
@@ -740,15 +740,18 @@ table.bsa input[type=checkbox]{width:20px;height:20px;accent-color:var(--acc)}
 }
 body.pmeas .pfit table.r{font-size:11pt}body.pmeas .pfit table.r th,body.pmeas .pfit table.r td{padding:2px 6px}body.pmeas .pfit .tiles{gap:6px;grid-template-columns:repeat(4,1fr)}body.pmeas .pfit .tile{padding:6px 10px}body.pmeas .pfit .tile div:last-child{font-size:16pt}body.pmeas .pfit h2{margin:0}body.pmeas .pfit .pill{padding:0 6px}
 
-/* Bootstrap 5.3.3 (faqat .bs ichida, vendor/bootstrap-scoped-5.3.3.css): ilova ranglariga moslash */
-.bs{--bs-body-color:var(--text);--bs-body-bg:transparent;--bs-border-color:var(--line);--bs-secondary-color:var(--muted);--bs-body-font-family:inherit;--bs-body-font-size:inherit;--bs-body-line-height:inherit;--bs-border-radius:10px;
+/* Bootstrap 5.3.3 (vendor/bootstrap-5.3.3.css) ni ilova ranglariga moslash. Eski usul: ilovaning o'z .btn qoidalari yuqorida —
+   endi ular Bootstrap .btn / .btn-primary / .btn-sm / .btn-outline-danger ustiga ranglarni qo'yadi. */
+:root{--bs-body-color:var(--text);--bs-body-bg:var(--win);--bs-border-color:var(--line);--bs-secondary-color:var(--muted);--bs-body-font-family:inherit;--bs-border-radius:10px;
   --bs-primary:var(--acc);--bs-primary-rgb:11,111,121;--bs-link-color:var(--acc)}
+.btn{--bs-btn-color:var(--text);--bs-btn-hover-color:var(--text);--bs-btn-active-color:var(--text);--bs-btn-border-color:var(--line);--bs-btn-hover-border-color:var(--line);--bs-btn-active-border-color:var(--line);--bs-btn-bg:var(--base);--bs-btn-hover-bg:var(--soft);--bs-btn-active-bg:var(--soft);--bs-btn-font-weight:600;--bs-btn-padding-y:0;--bs-btn-padding-x:16px;--bs-btn-font-size:inherit;--bs-btn-disabled-opacity:.5}
+.btn-primary{--bs-btn-color:var(--acc-fg);--bs-btn-bg:var(--acc);--bs-btn-border-color:var(--acc);--bs-btn-hover-color:var(--acc-fg);--bs-btn-hover-bg:var(--acc-d);--bs-btn-hover-border-color:var(--acc-d);--bs-btn-active-color:var(--acc-fg);--bs-btn-active-bg:var(--acc-d);--bs-btn-active-border-color:var(--acc-d)}
+.btn-outline-secondary{--bs-btn-color:var(--text);--bs-btn-bg:var(--base);--bs-btn-border-color:var(--line)}
+.btn-outline-danger{--bs-btn-color:var(--danger);--bs-btn-hover-color:var(--danger);--bs-btn-active-color:var(--danger);--bs-btn-border-color:var(--line);--bs-btn-hover-border-color:var(--line);--bs-btn-active-border-color:var(--line);--bs-btn-bg:var(--base);--bs-btn-hover-bg:var(--soft);--bs-btn-active-bg:var(--soft)}
+.btn-sm{--bs-btn-padding-y:0;--bs-btn-padding-x:12px;--bs-btn-font-size:14px}
 .bs .card{--bs-card-bg:var(--base);--bs-card-border-color:var(--line);--bs-card-border-radius:var(--r);--bs-card-inner-border-radius:calc(var(--r) - 1px);--bs-card-box-shadow:none;padding:0;box-shadow:var(--sh)}
 .bs .card.shadow-sm{box-shadow:var(--sh)!important}
 .bs .card-body{--bs-card-spacer-y:18px;--bs-card-spacer-x:20px}
 .bs .card.border-primary{border-color:var(--acc)!important}
-.bs .btn{--bs-btn-border-radius:10px;--bs-btn-font-weight:600;--bs-btn-padding-y:8px;--bs-btn-padding-x:16px;--bs-btn-font-size:1rem;min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
-.bs .btn-primary{--bs-btn-bg:var(--acc);--bs-btn-border-color:var(--acc);--bs-btn-color:var(--acc-fg);--bs-btn-hover-bg:var(--acc-d);--bs-btn-hover-border-color:var(--acc-d);--bs-btn-hover-color:var(--acc-fg);--bs-btn-active-bg:var(--acc-d);--bs-btn-active-border-color:var(--acc-d);--bs-btn-active-color:var(--acc-fg);font-weight:700}
-.bs .btn-outline-secondary{--bs-btn-color:var(--text);--bs-btn-border-color:var(--line);--bs-btn-bg:var(--base);--bs-btn-hover-bg:var(--soft);--bs-btn-hover-color:var(--text);--bs-btn-hover-border-color:var(--line);--bs-btn-active-bg:var(--soft);--bs-btn-active-color:var(--text);--bs-btn-active-border-color:var(--line)}
-.bs .text-body-secondary{color:var(--muted)!important}
 .bs .row{gap:0;align-items:normal}
+.text-body-secondary{color:var(--muted)!important}
