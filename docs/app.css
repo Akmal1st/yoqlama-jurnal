@@ -739,3 +739,16 @@ table.bsa input[type=checkbox]{width:20px;height:20px;accent-color:var(--acc)}
   .pd .pbb{break-before:page}.pd tr{break-inside:avoid}.pd .ftr{break-inside:avoid}
 }
 body.pmeas .pfit table.r{font-size:11pt}body.pmeas .pfit table.r th,body.pmeas .pfit table.r td{padding:2px 6px}body.pmeas .pfit .tiles{gap:6px;grid-template-columns:repeat(4,1fr)}body.pmeas .pfit .tile{padding:6px 10px}body.pmeas .pfit .tile div:last-child{font-size:16pt}body.pmeas .pfit h2{margin:0}body.pmeas .pfit .pill{padding:0 6px}
+
+/* Bootstrap 5.3.3 (faqat .bs ichida, vendor/bootstrap-scoped-5.3.3.css): ilova ranglariga moslash */
+.bs{--bs-body-color:var(--text);--bs-body-bg:transparent;--bs-border-color:var(--line);--bs-secondary-color:var(--muted);--bs-body-font-family:inherit;--bs-body-font-size:inherit;--bs-body-line-height:inherit;--bs-border-radius:10px;
+  --bs-primary:var(--acc);--bs-primary-rgb:11,111,121;--bs-link-color:var(--acc)}
+.bs .card{--bs-card-bg:var(--base);--bs-card-border-color:var(--line);--bs-card-border-radius:var(--r);--bs-card-inner-border-radius:calc(var(--r) - 1px);--bs-card-box-shadow:none;padding:0;box-shadow:var(--sh)}
+.bs .card.shadow-sm{box-shadow:var(--sh)!important}
+.bs .card-body{--bs-card-spacer-y:18px;--bs-card-spacer-x:20px}
+.bs .card.border-primary{border-color:var(--acc)!important}
+.bs .btn{--bs-btn-border-radius:10px;--bs-btn-font-weight:600;--bs-btn-padding-y:8px;--bs-btn-padding-x:16px;--bs-btn-font-size:1rem;min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.bs .btn-primary{--bs-btn-bg:var(--acc);--bs-btn-border-color:var(--acc);--bs-btn-color:var(--acc-fg);--bs-btn-hover-bg:var(--acc-d);--bs-btn-hover-border-color:var(--acc-d);--bs-btn-hover-color:var(--acc-fg);--bs-btn-active-bg:var(--acc-d);--bs-btn-active-border-color:var(--acc-d);--bs-btn-active-color:var(--acc-fg);font-weight:700}
+.bs .btn-outline-secondary{--bs-btn-color:var(--text);--bs-btn-border-color:var(--line);--bs-btn-bg:var(--base);--bs-btn-hover-bg:var(--soft);--bs-btn-hover-color:var(--text);--bs-btn-hover-border-color:var(--line);--bs-btn-active-bg:var(--soft);--bs-btn-active-color:var(--text);--bs-btn-active-border-color:var(--line)}
+.bs .text-body-secondary{color:var(--muted)!important}
+.bs .row{gap:0;align-items:normal}
