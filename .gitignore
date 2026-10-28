@@ -10,6 +10,7 @@ journal_buzuq_*
 zaxira/
 arxiv/
 bot_inbox.json
+foydalanuvchilar/
 # vaqtinchalik
 __pycache__/
 *.pyc
