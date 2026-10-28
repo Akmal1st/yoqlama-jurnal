@@ -7,7 +7,7 @@ Bu dastur o'qituvchilar uchun. Unda yo'qlama, kundalik baholar, BSB/CHSB, chorak
 | Papka | Nima bor |
 |---|---|
 | `docs/` | **Asosiy dastur: web ilova** (kompyuter va telefonda brauzerda ishlaydi, internetsiz). GitHub Pages shu papkadan sayt qiladi. |
-| `dastur/` | Qo'shimcha: kompyuter dasturi (PySide6): `yoqlama_jurnal.py`, yangi ko'rinish `yoqlama_jurnal2.py`, Telegram bot `emaktab_tgbot.py` |
+| `dastur/` | Qo'shimcha: kompyuter dasturi (PySide6): `yoqlama_jurnal.py`, yangi ko'rinish `yoqlama_jurnal2.py`, Telegram bot `emaktab_tgbot.py` (jurnal qismi `jurnal_bot.py`) |
 | `tests/` | Hisob-kitoblar testlari |
 
 ## Ishga tushirish
@@ -21,6 +21,9 @@ Bu dastur o'qituvchilar uchun. Unda yo'qlama, kundalik baholar, BSB/CHSB, chorak
   1. `dastur/bot.env.example` faylini `dastur/bot.env` nomi bilan nusxalang va to'ldiring.
   2. `python dastur/emaktab_tgbot.py` buyrug'i bilan ishga tushiring.
   3. `bot.env` faylini hech qachon repozitoriyaga qo'shmang.
+  4. Ixtiyoriy: @BotFather → botingiz → **Bot Settings → Inline Mode → Turn on**. Shunda istalgan chatda `@bot_nomi Ali` deb yozib, o'quvchi natijasini yuborish mumkin.
+
+  Botda jurnalni Telegram'ning o'zida yuritish mumkin: «📅 Bugun» (bugungi darslar, yo'qlama tugmalari, «✓ Hamma keldi»), baholash (1–10, ikkinchi baho), dars mavzusi va uy vazifasi, «📒 Jurnal» (sinf ko'rsatkichlari, jadval, xavf ostidagilar, o'quvchi kartochkasi, ota-onaga tayyor xabar), kunlik yo'qlama eslatmasi. Pastdagi «📒 Ilova» tugmasi web ilovani Telegram ichida ochadi (manzil `WEBAPP_URL`). Web ilova bilan almashish fayl orqali: ilovadagi zaxira faylini botga yuborasiz, botdan «📤 Faylni olish» bilan qaytarib olasiz. Har foydalanuvchining jurnali `dastur/foydalanuvchilar/<ID>/journal.db` da (kompyuter dasturi bilan bir xil format) va har kuni nusxasi qoladi.
 
 Kompyuter dasturi ma'lumotni `journal.db` (SQLite) faylida saqlaydi; eski `journal.json` birinchi ishga tushishda o'zi ko'chiriladi (`journal.json.eski` nomi bilan saqlanib qoladi). Zaxira va bulut nusxalari, shuningdek web ilova bilan almashish hamon JSON formatida: web ilovada «Sozlamalar → Ma'lumotlar» bo'limida yuklab olish yoki yuklash mumkin. Telegram bot holati `bot_holat.db` da.
 

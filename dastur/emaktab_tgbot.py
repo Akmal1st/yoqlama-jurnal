@@ -24,7 +24,11 @@ Tasdiqlanguncha bot cheklangan (faqat ma'lumot va holat). Har foydalanuvchi o'z 
 sessiyasi, tanlovi va fayllari foydalanuvchilar/<ID>/ papkasida alohida. Foydalanuvchilar parallel ishlaydi.
 Admin menyusida «👥 Foydalanuvchilar» — tasdiqlash, ruxsatni olish, o'chirish.
 
-Hamma amallar tugmalar orqali (pastdagi menyu):
+Yo'qlama jurnali (jurnal_bot.py): «📅 Bugun», «📒 Jurnal» — davomat, baholar, mavzular, o'quvchi kartochkasi,
+ota-onaga xabar; web ilova Telegram ichida (menyu tugmasi «📒 Ilova», WEBAPP_URL); inline rejim (@bot ism);
+kunlik yo'qlama eslatmasi. Har foydalanuvchining jurnali: foydalanuvchilar/<ID>/journal.db.
+
+emaktab amallari tugmalar orqali (pastdagi menyu):
     📊 Hisobot     — jurnal → davr (chorak / oy / hafta) → qisqacha jadval chatda; so'ng PDF, Excel,
                      xavf ostidagilar, o'quvchi varaqlari (ota-onalar uchun)
     📥 Eksport     — tanlangan jurnallar emaktab Excel faylini yuborish (joriy yoki 1–4 chorak)
@@ -66,6 +70,7 @@ def load_env():
 
 load_env()
 import emaktab_http as EH                                       # noqa: E402
+import jurnal_bot as JB                                         # noqa: E402  Yo'qlama jurnali (Telegram varianti)
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 API = os.environ.get("TG_API", "https://api.telegram.org")
@@ -97,6 +102,7 @@ STATE_LOCK = threading.RLock()
 B_REPORT, B_EXPORT, B_CLASSES = "📊 Hisobot", "📥 Excel fayl", "📚 Sinflarim"
 B_LOGIN, B_STATUS, B_SETTINGS = "🔑 emaktabga kirish", "ℹ️ Holat", "⚙️ Sozlamalar"
 B_USERS, B_HELP = "👥 Foydalanuvchilar", "❓ Yordam"
+B_TODAY, B_JOURNAL = "📅 Bugun", "📒 Jurnal"
 LIMITED_MENU = {"keyboard": [[B_STATUS, B_HELP]], "resize_keyboard": True, "is_persistent": True}
 PERIODS = (("cur", "Joriy chorak"), ("q1", "1-chorak"), ("q2", "2-chorak"), ("q3", "3-chorak"), ("q4", "4-chorak"),
            ("month", "Shu oy"), ("week", "Shu hafta"))
@@ -200,14 +206,14 @@ def delete_msg(chat, mid):
 
 def next_updates(timeout=50):
     global OFFSET
-    r = tg("getUpdates", {"timeout": timeout, "offset": OFFSET, "allowed_updates": ["message", "callback_query"]},
+    r = tg("getUpdates", {"timeout": timeout, "offset": OFFSET, "allowed_updates": ["message", "callback_query", "inline_query"]},
            timeout=timeout + 20)
     out = []
     if not r.get("ok"):
         time.sleep(5)       # tarmoq/Telegram xatosida band aylanmasin
     for u in r.get("result", []) if r.get("ok") else []:
         OFFSET = u["update_id"] + 1
-        if "message" in u or "callback_query" in u:
+        if "message" in u or "callback_query" in u or "inline_query" in u:
             out.append(u)
     return out
 
@@ -354,12 +360,13 @@ def menu_for(uid):
     r = role(uid)
     if r not in ("admin", "ok"):
         return LIMITED_MENU
-    if not has_session(uid):                                    # 1-qadam: kirish
-        rows = [[B_LOGIN], [B_HELP]]
+    rows = [[B_TODAY, B_JOURNAL]]                               # jurnal (yo'qlama, baholar) — har kuni kerak, eng tepada
+    if not has_session(uid):                                    # emaktab 1-qadam: kirish
+        rows += [[B_LOGIN, B_HELP]]
     elif not conf(uid)["sel"]:                                  # 2-qadam: sinflarni tanlash
-        rows = [[B_CLASSES], [B_SETTINGS, B_HELP]]
-    else:                                                       # ish rejimi: hisobot eng tepada
-        rows = [[B_REPORT], [B_EXPORT, B_CLASSES], [B_SETTINGS, B_HELP]]
+        rows += [[B_CLASSES], [B_SETTINGS, B_HELP]]
+    else:                                                       # ish rejimi: emaktab hisoboti
+        rows += [[B_REPORT, B_EXPORT, B_CLASSES], [B_SETTINGS, B_HELP]]
     if r == "admin":
         rows[-1].append(B_USERS)
     return {"keyboard": rows, "resize_keyboard": True, "is_persistent": True}
@@ -1028,7 +1035,8 @@ def set_role(admin_chat, uid, action, mid=None):
     save_state()
     if action == "ok":
         say(uchat, "✅ Admin sizni tasdiqladi. Endi botdan to'liq foydalanishingiz mumkin.\n"
-                   "Boshlash: «🔑 emaktabga kirish» (o'zingizning emaktab loginingiz).", menu_for(int(uid)))
+                   "Boshlash: «📅 Bugun» — jurnal (web ilova faylini yuborsangiz, sinflaringiz ko'chadi). "
+                   "emaktab hisobotlari: «🔑 emaktabga kirish».", menu_for(int(uid)))
     else:                                                       # ruxsat olinsa — sessiyasi va fayllari ham o'chiriladi
         enqueue(uchat, {"_wipe": True})
         if action == "no":
@@ -1042,28 +1050,44 @@ def wipe(chat):
     logout(chat)
     for d in (CATALOG, PICK):
         d.pop(chat, None)
+    JB.drop(chat)
     shutil.rmtree(USERS_DIR / str(chat), ignore_errors=True)
 
 
 # ------------------------------------------------------------------ xabar va tugmalar
-HELP = ("emaktab boti — sinf hisobotlari (faqat o'qish).\n\n"
+HELP = ("Yo'qlama jurnali boti.\n\n"
+        "📒 JURNAL (o'z jurnalingiz, Telegram'da):\n"
+        "• «📅 Bugun» — bugungi darslar. «▶» bosing: yo'qlama (o'quvchini bosib S / DQ / K / KQ), baholash (1–10, "
+        "keyingi o'quvchiga o'zi o'tadi), dars mavzusi va uy vazifasi. «✓ Hamma keldi» — bitta bosishda.\n"
+        "• «📒 Jurnal» — sinf ko'rsatkichlari, jadval, xavf ostidagilar, o'quvchi kartochkasi va ota-onaga tayyor xabar.\n"
+        "• Web ilovadagi jurnalni olib kelish: ilovada «Sozlamalar → Ma'lumotlar → Faylga zaxira», faylni shu chatga yuboring. "
+        "Pastdagi «📒 Ilova» tugmasi web ilovani Telegram ichida ochadi.\n"
+        "• Istalgan chatda @bot_nomi va o'quvchi ismini yozsangiz — uning natijalari xabar bo'lib yuboriladi.\n\n"
+        "📊 EMAKTAB (faqat o'qish):\n"
         "1. «🔑 emaktabga kirish» — o'zingizning emaktab login va parolingiz.\n"
         "2. «📚 Sinflarim» — kerakli sinflarni belgilang.\n"
         "3. «📊 Hisobot» — davrni tanlang: o'rtacha ball, davomat, chorak balli, xavf ostidagilar; "
-        "so'ng PDF, Excel, o'quvchi varaqlari. Kerak bo'lmagan o'quvchilarni «🗑 O'quvchilarni o'chirish» bilan olib tashlaysiz.\n\n"
+        "so'ng PDF, Excel, o'quvchi varaqlari. Kerak bo'lmagan o'quvchilarni «🗑 O'quvchilarni o'chirish» bilan olib tashlaysiz.\n"
         "«📥 Excel fayl» — emaktabning o'z Excel fayli. «⚙️ Sozlamalar» — holat, qayta kirish, chiqish.")
-LIMITED_HELP = ("emaktab boti: emaktab jurnallaridan sinf hisobotlari (o'rtacha ball, davomat, chorak balli, "
-                "xavf ostidagi o'quvchilar), PDF va Excel fayllar.\n\nBotdan to'liq foydalanish uchun admin tasdig'i kerak.")
+LIMITED_HELP = ("Yo'qlama jurnali boti: Telegram'da yo'qlama, baholar, dars mavzulari, hisobotlar; emaktab jurnallaridan "
+                "sinf hisobotlari (PDF va Excel).\n\nBotdan to'liq foydalanish uchun admin tasdig'i kerak.")
 
 BUTTONS = {B_REPORT: "report", B_EXPORT: "export", B_CLASSES: "sel", B_LOGIN: "login", B_STATUS: "status",
-           B_SETTINGS: "settings", B_USERS: "users", B_HELP: "help",
+           B_SETTINGS: "settings", B_USERS: "users", B_HELP: "help", B_TODAY: "jtoday", B_JOURNAL: "jclasses",
            # eski menyu tugmalari (yangilanmagan klaviaturada qolgan bo'lsa)
            "📥 Eksport": "export", "📚 Sinflar": "sel", "📋 Tanlangan": "sel", "🔑 Kirish": "login"}
 OLD_CMDS = {"/hisobot": "report", "/eksport": "export", "/sinflar": "catalog", "/tanlangan": "sel", "/kirish": "login",
-            "/holat": "status", "/usul": "settings", "/sozlamalar": "settings"}
+            "/holat": "status", "/usul": "settings", "/sozlamalar": "settings",
+            "/bugun": "jtoday", "/jurnal": "jclasses", "/fayl": "jfile", "/yordam": "help"}
 
 
 def menu_action(chat, act, mid=None):
+    if act == "jtoday":
+        return JB.screen_today(chat, mid)
+    if act == "jclasses":
+        return JB.screen_classes(chat, mid)
+    if act == "jfile":
+        return JB.screen_file(chat, mid)
     if act == "report":
         return report_menu(chat, mid)
     if act == "export":
@@ -1111,12 +1135,17 @@ def handle(m):
 
     if cmd in ("/start", "/help", "/menu"):
         STEP.pop(chat, None)
-        return say(chat, HELP, menu_for(uid))
+        JB.JSTEP.pop(chat, None)
+        say(chat, HELP, menu_for(uid))
+        return JB.screen_today(chat) if text.split()[1:2] == ["jurnal"] else None
     act = BUTTONS.get(text) or OLD_CMDS.get(cmd)
     if act:                                                     # menyu tugmasi — boshlangan qadam bekor bo'ladi
         if STEP.pop(chat, None) == "password":
             TMP.pop(chat, None)
+        JB.JSTEP.pop(chat, None)
         return menu_action(chat, act)
+    if m.get("document") and JB.on_document(chat, m):           # web ilova / kompyuter dasturi jurnal fayli
+        return None
 
     st = STEP.get(chat)
     if st == "login":
@@ -1127,6 +1156,8 @@ def handle(m):
         delete_msg(chat, m.get("message_id"))
         STEP.pop(chat, None)
         return do_login(chat, TMP.pop(chat, ""), text)
+    if JB.on_text(chat, m):                                     # jurnal: mavzu, sinf nomi, o'quvchilar ro'yxati…
+        return None
     found = []
     for mm in JOURNAL_RE.finditer(text):
         url = f"{EH.EMK_URLS['teachers'].split('/teachers')[0]}/journal/school/{mm.group(1)}/group/{mm.group(2)}/subject/{mm.group(3)}"
@@ -1149,8 +1180,10 @@ def handle_cb(cq):
     r = role(uid)
     if chat is None or r not in ("admin", "ok") or (kind == "adm" and r != "admin"):
         return tg("answerCallbackQuery", {"callback_query_id": cq["id"], "text": "Ruxsat yo'q"})
-    tg("answerCallbackQuery", {"callback_query_id": cq["id"]})
     mid = msg.get("message_id")
+    if kind == "j":                                             # jurnal tugmalari javobni (toast) o'zi beradi
+        return JB.on_cb(chat, arg, cq, mid)
+    tg("answerCallbackQuery", {"callback_query_id": cq["id"]})
     cf = conf(chat)
     if kind == "adm":
         act, _, target = arg.partition(":")
@@ -1190,6 +1223,8 @@ def handle_cb(cq):
 
 # ------------------------------------------------------------------ parallel ishlash: har chatga o'z oqimi
 def chat_of(u):
+    if "inline_query" in u:                                     # inline so'rov: foydalanuvchining shaxsiy chati = uning ID'si
+        return (u["inline_query"].get("from") or {}).get("id")
     return ((u.get("message") or (u.get("callback_query") or {}).get("message") or {}).get("chat") or {}).get("id")
 
 
@@ -1197,6 +1232,11 @@ def process(chat, u):
     try:
         if "_wipe" in u:
             return wipe(chat)
+        if "_jremind" in u:
+            return JB.remind(chat)
+        if "inline_query" in u:
+            iq = u["inline_query"]
+            return JB.on_inline(iq) if role((iq.get("from") or {}).get("id")) in ("admin", "ok") else JB.deny_inline(iq)
         if "callback_query" in u:
             handle_cb(u["callback_query"])
         else:
@@ -1241,7 +1281,9 @@ def main():
     if not ADMINS:
         print("OGOHLANTIRISH: ADMIN_IDS (yoki ALLOWED_IDS) bo'sh — yangi foydalanuvchilarni tasdiqlaydigan admin yo'q.")
     load_state()
-    tg("setMyCommands", {"commands": [{"command": "start", "description": "Menyu tugmalarini ko'rsatish"}]})
+    JB.bot_setup()
+    stop = threading.Event()
+    threading.Thread(target=JB.ticker, args=(stop,), name="eslatma", daemon=True).start()
     try:
         hok, why = H().available()                              # Qt ilovasi asosiy oqimda yaratiladi
     except ImportError:
@@ -1263,6 +1305,7 @@ def main():
             if os.environ.get("BOT_ONCE") and not ups:
                 break
     finally:
+        stop.set()
         for q in QUEUES.values():
             q.put(None)
         for t in list(WORKERS.values()):
@@ -1270,6 +1313,8 @@ def main():
         for r in REP.values():
             r.get("book") and r["book"].close()
 
+
+JB.setup(sys.modules[__name__])
 
 if __name__ == "__main__":
     try:
