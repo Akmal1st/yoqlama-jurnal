@@ -11,7 +11,8 @@ import emaktab_http as EH  # noqa: E402
 
 PAGE = """<form action="/login" method="post"><input name="login" type="text"><input name="password" type="password">
 {cap}<button type="submit">Kirish</button></form><img src="/logo.svg">"""
-CAPTCHA = '<img id="captchaImg" src="/captcha/true/abc"><input name="Captcha.Input" type="text">'
+# emaktabdagi haqiqiy belgi (Akmal, 2026-10-28); src (guid) har safar yangi
+CAPTCHA = '<img alt="captcha image" class="captcha__image" src="https://login.emaktab.uz/captcha/true/{g}"><input name="Captcha.Input" type="text">'
 PNG = b"\x89PNG\r\n\x1a\n" + b"0" * 100
 
 
@@ -28,12 +29,13 @@ class UI:
 
 
 def site(monkeypatch, s, ok_password="parol", captcha_on_retry=True, ctype="image/png"):
-    posts = []
+    posts, seen = [], []
 
     def raw(url, data=None, headers=None, timeout=60):
         hd = Message()
         hd["Content-Type"] = "text/html; charset=utf-8"
         if "captcha/true" in url:
+            assert url.endswith(seen[-1])                         # shu sahifadagi yangi rasm olinadi
             hd.replace_header("Content-Type", ctype)
             return 200, url, hd, PNG
         if url.endswith("/userfeed") or "myclasses" in url or "/v2/" in url:   # tekshiruv: kirilmagan
@@ -44,7 +46,9 @@ def site(monkeypatch, s, ok_password="parol", captcha_on_retry=True, ctype="imag
             good = data.get("password") == ok_password and (not captcha_on_retry or (not first and data.get("Captcha.Input") == "AB12"))
             if good:
                 return 200, "https://emaktab.uz/userfeed", hd, b"<html>ok</html>"
-            return 200, "https://login.emaktab.uz/login", hd, PAGE.format(cap=CAPTCHA if captcha_on_retry else "").encode()
+            guid = f"1b333a0e-187a-40a0-b205-{len(posts):012d}"
+            seen.append(guid)
+            return 200, "https://login.emaktab.uz/login", hd, PAGE.format(cap=CAPTCHA.format(g=guid) if captcha_on_retry else "").encode()
         return 200, "https://login.emaktab.uz/", hd, PAGE.format(cap="").encode()
 
     monkeypatch.setattr(s, "raw", raw)
@@ -84,3 +88,18 @@ def test_wrong_password_no_captcha(tmp_path, monkeypatch):
     site(monkeypatch, s, ok_password="boshqa", captcha_on_retry=False)
     with pytest.raises(RuntimeError, match="Login yoki parol noto'g'ri"):
         s.login("ali", "parol")
+
+
+def test_captcha_outside_form(tmp_path, monkeypatch):
+    """Captcha rasmi va maydoni forma tashqarisida bo'lsa ham topiladi."""
+    global PAGE
+    old = PAGE
+    PAGE = old.replace("{cap}<button", "<button").replace("</form>", "</form>{cap}")
+    try:
+        ui = UI()
+        s = make(tmp_path, ui)
+        posts = site(monkeypatch, s)
+        s.login("ali", "parol")
+        assert posts[1]["Captcha.Input"] == "AB12" and len(ui.asked) == 1
+    finally:
+        PAGE = old

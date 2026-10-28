@@ -36,7 +36,7 @@ class _EmkForms(_HP):
 
     def __init__(self):
         super().__init__(convert_charrefs=True)
-        self.forms, self._f, self.imgs, self.img_attrs = [], None, [], {}
+        self.forms, self._f, self.imgs, self.img_attrs, self.inputs = [], None, [], {}, []
         self.links, self._a, self._root_depth, self._depth, self.has_root = [], None, None, 0, False
 
     def handle_starttag(self, tag, attrs):
@@ -53,8 +53,11 @@ class _EmkForms(_HP):
             self.img_attrs[src] = a
             if self._f is not None:
                 self._f["imgs"].append(src)
-        elif tag in ("input", "button") and self._f is not None:
-            self._f["inputs"].append({"name": a.get("name"), "type": (a.get("type") or "text").lower(), "value": a.get("value") or ""})
+        elif tag in ("input", "button"):
+            i = {"name": a.get("name"), "type": (a.get("type") or "text").lower(), "value": a.get("value") or ""}
+            self.inputs.append(i)                                 # sahifadagi hamma maydonlar (captcha forma tashqarisida bo'lishi mumkin)
+            if self._f is not None:
+                self._f["inputs"].append(i)
         elif tag == "a" and a.get("href"):
             self._a = {"href": a["href"], "title": a.get("title") or "", "text": "", "root": self._root_depth is not None}
             self.links.append(self._a)
@@ -168,7 +171,11 @@ class EmkHttp:
             for i in form["inputs"]:
                 if i["type"] == "checkbox" and i["name"] and re.search(r"remember|eslab|save", i["name"], re.I):
                     data[i["name"]] = i["value"] or "true"
-            imgs = form.get("imgs") or fp.imgs
+            # captcha rasmi: <img class="captcha__image" alt="captcha image" src=".../captcha/true/<guid>"> — src har safar
+            # yangi, shuning uchun har urinishda shu sahifaning o'zidan olinadi (forma ichida bo'lmasa ham)
+            marked = [u for u in fp.imgs if re.search(r"captcha|капч", " ".join(
+                str(fp.img_attrs.get(u, {}).get(k) or "") for k in ("class", "alt", "id", "title")), re.I)]
+            imgs = marked + (form.get("imgs") or fp.imgs)
             # captcha manzili <img> da bo'lmasa (JS/JSON ichida): …/captcha/true/<guid> ko'rinishidagi havolalarni qidiramiz
             extra = [m.group(0) for m in re.finditer(r"[^\s\"'<>()=]*captcha/[^\s\"'<>()]*", html.replace("\\/", "/"), re.I)]
             if not extra:
@@ -182,7 +189,8 @@ class EmkHttp:
                 (self.home / "debug_login.html").write_text(html, encoding="utf-8")
             except Exception:  # noqa: BLE001
                 pass
-            cap = next((n for n in texts if n != us and re.search(r"captcha|code|kod|answer|sum|number|digit", n, re.I)), None) \
+            outside = [i["name"] for i in fp.inputs if i["name"] and i["type"] in ("text", "number", "tel") and i["name"] not in texts]
+            cap = next((n for n in texts + outside if n != us and re.search(r"captcha|code|kod|answer|sum|number|digit", n, re.I)), None) \
                 or next((n for n in texts if n != us), None)
             if attempt > 1 and not (cap and imgs):            # qayta ochilgan sahifada captcha yo'q — sabab parolda
                 raise RuntimeError("Login yoki parol noto'g'ri (emaktab sahifasi qayta ochildi, captcha so'ralmadi).")
