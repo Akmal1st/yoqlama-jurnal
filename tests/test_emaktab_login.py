@@ -129,3 +129,45 @@ def test_no_login_form_message(tmp_path, monkeypatch):
     with pytest.raises(EH.EmkFallback, match="Access denied"):
         s.login("ali", "parol")
     assert (tmp_path / "debug_login.html").read_text() == "<title>Access denied</title>"
+
+
+LOGGED_IN = """<html><title>eMaktab</title><form name="logout" action="https://login.emaktab.uz/logout" method="post"></form>
+<a href="https://schools.emaktab.uz/v2/class?class=1">6-A</a></html>"""
+
+
+def test_already_logged_in_page(tmp_path, monkeypatch):
+    """Akmal yuborgan holat (2026-10-28): login.emaktab.uz o'rniga sinflar sahifasi ochiladi (chiqish formasi bor)."""
+    ui = UI()
+    s = make(tmp_path, ui)
+    hd = Message()
+    hd["Content-Type"] = "text/html; charset=utf-8"
+    calls = []
+
+    def raw(url, data=None, headers=None, timeout=60):
+        calls.append(url)
+        if "myclasses" in url and len(calls) == 1:              # birinchi tekshiruv: sessiya yo'q
+            return 200, "https://login.emaktab.uz/", hd, PAGE.format(cap="").encode()
+        return 200, "https://login.emaktab.uz/auth", hd, LOGGED_IN.encode()
+    monkeypatch.setattr(s, "raw", raw)
+    monkeypatch.setattr(s, "save_state", lambda: None)
+    s.login("ali", "parol")
+    assert "Muvaffaqiyatli kirildi." in ui.logs and ui.asked == []
+    assert not EH.EmkHttp.is_login("https://login.emaktab.uz/auth", LOGGED_IN)
+    assert EH.EmkHttp.is_login("https://emaktab.uz/x", PAGE.format(cap=""))
+
+
+def test_catalog_from_state():
+    """Yangi «Mening sinflarim»: sinflar skript ichidagi JSON da (2026-10-28 dagi sahifa tuzilmasi)."""
+    html = """<div id="teacher-root-v2"></div><script>
+        window.__TEACHERV2__INITIAL__STATE__ = {
+            groups: {"groups":[{"id":"25","name":"6-A","redirectUrl":"https://schools.emaktab.uz/v2/class?class=25",
+              "journal":[{"subjectName":"Matematika","subgroupName":null,
+                "journalUrl":"https://emaktab.uz/journal/school/10/group/25/subject/16?periodId=99"},
+               {"subjectName":"Ingliz tili","subgroupName":"1-guruh",
+                "journalUrl":"https://emaktab.uz/journal/school/10/group/25/subject/17?periodId=99"}]}]},
+            other: {}
+        };</script>"""
+    assert EH.catalog_from_state(html) == [{"name": "6-A", "url": "https://schools.emaktab.uz/v2/class?class=25", "journals": [
+        {"subject": "Matematika", "url": "https://emaktab.uz/journal/school/10/group/25/subject/16"},
+        {"subject": "Ingliz tili (1-guruh)", "url": "https://emaktab.uz/journal/school/10/group/25/subject/17"}]}]
+    assert EH.catalog_from_state("<html></html>") == []

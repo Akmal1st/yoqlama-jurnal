@@ -81,6 +81,32 @@ def is_image(b):
     return b.startswith((b"\x89PNG", b"\xff\xd8", b"GIF8", b"BM")) or (b[:4] == b"RIFF" and b[8:12] == b"WEBP")
 
 
+def catalog_from_state(html):
+    """Yangi «Mening sinflarim» sahifasi: sinflar havolalar emas, skript ichidagi JSON da
+    (window.__TEACHERV2__INITIAL__STATE__ = {groups: {"groups": [{name, redirectUrl, journal: [{subjectName, journalUrl}]}]}})."""
+    i = html.find("__TEACHERV2__INITIAL__STATE__")
+    m = re.compile(r"groups\s*:\s*\{").search(html, i) if i >= 0 else None
+    if not m:
+        return []
+    try:
+        data, _ = json.JSONDecoder().raw_decode(html, m.end() - 1)
+    except ValueError:
+        return []
+    out = []
+    for g in data.get("groups") or []:
+        if not isinstance(g, dict) or not g.get("name"):
+            continue
+        cur = {"name": str(g["name"]).strip(), "url": str(g.get("redirectUrl") or ""), "journals": []}
+        for j in g.get("journal") or []:
+            u = str((j or {}).get("journalUrl") or "")
+            mm = re.search(r"https?://[^/]+/journal/school/\d+/group/\d+/subject/\d+", u)
+            if mm:
+                subj = str(j.get("subjectName") or "").strip() + (f" ({j['subgroupName']})" if j.get("subgroupName") else "")
+                cur["journals"].append({"subject": subj, "url": mm.group(0)})
+        out.append(cur)
+    return out
+
+
 class EmkHttp:
     """Brauzersiz (faqat standart kutubxona) seans: login/captcha, sinflar, Excel. Interfeysi EmkSession bilan bir xil."""
     is_http = True
@@ -140,12 +166,17 @@ class EmkHttp:
 
     @staticmethod
     def is_login(final, html):
-        host = _up.urlparse(final).netloc.lower()
-        return host.startswith("login.") or bool(re.search(r"<input[^>]+type=[\"']?password", html, re.I))
+        """Kirish sahifasimi? Parol maydoni bo'lsa — ha. «Chiqish» (logout) formasi bo'lsa — yo'q, tizimga kirilgan
+        (manzil login.emaktab.uz bo'lib qolsa ham: u yerdan sinflar sahifasiga o'tkaziladi)."""
+        if re.search(r"<input[^>]+type=[\"']?password", html, re.I):
+            return True
+        if re.search(r"<form[^>]+action=[\"'][^\"']*/logout", html, re.I):
+            return False
+        return _up.urlparse(final).netloc.lower().startswith("login.")
 
     def is_logged_in(self):
         st, final, html = self.req(EMK_URLS["myclasses"])
-        return st == 200 and not self.is_login(final, html)
+        return st < 400 and not self.is_login(final, html)
 
     def login(self, user, password):
         if self.is_logged_in():
@@ -160,6 +191,10 @@ class EmkHttp:
                 (self.home / "debug_login.html").write_text(html, encoding="utf-8")
             except Exception:  # noqa: BLE001
                 pass
+            if not self.is_login(final, html):                   # sahifa allaqachon tizim ichida (sinflar va h.k.)
+                self.save_state()
+                self.ui.log("Muvaffaqiyatli kirildi.")
+                return
             fp = _EmkForms()
             fp.feed(html)
             form = next((f for f in fp.forms if any(i["type"] == "password" for i in f["inputs"])), None)
@@ -258,6 +293,8 @@ class EmkHttp:
                 out.append(cur)
             elif cur is not None and re.search(r"/journal/school/\d+/group/\d+/subject/\d+", href):
                 cur["journals"].append({"subject": (a["title"] or a["text"]).strip(), "url": href})
+        if not out:
+            out = catalog_from_state(html)
         if not out:
             raise EmkFallback("Sinflar HTML ichida topilmadi")
         self.save_state()
