@@ -247,6 +247,19 @@ def connect(path: str = ":memory:") -> sqlite3.Connection:
     return con
 
 
+def read_journal(path: Path) -> dict:
+    """journal.db (SQLite: jadvallar meta va classes) yoki journal.json / web ilova zaxirasi."""
+    if path.suffix.lower() in (".db", ".sqlite", ".sqlite3"):
+        src = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+        try:
+            data = {k: json.loads(v) for k, v in src.execute("SELECT k, v FROM meta") if not k.startswith("_")}
+            data["classes"] = [json.loads(d) for (d,) in src.execute("SELECT doc FROM classes ORDER BY pos")]
+        finally:
+            src.close()
+        return data
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def load(con: sqlite3.Connection, data: dict, today: str | None = None) -> None:
     """Jurnal ma'lumotini bazaga yozadi (bitta tranzaksiya)."""
     today = today or dt.date.today().isoformat()
@@ -387,7 +400,7 @@ def _table(rows, cols, out=None):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Jurnal hisobotlari (SQLite)")
-    ap.add_argument("jurnal", help="journal.json yoki web ilova zaxirasi (.json)")
+    ap.add_argument("jurnal", help="journal.db, journal.json yoki web ilova zaxirasi (.json)")
     ap.add_argument("hisobot", nargs="?", choices=["sinflar", "ishlar", "guruhlar", "tolov", "moliya"])
     ap.add_argument("--db", help="bazani faylga saqlash (aks holda xotirada)")
     ap.add_argument("--bugun", help="hisob sanasi, YYYY-MM-DD (odatda — bugun)")
@@ -397,7 +410,7 @@ def main(argv=None):
     ap.add_argument("--oy", help="YYYY-MM")
     ap.add_argument("--csv", help="natijani CSV faylga yozish")
     a = ap.parse_args(argv)
-    data = json.loads(Path(a.jurnal).read_text(encoding="utf-8"))
+    data = read_journal(Path(a.jurnal))
     if a.db and Path(a.db).exists():
         Path(a.db).unlink()
     con = connect(a.db or ":memory:")

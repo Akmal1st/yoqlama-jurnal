@@ -22,7 +22,7 @@ Bu dastur o'qituvchilar uchun. Unda yo'qlama, kundalik baholar, BSB/CHSB, chorak
   2. `python dastur/emaktab_tgbot.py` buyrug'i bilan ishga tushiring.
   3. `bot.env` faylini hech qachon repozitoriyaga qo'shmang.
 
-Ikkala dastur ham bitta `journal.json` faylidan foydalanadi. Faylni web ilovada «Sozlamalar → Ma'lumotlar» bo'limida yuklab olish yoki yuklash mumkin.
+Kompyuter dasturi ma'lumotni `journal.db` (SQLite) faylida saqlaydi; eski `journal.json` birinchi ishga tushishda o'zi ko'chiriladi (`journal.json.eski` nomi bilan saqlanib qoladi). Zaxira va bulut nusxalari, shuningdek web ilova bilan almashish hamon JSON formatida: web ilovada «Sozlamalar → Ma'lumotlar» bo'limida yuklab olish yoki yuklash mumkin. Telegram bot holati `bot_holat.db` da.
 
 ## Testlar
 

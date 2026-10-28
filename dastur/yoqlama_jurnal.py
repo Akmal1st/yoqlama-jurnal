@@ -8,7 +8,8 @@ Kerak:             pip install PySide6
 Import uchun:      pip install pandas xlrd odfpy openpyxl   (faqat "Fayl → Import" uchun)
 emaktabga kirish:  ishlashi uchun qo'shimcha narsa shart emas (HTTP usuli); HTTP o'tmasa zaxira: pip install playwright && playwright install chromium
 
-Ma'lumotlar shu papkadagi journal.json faylida saqlanadi (har o'zgarishda avtomatik).
+Ma'lumotlar shu papkadagi journal.db (SQLite) faylida saqlanadi (har o'zgarishda avtomatik).
+Eski journal.json birinchi ishga tushishda o'zi ko'chiriladi (fayl journal.json.eski nomi bilan saqlanib qoladi).
 Katakka kiritiladigan qiymatlar:   1…10 — baho,   S — sababsiz,   DQ — sababli,   K — kasal,   KQ — kech qoldi
 X — butun kun uchun (metod kuni / bayram): sana sarlavhasi yoki katakka o'ng tugma bilan
     qo'yiladi va olib tashlanadi. Metod kuni Sozlamalar menyusidan tanlanadi.
@@ -20,6 +21,7 @@ import hmac
 import json
 import os
 import re
+import sqlite3
 import tempfile
 import shutil
 import sys
@@ -42,7 +44,7 @@ from PySide6.QtWidgets import (
 )
 
 BASE = Path(__file__).resolve().parent
-DATA_FILE = BASE / "journal.json"
+DATA_FILE = BASE / "journal.db"
 
 WEEKDAYS = ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"]
 WEEKDAYS_FULL = ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"]
@@ -1807,15 +1809,81 @@ def read_import_file(path):
 
 # ───────────────────────────── ma'lumotlar ombori ─────────────────────────────
 class Store:
+    DB_SUFFIXES = (".db", ".sqlite", ".sqlite3")
+    SCHEMA = 1
+
     def __init__(self, path=DATA_FILE):
         self.path = Path(path)
-        self.data = self._load()
+        legacy = self.path.with_suffix(".json")
+        migrate = self._is_db(self.path) and not self.path.exists() and legacy.exists()
+        self.data = self._load(legacy if migrate else None)
+        if migrate:                                          # eski journal.json → journal.db (eski fayl o'chirilmaydi)
+            self.save()
+            try:
+                os.replace(legacy, legacy.with_name(legacy.name + ".eski"))
+            except OSError as e:
+                print("Eski journal.json nomini o'zgartirib bo'lmadi:", e)
+
+    @classmethod
+    def _is_db(cls, path):
+        return Path(path).suffix.lower() in cls.DB_SUFFIXES
+
+    @staticmethod
+    def _db_read(src):
+        """SQLite fayldan jurnal lug'atini o'qiydi (meta: sozlamalar va boshqa kalitlar, classes: har sinf alohida qator)."""
+        con = sqlite3.connect(f"file:{Path(src).as_posix()}?mode=ro", uri=True)
+        try:
+            data = {k: json.loads(v) for k, v in con.execute("SELECT k, v FROM meta") if not k.startswith("_")}
+            data["classes"] = [json.loads(d) for (d,) in con.execute("SELECT doc FROM classes ORDER BY pos")]
+        except sqlite3.Error as e:
+            raise ValueError(f"Jurnal bazasi o'qilmadi: {e}") from e
+        finally:
+            con.close()
+        return data
+
+    def _db_write(self, dest):
+        """Butun jurnalni yangi SQLite faylga yozadi (jadvallar: meta, classes, students). dest — vaqtinchalik fayl."""
+        con = sqlite3.connect(dest)
+        try:
+            con.executescript("""
+                CREATE TABLE meta(k TEXT PRIMARY KEY, v TEXT NOT NULL);
+                CREATE TABLE classes(pos INTEGER PRIMARY KEY, name TEXT NOT NULL, subject TEXT NOT NULL, doc TEXT NOT NULL);
+                CREATE TABLE students(class_pos INTEGER NOT NULL, pos INTEGER NOT NULL, name TEXT NOT NULL, PRIMARY KEY(class_pos, pos));""")
+            dump = lambda v: json.dumps(v, ensure_ascii=False)
+            con.executemany("INSERT INTO meta VALUES (?, ?)", [(k, dump(v)) for k, v in self.data.items() if k != "classes"]
+                            + [("_schema", str(self.SCHEMA))])
+            for i, c in enumerate(self.data["classes"]):
+                con.execute("INSERT INTO classes VALUES (?, ?, ?, ?)", (i, c.get("name", ""), c.get("subject", ""), dump(c)))
+                con.executemany("INSERT INTO students VALUES (?, ?, ?)", [(i, j, st.get("name", "")) for j, st in enumerate(c["students"])])
+            con.commit()
+        finally:
+            con.close()
+
+    @classmethod
+    def _readable(cls, path):
+        if not cls._is_db(path):
+            return True
+        try:
+            cls._db_read(path)
+            return True
+        except (ValueError, OSError, sqlite3.Error):
+            return False
+
+    def json_text(self):
+        """Jurnalning JSON ko'rinishi (zaxira, bulut va arxiv nusxalari shu formatda — hamma joyda ochiladi)."""
+        return json.dumps(self.data, ensure_ascii=False, indent=1)
+
+    def export_json(self, dest):
+        Path(dest).write_text(self.json_text(), encoding="utf-8")
 
     def _load(self, path=None):
         src = Path(path) if path else self.path
         if src.exists():
-            with open(src, encoding="utf-8") as f:
-                data = json.load(f)
+            if self._is_db(src):
+                data = self._db_read(src)
+            else:
+                with open(src, encoding="utf-8") as f:
+                    data = json.load(f)
         else:
             data = {"version": 2, "classes": []}
             for ods in sorted(self.path.parent.glob("*.ods")):
@@ -1866,9 +1934,12 @@ class Store:
 
     def save(self):
         tmp = self.path.with_name(self.path.name + ".tmp")
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(self.data, f, ensure_ascii=False, indent=1)
-        if self.path.exists():
+        if self._is_db(self.path):
+            tmp.unlink(missing_ok=True)
+            self._db_write(tmp)
+        else:
+            tmp.write_text(self.json_text(), encoding="utf-8")
+        if self.path.exists() and self._readable(self.path):    # buzilgan fayl yaxshi .bak nusxani bosib ketmasin
             shutil.copy2(self.path, self.path.with_name(self.path.name + ".bak"))
         os.replace(tmp, self.path)
 
@@ -2413,7 +2484,7 @@ class Store:
         while dest.exists():
             n += 1
             dest = folder / f"{self.path.stem}_{label}_{n}.json"
-        shutil.copy2(self.path, dest)
+        self.export_json(dest)
         today = dt.date.today()
         created = []
         for it in items:
@@ -2451,7 +2522,7 @@ class Store:
         while dest.exists():                    # bir soniyada ikkinchi nusxa oldingisini bosib ketmasin
             n += 1
             dest = base.parent / f"{base.name}_{n}.json"
-        shutil.copy2(self.path, dest)
+        self.export_json(dest)
         self.prune()
         return dest
 
@@ -2483,13 +2554,16 @@ class Store:
     def _digest(path):
         return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
+    def _digest_now(self):
+        return hashlib.sha256(self.json_text().encode("utf-8")).hexdigest()
+
     def auto_backup(self):
         """Ma'lumot oxirgi zaxiradan farq qilsa, avtomatik nusxa oladi (ilova ochilganda va yopilganda)."""
         try:
             if not self.path.exists():
                 return None
             last = self.backups()
-            if last and self._digest(last[0]["path"]) == self._digest(self.path):
+            if last and self._digest(last[0]["path"]) == self._digest_now():
                 return None
             return self._copy_backup("avto")
         except OSError as e:
@@ -2505,13 +2579,13 @@ class Store:
         folder = Path(d)
         if not folder.is_dir():
             raise OSError(f"Bulut papkasi topilmadi: {folder}")
-        dig = self._digest(self.path)
+        dig = self._digest_now()
         if dig == getattr(self, "_cloud_dig", None):
             return None
         tmp = folder / "jurnal_oxirgi.json.tmp"
-        shutil.copy2(self.path, tmp)
+        self.export_json(tmp)
         os.replace(tmp, folder / "jurnal_oxirgi.json")
-        shutil.copy2(self.path, folder / f"jurnal_{dt.date.today().isoformat()}.json")
+        shutil.copy2(tmp.with_name("jurnal_oxirgi.json"), folder / f"jurnal_{dt.date.today().isoformat()}.json")
         for old in sorted(folder.glob("jurnal_????-??-??.json"))[:-14]:
             try:
                 old.unlink()
@@ -13137,7 +13211,7 @@ def safe_store():
     except Exception as e:  # noqa: BLE001
         log_error(e)
         msg, _h = friendly_error(e)
-        broken = DATA_FILE.with_name(f"{DATA_FILE.stem}_buzuq_{dt.datetime.now():%Y%m%d_%H%M%S}.json")
+        broken = DATA_FILE.with_name(f"{DATA_FILE.stem}_buzuq_{dt.datetime.now():%Y%m%d_%H%M%S}{DATA_FILE.suffix}")
         try:
             if DATA_FILE.exists():
                 shutil.copy2(DATA_FILE, broken)
