@@ -258,6 +258,7 @@ def save_state():
         try:
             tmp = STATE_FILE.with_name(STATE_FILE.name + ".tmp")
             tmp.write_text(json.dumps(SAVED, ensure_ascii=False, indent=1), encoding="utf-8")
+            tmp.chmod(0o600)                                   # o'quvchi ro'yxatlari: boshqa foydalanuvchilar o'qimasin
             os.replace(tmp, STATE_FILE)
         except OSError as e:
             print("holatni yozib bo'lmadi:", e)
