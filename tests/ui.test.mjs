@@ -2107,3 +2107,20 @@ test("Dars: 30% dan kam baholangan bo'lsa ogohlantiradi, yetarli bo'lsa to'xtatm
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Bugun: sinflar ko'rsatkichi kartasi (davomat, o'zlashtirish, baholanganlik)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.waitForSelector(".clsstat tbody tr");
+    assert.equal(await page.locator(".clsstat tbody tr").count(), await page.evaluate(() => D.classes.filter((c) => !isGrp(c)).length));
+    assert.ok((await page.textContent(".clsstat")).includes("Bugun baholangan"));
+    assert.ok(await page.locator(".clsstat .progress-bar").count() > 0);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});

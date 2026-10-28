@@ -1483,6 +1483,19 @@ function render() {
 }
 
 /* ───────── 1. Bugun ───────── */
+// «Bugun»: sinflar bo'yicha davomat, o'zlashtirish, o'rtacha va bugungi baholanganlik (kamida 30%)
+function classesCard(t) {
+  const q = quarterOf(t), lo = q ? qRange(q)[0] : t.slice(0, 8) + "01", R = compareRows(lo, t, q).filter((r) => r.n);
+  if (!R.length) return "";
+  const tone = (v) => v >= 85 ? "bg-success" : v >= 70 ? "bg-primary" : v >= 55 ? "bg-warning" : "bg-danger";
+  const bar = (v) => v === null || v === undefined ? `<span class="muted">—</span>` : `<div class="d-flex align-items-center gap-2"><div class="progress flex-grow-1" style="height:8px"><div class="progress-bar ${tone(v)}" style="width:${Math.max(0, Math.min(100, v))}%"></div></div><span class="small fw-semibold" style="width:40px">${v.toFixed(0)}%</span></div>`;
+  const rows = R.map((r) => {
+    const g = r.c.dates.includes(t) && !isNoLesson(r.c, t) ? gradedShare(r.c, t) : null;
+    return `<tr><td class="fw-semibold">${esc(label(r.c))}</td><td style="min-width:130px">${bar(r.att)}</td><td style="min-width:130px">${bar(r.qu)}</td><td class="text-end fw-bold">${r.avg === null ? "—" : r.avg.toFixed(1)}</td>
+      <td>${g ? `<span class="badge ${g.ok ? "text-bg-success" : "text-bg-warning"}" title="Bugun baholangan: ${g.graded} / ${g.total}; kamida ${GRADED_MIN}% kerak">${g.pct}% ${g.ok ? "✓" : "⚠"}</span>` : `<span class="muted">—</span>`}</td></tr>`; }).join("");
+  return `<section class="bs clsstat"><div class="card"><div class="card-body"><h2 style="margin:0 0 8px">Sinflar ko'rsatkichi${q ? ` · ${q}-chorak` : ""}</h2>
+    <div class="table-responsive"><table class="table r align-middle mb-0"><thead><tr><th>Sinf</th><th>Davomat</th><th>O'zlashtirish</th><th class="text-end">O'rtacha</th><th>Bugun baholangan</th></tr></thead><tbody>${rows}</tbody></table></div></div></div></section>`;
+}
 function pageToday(m) {
   const t = todayIso(), q = quarterOf(t), hr = new Date().getHours();
   const hello = hr < 11 ? "Xayrli tong!" : hr < 17 ? "Xayrli kun!" : "Xayrli kech!";
@@ -1521,6 +1534,7 @@ function pageToday(m) {
     ${(() => { const b = feat("bday") ? birthdays(0) : []; return b.length ? `<div class="card hrow bday"><span style="font-size:28px">🎂</span><span class="sp">Bugun tug'ilgan kun: ${b.map((x) => `<button class="link" data-stud="${x.ci}|${esc(x.s.name)}"><b>${esc(x.s.name)}</b></button> (${esc(D.classes[x.ci].name)}${x.age ? `, ${x.age} yosh` : ""})`).join(", ")}. Tabriklashni unutmang!</span></div>` : ""; })()}
     <div id="found"></div>
     <section class="bs"><div class="row g-3">${cards}</div></section>
+    ${classesCard(t)}
     <div class="tgrid">${payCard()}
 ${(() => { const qe = feat("qend") && quarterEnd(); if (!qe) return "";
       const rows = D.classes.map((c, ci) => ({c, ci, g: quarterGaps(c, qe.q)})).filter((x) => !isGrp(x.c) && (x.g.low.length || x.g.noScore.length));
