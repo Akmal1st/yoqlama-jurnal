@@ -235,6 +235,7 @@ class UI:
         send_bytes(chat, f"captcha.{ext}", bytes(png), "Captcha: rasmdagi belgilarni yozib yuboring", "photo")
         q = QUEUES.get(chat)
         end = time.time() + CAPTCHA_WAIT
+        later = []
         while q is not None and time.time() < end:
             try:
                 u = q.get(timeout=5)
@@ -244,9 +245,16 @@ class UI:
                 tg("answerCallbackQuery", {"callback_query_id": u["callback_query"]["id"],
                                            "text": "Avval captcha belgilarini yozib yuboring"})
                 continue
+            if "message" not in u:                            # eslatma, inline so'rov: captchadan keyin bajariladi
+                later.append(u)
+                continue
             t = (u["message"].get("text") or "").strip()
             if t:
+                for x in later:
+                    q.put(x)
                 return t
+        for x in later:
+            q.put(x)
         say(chat, "Captcha javobi kelmadi (vaqt tugadi).")
         return None
 

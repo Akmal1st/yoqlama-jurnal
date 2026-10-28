@@ -73,6 +73,11 @@ class _EmkForms(_HP):
             self._a["text"] += d
 
 
+def is_image(b):
+    b = bytes(b[:12])
+    return b.startswith((b"\x89PNG", b"\xff\xd8", b"GIF8", b"BM")) or (b[:4] == b"RIFF" and b[8:12] == b"WEBP")
+
+
 class EmkHttp:
     """Brauzersiz (faqat standart kutubxona) seans: login/captcha, sinflar, Excel. Interfeysi EmkSession bilan bir xil."""
     is_http = True
@@ -170,6 +175,11 @@ class EmkHttp:
                             re.fullmatch(r"[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}", i["value"] or ""):
                         extra.append("/captcha/true/" + i["value"])
             imgs = list(dict.fromkeys(extra + list(imgs)))
+            try:                                                  # nosozlikni topish uchun: login sahifasi har urinishda saqlanadi
+                self.home.mkdir(parents=True, exist_ok=True)
+                (self.home / "debug_login.html").write_text(html, encoding="utf-8")
+            except Exception:  # noqa: BLE001
+                pass
             cap = next((n for n in texts if n != us and re.search(r"captcha|code|kod|answer|sum|number|digit", n, re.I)), None) \
                 or next((n for n in texts if n != us), None)
             if cap and imgs:
@@ -182,23 +192,22 @@ class EmkHttp:
                     if sc < 10 and re.search(r"logo|icon|favicon|banner|sprite|avatar|flag|\.svg|brand|header|footer", blob):
                         sc -= 10
                     return sc
-                png = None
-                for src in sorted(imgs, key=_score, reverse=True)[:4]:
+                png, tried = None, []
+                for src in sorted(imgs, key=_score, reverse=True)[:6]:
                     try:
                         cst, _, hd, body = self.raw(_up.urljoin(final, src), headers={"Accept": "image/*,*/*;q=0.8", "Referer": final})
                     except RuntimeError as e:
-                        raise EmkFallback(str(e))
-                    if cst == 200 and len(body) > 60 and (hd.get_content_type() or "").startswith("image/"):
+                        tried.append(f"{src[:60]}: {str(e)[:60]}")
+                        continue
+                    # ba'zan server rasmni «application/octet-stream» deb yuboradi — fayl boshidagi belgilar bo'yicha ham tanlanadi
+                    if cst == 200 and len(body) > 60 and ((hd.get_content_type() or "").startswith("image/") or is_image(body)):
                         png = body
                         self.ui.log(f"Captcha rasmi: {src[:150]}")
                         break
+                    tried.append(f"{src[:60]}: {cst} {hd.get_content_type()} {len(body)} bayt")
                 if png is None:
-                    raise EmkFallback("Captcha rasmini yuklab bo'lmadi")
-                try:
-                    self.home.mkdir(parents=True, exist_ok=True)
-                    (self.home / "debug_login.html").write_text(html, encoding="utf-8")   # nosozlikni topish uchun
-                except Exception:  # noqa: BLE001
-                    pass
+                    print("Captcha rasmlari:", tried or imgs[:6])
+                    raise EmkFallback("Captcha rasmini yuklab bo'lmadi" + (f": {tried[0]}" if tried else ""))
                 ans = self.ui.ask_captcha(png)
                 if ans is None:
                     raise RuntimeError("Captcha kiritish bekor qilindi.")
