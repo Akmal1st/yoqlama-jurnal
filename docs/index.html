@@ -114,10 +114,10 @@ const ZAMONAVIY_CSS = LIGHT_SIDE + `body{font-size:14.5px;letter-spacing:-.003em
     .steps button{padding:5px 12px}.steps button.on{box-shadow:none}
     .foot{box-shadow:0 -1px 0 var(--line)}
     ${MOBILE_CSS}`;
-/* Uch dizayn (Bootstrap ustida, ranglar --acc/--base/... orqali; och/qorong'i rejim har birida ishlaydi).
+/* To'rt dizayn (Bootstrap ustida, ranglar --acc/--base/... orqali; och/qorong'i rejim har birida ishlaydi).
    [nom, tavsif, kunduzgi ranglar, tungi ranglar, qo'shimcha CSS (faqat ekran), burchak radiusi]
    dash — Klassik dashboard: ko'k-oq, qat'iy tartib; qulay — yirik shrift va tugmalar, yuqori kontrast;
-   zich — ixcham: ko'p qator va katak bir ekranda. */
+   zich — ixcham: ko'p qator va katak bir ekranda; maktab — konsepsiya: sokin panellar, katta katak, o'qishga qulay jadval. */
 const STYLES = {
   dash: ["Klassik dashboard", "Ko'k va oq, qat'iy tartibli boshqaruv paneli: to'q ko'k yon panel, aniq chiziqlar",
     "--win:#eef2f8;--base:#ffffff;--alt:#f6f8fc;--soft:#e8eef8;--line:#d5deeb;--text:#17233b;--muted:#566177;--acc:#1f5fbf;--acc-d:#174a96;--acc-fg:#ffffff;--acc-soft:#e3edfb;--side-bg:linear-gradient(175deg,#1a3f86 0%,#122c60 100%);--side-fg:#ffffff;--side-mut:#b8c8e8;--sh:0 1px 2px rgba(16,32,64,.08);--sh-lg:0 12px 32px -12px rgba(16,32,64,.35);--today-cell:#fff4cc;",
@@ -150,7 +150,18 @@ const STYLES = {
       table.j{border-spacing:1px;font-size:12px}.cell{height:24px;min-width:26px;font-size:12px;border-radius:4px}.keys .key{min-width:30px;height:28px;font-size:13px}
       table.r{--tpy:5px;--tpx:8px}table.r td,table.r th{padding:5px 8px;font-size:12.5px}.drow{padding:2px 0;gap:6px}.dn{font-size:13px}.da{min-width:30px;height:26px;font-size:12px;border-radius:5px}.dg{width:26px;height:26px;font-size:12px}.datt,.dgr{gap:2px}
       .side .nav{padding:6px 10px;font-size:13.5px}.tblwrap{max-height:calc(100vh - 150px)}}
-      @media (max-width:820px){body{font-size:14px}.btn{min-height:38px}.cell{height:32px}.drow{padding:3px 0}.da{height:30px}.dgr{padding:3px 2px}}`, "8px"]};
+      @media (max-width:820px){body{font-size:14px}.btn{min-height:38px}.cell{height:32px}.drow{padding:3px 0}.da{height:30px}.dgr{padding:3px 2px}}`, "8px"],
+  maktab: ["Maktab (konsepsiya)", "Zich, sokin va tez: kulrang-ko'k fon, yupqa chegarali panellar, katta katak va keng qator oralig'i; jurnal jadvali o'qishga qulay",
+    "--win:#f2f5fa;--base:#ffffff;--alt:#f6f8fc;--soft:#e8eef8;--line:#d7dfec;--text:#16233a;--muted:#58637a;--acc:#1f5fbf;--acc-d:#174a96;--acc-fg:#ffffff;--acc-soft:#e3edfb;--side-bg:linear-gradient(175deg,#1a3f86 0%,#0f2557 100%);--side-fg:#ffffff;--side-mut:#cfdcf7;--sh:0 1px 2px rgba(20,40,80,.06);--sh-lg:0 12px 32px -12px rgba(16,32,64,.35);--today-cell:#fff4cc;",
+    "--win:#0d1420;--base:#141d2c;--alt:#192438;--soft:#202c42;--line:#2b3a55;--text:#e6ecf7;--muted:#9fb0cb;--acc:#6ea8ff;--acc-d:#9cc2ff;--acc-fg:#07142b;--acc-soft:#16294a;--side-bg:linear-gradient(175deg,#12213f 0%,#0b1527 100%);--side-fg:#ffffff;--side-mut:#8da2c8;--sh:none;--sh-lg:0 16px 40px -16px rgba(0,0,0,.8);",
+    MOBILE_CSS + `body{font-size:15px;line-height:1.5}.card,.tblwrap,.tile,.opt,.gcard,.mcard,.keys{border:1px solid var(--line);border-radius:8px;box-shadow:var(--sh)}.tile::before{display:none}
+    .tile div:first-child{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--muted)}.tile div:last-child{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+    h1{font-size:24px;font-weight:700;letter-spacing:-.01em}h2{font-size:17px;font-weight:650}.tag{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase}
+    .btn{box-shadow:none;border-radius:6px;font-weight:600}.btn.btn-primary{background:var(--acc);border-color:var(--acc);box-shadow:none}.btn.btn-primary:hover{background:var(--acc-d)}
+    table.r{--tpy:12px;--tpx:14px}table.r th{background:var(--alt);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--line)}table.r td{border-bottom:1px solid var(--line)}table.r tr:hover td{background:var(--alt)}
+    table.j{border-spacing:3px}table.j th{background:var(--alt)}.cell{height:36px;min-width:40px;border-radius:6px;font-weight:700}.cell:not(.ro):hover{box-shadow:inset 0 0 0 2px var(--acc)}
+    .side .nav{border-radius:6px;font-size:14px}.side .nav.on{background:rgba(255,255,255,.15);box-shadow:inset 3px 0 0 #fff}.side .nav.on::before{display:none}
+    main{padding:22px 30px 34px}@media (max-width:820px){main{padding:14px 14px 100px}h1{font-size:21px}}`, "8px"]};
 // «Rangli sinflar» uslubi uchun sinf ranglari (har sinf o'z rangida)
 const CLS_COLORS = ["#ffe7a3", "#c9f0dc", "#d8e3ff", "#ffd6e0", "#ead9ff", "#ffdcc2", "#cdeff5", "#e6f0b8"];
 const ccOf = (i) => `--cc:${CLS_COLORS[i % CLS_COLORS.length]}`;

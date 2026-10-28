@@ -687,6 +687,7 @@ table.j td{vertical-align:middle}
 .sw-dash{background:#eef2f8}.sw-dash b{background:linear-gradient(175deg,#1a3f86,#122c60)}.sw-dash u{border:1px solid #d5deeb;border-radius:2px}
 .sw-qulay{background:#fff;border:2px solid #6b7280}.sw-qulay b{background:#0b4fa8;width:22px}.sw-qulay u{border:2px solid #6b7280;border-radius:8px;background:#fff}
 .sw-zich{background:#f3f4f6}.sw-zich b{background:#fbfbfc;border:1px solid #dcdfe5;width:10px}.sw-zich u{border:1px solid #dcdfe5;background:repeating-linear-gradient(0deg,#fff 0 4px,#eceef2 4px 5px);border-radius:2px}
+.sw-maktab{background:#f2f5fa}.sw-maktab b{background:linear-gradient(175deg,#1a3f86,#0f2557)}.sw-maktab u{border:1px solid #d7dfec;border-radius:3px;background:repeating-linear-gradient(90deg,#fff 0 7px,#e8eef8 7px 8px)}
 .fsys{border-style:dashed;justify-content:center}
 .flist{display:flex;flex-direction:column;max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:12px}
 .flist button{display:flex;justify-content:space-between;align-items:baseline;gap:10px;border:0;border-bottom:1px solid var(--soft);background:transparent;padding:9px 12px;text-align:left;font-size:18px}
