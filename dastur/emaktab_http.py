@@ -8,6 +8,7 @@ import http.cookiejar as _cj
 import json
 import os
 import re
+import uuid
 import urllib.error as _ue
 import urllib.parse as _up
 import urllib.request as _ur
@@ -31,6 +32,31 @@ class EmkFallback(Exception):
 
 
 _EMK_UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+
+
+def is_pw(i):
+    """Parol maydoni: type="password" yoki (emaktab yangi sahifasida type="text" bo'lgani uchun) nomi/klassi bo'yicha."""
+    return i["type"] == "password" or (i["type"] == "text" and (
+        re.fullmatch(r"pass(word)?|parol", i["name"] or "", re.I) or re.search(r"password", i.get("cls") or "", re.I)))
+
+
+def unescape_js(text):
+    """JS satrlaridagi \\xNN va \\/ belgilarini ochadi (JSON.parse('\\x7b\\x22imagePart…'))."""
+    return re.sub(r"\\x([0-9a-fA-F]{2})", lambda m: chr(int(m.group(1), 16)), text).replace("\\/", "/")
+
+
+def hide_secrets(html):
+    """Nosozlik fayliga login/parol yozilmasin: login va parol maydonlarining qiymatlari o'chiriladi."""
+    def _clean(m):
+        tag = m.group(0)
+        if re.search(r"name=[\"']?(login|user\w*|pass\w*|parol)[\"'\s>]|type=[\"']?password", tag, re.I):
+            return re.sub(r"\svalue=(\"[^\"]*\"|'[^']*'|[^\s>]+)", ' value=""', tag)
+        return tag
+    s = re.sub(r"<input\b[^>]*>", _clean, html, flags=re.I)
+    return re.sub(r'((?:\\x22|")(?:login|password|userName|parol)(?:\\x22|")\s*(?::|\\x3a)\s*(?:\\x22|"))((?:(?!\\x22)[^"])*)',
+                  r"\1", s, flags=re.I)
+
+
 class _EmkForms(_HP):
     """HTML dan formalar (input maydonlari, rasmlari) va sinf/jurnal havolalarini yig'adi."""
 
@@ -54,7 +80,8 @@ class _EmkForms(_HP):
             if self._f is not None:
                 self._f["imgs"].append(src)
         elif tag in ("input", "button"):
-            i = {"name": a.get("name"), "type": (a.get("type") or "text").lower(), "value": a.get("value") or ""}
+            i = {"name": a.get("name"), "type": (a.get("type") or "text").lower(), "value": a.get("value") or "",
+                 "cls": a.get("class") or ""}
             self.inputs.append(i)                                 # sahifadagi hamma maydonlar (captcha forma tashqarisida bo'lishi mumkin)
             if self._f is not None:
                 self._f["inputs"].append(i)
@@ -168,7 +195,7 @@ class EmkHttp:
     def is_login(final, html):
         """Kirish sahifasimi? Parol maydoni bo'lsa — ha. «Chiqish» (logout) formasi bo'lsa — yo'q, tizimga kirilgan
         (manzil login.emaktab.uz bo'lib qolsa ham: u yerdan sinflar sahifasiga o'tkaziladi)."""
-        if re.search(r"<input[^>]+type=[\"']?password", html, re.I):
+        if re.search(r"<input[^>]+(type=[\"']?password|name=[\"']?password[\"'\s>])", html, re.I):
             return True
         if re.search(r"<form[^>]+action=[\"'][^\"']*/logout", html, re.I):
             return False
@@ -188,7 +215,7 @@ class EmkHttp:
         for attempt in range(1, 4):
             try:                                                  # nosozlikni topish uchun: login sahifasi har urinishda saqlanadi
                 self.home.mkdir(parents=True, exist_ok=True)
-                (self.home / "debug_login.html").write_text(html, encoding="utf-8")
+                (self.home / "debug_login.html").write_text(hide_secrets(html), encoding="utf-8")
             except Exception:  # noqa: BLE001
                 pass
             if not self.is_login(final, html):                   # sahifa allaqachon tizim ichida (sinflar va h.k.)
@@ -197,8 +224,8 @@ class EmkHttp:
                 return
             fp = _EmkForms()
             fp.feed(html)
-            form = next((f for f in fp.forms if any(i["type"] == "password" for i in f["inputs"])), None)
-            if not form and any(i["type"] == "password" for i in fp.inputs):
+            form = next((f for f in fp.forms if any(is_pw(i) for i in f["inputs"])), None)
+            if not form and any(is_pw(i) for i in fp.inputs):
                 # maydonlar <form> tegisiz (yoki forma yopilib qolgan) — sahifadagi hamma maydonlar, yuborish shu manzilga
                 form = {"action": next((f["action"] for f in fp.forms if f["action"]), ""), "inputs": fp.inputs, "imgs": fp.imgs}
             if not form:
@@ -209,8 +236,8 @@ class EmkHttp:
                 raise EmkFallback(f"Login formasi topilmadi (sahifa: {final[:60]}, javob {st}" + (f", «{title}»" if title else "") + ")")
             data = {i["name"]: i["value"] for i in form["inputs"]
                     if i["name"] and i["type"] not in ("submit", "button", "checkbox", "radio", "file", "image")}
-            pw = next((i["name"] for i in form["inputs"] if i["type"] == "password" and i["name"]), None)
-            texts = [i["name"] for i in form["inputs"] if i["name"] and i["type"] in ("text", "email", "tel", "number")]
+            pw = next((i["name"] for i in form["inputs"] if is_pw(i) and i["name"]), None)
+            texts = [i["name"] for i in form["inputs"] if i["name"] and i["name"] != pw and i["type"] in ("text", "email", "tel", "number")]
             us = next((n for n in texts if re.search(r"^(log|user|mail|phone|tel)", n, re.I)), None) or (texts[0] if texts else None)
             if not pw or not us:
                 raise EmkFallback("Login maydonlari topilmadi")
@@ -230,6 +257,15 @@ class EmkHttp:
                     if i["type"] == "hidden" and re.search(r"captcha", i["name"] or "", re.I) and \
                             re.fullmatch(r"[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}", i["value"] or ""):
                         extra.append("/captcha/true/" + i["value"])
+            # yangi sahifa: <img class="captcha__image"> manzilsiz, «Captcha.Id» bo'sh; brauzer JS sozlamadagi
+            # imagePart (…/captcha/true/) ga yangi guid qo'shib rasmni oladi va guid ni Captcha.Id ga yozadi — biz ham shunday
+            part = re.search(r'"imagePart"\s*:\s*"([^"]+)"', unescape_js(html))
+            cid = next((i for i in fp.inputs if i["name"] and i["type"] == "hidden" and
+                        re.search(r"captcha", i["name"], re.I) and re.search(r"id$", i["name"], re.I)), None)
+            if part and cid:
+                guid = cid["value"] or str(uuid.uuid4())
+                data[cid["name"]] = guid
+                extra.insert(0, part.group(1) + guid)
             imgs = list(dict.fromkeys(extra + list(imgs)))
             outside = [i["name"] for i in fp.inputs if i["name"] and i["type"] in ("text", "number", "tel") and i["name"] not in texts]
             cap = next((n for n in texts + outside if n != us and re.search(r"captcha|code|kod|answer|sum|number|digit", n, re.I)), None) \

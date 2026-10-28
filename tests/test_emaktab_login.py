@@ -171,3 +171,50 @@ def test_catalog_from_state():
         {"subject": "Matematika", "url": "https://emaktab.uz/journal/school/10/group/25/subject/16"},
         {"subject": "Ingliz tili (1-guruh)", "url": "https://emaktab.uz/journal/school/10/group/25/subject/17"}]}]
     assert EH.catalog_from_state("<html></html>") == []
+
+
+# emaktabning yangi login sahifasi (2026-10-28, soxta qiymatlar bilan): parol maydoni type="text", captcha rasmi
+# manzilsiz — manzil JS sozlamasida (\xNN bilan yozilgan imagePart) va guid ni brauzer o'zi yasab Captcha.Id ga yozadi
+NEW_PAGE = """<html><head><title>eMaktab</title></head><body>
+<form class="login" method="POST">
+<input name="exceededAttempts" type="hidden" value="{ex}"><input name="ReturnUrl" type="hidden" value="https://emaktab.uz/">
+<input name="FingerprintId" type="hidden" value="">
+<input class="login__input" name="login" type="text" value="{u}">
+<input class="login__input input_type-password" id="password-field" name="password" type="text" value="{p}">
+{cap}<input type="submit" value="Kirish"></form>
+<script>var cfg = JSON.parse('\\x7b\\x22imagePart\\x22\\x3a\\x22https\\x3a\\x2f\\x2flogin.emaktab.uz\\x2fcaptcha\\x2ftrue\\x2f\\x22,\\x22id\\x22\\x3a\\x22\\x22\\x7d');
+window.st = JSON.parse('\\x7b\\x22login\\x22\\x3a\\x22{u}\\x22\\x7d');</script></body></html>"""
+NEW_CAP = """<div class="captcha"><img alt="captcha image" class="captcha__image">
+<input name="Captcha.Input" class="captcha__input"><input name="Captcha.Id" class="captcha__value" type="hidden" value=""></div>"""
+
+
+def test_new_login_page(tmp_path, monkeypatch):
+    ui = UI()
+    s = make(tmp_path, ui)
+    posts, imgs = [], []
+
+    def raw(url, data=None, headers=None, timeout=60):
+        hd = Message()
+        hd["Content-Type"] = "text/html; charset=utf-8"
+        if "/captcha/true/" in url:
+            imgs.append(url.rsplit("/", 1)[1])
+            hd.replace_header("Content-Type", "image/png")
+            return 200, url, hd, PNG
+        if data is None and "login.emaktab.uz" not in url:       # tekshiruv: kirilmagan
+            return 200, "https://login.emaktab.uz/login", hd, NEW_PAGE.format(ex="False", u="", p="", cap="").encode()
+        if data is not None:
+            posts.append(dict(data))
+            if len(posts) > 1 and data.get("Captcha.Input") == "AB12" and data.get("Captcha.Id") == imgs[-1]:
+                return 200, "https://emaktab.uz/userfeed", hd, b'<form action="/logout"></form>'
+            return 200, url, hd, NEW_PAGE.format(ex="True", u=data["login"], p=data["password"], cap=NEW_CAP).encode()
+        return 200, url, hd, NEW_PAGE.format(ex="False", u="", p="", cap="").encode()
+
+    monkeypatch.setattr(s, "raw", raw)
+    monkeypatch.setattr(s, "save_state", lambda: None)
+    s.login("soxta_login", "soxta_parol")
+    assert len(posts) == 2
+    assert posts[0]["login"] == "soxta_login" and posts[0]["password"] == "soxta_parol"
+    assert posts[1]["password"] == "soxta_parol" and posts[1]["exceededAttempts"] == "True" and "FingerprintId" in posts[1]
+    assert len(imgs) == 1 and len(imgs[0]) == 36 and ui.asked == [PNG]
+    dbg = (tmp_path / "debug_login.html").read_text(encoding="utf-8")
+    assert "soxta_login" not in dbg and "soxta_parol" not in dbg       # login/parol nosozlik fayliga yozilmaydi
