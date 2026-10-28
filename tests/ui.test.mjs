@@ -1765,17 +1765,17 @@ test("Dizayn: uslublar va kompyuterdagi shriftlar", async () => {
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     await page.evaluate(() => { S.sec = 3; go("settings"); });
     assert.equal(await page.locator(".stys [data-sty]").count(), 4);
-    // to'rt dizayn: Klassik dashboard (standart), Qulay, Ixcham, Maktab; eski uslub nomlari standartga qaytadi
+    // to'rt dizayn: Klassik dashboard (standart), Qulay, Ixcham, Yumshoq; eski uslub nomlari standartga qaytadi
     assert.equal(await page.evaluate(() => D.web.style), "dash");
     const win = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--win").trim());
     const before = await win();
-    for (const st of ["qulay", "zich", "maktab"]) {
+    for (const st of ["qulay", "zich", "yumshoq"]) {
       await page.click(`[data-sty="${st}"]`);
       assert.equal(await page.evaluate(() => D.web.style), st);
       assert.notEqual(await win(), before, `${st}: fon o'zgarishi kerak`);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1, `${st}: ekrandan chiqmasin`);
     }
-    // yon paneldagi tezkor almashtirgich: maktab → dash → qulay
+    // yon paneldagi tezkor almashtirgich: yumshoq → dash → qulay
     await page.evaluate(() => $("[data-dsw]").click());
     assert.equal(await page.evaluate(() => D.web.style), "dash");
     await page.evaluate(() => $("[data-dsw]").click());
