@@ -103,3 +103,29 @@ def test_captcha_outside_form(tmp_path, monkeypatch):
         assert posts[1]["Captcha.Input"] == "AB12" and len(ui.asked) == 1
     finally:
         PAGE = old
+
+
+def test_inputs_without_form_tag(tmp_path, monkeypatch):
+    """Login maydonlari <form> tegisiz bo'lsa ham kiriladi."""
+    global PAGE
+    old = PAGE
+    PAGE = old.replace('<form action="/login" method="post">', "<div>").replace("</form>", "</div>")
+    try:
+        ui = UI()
+        s = make(tmp_path, ui)
+        posts = site(monkeypatch, s)
+        s.login("ali", "parol")
+        assert posts[1]["login"] == "ali" and posts[1]["Captcha.Input"] == "AB12"
+    finally:
+        PAGE = old
+
+
+def test_no_login_form_message(tmp_path, monkeypatch):
+    s = make(tmp_path, UI())
+    from email.message import Message
+    hd = Message()
+    hd["Content-Type"] = "text/html"
+    monkeypatch.setattr(s, "raw", lambda *a, **k: (403, "https://login.emaktab.uz/", hd, b"<title>Access denied</title>"))
+    with pytest.raises(EH.EmkFallback, match="Access denied"):
+        s.login("ali", "parol")
+    assert (tmp_path / "debug_login.html").read_text() == "<title>Access denied</title>"

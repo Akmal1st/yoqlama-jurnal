@@ -155,11 +155,23 @@ class EmkHttp:
         # (rasm foydalanuvchiga yuboriladi, javobi kiritiladi); 3) muvaffaqiyatli bo'lsa — keyingi ishlar
         st, final, html = self.req(EMK_URLS["login"])
         for attempt in range(1, 4):
+            try:                                                  # nosozlikni topish uchun: login sahifasi har urinishda saqlanadi
+                self.home.mkdir(parents=True, exist_ok=True)
+                (self.home / "debug_login.html").write_text(html, encoding="utf-8")
+            except Exception:  # noqa: BLE001
+                pass
             fp = _EmkForms()
             fp.feed(html)
             form = next((f for f in fp.forms if any(i["type"] == "password" for i in f["inputs"])), None)
+            if not form and any(i["type"] == "password" for i in fp.inputs):
+                # maydonlar <form> tegisiz (yoki forma yopilib qolgan) — sahifadagi hamma maydonlar, yuborish shu manzilga
+                form = {"action": next((f["action"] for f in fp.forms if f["action"]), ""), "inputs": fp.inputs, "imgs": fp.imgs}
             if not form:
-                raise EmkFallback("Login formasi topilmadi")
+                t = re.search(r"<title[^>]*>(.*?)</title>", html, re.I | re.S)
+                title = re.sub(r"\s+", " ", t.group(1)).strip()[:60] if t else ""
+                print(f"Login sahifasi: {st} {final} «{title}», {len(html)} belgi, {len(fp.forms)} forma, "
+                      f"{len(fp.inputs)} maydon; to'liq matn: {self.home / 'debug_login.html'}")
+                raise EmkFallback(f"Login formasi topilmadi (sahifa: {final[:60]}, javob {st}" + (f", «{title}»" if title else "") + ")")
             data = {i["name"]: i["value"] for i in form["inputs"]
                     if i["name"] and i["type"] not in ("submit", "button", "checkbox", "radio", "file", "image")}
             pw = next((i["name"] for i in form["inputs"] if i["type"] == "password" and i["name"]), None)
@@ -184,11 +196,6 @@ class EmkHttp:
                             re.fullmatch(r"[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}", i["value"] or ""):
                         extra.append("/captcha/true/" + i["value"])
             imgs = list(dict.fromkeys(extra + list(imgs)))
-            try:                                                  # nosozlikni topish uchun: login sahifasi har urinishda saqlanadi
-                self.home.mkdir(parents=True, exist_ok=True)
-                (self.home / "debug_login.html").write_text(html, encoding="utf-8")
-            except Exception:  # noqa: BLE001
-                pass
             outside = [i["name"] for i in fp.inputs if i["name"] and i["type"] in ("text", "number", "tel") and i["name"] not in texts]
             cap = next((n for n in texts + outside if n != us and re.search(r"captcha|code|kod|answer|sum|number|digit", n, re.I)), None) \
                 or next((n for n in texts if n != us), None)
