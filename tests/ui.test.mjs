@@ -1497,7 +1497,7 @@ test("To'ldirilmagan darslar, KTR bajarilishi va qo'llanma", async () => {
     await page.click(`[data-gapok="2|${d}"]`);
     assert.ok(await page.evaluate((d) => D.classes[2].att_ok.includes(d) && !lessonGaps().some((x) => x.ci === 2 && x.d === d && x.noAtt), d));
     // mavzu yozib boriladigan sinfda mavzusiz kun — «To'ldirish» mavzular oynasini o'sha kunda ochadi
-    const d0 = await page.evaluate(() => { const g = lessonGaps().find((x) => x.noTopic && !x.noAtt); return g && `${g.ci}|${g.d}`; });
+    const d0 = await page.evaluate(() => { const g = lessonGaps().slice(0, 5).find((x) => x.noTopic && !x.noAtt); return g && `${g.ci}|${g.d}`; });
     if (d0) { await page.click(`[data-gap="${d0}|0"]`); await page.waitForSelector(`.modal [data-lt="${d0.split("|")[1]}"]`); assert.equal(await page.evaluate(() => document.activeElement.dataset.lt), d0.split("|")[1]); await page.click(".modal [data-x]"); }
     // KTR: oxirgi 4 ta o'tgan darsda mavzu yo'q → 4 soat orqada
     const k = await page.evaluate(() => {
