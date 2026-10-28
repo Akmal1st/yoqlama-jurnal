@@ -41,6 +41,7 @@ import os
 import queue
 import re
 import shutil
+import sqlite3
 import sys
 import threading
 import time
@@ -72,9 +73,9 @@ ALLOWED = {int(x) for x in re.findall(r"-?\d+", os.environ.get("ALLOWED_IDS", ""
 ADMINS = {int(x) for x in re.findall(r"-?\d+", os.environ.get("ADMIN_IDS", ""))} or set(ALLOWED)   # bo'sh — ALLOWED_IDS admin
 ENGINE = os.environ.get("EMAKTAB_ENGINE", "auto").lower()      # bitta avtomatik usul: kirish — brauzer (bo'lsa), qolgani HTTP
 ENGINE = ENGINE if ENGINE in ("auto", "http", "pw") else "auto"
-STATE_FILE = Path(os.environ.get("BOT_STATE", HERE / "bot_holat.json"))
+STATE_FILE = Path(os.environ.get("BOT_STATE", HERE / "bot_holat.db"))
 USERS_DIR = Path(os.environ.get("BOT_USERS", HERE / "foydalanuvchilar"))   # har foydalanuvchining sessiyasi va fayllari
-JURNAL_FILE = Path(os.environ.get("JURNAL_FILE") or HERE / "journal.json")
+JURNAL_FILE = Path(os.environ.get("JURNAL_FILE") or (HERE / "journal.db" if (HERE / "journal.db").exists() else HERE / "journal.json"))
 CAPTCHA_WAIT = 240
 CACHE_TTL = 15 * 60                                             # yuklangan Excel shuncha soniya qayta ishlatiladi
 JOURNAL_RE = re.compile(r"/journal/school/(\d+)/group/(\d+)/subject/(\d+)")
@@ -245,10 +246,33 @@ class UI:
 
 
 # ------------------------------------------------------------------ holat
-def load_state():
-    global SAVED
+def _state_is_db():
+    return STATE_FILE.suffix.lower() in (".db", ".sqlite", ".sqlite3")
+
+
+def _state_read_db(path):
+    con = sqlite3.connect(f"file:{Path(path).as_posix()}?mode=ro", uri=True)
     try:
-        SAVED = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+        return {k: json.loads(v) for k, v in con.execute("SELECT k, v FROM state")}
+    finally:
+        con.close()
+
+
+def load_state():
+    """Holat SQLite faylda (jadval state: bitta qator — bitta chat yoki «_users»). Eski bot_holat.json bo'lsa — bir marta ko'chiriladi."""
+    global SAVED
+    legacy = STATE_FILE.with_suffix(".json")
+    try:
+        if not _state_is_db():
+            SAVED = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+        elif STATE_FILE.exists():
+            SAVED = _state_read_db(STATE_FILE)
+        elif legacy.exists():
+            SAVED = json.loads(legacy.read_text(encoding="utf-8"))
+            save_state()
+            os.replace(legacy, legacy.with_name(legacy.name + ".eski"))
+        else:
+            SAVED = {}
     except Exception:                                          # noqa: BLE001
         SAVED = {}
 
@@ -257,10 +281,20 @@ def save_state():
     with STATE_LOCK:
         try:
             tmp = STATE_FILE.with_name(STATE_FILE.name + ".tmp")
-            tmp.write_text(json.dumps(SAVED, ensure_ascii=False, indent=1), encoding="utf-8")
+            if _state_is_db():
+                tmp.unlink(missing_ok=True)
+                con = sqlite3.connect(tmp)
+                try:
+                    con.execute("CREATE TABLE state(k TEXT PRIMARY KEY, v TEXT NOT NULL)")
+                    con.executemany("INSERT INTO state VALUES (?, ?)", [(k, json.dumps(v, ensure_ascii=False)) for k, v in SAVED.items()])
+                    con.commit()
+                finally:
+                    con.close()
+            else:
+                tmp.write_text(json.dumps(SAVED, ensure_ascii=False, indent=1), encoding="utf-8")
             tmp.chmod(0o600)                                   # o'quvchi ro'yxatlari: boshqa foydalanuvchilar o'qimasin
             os.replace(tmp, STATE_FILE)
-        except OSError as e:
+        except (OSError, sqlite3.Error) as e:
             print("holatni yozib bo'lmadi:", e)
 
 

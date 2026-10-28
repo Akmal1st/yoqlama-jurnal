@@ -12,6 +12,7 @@ import datetime as dt
 import json
 import os
 import shutil
+import sqlite3
 import tempfile
 from html import escape as esc
 from pathlib import Path
@@ -45,6 +46,18 @@ def available():
                        "pip install PySide6 pandas xlrd openpyxl")
 
 
+def _saved_settings(path):
+    """Jurnal sozlamalari: journal.db (SQLite, jadval meta) yoki eski journal.json dan."""
+    if path.suffix.lower() in (".db", ".sqlite", ".sqlite3"):
+        con = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+        try:
+            row = con.execute("SELECT v FROM meta WHERE k = 'settings'").fetchone()
+        finally:
+            con.close()
+        return json.loads(row[0]) if row else {}
+    return json.loads(path.read_text(encoding="utf-8")).get("settings", {})
+
+
 class Book:
     """Bir yoki bir nechta emaktab Excel fayli asosidagi vaqtinchalik ombor."""
 
@@ -53,7 +66,7 @@ class Book:
         st = {}
         if settings_file and Path(settings_file).exists():
             try:
-                saved = json.loads(Path(settings_file).read_text(encoding="utf-8")).get("settings", {})
+                saved = _saved_settings(Path(settings_file))
                 st = {k: copy.deepcopy(saved[k]) for k in SETTINGS_KEYS if k in saved}
             except (OSError, ValueError):
                 st = {}

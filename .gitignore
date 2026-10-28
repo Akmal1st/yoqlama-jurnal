@@ -1,6 +1,10 @@
 # shaxsiy ma'lumotlar va maxfiy kalitlar — repozitoriyaga tushmasin
 bot.env
 journal.json
+journal.json.eski
+journal.db
+journal.db.*
+journal_buzuq_*
 !tests/fixtures/journal.json
 *.json.bak
 zaxira/
@@ -12,3 +16,6 @@ __pycache__/
 .pytest_cache/
 node_modules/
 bot_holat.json
+bot_holat.json.eski
+bot_holat.db
+bot_holat.db.*

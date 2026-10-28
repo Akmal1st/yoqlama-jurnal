@@ -24,3 +24,4 @@ def test_class(ci):
 
 # SQLite hisobotlari ham shu qadamda tekshiriladi (CI faqat test_python.py ni ishga tushiradi)
 from test_sqlite import *  # noqa: E402,F401,F403
+from test_store_db import *  # noqa: E402,F401,F403
