@@ -23,7 +23,7 @@ jobs:
       - name: Kompyuter dasturi = golden.json
         env:
           QT_QPA_PLATFORM: offscreen
-        run: cd tests && python -c "import pyjurnal" && python -m pytest -q test_python.py test_jurnal_bot.py
+        run: cd tests && python -c "import pyjurnal" && python -m pytest -q test_python.py test_jurnal_bot.py test_emaktab_login.py
       - name: Web ilova = golden.json
         run: node --test tests/web.test.mjs
 

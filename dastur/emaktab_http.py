@@ -148,8 +148,10 @@ class EmkHttp:
         if self.is_logged_in():
             self.ui.log("Saqlangan sessiya bilan kirildi.")
             return
+        # tartib: 1) login va parol bilan «Kirish»; 2) yana shu sahifa ochilsa — login, parol va captcha
+        # (rasm foydalanuvchiga yuboriladi, javobi kiritiladi); 3) muvaffaqiyatli bo'lsa — keyingi ishlar
         st, final, html = self.req(EMK_URLS["login"])
-        for attempt in range(1, 5):
+        for attempt in range(1, 4):
             fp = _EmkForms()
             fp.feed(html)
             form = next((f for f in fp.forms if any(i["type"] == "password" for i in f["inputs"])), None)
@@ -182,7 +184,9 @@ class EmkHttp:
                 pass
             cap = next((n for n in texts if n != us and re.search(r"captcha|code|kod|answer|sum|number|digit", n, re.I)), None) \
                 or next((n for n in texts if n != us), None)
-            if cap and imgs:
+            if attempt > 1 and not (cap and imgs):            # qayta ochilgan sahifada captcha yo'q — sabab parolda
+                raise RuntimeError("Login yoki parol noto'g'ri (emaktab sahifasi qayta ochildi, captcha so'ralmadi).")
+            if attempt > 1:
                 def _score(u):                                    # captcha rasmini boshqa rasmlardan (logotip va h.k.) ajratish
                     at = fp.img_attrs.get(u, {})
                     blob = " ".join([u[:200], at.get("id") or "", at.get("class") or "", at.get("alt") or "", at.get("title") or ""]).lower()
@@ -218,7 +222,8 @@ class EmkHttp:
                 self.save_state()
                 self.ui.log("Muvaffaqiyatli kirildi.")
                 return
-            self.ui.log(f"[{attempt}] Kirib bo'lmadi (parol yoki captcha noto'g'ri bo'lishi mumkin).")
+            if attempt > 1:
+                self.ui.log(f"[{attempt}] Kirib bo'lmadi (parol yoki captcha noto'g'ri bo'lishi mumkin).")
             final = final2
         raise EmkFallback("Kirib bo'lmadi (HTTP usuli)")
 

@@ -511,8 +511,8 @@ def do_login(chat, user, password):
     eng = ENGINE
     say(chat, "⏳ emaktabga kirilmoqda…")
     why = None
-    # captcha rasmini brauzer ekrandan aniq oladi — Playwright bo'lsa, kirish shu usulda; keyingi ishlar HTTP bilan
-    if eng in ("auto", "http") and not (eng == "auto" and pw_available()):
+    # HTTP o'tmasa (sahifa tuzilmasi o'zgargan va h.k.) va Playwright bo'lsa — brauzer bilan
+    if eng in ("auto", "http"):                                 # avval brauzersiz: login → (kerak bo'lsa) captcha
         try:
             with http_s(chat) as s:
                 s.login(user, password)
