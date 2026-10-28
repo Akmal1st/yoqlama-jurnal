@@ -1765,17 +1765,17 @@ test("Dizayn: uslublar va kompyuterdagi shriftlar", async () => {
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     await page.evaluate(() => { S.sec = 3; go("settings"); });
     assert.equal(await page.locator(".stys [data-sty]").count(), 4);
-    // to'rt dizayn: Klassik dashboard (standart), Qulay, Ixcham, Maktab; eski uslub nomlari standartga qaytadi
+    // to'rt dizayn: Klassik dashboard (standart), Qulay, Ixcham, Yumshoq; eski uslub nomlari standartga qaytadi
     assert.equal(await page.evaluate(() => D.web.style), "dash");
     const win = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--win").trim());
     const before = await win();
-    for (const st of ["qulay", "zich", "maktab"]) {
+    for (const st of ["qulay", "zich", "yumshoq"]) {
       await page.click(`[data-sty="${st}"]`);
       assert.equal(await page.evaluate(() => D.web.style), st);
       assert.notEqual(await win(), before, `${st}: fon o'zgarishi kerak`);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1, `${st}: ekrandan chiqmasin`);
     }
-    // yon paneldagi tezkor almashtirgich: maktab → dash → qulay
+    // yon paneldagi tezkor almashtirgich: yumshoq → dash → qulay
     await page.evaluate(() => $("[data-dsw]").click());
     assert.equal(await page.evaluate(() => D.web.style), "dash");
     await page.evaluate(() => $("[data-dsw]").click());
@@ -2104,6 +2104,23 @@ test("Dars: 30% dan kam baholangan bo'lsa ogohlantiradi, yetarli bo'lsa to'xtatm
     await page.click("[data-next]");
     assert.equal(await page.$(".modal"), null);
     assert.equal(await page.evaluate(() => S.page), "journal");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("Bugun: sinflar ko'rsatkichi kartasi (davomat, o'zlashtirish, baholanganlik)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.waitForSelector(".clsstat tbody tr");
+    assert.equal(await page.locator(".clsstat tbody tr").count(), await page.evaluate(() => D.classes.filter((c) => !isGrp(c)).length));
+    assert.ok((await page.textContent(".clsstat")).includes("Bugun baholangan"));
+    assert.ok(await page.locator(".clsstat .progress-bar").count() > 0);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
