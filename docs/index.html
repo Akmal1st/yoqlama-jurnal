@@ -1695,8 +1695,9 @@ const monthOf = (d) => d.slice(0, 7);
 const monthName = (m) => `${MONTHS[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}`;
 const shiftMonth = (m, n) => iso(new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + n, 1)).slice(0, 7);
 function grpTabs(c) {
-  return c.kind === "club" ? [["cards", "A'zolar"], ["j", "Darslar"], ["ach", "Yutuqlar"], ["mem", "Ro'yxat"]]
+  const t = c.kind === "club" ? [["cards", "A'zolar"], ["j", "Darslar"], ["ach", "Yutuqlar"], ["mem", "Ro'yxat"]]
     : c.kind === "paid" ? [["cards", "O'quvchilar"], ["j", "Darslar"], ["pay", "To'lovlar"], ["ach", "Yutuqlar"], ["mem", "Ro'yxat"]] : null;
+  return t && t.filter(([k]) => k !== "ach" || feat("ach"));
 }
 // narx: har o'quvchi bilan kelishiladi — maktabda oylik, uyida kunlik (o'tilgan dars × narx)
 function planOf(c, s) { const p = s.plan || {}, t = p.t === "day" ? "day" : "month"; return {t, sum: +p.sum || +(c.fee || {})[t] || 0}; }
@@ -1762,12 +1763,12 @@ function pageMem(m) {
         <td>${lock ? `<span class="muted">🔒</span>` : `<input class="form-control mi sum" type="text" data-mf="${si}|ps" value="${p.sum || ""}" inputmode="numeric" aria-label="Narx, so'm">`}</td>
         <td><input class="form-control mi sum" type="text" data-mf="${si}|pack" value="${s.pack || ""}" placeholder="${c.pack || "—"}" inputmode="numeric" aria-label="Paket, darslar soni"></td>`
       : `<td><select class="mi" data-mf="${si}|skill" aria-label="Ko'nikma bahosi">${["", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((g) => `<option ${String((s.skill || {})[mo] ?? "") === String(g) ? "selected" : ""} value="${g}">${g || "—"}</option>`).join("")}</select></td>
-        <td class="s">${(s.ach || []).length || "—"}</td>`}
+        ${feat("ach") ? `<td class="s">${(s.ach || []).length || "—"}</td>` : ""}`}
       <td class="s">${held.length ? Math.round(100 * came / held.length) + "%" : "—"}</td></tr>`;
   }).join("");
   m.innerHTML = `<div class="vcol" style="gap:12px">${jHead("", "", `<button class="btn" data-addm>＋ ${paid ? "O'quvchi" : "A'zo"} qo'shish</button>`)}
     ${c.students.length ? `<div class="tblwrap"><table class="table r mem"><tr><th>${paid ? "O'quvchi" : "A'zo"}</th><th>Sinfi</th><th>Ota-ona telefoni</th><th>Qo'shilgan</th>
-      ${paid ? `<th>Narx turi</th><th>Narx, so'm</th><th title="Paket: to'lovgacha darslar soni">Paket, dars</th>` : `<th title="Oyda bir marta qo'yiladigan ko'nikma bahosi">Ko'nikma · ${MONTHS[+mo.slice(5) - 1]}</th><th>Yutuqlar</th>`}<th>Qatnashuv · ${MONTHS[+mo.slice(5) - 1]}</th></tr>${rows}</table></div>`
+      ${paid ? `<th>Narx turi</th><th>Narx, so'm</th><th title="Paket: to'lovgacha darslar soni">Paket, dars</th>` : `<th title="Oyda bir marta qo'yiladigan ko'nikma bahosi">Ko'nikma · ${MONTHS[+mo.slice(5) - 1]}</th>${feat("ach") ? "<th>Yutuqlar</th>" : ""}`}<th>Qatnashuv · ${MONTHS[+mo.slice(5) - 1]}</th></tr>${rows}</table></div>`
       : `<div class="card muted">Hali ${paid ? "o'quvchi" : "a'zo"} yo'q. «＋ ${paid ? "O'quvchi" : "A'zo"} qo'shish» tugmasini bosing.</div>`}
     <p class="muted" style="margin:0">${paid ? "Narx har o'quvchi bilan alohida kelishiladi: maktabda — oylik, uyida — har o'tilgan dars uchun. Uyida — faqat «✓ o'tildi» belgilangan darslar hisoblanadi; dars o'tilmasa (✗) puli olinmaydi, u boshqa kuni o'tib beriladi." : "Ko'nikma bahosi ixtiyoriy — oyda bir marta. Yutuqlar «Yutuqlar» bo'limida."} O'zgarish o'zi saqlanadi.</p></div>`;
   bindJHead(m);
@@ -1992,9 +1993,9 @@ function pageGroups(m) {
     return `<article class="gcard"><button class="gbandc ${c.kind}" data-gopen="${ci}"><small>${KINDS[c.kind][0].toUpperCase()}${today.has(ci) ? " · BUGUN" : ""}</small><b>${esc(label(c))}</b><span>${esc(wdTxt(c) || "dars kunlari belgilanmagan")}</span></button>
       <div class="gcb"><div class="hrow"><span class="muted sp">${c.kind === "club" ? "A'zolar" : "O'quvchilar"}</span><b>${c.students.length}</b></div>
         <div class="hrow"><span class="muted sp">Qatnashuv · ${MONTHS[+mo.slice(5) - 1]}</span><b>${att === null ? "—" : att + "%"}</b></div>
-        <div class="hrow"><span class="muted sp">${c.kind === "paid" ? "Shu oy to'lamagan" : "Yutuqlar"}</span><b class="${un ? "warn" : ""}">${c.kind === "paid" ? `${un} kishi` : `${ach} ta`}</b></div>
+        ${c.kind === "paid" || feat("ach") ? `<div class="hrow"><span class="muted sp">${c.kind === "paid" ? "Shu oy to'lamagan" : "Yutuqlar"}</span><b class="${un ? "warn" : ""}">${c.kind === "paid" ? `${un} kishi` : `${ach} ta`}</b></div>` : ""}
         ${pkDue ? `<div class="hrow"><span class="muted sp">Paketi tugagan</span><b class="warn">${pkDue} kishi</b></div>` : ""}
-        <div class="hrow" style="gap:8px"><button class="btn btn-primary sp" data-gopen="${ci}|j">Darslar</button><button class="btn sp" data-gopen="${ci}|${c.kind === "paid" ? "pay" : "ach"}">${c.kind === "paid" ? "To'lovlar" : "Yutuqlar"}</button></div></div></article>`;
+        <div class="hrow" style="gap:8px"><button class="btn btn-primary sp" data-gopen="${ci}|j">Darslar</button>${c.kind === "paid" || feat("ach") ? `<button class="btn sp" data-gopen="${ci}|${c.kind === "paid" ? "pay" : "ach"}">${c.kind === "paid" ? "To'lovlar" : "Yutuqlar"}</button>` : ""}</div></div></article>`;
   };
   m.innerHTML = `<div class="vcol" style="gap:18px">
     <header class="hrow wrap"><div class="vcol sp" style="gap:4px;flex:1 1 260px"><h1>Guruhlar</h1><span class="muted">To'garaklar va pullik ta'lim — sinf jurnallaridan alohida</span></div>
@@ -2010,7 +2011,7 @@ function gHead(per, row2, tools) {
   const c = D.classes[S.ci], t = todayIso(), mo = monthOf(t), att = grpAtt(c, mo, t), lk = moneyLocked();
   const st = [[c.kind === "club" ? "A'zolar" : "O'quvchilar", c.students.length], ["Qatnashuv", att === null ? "—" : att + "%"]];
   if (c.kind === "paid") { const u = unpaidNow(c, t).length; st.push(["Shu oy to'ladi", `${c.students.length - u} / ${c.students.length}`], ["Umumiy qarz", lk ? "🔒" : som(c.students.reduce((a, s) => a + Math.max(0, debtOf(c, s, t)), 0))]); }
-  else st.push(["Yutuqlar", c.students.reduce((a, s) => a + (s.ach || []).length, 0)]);
+  else if (feat("ach")) st.push(["Yutuqlar", c.students.reduce((a, s) => a + (s.ach || []).length, 0)]);
   return `<div class="jhead ghead"><div class="gband ${c.kind}">
       <div class="hrow gb1"><button class="btn btn-sm gback" data-gback aria-label="Guruhlar">‹<span class="lg">&nbsp;Guruhlar</span></button><span class="gkind">${KINDS[c.kind][0]}${c.kind === "paid" && c.svc ? ` · ${SVC[c.svc][0]}` : ""}</span><span class="gwd">${esc(wdTxt(c))}</span><span class="sp"></span>
         ${UNDO.length ? `<button class="btn btn-sm" data-undo title="Bekor qilish (Ctrl+Z)">↶</button>` : ""}<button class="btn btn-primary gstart" data-start>▶ Bugungi dars</button><button class="btn btn-sm more" data-more title="Yana: boshqa amallar" aria-label="Yana">⋯</button></div>
@@ -2039,7 +2040,7 @@ function grpInsights(c, t = todayIso(), lock = false) {
     if (c.kind === "paid" && !lock) {
       const dbt = debtOf(c, s, t); if (dbt > 0) add(1, `to'lov qarzi ${som(dbt)}`);
     }
-    if (c.kind === "club") {
+    if (c.kind === "club" && feat("ach")) {
       const a = (s.ach || []).map((x) => x.d || "").sort(), la = a[a.length - 1] || "";
       if (la && la >= since(30)) add(3, `yaqinda yutuq qayd etilgan (${(s.ach || []).length} ta jami)`);
       else if (mk.length >= 4 && (!la || la < since(90))) add(2, `so'nggi 3 oyda yutuq qayd etilmagan — musobaqa yoki ko'rgazmaga taklif qiling`);
@@ -2084,12 +2085,12 @@ function pageCards(m) {
       const ch = chargeOf(c, s, mo, t), pd = paidIn(s, mo), dbt = debtOf(c, s, t);
       const pk = packOf(c, s, t);
       badge = (pk ? `<span class="gpay ${pk.due ? "no" : ""}" title="Kelgan kunlar / paket">${pk.due ? `⚠ Paket tugadi — to'lov vaqti (${pk.used}/${pk.n})` : `Paket: ${pk.used}/${pk.n}`}</span>` : "") + (lk ? `<span class="gpay">🔒</span>` : ch && pd >= ch ? `<span class="gpay ok">✓ ${MONTHS[+mo.slice(5) - 1]} to'langan</span>` : dbt > 0 ? `<span class="gpay no">Qarz: ${som(dbt)}</span>` : pd ? `<span class="gpay ok">✓ ${som(pd)} to'langan</span>` : `<span class="gpay">To'lov yo'q</span>`);
-      if ((s.ach || []).length) badge += `<span class="gpay ok">🏆 ${(s.ach || []).length}</span>`;
+      if (feat("ach") && (s.ach || []).length) badge += `<span class="gpay ok">🏆 ${(s.ach || []).length}</span>`;
       acts = `<button class="btn btn-sm" data-cdates="${si}" title="Kelgan kunlar" aria-label="Kelgan kunlar">📅</button><button class="btn btn-sm" data-cpay="${si}">＋ To'lov</button>${!lk && dbt > 0 ? `<button class="btn btn-sm" data-crem="${si}" title="Ota-onaga eslatma" aria-label="Ota-onaga eslatma">✉</button>` : ""}`;
     } else {
       const sk = (s.skill || {})[mo], n = (s.ach || []).length;
-      badge = `<span class="gpay">${sk ? `Ko'nikma: ${sk}` : "Ko'nikma: —"}</span>${n ? `<span class="gpay ok">🏆 ${n}</span>` : ""}`;
-      acts = `<button class="btn btn-sm" data-cach="${si}">＋ Yutuq</button>`;
+      badge = `<span class="gpay">${sk ? `Ko'nikma: ${sk}` : "Ko'nikma: —"}</span>${n && feat("ach") ? `<span class="gpay ok">🏆 ${n}</span>` : ""}`;
+      acts = feat("ach") ? `<button class="btn btn-sm" data-cach="${si}">＋ Yutuq</button>` : "";
     }
     const tm = s.marks[t] || "", sd = ds.filter((d) => !preJoin(c, s, d)), tg = tOk && !preJoin(c, s, t);
     return `<article class="mcard"><div class="hrow" style="gap:10px;flex-wrap:nowrap"><span class="av">${esc(initials(s.name))}</span>
@@ -2429,6 +2430,7 @@ const FEATS = [
   ["ktr", "📚 KTR", "Kalendar-tematik reja, mavzular bo'yicha bajarilishi"],
   ["gaps", "📝 To'ldirilmagan darslar", "«Bugun»da va kechqurun eslatma: yo'qlama yoki mavzu kiritilmagan darslar"],
   ["week", "📊 Haftalik xulosa", "Juma–dushanba «Bugun»da hafta natijasi: darslar, baholar, davomat, yangi xavf"],
+  ["ach", "🏆 Yutuqlar", "To'garak va pullik guruhlarda yutuqlar (musobaqa, sertifikat), kartochkadagi 🏆 va yutuq hisobotlari"],
   ["act", "✋ Faollik belgilari", "Darsda baho o'rniga «+» / «−»; 3 ta «+» to'planganda baho qo'yish taklifi"],
 ];
 const SIMPLE_OFF = ["call", "groups", "seats", "attmodes", "debts"];
@@ -2471,7 +2473,7 @@ async function moreMenu() {
       feat("bday") && ["🎂 Tug'ilgan kunlar", () => bdaysDialog(S.ci)],
       feat("debts") && !isGrp(c) && ["📌 Qarzdorlar", () => debtsDialog(S.ci)],
       c.kind === "paid" && ["💰 To'lovlar", () => { S.jpage = "pay"; render(); }],
-      c.kind === "club" && ["🏆 Yutuqlar", () => { S.jpage = "ach"; render(); }],
+      c.kind === "club" && feat("ach") && ["🏆 Yutuqlar", () => { S.jpage = "ach"; render(); }],
       isGrp(c) && ["📊 Guruh hisoboti", () => { Object.assign(S.rep, {band: "grp", gkind: "gsum", gci: S.ci}); go("reports"); }],
     ]],
     ["Ota-onalar", [
@@ -2852,7 +2854,7 @@ const gTiles = (L) => `<div class="tiles">${L.map(([k, v, cls]) => `<div class="
 function pageGrpReports(m) {
   const R = S.rep, G = grpIdx(), t = todayIso(), lk = moneyLocked();
   const paidG = G.filter((i) => D.classes[i].kind === "paid"), clubG = G.filter((i) => D.classes[i].kind === "club");
-  const avail = GREP_KINDS.filter((x) => x[4] === "g" || (x[4] === "c" ? clubG.length : paidG.length));
+  const avail = GREP_KINDS.filter((x) => (x[0] !== "gach" || feat("ach")) && (x[4] === "g" || (x[4] === "c" ? clubG.length : paidG.length)));
   if (!avail.some(([k]) => k === R.gkind)) R.gkind = "gsum";
   const k = R.gkind, pool = k === "gmat" ? paidG : G, allOk = k === "gmem" || k === "gmat";
   if (R.gci === "all" ? !allOk : !pool.includes(R.gci)) R.gci = pool[0];
@@ -2895,20 +2897,20 @@ function grSum(c, mo, lk) {
   const L = c.students.map((s, si) => { const g = gMon(c, s, mo, t), ch = paid ? chargeOf(c, s, mo, t) : 0, pd = paid ? paidIn(s, mo) : 0; return {s, si, g, ch, pd, debt: paid ? debtOf(c, s, t) : 0}; });
   const all = L.reduce((a, r) => [a[0] + r.g.ot, a[1] + r.g.ox], [0, 0]), pct = all[0] + all[1] ? Math.round(100 * all[0] / (all[0] + all[1])) : null;
   const sum = (f) => L.reduce((a, r) => a + r[f], 0), debt = L.reduce((a, r) => a + Math.max(0, r.debt), 0);
-  const head = ["№", paid ? "O'quvchi" : "A'zo", "Sinfi"].concat(paid ? ["Narx"] : [], ["O'tildi", "O'tilmadi", "Qatnashuv"], money ? ["Hisoblangan", "To'langan", "Qoldiq", "Umumiy qarz"] : [], paid ? [] : ["Ko'nikma", "Yutuqlar"]);
+  const head = ["№", paid ? "O'quvchi" : "A'zo", "Sinfi"].concat(paid ? ["Narx"] : [], ["O'tildi", "O'tilmadi", "Qatnashuv"], money ? ["Hisoblangan", "To'langan", "Qoldiq", "Umumiy qarz"] : [], paid ? [] : feat("ach") ? ["Ko'nikma", "Yutuqlar"] : ["Ko'nikma"]);
   const rows = L.map((r, i) => `<tr><td>${i + 1}</td><td><button class="link" data-gst="${S.rep.gci}|${r.si}">${esc(r.s.name)}</button></td><td>${esc(r.s.cls || "")}</td>
     ${paid ? `<td>${esc(planTxt(c, r.s))}</td>` : ""}<td class="s">${r.g.ot}</td><td class="s">${r.g.ox}</td><td class="s">${pctTxt(r.g.pct)}</td>
     ${money ? `<td class="s">${som(r.ch)}</td><td class="s">${som(r.pd)}</td><td class="s">${r.ch - r.pd > 0 ? `<b>${som(r.ch - r.pd)}</b>` : "✓"}</td><td class="s">${r.debt > 0 ? `<b class="warn">${som(r.debt)}</b>` : "—"}</td>` : ""}
-    ${paid ? "" : `<td class="s">${(r.s.skill || {})[mo] ?? "—"}</td><td class="s">${(r.s.ach || []).length || "—"}</td>`}</tr>`);
+    ${paid ? "" : `<td class="s">${(r.s.skill || {})[mo] ?? "—"}</td>${feat("ach") ? `<td class="s">${(r.s.ach || []).length || "—"}</td>` : ""}`}</tr>`);
   const foot = `<tr class="tot"><th></th><th>Jami</th><th></th>${paid ? "<th></th>" : ""}<th class="s">${all[0]}</th><th class="s">${all[1]}</th><th class="s">${pctTxt(pct)}</th>
-    ${money ? `<th class="s">${som(sum("ch"))}</th><th class="s">${som(sum("pd"))}</th><th class="s">${som(L.reduce((a, r) => a + Math.max(0, r.ch - r.pd), 0))}</th><th class="s">${som(debt)}</th>` : ""}${paid ? "" : "<th></th><th></th>"}</tr>`;
+    ${money ? `<th class="s">${som(sum("ch"))}</th><th class="s">${som(sum("pd"))}</th><th class="s">${som(L.reduce((a, r) => a + Math.max(0, r.ch - r.pd), 0))}</th><th class="s">${som(debt)}</th>` : ""}${paid ? "" : feat("ach") ? "<th></th><th></th>" : "<th></th>"}</tr>`;
   const sec = `<h2>${esc(label(c))} · ${KINDS[c.kind][0]} · ${monthName(mo)}</h2>
     ${gTiles([[paid ? "O'quvchilar" : "A'zolar", c.students.length], ["O'tilgan darslar", gHeld(c, mo, t)], ["Qatnashuv", pctTxt(pct)]].concat(money ? [["To'langan", som(sum("pd"))], ["Umumiy qarz", som(debt), debt ? "warn" : ""]] : []))}
     ${c.students.length ? gTable(head, rows, foot) : `<div class="muted">Hali ${paid ? "o'quvchi" : "a'zo"} yo'q.</div>`}
     <p class="muted" style="margin:0">O'tildi / o'tilmadi — ${MONTHS_GEN[+mo.slice(5) - 1]} oyidagi belgilar (bugungacha).${paid ? " Uyida o'qiydiganlarga faqat «o'tildi» darslar hisoblanadi." : ""}</p>`;
   const aoa = [[`${label(c)} · ${KINDS[c.kind][0]} · ${monthName(mo)}`], [], head, ...L.map((r, i) => [i + 1, r.s.name, r.s.cls || ""].concat(paid ? [planTxt(c, r.s)] : [], [r.g.ot, r.g.ox, r.g.pct],
-    money ? [r.ch, r.pd, Math.max(0, r.ch - r.pd), Math.max(0, r.debt)] : [], paid ? [] : [(r.s.skill || {})[mo] ?? null, (r.s.ach || []).length]))];
-  return [sec, [`${label(c)} ${mo}`, aoa, [5, 28, 8].concat(paid ? [26] : [], [9, 10, 11], money ? [13, 13, 12, 13] : [], paid ? [] : [10, 10])]];
+    money ? [r.ch, r.pd, Math.max(0, r.ch - r.pd), Math.max(0, r.debt)] : [], paid ? [] : feat("ach") ? [(r.s.skill || {})[mo] ?? null, (r.s.ach || []).length] : [(r.s.skill || {})[mo] ?? null]))];
+  return [sec, [`${label(c)} ${mo}`, aoa, [5, 28, 8].concat(paid ? [26] : [], [9, 10, 11], money ? [13, 13, 12, 13] : [], paid ? [] : feat("ach") ? [10, 10] : [10])]];
 }
 function grDays(c, mo) {
   const t = todayIso(), ds = c.dates.filter((d) => d.startsWith(mo) && !isNoLesson(c, d));
@@ -2971,11 +2973,11 @@ function grCmp(G, mo, lk) {
       pd: paid ? c.students.reduce((a, s) => a + paidIn(s, mo), 0) : null, debt: paid ? c.students.reduce((a, s) => a + Math.max(0, debtOf(c, s, t)), 0) : null,
       ach: paid ? null : c.students.reduce((a, s) => a + (s.ach || []).filter((x) => (x.d || "").startsWith(mo)).length, 0)}; });
   const sec = `<h2>Guruhlarni solishtirish · ${monthName(mo)}</h2>
-    ${gTable(["Guruh", "Turi", "A'zolar", "O'tilgan darslar", "Qatnashuv"].concat(money ? ["To'langan (oy)", "Umumiy qarz"] : [], ["Yutuqlar (oy)"]), rows.map((r) => `<tr><td><button class="link" data-gopen2="${r.ci}">${esc(label(r.c))}</button></td><td>${KINDS[r.c.kind][0]}</td>
-      <td class="s">${r.n}</td><td class="s">${r.held}</td><td class="s">${pctTxt(r.pct)}</td>${money ? `<td class="s">${r.paid ? som(r.pd) : "—"}</td><td class="s">${r.paid ? (r.debt ? `<b class="warn">${som(r.debt)}</b>` : "—") : "—"}</td>` : ""}<td class="s">${r.paid ? "—" : r.ach || "—"}</td></tr>`))}`;
-  const aoa = [[`Guruhlarni solishtirish · ${monthName(mo)}`], [], ["Guruh", "Turi", "A'zolar", "O'tilgan darslar", "Qatnashuv %"].concat(money ? ["To'langan (oy)", "Umumiy qarz"] : [], ["Yutuqlar (oy)"]),
-    ...rows.map((r) => [label(r.c), KINDS[r.c.kind][0], r.n, r.held, r.pct].concat(money ? [r.pd, r.debt] : [], [r.ach]))];
-  return [sec, [`guruhlar ${mo}`, aoa, [26, 14, 9, 14, 11].concat(money ? [15, 14] : [], [13])]];
+    ${gTable(["Guruh", "Turi", "A'zolar", "O'tilgan darslar", "Qatnashuv"].concat(money ? ["To'langan (oy)", "Umumiy qarz"] : [], feat("ach") ? ["Yutuqlar (oy)"] : []), rows.map((r) => `<tr><td><button class="link" data-gopen2="${r.ci}">${esc(label(r.c))}</button></td><td>${KINDS[r.c.kind][0]}</td>
+      <td class="s">${r.n}</td><td class="s">${r.held}</td><td class="s">${pctTxt(r.pct)}</td>${money ? `<td class="s">${r.paid ? som(r.pd) : "—"}</td><td class="s">${r.paid ? (r.debt ? `<b class="warn">${som(r.debt)}</b>` : "—") : "—"}</td>` : ""}${feat("ach") ? `<td class="s">${r.paid ? "—" : r.ach || "—"}</td>` : ""}</tr>`))}`;
+  const aoa = [[`Guruhlarni solishtirish · ${monthName(mo)}`], [], ["Guruh", "Turi", "A'zolar", "O'tilgan darslar", "Qatnashuv %"].concat(money ? ["To'langan (oy)", "Umumiy qarz"] : [], feat("ach") ? ["Yutuqlar (oy)"] : []),
+    ...rows.map((r) => [label(r.c), KINDS[r.c.kind][0], r.n, r.held, r.pct].concat(money ? [r.pd, r.debt] : [], feat("ach") ? [r.ach] : []))];
+  return [sec, [`guruhlar ${mo}`, aoa, [26, 14, 9, 14, 11].concat(money ? [15, 14] : [], feat("ach") ? [13] : [])]];
 }
 
 /* ── a'zolar, to'lish, jadval ── */
