@@ -218,8 +218,8 @@ test("jurnal: KQ katagiga himoya yoqilgan holda ham baho qo'yiladi", async () =>
       if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); }
       D.settings.protect.enabled = true; unlockedUntil = 0; S.ci = 0;
       c.students[0].marks[t] = "kq"; c.students[1].marks[t] = "7";
-      S.sel = [0, t]; applyKey("8");
-      S.sel = [1, t]; applyKey("9");
+      putMark(D.classes[0], 0, t, combineMark("kq", "8"));
+      putMark(D.classes[0], 1, t, combineMark("7", "9"));
       return [isLocked(), c.students[0].marks[t], c.students[1].marks[t]];
     });
     assert.deepEqual(r, [true, "8kq", "7"], "KQ ga baho qo'shildi, qo'yilgan baho esa himoyalangan");
@@ -241,10 +241,9 @@ test("Tahlil tuzatishlari: Ctrl tugmalari belgi qo'ymaydi, Escape, bir marta saq
       delete c.students[0].marks[t]; S.ci = 0; go("journal"); S.sel = [0, t]; render();
     });
     const mk = () => page.evaluate(() => D.classes[0].students[0].marks[todayIso()] || "");
-    // Ctrl+C / Ctrl+S / Ctrl+D / Ctrl+8 — brauzer buyruqlari, belgi emas
-    for (const k of ["Control+c", "Control+s", "Control+d", "Control+8", "Alt+k", "Meta+c"]) await page.keyboard.press(k);
+    // klaviatura bilan belgi qo'yilmaydi: belgi faqat kunlik rejimda
+    for (const k of ["Control+c", "c", "8"]) await page.keyboard.press(k);
     assert.equal(await mk(), "");
-    await page.keyboard.press("c"); assert.equal(await mk(), "ch");
     // Escape eng ustidagi oynani yopadi, ask() maydonidagi Escape esa faqat o'zini
     await page.evaluate(() => { confirmBox("a", "b"); });
     await page.evaluate(() => { window.__r = "?"; ask("x", "y").then((v) => { window.__r = v; }); });
@@ -389,15 +388,13 @@ test("jurnal: Kun ko'rinishi, katak yonidagi belgi oynasi, sinf tanlash", async 
     await page.click("[data-per]"); await page.click(".perpop [data-mode=week]");
     assert.equal(await page.locator(".perpop").count(), 0);
     assert.equal(await page.locator(`[data-c="0|${t}"]`).count(), 1);
-    assert.equal(await page.locator(".keys").count(), 0, "katak tanlanmaguncha tugmalar ko'rinmaydi");
+    assert.equal(await page.locator(".keys").count(), 0, "jadvalda belgi tugmalari yo'q");
     assert.ok(!(await page.textContent("main")).includes("Katakni tanlang"));
     await page.click(`[data-c="0|${t}"]`);
-    assert.equal(new Set(await page.$$eval(".keys .key", (x) => x.map((e) => Math.round(e.getBoundingClientRect().top)))).size, 4, "tugmalar 4 qatorli");
-    assert.equal(new Set(await page.$$eval(".keys .key", (x) => x.map((e) => Math.round(e.getBoundingClientRect().left)))).size, 4, "tugmalar 4 ustunli");
-    assert.equal(await page.locator(".keys .key").count(), 16, "4×4 = 16 tugma");
-    assert.ok(await page.evaluate((sel) => { const a = document.querySelector(".keys").getBoundingClientRect(), b = document.querySelector(sel).getBoundingClientRect();
-      return a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom; }, `[data-c="0|${t}"]`), "oyna tanlangan katakni yopmasin");
-    await page.click('[data-k="7"]'); assert.equal(await mark(), "7");
+    assert.equal(await page.evaluate(() => V.mode), "day", "katak bosilsa kunlik rejim ochiladi");
+    assert.equal(await page.evaluate(() => V.anchor), t);
+    await page.click('[data-g="0|7"]'); assert.equal(await mark(), "7");
+    await page.click("[data-per]"); await page.click(".perpop [data-mode=week]");
     // taqvimdagi sana — o'sha dars «Kun»da ochiladi; Esc oynani yopadi
     await page.click("[data-per]"); await page.keyboard.press("Escape"); assert.equal(await page.locator(".perpop").count(), 0);
     await page.click("[data-per]"); await page.click(`.perpop [data-day="${t}"]`);
@@ -858,8 +855,7 @@ test("BSB/CHSB kuni: jurnalga baho qo'yilmaydi, faqat yo'qlama", async () => {
     const t = await page.evaluate(() => todayIso());
     assert.equal(await page.textContent(`th[data-col="${t}"] small`), "BSB");
     await page.click(`[data-c="0|${t}"]`);
-    assert.ok(await page.isDisabled('.keys [data-k="8"]'), "baho tugmalari o'chiq");
-    assert.ok(!(await page.isDisabled('.keys [data-k="s"]')), "yo'qlama tugmalari ishlaydi");
+    assert.equal(await page.evaluate(() => V.mode), "day");
     await page.evaluate(() => { V.mode = "day"; render(); });
     assert.equal(await page.locator(".dgr").count(), 0, "kun rejimida baho tugmalari yo'q");
     assert.ok(await page.isVisible("text=BSB kuni"));
@@ -1842,10 +1838,6 @@ test("Jurnal: o'tgan darslar, sana menyusi, qidiruv va saralash", async () => {
     await page.selectOption("#jsort", "avgd");
     const avgs = await page.$$eval("table.j tr[data-q] td.s:not(.a)", (t) => t.map((x) => parseFloat(x.textContent)).filter((v) => !isNaN(v)));
     assert.deepEqual(avgs, [...avgs].sort((a, b) => b - a));
-    const ord = await page.evaluate(() => S.jord.slice(0, 2));
-    await page.evaluate((si) => { S.sel = [si, todayIso()]; render(); }, ord[0]);
-    await page.keyboard.press("ArrowDown");
-    assert.equal(await page.evaluate(() => S.sel[0]), ord[1]);
     // qidiruv
     const nm = await page.evaluate(() => D.classes[0].students[3].name);
     await page.fill("#jq", nm.split(" ")[0].toLowerCase());
@@ -1937,10 +1929,11 @@ test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqla
     await page.evaluate(() => { D.classes[D.classes.length - 1].dates.push(todayIso()); save(); render(); });
     await page.click("[data-jp=j]");
     assert.equal(await page.locator("table.j th", {hasText: "O'rt."}).count(), 0);
-    await page.evaluate(() => { S.sel = [0, todayIso()]; render(); });
-    assert.equal(await page.locator(".keys [data-k='5']").count(), 0);
-    assert.equal(await page.locator(".keys [data-k='s']").count(), 0);
-    assert.equal(await page.locator(".keys [data-k='ot']").count(), 1);
+    await page.evaluate(() => { V.mode = "day"; V.anchor = todayIso(); render(); });
+    assert.equal(await page.locator(".dg").count(), 0);
+    assert.equal(await page.locator(".da[data-a$='|s']").count(), 0);
+    assert.ok(await page.locator(".da[data-a$='|ot']").count() >= 1);
+    await page.evaluate(() => { V.mode = "week"; render(); });
     // qo'shilgan sanadan oldingi darslar: katak bo'sh, belgi qo'yilmaydi
     const pre = await page.evaluate((i) => { const c = D.classes[i], s = c.students[0]; s.joined = "2099-01-01"; render();
       const n = document.querySelectorAll(".cell.pre").length, ok = putMark(c, 0, todayIso(), "ot", true); delete s.joined; render(); return [n > 0, ok]; }, ci);
@@ -2307,10 +2300,6 @@ test("Jurnal kompyuterda bitta ekranga sig'adi: sahifa na pastga, na yonga suril
         assert.ok(r.dx <= 1 && r.twx <= 1, `${w}x${h} ${mode}: yonga suriladi (${r.dx}/${r.twx})`);
         assert.ok(r.twy <= 1, `${w}x${h} ${mode}: jadval ichida suriladi (${r.twy}px)`);
       }
-      // katak bosilsa ham joylashuv buzilmaydi
-      await page.evaluate(() => { V.mode = "week"; render(); });
-      await page.click(`[data-c="0|${await page.evaluate(() => todayIso())}"]`);
-      assert.ok(await page.evaluate(() => document.documentElement.scrollHeight - innerHeight) <= 1);
       await page.close();
     }
     assert.deepEqual(errors, []);

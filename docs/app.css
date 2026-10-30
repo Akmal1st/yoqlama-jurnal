@@ -774,15 +774,6 @@ table.gdays th.d,table.gdays td.gc,table.gdays th.gc{padding:7px 3px}
 table.attm th,table.attm td{padding:6px 7px}table.attm td.ac{padding:6px 2px}
 }
 
-/* jurnal: belgi tugmalari katak tanlanganda 4×4 oynada chiqadi */
-.keys.kpop{position:fixed;z-index:30;top:0;left:0;bottom:auto;margin:0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:252px;max-width:calc(100vw - 16px);padding:10px;overflow:visible;border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.28)}
-.keys.kpop.g2{grid-template-columns:repeat(2,1fr);width:240px}
-.keys.kpop .hint{grid-column:1/-1;display:flex;align-items:center;gap:6px;flex:none;margin:0 0 2px;min-width:0;max-width:none;font-size:13px;white-space:normal}
-.keys.kpop .hint .sp{flex:1;min-width:0}
-.keys.kpop .hint .btn{flex:none;min-width:34px;padding:2px 8px}
-.keys.kpop .key{min-width:0;width:100%;max-width:none;height:44px;padding:0;font-size:16px;flex:none}
-.keys.kpop .key.wide{grid-column:auto;padding:0 6px;white-space:nowrap;min-width:0;font-size:14px}
-@media (max-width:820px){.keys.kpop,.keys.kpop.g2{left:8px;right:8px;top:auto;bottom:64px;width:auto;max-width:none}.keys.kpop .key{height:46px}}
 .tdcard{padding:8px 14px;display:flex;flex-direction:column;gap:3px}.tdh{gap:6px 14px;align-items:baseline}.tdh b{font-size:15px}.tdc small{color:var(--muted);font-size:12px}.tdc b{font-size:14px}.tdc.warn b{color:var(--danger)}.tdl{font-size:13px;line-height:1.35}
 /* kompyuterda jurnal bitta ekranga sig'adi (fitJournal) */
 #tw.fit{overflow-x:hidden;scroll-snap-type:none}
