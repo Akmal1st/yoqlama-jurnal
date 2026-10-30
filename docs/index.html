@@ -2174,14 +2174,14 @@ function pageJournal(m) {
   const selSw = S.sel && sumOn(c, S.sel[1]);
   const keys = (grp ? GRP_KEYS : ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "s", "dq", "k", "kq", "ch"]).map((v) => {
     const col = markColors(v), off = selSw && /^\d+$/.test(v); return `<button class="key ${grp ? "wide" : ""}" data-k="${v}" ${off ? "disabled" : ""} style="${col && !off ? `background:${col[0]};color:${col[1]};border-color:transparent` : ""}"${grp ? ` title="${GRP_ATT[v][3]}"` : ""}>${grp ? `${GRP_ATT[v][1]} ${GRP_ATT[v][2]}` : v.toUpperCase()}</button>`;
-  }).join("") + (grp ? "" : `<button class="key ${S.second ? "on2" : ""}" ${selSw ? "disabled" : ""} data-two title="Ikkinchi baho qo'shish (masalan 8/9)">＋2</button>`) + `<button class="key" data-k="" title="Tozalash">⌫</button>`;
+  }).join("") + (grp ? "" : `<button class="key ${S.second ? "on2" : ""}" ${selSw ? "disabled" : ""} data-two title="Ikkinchi baho qo'shish (masalan 8/9)">＋2</button>`);
   const nx = S.sel && nextRow(S.sel[0], 1), nxt = S.sel && nx !== S.sel[0] && c.students[nx] ? `<small>keyingisi: ${esc(shortName(c.students[nx].name))} ↓</small>` : "";
-  const selTxt = S.sel ? `<b>${esc(shortName(c.students[S.sel[0]].name))} · ${fmt(S.sel[1]).slice(0, 5)}${canEdit(S.sel[1]) ? "" : " (faqat ko'rish)"}</b>${selSw ? `<small>${sumTag(selSw)} kuni — faqat yo'qlama</small>` : nxt}` : (D.web.past || "today") === "today" ? "Katakni tanlang (bugungi ustun)" : "Katakni tanlang";
+  const selTxt = S.sel ? `<b>${esc(shortName(c.students[S.sel[0]].name))} · ${fmt(S.sel[1]).slice(0, 5)}${canEdit(S.sel[1]) ? "" : " (faqat ko'rish)"}</b>${selSw ? `<small>${sumTag(selSw)} kuni — faqat yo'qlama</small>` : nxt}` : (D.web.past || "today") === "today" ? "" : "";
   const tools = ds.length ? jTools(c) : "";
   m.innerHTML = `<div class="vcol" style="gap:12px">
     ${jHead(perNav(), "", tools)}
     ${ds.length ? `<div class="tblwrap" id="tw"><table class="j">${head}${body}</table></div>` : `<div class="card muted">Tanlangan davrda dars sanalari yo'q. «⋯ → Sana qo'shish (dars kunlari bo'yicha)» yoki «Sozlamalar → Dars kunlari va choraklar».</div>`}
-    <div class="keys" role="group" aria-label="Belgi qo'yish"><span class="hint">${selTxt}</span>${keys}</div></div>`;
+    ${S.sel && ds.length ? `<div class="keys kpop ${grp ? "g2" : ""}" role="group" aria-label="Belgi qo'yish"><div class="hint"><span class="sp">${selTxt}</span><button class="btn btn-sm" data-k="" title="Katakni tozalash" aria-label="Tozalash">⌫</button><button class="btn btn-sm" data-kx title="Yopish (Esc)" aria-label="Yopish">✕</button></div>${keys}</div>` : ""}</div>`;
   bindJHead(m);
   m.querySelectorAll("[data-sh]").forEach((b) => b.onclick = () => { vShift(+b.dataset.sh); render(); });
   $("[data-now]", m).onclick = () => { V.anchor = todayIso(); render(); scrollToday(); };
@@ -2190,7 +2190,24 @@ function pageJournal(m) {
   bindJTools(m);
   m.querySelectorAll("[data-c]").forEach((b) => b.onclick = () => { const [si, d, p] = b.dataset.c.split("|"); S.sel = p ? [+si, d, p] : [+si, d]; const sl = $("#tw").scrollLeft; render(); $("#tw").scrollLeft = sl; });
   m.querySelectorAll("[data-k]").forEach((b) => b.onclick = () => applyKey(b.dataset.k));
+  const kx = $("[data-kx]", m); if (kx) kx.onclick = () => { S.sel = null; S.second = false; const sl = $("#tw").scrollLeft; render(); $("#tw").scrollLeft = sl; };
+  placeKeys(m); const tw0 = $("#tw", m); if (tw0 && S.sel) { tw0.onscroll = () => placeKeys(m); window.onscroll = () => placeKeys(m); } else window.onscroll = null;
   const two = $("[data-two]", m); if (two) two.onclick = () => { S.second = !S.second; render(); if (S.second) toast("Keyingi raqam ikkinchi baho sifatida qo'shiladi"); };
+}
+// belgi tugmalari (4×4) tanlangan katak yonida chiqadi: kompyuterda o'ng/chap tomonda, telefonda pastdan
+function placeKeys(m) {
+  const k = $(".keys.kpop", m), cell = $(".cell.sel", m); if (!k || !cell) return;
+  const r = cell.getBoundingClientRect();
+  if (matchMedia("(max-width:820px)").matches) {
+    k.style.left = k.style.top = "";
+    if (!k.dataset.pl) { k.dataset.pl = 1; const over = r.bottom - (innerHeight - 64 - k.offsetHeight - 12); if (over > 0) window.scrollBy(0, over); else if (r.top < 70) window.scrollBy(0, r.top - 90); }
+    return;
+  }
+  const w = k.offsetWidth, h = k.offsetHeight;
+  let x = r.right + 8, y = r.top + r.height / 2 - h / 2;
+  if (x + w > innerWidth - 8) x = r.left - w - 8;
+  if (x < 8) { x = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), innerWidth - w - 8); y = r.bottom + 6 + h > innerHeight - 8 ? r.top - h - 6 : r.bottom + 6; }
+  k.style.left = x + "px"; k.style.top = Math.min(Math.max(8, y), innerHeight - h - 8) + "px";
 }
 /* jurnal sarlavhasi: 1-qator sinf va amallar, 2-qator davr, 3-qator bo'limlar + qidiruv */
 function jHead(per, row2 = "", tools = "") {
