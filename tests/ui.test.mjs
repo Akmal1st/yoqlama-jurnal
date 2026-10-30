@@ -1774,18 +1774,18 @@ test("Dizayn: uslublar va kompyuterdagi shriftlar", async () => {
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     await page.evaluate(() => { S.sec = 3; go("settings"); });
-    assert.equal(await page.locator(".stys [data-sty]").count(), 4);
-    // to'rt dizayn: Klassik dashboard (standart), Qulay, Ixcham, Yumshoq; eski uslub nomlari standartga qaytadi
+    assert.equal(await page.locator(".stys [data-sty]").count(), 3);
+    // uch dizayn: Klassik dashboard (standart), Qulay, Ixcham; eski uslub nomlari standartga qaytadi
     assert.equal(await page.evaluate(() => D.web.style), "dash");
     const win = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--win").trim());
     const before = await win();
-    for (const st of ["qulay", "zich", "yumshoq"]) {
+    for (const st of ["qulay", "zich"]) {
       await page.click(`[data-sty="${st}"]`);
       assert.equal(await page.evaluate(() => D.web.style), st);
       assert.notEqual(await win(), before, `${st}: fon o'zgarishi kerak`);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1, `${st}: ekrandan chiqmasin`);
     }
-    // yon paneldagi tezkor almashtirgich: yumshoq → dash → qulay
+    // yon paneldagi tezkor almashtirgich: zich → dash → qulay
     await page.evaluate(() => $("[data-dsw]").click());
     assert.equal(await page.evaluate(() => D.web.style), "dash");
     await page.evaluate(() => $("[data-dsw]").click());
@@ -2314,5 +2314,33 @@ test("Jurnal kompyuterda bitta ekranga sig'adi: sahifa na pastga, na yonga suril
       await page.close();
     }
     assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("Hamma dizaynda tugmalar bir xil: hech biri yo'qolmaydi yoki qirqilmaydi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const [w, h] of [[1300, 800], [390, 800]]) {
+      const sigs = {};
+      for (const st of ["dash", "qulay", "zich"]) {
+        const page = await browser.newPage({viewport: {width: w, height: h}});
+        await page.goto(APP);
+        const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+        await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+        await page.evaluate((s) => { D.web.style = s; save(); render(); }, st);
+        for (const pg of ["today", "journal", "groups", "reports", "settings"]) {
+          await page.evaluate((p) => { S.ci = 0; S.jpage = "j"; V.mode = "week"; go(p); }, pg);
+          (sigs[pg] ||= {})[st] = await page.evaluate(() => [...document.querySelectorAll("button, a[href], select, input")].filter((e) => { const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+            return r.width > 2 && r.height > 2 && cs.visibility !== "hidden" && cs.display !== "none" && e.type !== "hidden"; })
+            .map((e) => { const r = e.getBoundingClientRect(), d = [...e.attributes].find((a) => a.name.startsWith("data-"));
+              return (r.right > innerWidth + 1 || r.left < -1 || e.scrollWidth > e.clientWidth + 2 ? "!" : "") + e.tagName[0] + ":" + (d ? d.name + "=" + d.value : e.id || (e.textContent || "").trim().slice(0, 14)); }));
+        }
+        await page.close();
+      }
+      for (const [pg, v] of Object.entries(sigs)) {
+        const all = new Set(Object.values(v).flat());
+        for (const st of ["dash", "qulay", "zich"]) assert.deepEqual([...all].filter((x) => !v[st].includes(x)), [], `${w}px ${pg} (${st}): boshqa dizaynda bor, bunda yo'q yoki qirqilgan tugma`);
+      }
+    }
   } finally { await browser.close(); }
 });
