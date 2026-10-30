@@ -650,10 +650,12 @@ test("jurnal: yonga surilganda sana ustuni ism ustuni ostida yarim qolmaydi", as
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    let skipped = 0;
     for (const fs of ["m", "xl"]) for (const den of ["oddiy", "kompakt"]) for (const mode of ["week", "month", "quarter"]) {
       const gaps = await page.evaluate(async ([fs, den, mode]) => {
         D.web.fsize = fs; D.web.density = den; S.page = "journal"; V.mode = mode; render();
         const tw = $("#tw"), out = [];
+        if (!tw) return null;   // bugungi haftada (yoki oyda) dars sanasi yo'q — jadval chizilmaydi
         for (const x of [37, 123, 250, 99999]) {
           tw.scrollLeft = x; await new Promise((r) => setTimeout(r, 50));
           const nm = tw.querySelector("th.nm").getBoundingClientRect();
@@ -662,8 +664,10 @@ test("jurnal: yonga surilganda sana ustuni ism ustuni ostida yarim qolmaydi", as
         }
         return out;
       }, [fs, den, mode]);
+      if (!gaps) { skipped++; continue; }
       assert.ok(gaps.every((g) => g >= 0), `${fs} / ${den} / ${mode}: ${gaps}`);
     }
+    assert.ok(skipped < 12, "kamida chorak ko'rinishi tekshirilsin");
     // davr sarlavhasi tugmalar ustiga chiqmaydi
     const over = await page.evaluate(() => { const h = $(".pernav h2").getBoundingClientRect(), nx = $(".pernav [data-sh='1']").getBoundingClientRect(); return h.right - nx.left; });
     assert.ok(over <= 0, `sarlavha tugmaga ${over}px kirib ketgan`);
@@ -2120,6 +2124,52 @@ test("Bugun: sinflar ko'rsatkichi kartasi (davomat, o'zlashtirish, baholanganlik
     assert.equal(await page.locator(".clsstat tbody tr").count(), await page.evaluate(() => D.classes.filter((c) => !isGrp(c)).length));
     assert.ok((await page.textContent(".clsstat")).includes("Bugun baholangan"));
     assert.ok(await page.locator(".clsstat .progress-bar").count() > 0);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("Pullik guruh: dars paketi — kelgan sanalar, to'lov vaqti ogohlantirishi, paket to'lovi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1280, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const ci = await page.evaluate(() => {
+      const t = todayIso(), d = (n) => iso(addDays(pdate(t), -n)), ds = [d(6), d(5), d(4), d(3), d(2), d(1)];
+      const ot = (a) => Object.fromEntries(a.map((x) => [x, "ot"]));
+      const g = normalize({web: {dv: 2}, classes: [{name: "Ingliz", subject: "kurs", kind: "paid", pack: 3, dates: ds, fee: {month: 300000, day: 50000},
+        students: [{name: "Aliyev A", marks: ot(ds.slice(0, 3))}, {name: "Karimova B", pack: 2, marks: ot(ds.slice(0, 2))}, {name: "Zokirov C", marks: ot(ds.slice(0, 1))}, {name: "Xato D", pack: "abc", pkBase: -5, marks: {}}]}]}).classes[0];
+      D.classes.push(g); save(); return D.classes.length - 1;
+    });
+    const st = await page.evaluate((i) => D.classes[i].students.map((s) => { const p = packOf(D.classes[i], s); return [p.used, p.n, p.due, s.pack, s.pkBase]; }), ci);
+    assert.deepEqual(st, [[3, 3, true, undefined, undefined], [2, 2, true, 2, undefined], [1, 3, false, undefined, undefined], [0, 3, false, undefined, undefined]]);
+    // «Bugun»da ogohlantirish
+    await page.evaluate(() => go("today"));
+    assert.ok((await page.textContent("main")).includes("Paket tugadi"));
+    assert.equal(await page.locator(`[data-packci="${ci}"]`).count(), 1);
+    // guruh kartochkalari: nishon va kelgan kunlar oynasi
+    await page.evaluate((i) => { S.ci = i; S.jpage = "cards"; go("journal"); }, ci);
+    assert.equal(await page.locator(".mcard .gpay.no", {hasText: "to'lov vaqti"}).count(), 2);
+    assert.ok((await page.locator(".mcard").nth(2).textContent()).includes("Paket: 1/3"));
+    await page.click('[data-cdates="2"]');
+    await page.fill(".modal #cd", await page.evaluate(() => iso(addDays(pdate(todayIso()), -3))));
+    await page.click(".modal [data-add]");
+    assert.equal(await page.evaluate((i) => packOf(D.classes[i], D.classes[i].students[2]).used, ci), 2);
+    // kelgan sana guruh kunlariga qo'shiladi (o'tgan, jadvalda yo'q sana ham)
+    const extra = await page.evaluate((i) => { const d = iso(addDays(pdate(todayIso()), -20)); return [markCame(D.classes[i], 2, d), D.classes[i].dates.includes(d), packOf(D.classes[i], D.classes[i].students[2]).used]; }, ci);
+    assert.deepEqual(extra, [true, true, 3]);
+    await page.keyboard.press("Escape").catch(() => {});
+    await page.evaluate(() => document.querySelectorAll(".modal").forEach((m) => m._close && m._close()));
+    // paket to'lovi: hisoblagich yangi paketdan boshlanadi
+    await page.evaluate((i) => payDialog(i, 0, monthOf(todayIso())), ci);
+    await page.fill(".modal #ps", "150000");
+    assert.equal(await page.isChecked(".modal #ppk"), true);
+    await page.click(".modal [data-ok]");
+    const after = await page.evaluate((i) => { const c = D.classes[i], s = c.students[0], p = packOf(c, s); return [s.pkBase, s.pays[0].pk, p.used, p.due]; }, ci);
+    assert.deepEqual(after, [3, 3, 0, false]);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
