@@ -590,27 +590,6 @@ body.pmeas .noprint{display:none!important}
 .sidet{padding:0 10px!important;font-size:13px}.compact .sidet{font-size:18px}
 .compact .logo{justify-content:center;padding:0 0 18px}
 @media screen and (min-width:821px){.compact .jpick{display:grid;place-items:center}}
-/* ixcham dizayn: kichik tugma va oraliqlar, sig'magan yozuv «…» */
-body.ixcham{--side:204px}
-.ixcham main{padding:18px 22px 32px}
-.ixcham .card{padding:14px 16px}
-.ixcham h1{font-size:24px}.ixcham h2{font-size:18px}
-.ixcham .btn{display:inline-block;height:34px;min-height:34px;line-height:32px;padding:0 11px;font-size:14px;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;max-width:100%;vertical-align:middle;text-align:center}
-.ixcham .btn[hidden]{display:none}
-.ixcham .btn.btn-sm{height:30px;min-height:30px;line-height:28px;padding:0 9px;font-size:13px}
-.ixcham .chip,.ixcham .seg button,.ixcham .vseg button,.ixcham .jtabs button,.ixcham .nav .lbl,.ixcham .cs span{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.ixcham .chip{min-height:30px;padding:0 11px;font-size:13.5px}
-.ixcham .seg button{min-height:28px;padding:0 9px;font-size:13.5px}
-.ixcham .side{padding:16px 10px 12px}.ixcham .side .nav{padding:8px 12px;font-size:15px}
-.ixcham .vseg button{padding:6px 10px;font-size:14px}
-.ixcham .jhead{gap:8px}
-.ixcham .jtt b{font-size:20px}.ixcham .jtt small{font-size:12.5px}
-.ixcham .jr1>.btn,.ixcham .pernav>.btn.btn-sm{height:38px;min-height:38px;line-height:36px}
-.ixcham .perbtn,.ixcham .jpick{min-height:38px;height:38px}.ixcham .perbtn h2{font-size:15px}
-.ixcham .key{min-width:34px;height:34px;font-size:14px}
-.ixcham .mgrid .btn{text-align:left}
-.ixcham input,.ixcham select{min-height:36px;font-size:14px}
-.ixcham .da,.ixcham .dg{height:30px}.ixcham .drow{padding:5px 0}
 /* «Kun» ko'rinishi: sana tasmasi, o'quvchilar ro'yxati, dars kartasi */
 .dstrip{display:flex;gap:6px;align-items:stretch;flex:1 1 420px;min-width:0}
 .dstrip>.btn{min-height:0;padding:0 10px;font-size:18px}
@@ -791,3 +770,17 @@ table.attm th,table.attm td{padding:6px 7px}table.attm td.ac{padding:6px 2px}
 #tw.fit table.j .nm i{line-height:1.1;padding-top:0;padding-bottom:0;min-width:16px}
 #tw.fit .pill{padding:0 7px;line-height:1.25;font-size:inherit}
 #tw.fit table.j th:not(.nm){box-shadow:0 0 0 2px var(--base)}
+
+/* Sozlamalar bo'limlari: har bir tugma alohida kartochka */
+nav.card.secs{background:none;border:0;box-shadow:none;padding:0;gap:8px}
+nav.card.secs button{background:var(--base);border:1px solid var(--line);box-shadow:var(--sh);border-radius:12px;padding:10px 12px}
+nav.card.secs button:hover{background:var(--alt);border-color:var(--acc)}
+nav.card.secs button.on{background:var(--acc-soft);border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+
+/* Bezak tanlash: 3 ustunli katakchalar */
+.decos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;flex:1 1 100%}
+.deco{position:relative;border:2px solid var(--line);background:var(--base);border-radius:12px;padding:10px 12px 10px 40px;text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0}
+.deco b{font-size:15px}.deco span{font-size:12.5px;color:var(--muted);line-height:1.3}
+.deco .dchk{position:absolute;left:11px;top:11px;width:20px;height:20px;border:2px solid var(--line);border-radius:6px;display:grid;place-items:center;font-style:normal;font-size:14px;line-height:1;color:var(--acc-fg);background:var(--base)}
+.deco.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}.deco.on .dchk{background:var(--acc);border-color:var(--acc)}
+@media (max-width:560px){.decos{grid-template-columns:1fr}}
