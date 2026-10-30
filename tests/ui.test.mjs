@@ -2174,3 +2174,40 @@ test("Pullik guruh: dars paketi — kelgan sanalar, to'lov vaqti ogohlantirishi,
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Yutuqlarni yoqish/o'chirish: bo'lim, tugmalar va hisobot yashirinadi, ma'lumot qoladi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1280, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const ci = await page.evaluate(() => {
+      const t = todayIso();
+      D.classes.push(normalize({web: {dv: 2}, classes: [{name: "Shaxmat", kind: "club", dates: [t], students: [{name: "Aliyev A", marks: {}, ach: [{d: t, t: "Respublika musobaqasi", k: "Musobaqa", lvl: "Respublika", pl: "1-o'rin"}]}]}]}).classes[0]);
+      save(); return D.classes.length - 1;
+    });
+    const view = async () => { await page.evaluate((i) => { S.ci = i; S.jpage = "ach"; go("journal"); }, ci); return page.evaluate(() => ({
+      tabs: [...document.querySelectorAll(".jtabs [data-jp]")].map((b) => b.dataset.jp), body: document.querySelector("main").textContent, jp: S.jpage})); };
+    let v = await view();
+    assert.ok(v.tabs.includes("ach")); assert.equal(v.jp, "ach");
+    // sozlamalarda o'chiramiz
+    await page.evaluate(() => { D.web.off = Object.assign({}, D.web.off, {ach: 1}); save(); });
+    v = await view();
+    assert.ok(!v.tabs.includes("ach")); assert.equal(v.jp, "cards");
+    assert.ok(!v.body.includes("＋ Yutuq") && !v.body.includes("🏆"));
+    assert.equal(await page.evaluate(() => grpTabs(D.classes[S.ci]).some(([k]) => k === "ach")), false);
+    // ma'lumot saqlanadi, qayta yoqilsa hammasi joyida
+    assert.equal(await page.evaluate((i) => D.classes[i].students[0].ach.length, ci), 1);
+    await page.evaluate(() => { delete D.web.off.ach; save(); });
+    v = await view(); assert.ok(v.tabs.includes("ach")); assert.equal(v.jp, "ach");
+    // sozlamalardagi tugma
+    await page.evaluate((i) => { S.ci = i; S.jpage = "j"; go("journal"); }, ci);
+    await page.click("[data-more]"); await page.click(".modal [data-feats]");
+    await page.waitForSelector("[data-ft=ach]");
+    assert.equal(await page.locator("[data-ft=ach]").count(), 1);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
