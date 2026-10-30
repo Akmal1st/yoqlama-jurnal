@@ -2270,15 +2270,49 @@ test("Jurnal tagida: bugungi dars bo'yicha sinf ma'lumoti kartasi", async () => 
     });
     const txt = await page.textContent(".tdcard");
     assert.ok(txt.includes("Bugungi dars") && txt.includes("Kasrlar") && txt.includes("12-mashq"), txt);
-    assert.ok(txt.includes("2 / 4") || txt.includes("3 / 4"), txt);                  // keldi
+    assert.ok(txt.includes("3/4"), txt);                                              // keldi
     assert.ok(txt.includes("K. Madina (sababsiz)") && txt.includes("R. Jasur"), txt);   // kelmagan va kech qolgan
-    assert.ok(txt.includes("1 / 4 (25%) ⚠") && txt.includes("yana 1 ta"), txt);       // 30% dan kam baholangan
+    assert.ok(txt.includes("1/4 (25%) ⚠") && txt.includes("yana 1 ta"), txt);          // 30% dan kam baholangan
     // kartalar jadval tagida, belgi tugmalari esa katak tanlanmaguncha yo'q
     assert.equal(await page.locator(".keys").count(), 0);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
     // guruhda ko'rinmaydi
     await page.evaluate((i) => { D.classes[i].kind = "club"; render(); }, ci);
     assert.equal(await page.locator(".tdcard").count(), 0);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("Jurnal kompyuterda bitta ekranga sig'adi: sahifa na pastga, na yonga suriladi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const errors = [];
+    for (const [w, h] of [[1366, 640], [1280, 800]]) {
+      const page = await browser.newPage({viewport: {width: w, height: h}});
+      page.on("pageerror", (e) => errors.push(e.message));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await page.evaluate(() => {
+        const t = todayIso(), c = D.classes[0]; if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); }
+        while (c.students.length < 26) c.students.push({id: "x" + c.students.length, name: "Test Oquvchi " + c.students.length, marks: {}});
+        S.ci = 0; S.page = "journal"; S.jpage = "j"; V.anchor = t; V.mode = "month"; render();
+      });
+      for (const mode of ["week", "month", "quarter"]) {
+        await page.evaluate((m) => { V.mode = m; render(); }, mode);
+        const r = await page.evaluate(() => { const tw = document.querySelector("#tw"); return {dy: document.documentElement.scrollHeight - innerHeight, dx: document.documentElement.scrollWidth - innerWidth,
+          twx: tw ? tw.scrollWidth - tw.clientWidth : 0, twy: tw ? tw.scrollHeight - tw.clientHeight : 0, rows: tw ? tw.querySelectorAll("td.nm").length : 0}; });
+        if (!r.rows) continue;   // tanlangan davrda dars sanasi yo'q
+        assert.ok(r.dy <= 1, `${w}x${h} ${mode}: sahifa pastga suriladi (${r.dy}px)`);
+        assert.ok(r.dx <= 1 && r.twx <= 1, `${w}x${h} ${mode}: yonga suriladi (${r.dx}/${r.twx})`);
+        assert.ok(r.twy <= 1, `${w}x${h} ${mode}: jadval ichida suriladi (${r.twy}px)`);
+      }
+      // katak bosilsa ham joylashuv buzilmaydi
+      await page.evaluate(() => { V.mode = "week"; render(); });
+      await page.click(`[data-c="0|${await page.evaluate(() => todayIso())}"]`);
+      assert.ok(await page.evaluate(() => document.documentElement.scrollHeight - innerHeight) <= 1);
+      await page.close();
+    }
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });

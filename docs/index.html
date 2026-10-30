@@ -2193,24 +2193,49 @@ function pageJournal(m) {
   m.querySelectorAll("[data-c]").forEach((b) => b.onclick = () => { const [si, d, p] = b.dataset.c.split("|"); S.sel = p ? [+si, d, p] : [+si, d]; const sl = $("#tw").scrollLeft; render(); $("#tw").scrollLeft = sl; });
   m.querySelectorAll("[data-k]").forEach((b) => b.onclick = () => applyKey(b.dataset.k));
   const kx = $("[data-kx]", m); if (kx) kx.onclick = () => { S.sel = null; S.second = false; const sl = $("#tw").scrollLeft; render(); $("#tw").scrollLeft = sl; };
+  if (!grp) { fitJournal(m); requestAnimationFrame(() => { if (document.body.contains(m)) fitJournal(m); }); }
   placeKeys(m); const tw0 = $("#tw", m); if (tw0 && S.sel) { tw0.onscroll = () => placeKeys(m); window.onscroll = () => placeKeys(m); } else window.onscroll = null;
   const two = $("[data-two]", m); if (two) two.onclick = () => { S.second = !S.second; render(); if (S.second) toast("Keyingi raqam ikkinchi baho sifatida qo'shiladi"); };
 }
-// jurnal tagida: bugungi dars bo'yicha sinf ma'lumoti (mavzu, davomat, baholanganlik)
+// jurnal tagida: bugungi dars bo'yicha sinf ma'lumoti (ixcham: ekranga sig'ishi uchun)
 function todayCard(c) {
   const t = todayIso(); if (!c.dates.includes(t) || isNoLesson(c, t) || !c.students.length) return "";
   const n = c.students.length, sw = sumOn(c, t), l = c.lessons[t] || {}, no = c.dates.filter((d) => d <= t && !isNoLesson(c, d)).length;
   const AB = {s: "sababsiz", dq: "sababli", k: "kasal"}, ab = [], late = [];
   for (const st of c.students) { const mk = st.marks[t] || "", a = attPart(mk); if (AB[a]) ab.push([st.name, AB[a]]); else if (lateOf(mk)) late.push(st.name); }
-  const cs = colStat(c, t), g = sw ? null : gradedShare(c, t), tile = (k, v, cls = "") => `<div class="tile"><div>${k}</div><div class="${cls}">${v}</div></div>`;
-  return `<section class="card vcol tdcard" style="gap:10px"><div class="hrow wrap" style="gap:8px"><h2 style="margin:0">Bugungi dars · ${fmt(t).slice(0, 5)} ${WD_FULL[pyWd(t)]}</h2><span class="muted">${no}-dars · ${esc(label(c))}${c.att_ok.includes(t) ? ` · <span class="ok">yo'qlama tugagan ✓</span>` : ""}</span></div>
-    <div class="tiles" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">${tile("Keldi", `${n - ab.length} / ${n}`)}${tile("Qoldirgan", ab.length, ab.length ? "warn" : "")}${tile("Kech qolgan", late.length)}
-      ${g ? tile("Baholangan", `${g.graded} / ${g.total} (${g.pct}%) ${g.ok ? "✓" : "⚠"}`, g.ok ? "" : "warn") : tile("Kun turi", sumTag(sw))}${tile("O'rtacha", cs.avg !== null ? cs.avg.toFixed(1) : "—")}</div>
-    <div class="muted"><b>Mavzu:</b> ${l.topic ? esc(l.topic) : "kiritilmagan"} · <b>Uy vazifasi:</b> ${l.hw ? esc(l.hw) : "yo'q"}</div>
-    ${ab.length ? `<div class="muted"><b>Kelmaganlar:</b> ${ab.map(([nm, why]) => `${esc(shortName(nm))} (${why})`).join(", ")}</div>` : ""}
-    ${late.length ? `<div class="muted"><b>Kech qolganlar:</b> ${late.map((nm) => esc(shortName(nm))).join(", ")}</div>` : ""}
-    ${g && !g.ok ? `<div class="warn">Kamida ${GRADED_MIN}% o'quvchi baholanishi kerak: yana ${Math.max(0, g.need - g.graded)} ta o'quvchini baholang.</div>` : ""}</section>`;
+  const cs = colStat(c, t), g = sw ? null : gradedShare(c, t), chip = (k, v, cls = "") => `<span class="tdc ${cls}"><small>${k}</small> <b>${v}</b></span>`;
+  return `<section class="card tdcard"><div class="hrow wrap tdh"><b>Bugungi dars · ${fmt(t).slice(0, 5)} ${WD_FULL[pyWd(t)]}</b><span class="muted">${no}-dars${c.att_ok.includes(t) ? ` · <span class="ok">yo'qlama tugagan ✓</span>` : ""}</span>
+    ${chip("Keldi", `${n - ab.length}/${n}`)}${chip("Qoldirgan", ab.length, ab.length ? "warn" : "")}${chip("Kech", late.length)}${g ? chip("Baholangan", `${g.graded}/${g.total} (${g.pct}%) ${g.ok ? "✓" : "⚠"}`, g.ok ? "" : "warn") : chip("Kun", sumTag(sw))}${chip("O'rtacha", cs.avg !== null ? cs.avg.toFixed(1) : "—")}</div>
+    <div class="muted tdl"><b>Mavzu:</b> ${l.topic ? esc(l.topic) : "kiritilmagan"} · <b>UV:</b> ${l.hw ? esc(l.hw) : "yo'q"}${ab.length ? ` · <b>Kelmagan:</b> ${ab.map(([nm, why]) => `${esc(shortName(nm))} (${why})`).join(", ")}` : ""}${late.length ? ` · <b>Kech:</b> ${late.map((nm) => esc(shortName(nm))).join(", ")}` : ""}${g && !g.ok ? ` · <span class="warn">kamida ${GRADED_MIN}% baholang: yana ${Math.max(0, g.need - g.graded)} ta</span>` : ""}</div></section>`;
 }
+// kompyuterda jurnal bitta ekranga sig'adi: qatorlar balandligi va ustunlar eni ekranga moslanadi (sahifa surilmaydi)
+let FITM = null;
+function fitJournal(m) {
+  FITM = m; const tw = $("#tw", m); if (!tw) return;
+  tw.classList.remove("fit", "noft"); tw.style.height = tw.style.maxHeight = ""; { const tb0 = tw.querySelector("table.j"); if (tb0) tb0.style.maxWidth = ""; } tw.style.removeProperty("--rh");
+  if (!matchMedia("(min-width:821px)").matches) return;
+  tw.classList.add("fit"); tw.style.maxHeight = "none";
+  const tb = tw.querySelector("table.j"); tb.style.maxWidth = 190 + 2 * 54 + tw.querySelectorAll("th.d").length * 110 + "px";
+  const body = [...tw.querySelectorAll("table.j tr")].filter((r) => r.querySelector("td.nm") && !r.classList.contains("ft")), n = body.length; if (!n) return;
+  const sp = 2, kids = [...m.firstElementChild.children], card = $(".tdcard", m); if (card) card.style.display = "";
+  const calc = () => {
+    const fixed = tw.querySelector("table.j").offsetHeight - body.reduce((a, r) => a + r.offsetHeight + sp, 0) + (tw.offsetHeight - tw.clientHeight);
+    const below = kids.slice(kids.indexOf(tw) + 1).reduce((a, e) => a + (getComputedStyle(e).position === "fixed" || e.style.display === "none" ? 0 : e.offsetHeight + 12), 0);
+    const avail = innerHeight - (tw.getBoundingClientRect().top + scrollY) - below - 14;
+    return {avail, rh: Math.max(14, Math.min(40, Math.floor((avail - fixed - 2 * 6) / n)))};
+  };
+  let {avail, rh} = calc();
+  // qatorlar juda kichik bo'lib ketsa — bugungi dars kartasi yashirinadi (jadval birinchi o'rinda)
+  if (rh < 20 && card) { card.style.display = "none"; ({avail, rh} = calc()); }
+  if (rh < 17) { tw.classList.add("noft"); ({avail, rh} = calc()); }
+  tw.style.setProperty("--rh", rh + "px");
+  // sahifa baribir ekrandan oshsa (chekka, padding) — qatorlarni yana bir oz qisqartiramiz
+  for (let k = 0; k < 3; k++) { const over = document.documentElement.scrollHeight - innerHeight; if (over <= 0 || rh <= 14) break; rh = Math.max(14, rh - Math.ceil(over / n)); tw.style.setProperty("--rh", rh + "px"); }
+  // jami balandlik ekrandan oshsa — jadval ichida surish (juda ko'p o'quvchi bo'lsa)
+  const need = tw.scrollHeight; tw.style.height = need > avail ? Math.max(120, avail) + "px" : "";
+  const over = document.documentElement.scrollHeight - innerHeight; if (over > 0 && tw.style.height) tw.style.height = Math.max(120, parseFloat(tw.style.height) - over) + "px";
+}
+window.addEventListener("resize", () => { clearTimeout(fitJournal.t); fitJournal.t = setTimeout(() => { if (FITM && document.body.contains(FITM) && $("#tw", FITM)) fitJournal(FITM); }, 120); });
 // belgi tugmalari (4×4) tanlangan katak yonida chiqadi: kompyuterda o'ng/chap tomonda, telefonda pastdan
 function placeKeys(m) {
   const k = $(".keys.kpop", m), cell = $(".cell.sel", m); if (!k || !cell) return;

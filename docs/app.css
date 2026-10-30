@@ -783,4 +783,20 @@ table.attm th,table.attm td{padding:6px 7px}table.attm td.ac{padding:6px 2px}
 .keys.kpop .key{min-width:0;width:100%;max-width:none;height:44px;padding:0;font-size:16px;flex:none}
 .keys.kpop .key.wide{grid-column:auto;padding:0 6px;white-space:nowrap;min-width:0;font-size:14px}
 @media (max-width:820px){.keys.kpop,.keys.kpop.g2{left:8px;right:8px;top:auto;bottom:64px;width:auto;max-width:none}.keys.kpop .key{height:46px}}
-.tdcard .tile{padding:10px 14px}.tdcard .tile>div:last-child{font-size:19px;font-weight:800}
+.tdcard{padding:8px 14px;display:flex;flex-direction:column;gap:3px}.tdh{gap:6px 14px;align-items:baseline}.tdh b{font-size:15px}.tdc small{color:var(--muted);font-size:12px}.tdc b{font-size:14px}.tdc.warn b{color:var(--danger)}.tdl{font-size:13px;line-height:1.35}
+/* kompyuterda jurnal bitta ekranga sig'adi (fitJournal) */
+#tw.fit{overflow-x:hidden;scroll-snap-type:none}
+#tw.fit table.j{width:100%;table-layout:fixed;border-spacing:2px;font-size:clamp(10px,calc(var(--rh) * .42),14px)}
+#tw.fit table.j th.nm{width:190px}
+#tw.fit table.j th:not(.nm):not(.d){width:54px}
+#tw.fit table.j th.d{min-width:0;padding:2px 0}
+#tw.fit table.j th.d small{font-size:clamp(8px,calc(var(--rh) * .3),11px)}
+#tw.fit .cell{min-width:0;height:calc(var(--rh) - 2px);font-size:clamp(9px,calc(var(--rh) * .42),15px);border-radius:5px}
+#tw.fit table.j .nm{max-width:190px;font-size:clamp(10px,calc(var(--rh) * .42),14px)}
+#tw.fit table.j td.s{padding:0 2px}
+#tw.fit table.j tr.ft td{font-size:11px}
+#tw.fit.noft table.j tr.ft{display:none}
+#tw.fit table.j .nm,#tw.fit table.j td.s{line-height:1.1;padding-top:0;padding-bottom:0}
+#tw.fit table.j .nm i{line-height:1.1;padding-top:0;padding-bottom:0;min-width:16px}
+#tw.fit .pill{padding:0 7px;line-height:1.25;font-size:inherit}
+#tw.fit table.j th:not(.nm){box-shadow:0 0 0 2px var(--base)}
