@@ -789,7 +789,7 @@ table.attm th,table.attm td{padding:6px 7px}table.attm td.ac{padding:6px 2px}
 #tw.fit table.j{width:100%;table-layout:fixed;border-spacing:2px;font-size:clamp(10px,calc(var(--rh) * .42),14px)}
 #tw.fit table.j th.nm{width:190px}
 #tw.fit table.j th:not(.nm):not(.d){width:54px}
-#tw.fit table.j th.d{min-width:0;padding:2px 0}
+#tw.fit table.j th.d{min-width:0;width:var(--cw,40px);padding:2px 0}
 #tw.fit table.j th.d small{font-size:clamp(8px,calc(var(--rh) * .3),11px)}
 #tw.fit .cell{min-width:0;height:calc(var(--rh) - 2px);font-size:clamp(9px,calc(var(--rh) * .42),15px);border-radius:5px}
 #tw.fit table.j .nm{max-width:190px;font-size:clamp(10px,calc(var(--rh) * .42),14px)}
