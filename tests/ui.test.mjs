@@ -389,8 +389,14 @@ test("jurnal: Kun ko'rinishi, katak yonidagi belgi oynasi, sinf tanlash", async 
     await page.click("[data-per]"); await page.click(".perpop [data-mode=week]");
     assert.equal(await page.locator(".perpop").count(), 0);
     assert.equal(await page.locator(`[data-c="0|${t}"]`).count(), 1);
+    assert.equal(await page.locator(".keys").count(), 0, "katak tanlanmaguncha tugmalar ko'rinmaydi");
+    assert.ok(!(await page.textContent("main")).includes("Katakni tanlang"));
     await page.click(`[data-c="0|${t}"]`);
-    assert.equal(new Set(await page.$$eval(".keys .key", (x) => x.map((e) => Math.round(e.getBoundingClientRect().top)))).size, 1, "kalitlar bir qatorda");
+    assert.equal(new Set(await page.$$eval(".keys .key", (x) => x.map((e) => Math.round(e.getBoundingClientRect().top)))).size, 4, "tugmalar 4 qatorli");
+    assert.equal(new Set(await page.$$eval(".keys .key", (x) => x.map((e) => Math.round(e.getBoundingClientRect().left)))).size, 4, "tugmalar 4 ustunli");
+    assert.equal(await page.locator(".keys .key").count(), 16, "4×4 = 16 tugma");
+    assert.ok(await page.evaluate((sel) => { const a = document.querySelector(".keys").getBoundingClientRect(), b = document.querySelector(sel).getBoundingClientRect();
+      return a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom; }, `[data-c="0|${t}"]`), "oyna tanlangan katakni yopmasin");
     await page.click('[data-k="7"]'); assert.equal(await mark(), "7");
     // taqvimdagi sana — o'sha dars «Kun»da ochiladi; Esc oynani yopadi
     await page.click("[data-per]"); await page.keyboard.press("Escape"); assert.equal(await page.locator(".perpop").count(), 0);
@@ -1931,6 +1937,7 @@ test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqla
     await page.evaluate(() => { D.classes[D.classes.length - 1].dates.push(todayIso()); save(); render(); });
     await page.click("[data-jp=j]");
     assert.equal(await page.locator("table.j th", {hasText: "O'rt."}).count(), 0);
+    await page.evaluate(() => { S.sel = [0, todayIso()]; render(); });
     assert.equal(await page.locator(".keys [data-k='5']").count(), 0);
     assert.equal(await page.locator(".keys [data-k='s']").count(), 0);
     assert.equal(await page.locator(".keys [data-k='ot']").count(), 1);
