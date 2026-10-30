@@ -2182,6 +2182,7 @@ function pageJournal(m) {
   m.innerHTML = `<div class="vcol" style="gap:12px">
     ${jHead(perNav(), "", tools)}
     ${ds.length ? `<div class="tblwrap" id="tw"><table class="j">${head}${body}</table></div>` : `<div class="card muted">Tanlangan davrda dars sanalari yo'q. «⋯ → Sana qo'shish (dars kunlari bo'yicha)» yoki «Sozlamalar → Dars kunlari va choraklar».</div>`}
+    ${grp ? "" : todayCard(c)}
     ${S.sel && ds.length ? `<div class="keys kpop ${grp ? "g2" : ""}" role="group" aria-label="Belgi qo'yish"><div class="hint"><span class="sp">${selTxt}</span><button class="btn btn-sm" data-k="" title="Katakni tozalash" aria-label="Tozalash">⌫</button><button class="btn btn-sm" data-kx title="Yopish (Esc)" aria-label="Yopish">✕</button></div>${keys}</div>` : ""}</div>`;
   bindJHead(m);
   m.querySelectorAll("[data-sh]").forEach((b) => b.onclick = () => { vShift(+b.dataset.sh); render(); });
@@ -2194,6 +2195,21 @@ function pageJournal(m) {
   const kx = $("[data-kx]", m); if (kx) kx.onclick = () => { S.sel = null; S.second = false; const sl = $("#tw").scrollLeft; render(); $("#tw").scrollLeft = sl; };
   placeKeys(m); const tw0 = $("#tw", m); if (tw0 && S.sel) { tw0.onscroll = () => placeKeys(m); window.onscroll = () => placeKeys(m); } else window.onscroll = null;
   const two = $("[data-two]", m); if (two) two.onclick = () => { S.second = !S.second; render(); if (S.second) toast("Keyingi raqam ikkinchi baho sifatida qo'shiladi"); };
+}
+// jurnal tagida: bugungi dars bo'yicha sinf ma'lumoti (mavzu, davomat, baholanganlik)
+function todayCard(c) {
+  const t = todayIso(); if (!c.dates.includes(t) || isNoLesson(c, t) || !c.students.length) return "";
+  const n = c.students.length, sw = sumOn(c, t), l = c.lessons[t] || {}, no = c.dates.filter((d) => d <= t && !isNoLesson(c, d)).length;
+  const AB = {s: "sababsiz", dq: "sababli", k: "kasal"}, ab = [], late = [];
+  for (const st of c.students) { const mk = st.marks[t] || "", a = attPart(mk); if (AB[a]) ab.push([st.name, AB[a]]); else if (lateOf(mk)) late.push(st.name); }
+  const cs = colStat(c, t), g = sw ? null : gradedShare(c, t), tile = (k, v, cls = "") => `<div class="tile"><div>${k}</div><div class="${cls}">${v}</div></div>`;
+  return `<section class="card vcol tdcard" style="gap:10px"><div class="hrow wrap" style="gap:8px"><h2 style="margin:0">Bugungi dars · ${fmt(t).slice(0, 5)} ${WD_FULL[pyWd(t)]}</h2><span class="muted">${no}-dars · ${esc(label(c))}${c.att_ok.includes(t) ? ` · <span class="ok">yo'qlama tugagan ✓</span>` : ""}</span></div>
+    <div class="tiles" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">${tile("Keldi", `${n - ab.length} / ${n}`)}${tile("Qoldirgan", ab.length, ab.length ? "warn" : "")}${tile("Kech qolgan", late.length)}
+      ${g ? tile("Baholangan", `${g.graded} / ${g.total} (${g.pct}%) ${g.ok ? "✓" : "⚠"}`, g.ok ? "" : "warn") : tile("Kun turi", sumTag(sw))}${tile("O'rtacha", cs.avg !== null ? cs.avg.toFixed(1) : "—")}</div>
+    <div class="muted"><b>Mavzu:</b> ${l.topic ? esc(l.topic) : "kiritilmagan"} · <b>Uy vazifasi:</b> ${l.hw ? esc(l.hw) : "yo'q"}</div>
+    ${ab.length ? `<div class="muted"><b>Kelmaganlar:</b> ${ab.map(([nm, why]) => `${esc(shortName(nm))} (${why})`).join(", ")}</div>` : ""}
+    ${late.length ? `<div class="muted"><b>Kech qolganlar:</b> ${late.map((nm) => esc(shortName(nm))).join(", ")}</div>` : ""}
+    ${g && !g.ok ? `<div class="warn">Kamida ${GRADED_MIN}% o'quvchi baholanishi kerak: yana ${Math.max(0, g.need - g.graded)} ta o'quvchini baholang.</div>` : ""}</section>`;
 }
 // belgi tugmalari (4×4) tanlangan katak yonida chiqadi: kompyuterda o'ng/chap tomonda, telefonda pastdan
 function placeKeys(m) {
