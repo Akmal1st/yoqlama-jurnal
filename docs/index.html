@@ -44,9 +44,16 @@ const clone = (o) => JSON.parse(JSON.stringify(o));
 let D = null;
 
 /* ───────── dizayn: shrift, mavzu, rang, o'lcham (D.web da saqlanadi) ───────── */
-const DESIGN_DEF = {font: "system", fsize: "m", accent: "teal", radius: "round", style: "dash"};
-const FONTS = [["lserif", "Liberation Serif", `"Liberation Serif","Times New Roman",Tinos,Times,serif`], ["times", "Times New Roman", `"Times New Roman",Times,"Liberation Serif",serif`],
-  ["georgia", "Georgia", `Georgia,"DejaVu Serif",serif`], ["lsans", "Liberation Sans", `"Liberation Sans",Arial,Helvetica,sans-serif`],
+const DESIGN_DEF = {font: "system", fsize: "m", accent: "teal", radius: "round", style: "dash", deco: ""};
+// Bezak (kartochka, jadval va bo'lim tugmalari qirrasi): bo'sh — dizaynning o'zidagi ko'rinish
+const DECOS = [["flat", "Tekis", "Chiziq va soyasiz, faqat fon farqi"], ["line", "Chiziqli", "Aniq ingichka chiziq, soyasiz"], ["soft", "Soyali", "Yengil soya, chiziqsiz"]];
+const DECO_SEL = ".card:not(.secs),.tblwrap,.tile,.opt,.gcard,.mcard,.dlist,.tdcard,body nav.card.secs button:not(.on)";
+const DECO_CSS = {
+  flat: `body :is(${DECO_SEL}){border:1px solid transparent;box-shadow:none}`,
+  line: `body :is(${DECO_SEL}){border:2px solid var(--line);box-shadow:none}`,
+  soft: `body :is(${DECO_SEL}){border:1px solid transparent;box-shadow:0 2px 10px rgba(20,30,50,.13),0 1px 2px rgba(20,30,50,.08)}`};
+const FONTS = [["lserif", "Liberation Serif", `"Liberation Serif","Times New Roman",Tinos,Times,serif`],
+  ["georgia", "Georgia", `Georgia,"DejaVu Serif",serif`],
   ["verdana", "Verdana", `Verdana,"DejaVu Sans",Geneva,sans-serif`], ["system", "Tizim shrifti", `system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif`]];
 const FSIZES = [["s", "Kichik", 0.92], ["m", "O'rta", 1], ["l", "Katta", 1.08], ["xl", "Juda katta", 1.16]];
 // [nomi, och: acc, acc-d, acc-soft, panel1, panel2; tungi: acc, acc-d, acc-soft, panel1, panel2]
@@ -159,7 +166,7 @@ const cleanFont = (n) => String(n || "").replace(/["'\\;{}<>()]/g, "").replace(/
 const sideMin = () => !!D.web.sidemin;
 const curStyle = () => (STYLES[D.web.style] ? D.web.style : DESIGN_DEF.style);
 function designCss(w) {
-  const cf = cleanFont(w.cfont), f = w.font === "custom" && cf ? `"${cf}",system-ui,sans-serif` : (FONTS.find((x) => x[0] === w.font) || FONTS[0])[2], z = (FSIZES.find((x) => x[0] === w.fsize) || FSIZES[1])[2], a = ACCENTS[w.accent] || ACCENTS.teal;
+  const cf = cleanFont(w.cfont), f = w.font === "custom" && cf ? `"${cf}",system-ui,sans-serif` : (FONTS.find((x) => x[0] === w.font) || FONTS.find((x) => x[0] === DESIGN_DEF.font))[2], z = (FSIZES.find((x) => x[0] === w.fsize) || FSIZES[1])[2], a = ACCENTS[w.accent] || ACCENTS.teal;
   const st = STYLES[w.style] || STYLES[DESIGN_DEF.style];
   // foydalanuvchi «Asosiy rang»ni o'zi tanlagan bo'lsa, uslubning o'z rangi (--acc*) uni bosib ketmasin
   const keep = w.accent && w.accent !== DESIGN_DEF.accent, noAcc = (v) => keep ? v.replace(/--acc(-d|-fg|-soft)?:[^;]+;/g, "") : v;
@@ -167,7 +174,7 @@ function designCss(w) {
   const dark = `--acc:${a[6]};--acc-d:${a[7]};--acc-soft:${a[8]};--side-bg:linear-gradient(175deg,${a[9]} 0%,${a[10]} 100%);${noAcc(st[3])}`;
   return `:root{${light}--r:${w.radius === "sharp" ? "6px" : st[5] || "12px"}}:root[data-theme="dark"]{${dark}}
     @media (prefers-color-scheme: dark){:root:not([data-theme="light"]):not([data-theme="dark"]){${dark}}}
-    body,button,input,select,textarea{font-family:${f}}@media screen{main{zoom:${z}}${st[4]}}`;
+    body,button,input,select,textarea{font-family:${f}}@media screen{main{zoom:${z}}${st[4]}${DECO_CSS[w.deco] || ""}}`;
 }
 // o'quvchining doimiy belgisi: ism o'zgarsa ham o'zgarmaydi (o'zgarishlar tarixi, qaytarish shu orqali topadi)
 const newSid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -238,7 +245,7 @@ function normalize(d) {
     cleanClass(c);
     uniqNames(c.students.concat(c.students_off));
   }
-  d.web = Object.assign({density: "oddiy", theme: "auto", gen: []}, DESIGN_DEF, d.web || {});
+  d.web = Object.assign({theme: "auto", gen: []}, DESIGN_DEF, d.web || {});
   d.v2 = d.v2 || {};
   if (!d.v2.ranges3 && !d.web.ranges3) { st.ranges = clone(DEFAULTS.ranges); d.web.ranges3 = true; }
   return d;
@@ -273,6 +280,9 @@ function migrate(d) {
   if (v > DATA_VER) { NEWER = true; return d; }
   while (v < DATA_VER) { d = (MIGRATE[v] || ((x) => x))(d); v++; }
   // 2026-10: yangi «Zamonaviy» dizayn hammaga bir marta yoqiladi (Akmal: dizaynni tubdan yangila); eski uslublar Sozlamalar → Dizayn'da qoladi
+  // o'xshash shriftlar olib tashlandi: Times New Roman → Liberation Serif, Liberation Sans → tizim shrifti; ixcham dizayn olib tashlandi
+  if (d.web.font === "times") d.web.font = "lserif"; else if (d.web.font === "lsans") d.web.font = "system";
+  delete d.web.density;
   if (!d.web.ui26) { d.web.ui26 = 1; d.web.style = "dash"; if (!d.web.font || d.web.font === "lserif") d.web.font = "system"; }
   d.settings.method_weekday = null;   // metod kuni ilovadan olib tashlangan (Akmal, 2026-10-25): o'sha kunlar oddiy dars kuni
   d.web.dv = DATA_VER; return d;
@@ -1236,18 +1246,13 @@ function toast(msg, act) {
   if (act) $(".tact", el).onclick = () => { el.remove(); act[1](); };
   clearTimeout(toastT); toastT = setTimeout(() => el.remove(), Math.max(act ? 8000 : 3500, String(msg).length * 55));
 }
-// ixcham dizaynda qisqargan tugma yozuvi — sichqoncha ustiga borganda to'liq ko'rinadi
-function fitTitles(root) {
-  if (D.web.density !== "kompakt") return;
-  root.querySelectorAll("button").forEach((b) => { if (!b.title && b.scrollWidth > b.clientWidth + 1) b.title = b.textContent.trim(); });
-}
 function modal(inner, onMount) {
   return new Promise((res) => {
     const m = h(`<div class="modal" role="dialog" aria-modal="true"><div class="card">${inner}</div></div>`);
     const close = (v) => { m.remove(); res(v); };
     m._close = close;
     m.addEventListener("click", (e) => { if (e.target === m) close(null); });
-    document.body.append(m); labelTables(m); onMount && onMount(m, close); fitTitles(m);
+    document.body.append(m); labelTables(m); onMount && onMount(m, close);
   });
 }
 // Escape — eng ustidagi oynani yopadi (oyna ichidagi maydon o'zi ishlatgan bo'lsa — yo'q)
@@ -1289,6 +1294,8 @@ const NAV = [["today", "Bugun"], ["journal", "Jurnal"], ["groups", "Guruhlar"], 
 function go(p) { S.page = p; S.sel = null; render(); window.scrollTo(0, 0); }
 // jurnal davri: Kun / Hafta / Oy / Chorak — sarlavhadagi «📅» tugmasi oynasida
 const VIEW_MODES = [["day", "Kun"], ["week", "Hafta"], ["month", "Oy"], ["quarter", "Chorak"]];
+// Sozlamalar → Funksiyalar'da o'chirilgan rejimlar tugmalarda ko'rinmaydi; «Kun» doim bor
+const viewModes = () => VIEW_MODES.filter(([k]) => k === "day" || feat("v" + k));
 function bindView(root) {
   root.querySelectorAll("[data-mode]").forEach((b) => b.onclick = () => { V.mode = b.dataset.mode; if (S.sel) S.sel = S.sel.slice(0, 2); render(); scrollToday(); });
 }
@@ -1445,10 +1452,8 @@ function applyTheme() {
   const css = designCss(D.web); if (dc.textContent !== css) dc.textContent = css;
   const t = D.web.theme; document.documentElement.dataset.theme = t === "auto" ? "" : t;
   if (t === "auto") delete document.documentElement.dataset.theme;
-  // Chorak ko'rinishida (yoki ixcham dizaynda) kataklar kichik — butun chorak bitta ekranga sig'adi
-  const ix = D.web.density === "kompakt";
-  document.body.classList.toggle("dense", ix || (S.page === "journal" && S.jpage === "j" && V.mode === "quarter"));
-  document.body.classList.toggle("ixcham", ix);
+  // Chorak ko'rinishida kataklar kichik — butun chorak bitta ekranga sig'adi
+  document.body.classList.toggle("dense", S.page === "journal" && S.jpage === "j" && V.mode === "quarter");
   $("#app").classList.toggle("compact", sideMin());
 }
 // telefonda hisobot jadvali kartochka bo'lib chiqadi: har katakka ustun nomini yozib qo'yamiz
@@ -1469,7 +1474,7 @@ function render() {
   const m = $("#main");
   ({today: pageToday, journal: pageJournal, groups: pageGroups, lesson: pageLesson, reports: pageReports, settings: pageSettings})[S.page](m);
   const pp = $(".perpop"); if (pp) pp.remove();
-  labelTables(m); snapCols(); fitTitles(document.body);
+  labelTables(m); snapCols();
 }
 
 /* ───────── 1. Bugun ───────── */
@@ -2115,18 +2120,19 @@ function pageJournal(m) {
   if (S.jpage === "sum") return pageSum(m);
   if (S.jpage === "year") return pageYear(m);
   if (S.jpage === "bsb") return pageBsb(m);
+  if (!viewModes().some(([k]) => k === V.mode)) V.mode = "day";
   if (V.mode === "day") return pageDay(m);
-  const c = D.classes[S.ci], t = todayIso(), dense = D.web.density === "kompakt", grp = isGrp(c);
+  const c = D.classes[S.ci], t = todayIso(), grp = isGrp(c);
   const ds = visDates(c);
   const {rows} = reportRows(c, ds[0] || t, ds[ds.length - 1] || t), order = S.jord = jOrder(c, rows);
   const [plo, phi, pq] = periodNow(); const riskWhy = new Map(grp ? [] : reportRows(c, plo, phi, pq).rows.filter((r) => r.why.some((w) => !w.startsWith("baholar soni"))).map((r) => [r.name, r.why]));
-  const modes = VIEW_MODES.map(([k, n]) => `<button class="${V.mode === k ? "on" : ""}" data-mode="${k}">${n}</button>`).join("");
+  const modes = viewModes().map(([k, n]) => `<button class="${V.mode === k ? "on" : ""}" data-mode="${k}">${n}</button>`).join("");
   let head = `<tr><th class="nm">O'quvchi</th>`;
   ds.forEach((d, i) => {
     const sc = S.sel && S.sel[1] === d ? "selc" : "";
     const x = isNoLesson(c, d), mo = V.mode === "quarter" && (i === 0 || ds[i - 1].slice(5, 7) !== d.slice(5, 7));
     const sw = !x && sumOn(c, d), sub = x ? "X" : sw ? sumTag(sw) : mo ? MONTHS_GEN[+d.slice(5, 7) - 1].slice(0, 3) : WD[pyWd(d)];
-    const top = V.mode === "week" && !dense ? fmt(d).slice(0, 5) : +d.slice(8);
+    const top = V.mode === "week" ? fmt(d).slice(0, 5) : +d.slice(8);
     const les = c.lessons[d]; const tip = les ? `Mavzu: ${les.topic || "—"}${les.hw ? "\nUy vazifasi: " + les.hw : ""}` : "";
     head += `<th class="d ${d === t ? "today" : ""} ${x ? "x" : ""} ${sw ? "bsbd" : ""} ${mo ? "m" : ""} ${sc}" data-col="${d}" title="${sw ? `${sumTag(sw)} kuni — faqat yo'qlama, baho qo'yilmaydi\n` : ""}${esc(tip ? tip + "\n" : "")}Bosing: mavzu, «hamma keldi», ustun xulosasi">${top}${les && d !== t ? "•" : ""}<small>${sub}</small></th>`;
   });
@@ -2253,7 +2259,7 @@ function perPop(btn) {
       const d = `${mo}-${pad(k)}`, les = c.dates.includes(d) && !isNoLesson(c, d);
       cells += `<button class="pd ${les ? "les" : ""} ${d === t ? "today" : ""} ${lo <= d && d <= hi ? "inr" : ""}" data-day="${d}" title="${fmt(d)}${les ? " · dars" : ""}">${k}</button>`;
     }
-    el.innerHTML = `<div class="seg pmodes">${VIEW_MODES.map(([k, nm]) => `<button class="${V.mode === k ? "on" : ""}" data-mode="${k}">${nm}</button>`).join("")}</div>
+    el.innerHTML = `<div class="seg pmodes">${viewModes().map(([k, nm]) => `<button class="${V.mode === k ? "on" : ""}" data-mode="${k}">${nm}</button>`).join("")}</div>
       <div class="pch"><button class="btn btn-sm" data-cm="-1" aria-label="Oldingi oy">‹</button><b>${MONTHS[mm - 1]} ${y}</b><button class="btn btn-sm" data-cm="1" aria-label="Keyingi oy">›</button></div>
       <div class="pcal">${cells}</div><div class="muted pnote">Nuqta — dars kuni. Sanani bossangiz, o'sha dars «Kun» ko'rinishida ochiladi.</div>`;
     el.querySelectorAll("[data-mode]").forEach((b) => b.onclick = () => { V.mode = b.dataset.mode; close(); render(); scrollToday(); });
@@ -2425,6 +2431,9 @@ const FEATS = [
   ["gaps", "📝 To'ldirilmagan darslar", "«Bugun»da va kechqurun eslatma: yo'qlama yoki mavzu kiritilmagan darslar"],
   ["week", "📊 Haftalik xulosa", "Juma–dushanba «Bugun»da hafta natijasi: darslar, baholar, davomat, yangi xavf"],
   ["ach", "🏆 Yutuqlar", "To'garak va pullik guruhlarda yutuqlar (musobaqa, sertifikat), kartochkadagi 🏆 va yutuq hisobotlari"],
+  ["vweek", "📆 Hafta rejimi", "Jurnalda hafta jadvali (kataklarni bossangiz kunlik rejim ochiladi)"],
+  ["vmonth", "🗓 Oy rejimi", "Jurnalda oy jadvali"],
+  ["vquarter", "📚 Chorak rejimi", "Jurnalda butun chorak jadvali"],
   ["act", "✋ Faollik belgilari", "Darsda baho o'rniga «+» / «−»; 3 ta «+» to'planganda baho qo'yish taklifi"],
 ];
 const SIMPLE_OFF = ["call", "groups", "seats", "attmodes", "debts"];
@@ -3231,8 +3240,9 @@ function pageSettings(m) {
       srow("Yozuv o'lchami", "Ekrandagi yozuv va kataklar kattaligi", seg("fs", FSIZES.map(([k, n]) => [k, n]), w.fsize)) +
       `<div class="srow"><div><b>Asosiy rang</b><div class="muted">Tugmalar, yon panel va ajratilgan elementlar rangi</div></div>
         <div class="accs">${Object.entries(ACCENTS).map(([k, a]) => `<button class="acc ${w.accent === k ? "on" : ""}" data-accent="${k}" title="${a[0]}"><i style="background:linear-gradient(135deg,${a[1]} 50%,${a[6]} 50%)"></i>${a[0]}</button>`).join("")}</div></div>` +
+      `<div class="srow"><div><b>Bezak</b><div class="muted">Kartochka, jadval va bo'lim tugmalari qirrasi. Belgini olib tashlasangiz, dizaynning o'z ko'rinishi qaytadi</div></div>
+        <div class="decos">${DECOS.map(([k, n, d]) => `<button class="deco ${w.deco === k ? "on" : ""}" role="checkbox" aria-checked="${w.deco === k}" data-deco="${k}"><i class="dchk">${w.deco === k ? "✓" : ""}</i><b>${n}</b><span>${d}</span></button>`).join("")}</div></div>` +
       srow("Burchaklar", "Kartochka va jadvallar burchagi", seg("rad", [["round", "Yumaloq"], ["sharp", "To'g'ri"]], w.radius)) +
-      srow("Ixcham dizayn", "Kichikroq tugmalar, oraliqlar va kataklar — ekranga ko'proq sig'adi. Tugmaga sig'magan yozuv «…» bilan qisqaradi (ustiga olib borilsa to'liq ko'rinadi).", seg("den", [["oddiy", "Oddiy"], ["kompakt", "Ixcham"]], w.density === "kompakt" ? "kompakt" : "oddiy")) +
       srow("Standart dizayn", "Uslub, shrift, rang, o'lcham va burchaklarni boshlang'ich holatga qaytaradi", `<button class="btn" data-a="dreset">↺ Qaytarish</button>`));
   } else if (S.sec === 4) {
     const p = st.protect;
@@ -3270,6 +3280,7 @@ function pageSettings(m) {
     <nav class="card secs" aria-label="Sozlamalar bo'limlari">${SECS.map(([i0, n, d], i) => `<button class="${i === S.sec ? "on" : ""}" data-sec="${i}" ${i === S.sec ? 'aria-current="page"' : ""}><span class="si">${i0}</span><span class="sn">${n}<small>${d}</small></span></button>`).join("")}</nav>
     <section class="card sbody"><div class="shead"><span class="si big">${ic}</span><div><h2>${nm}</h2><div class="muted">${ds}</div></div></div>${body}</section></div></div>`;
   m.querySelectorAll("[data-sec]").forEach((b) => b.onclick = () => { S.sec = +b.dataset.sec; render(); });
+  m.querySelectorAll("[data-deco]").forEach((b) => b.onclick = () => { D.web.deco = D.web.deco === b.dataset.deco ? "" : b.dataset.deco; save(); applyTheme(); render(); });
   m.querySelectorAll("[data-ft]").forEach((b) => b.onclick = () => { const o = D.web.off = D.web.off || {}, k = b.dataset.ft; if (o[k]) delete o[k]; else o[k] = 1; save(); render(); });
   m.querySelectorAll("[data-fp]").forEach((b) => b.onclick = () => { D.web.off = b.dataset.fp === "all" ? {} : Object.fromEntries(SIMPLE_OFF.map((k) => [k, 1])); save(); render(); toast(b.dataset.fp === "all" ? "Hamma funksiyalar yoqildi" : "Faqat asosiy funksiyalar qoldi"); });
   m.querySelectorAll("[data-a]").forEach((b) => b.onclick = () => settingsAction(b.dataset.a, +b.dataset.i));
@@ -3298,7 +3309,6 @@ function pageSettings(m) {
   m.querySelectorAll("[data-rk]").forEach((x) => x.onchange = () => { st.risk[x.dataset.rk] = +x.value; save(); toast("Saqlandi"); });
   m.querySelectorAll("[data-th]").forEach((b) => b.onclick = () => { D.web.theme = b.dataset.th; save(); render(); });
   m.querySelectorAll("[data-past]").forEach((b) => b.onclick = () => { D.web.past = b.dataset.past; save(); render(); toast(b.dataset.past === "today" ? "Faqat bugungi kunga belgi qo'yiladi" : "O'tgan darslarga ham belgi qo'yish mumkin"); });
-  m.querySelectorAll("[data-den]").forEach((b) => b.onclick = () => { D.web.density = b.dataset.den; save(); render(); });
   for (const [attr, key] of [["font", "font"], ["fs", "fsize"], ["accent", "accent"], ["rad", "radius"], ["sty", "style"]])
     m.querySelectorAll(`[data-${attr}]`).forEach((b) => b.onclick = () => { D.web[key] = b.dataset[attr]; save(); render(); });
   const fbm = $("#fbm", m); if (fbm) fbm.onchange = () => { st.fb_min = Math.max(1, +fbm.value || 4); save(); toast("Saqlandi"); };

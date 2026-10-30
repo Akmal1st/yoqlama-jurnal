@@ -582,8 +582,8 @@ test("jurnal: bo'sh va to'ldirilgan kataklar bir chiziqda", async () => {
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
-    for (const den of ["oddiy", "kompakt"]) for (const mode of ["day", "week", "month"]) {
-      const bad = await page.evaluate(([den, mode]) => { D.web.density = den; S.page = "journal"; V.mode = mode; render();
+    for (const den of ["oddiy"]) for (const mode of ["day", "week", "month"]) {
+      const bad = await page.evaluate(([den, mode]) => { S.page = "journal"; V.mode = mode; render();
         return [...document.querySelectorAll("table.j tr")].filter((tr) => new Set([...tr.querySelectorAll(".cell")].map((c) => Math.round(c.getBoundingClientRect().top))).size > 1).length; }, [den, mode]);
       assert.equal(bad, 0, `${den} / ${mode}`);
     }
@@ -654,9 +654,9 @@ test("jurnal: yonga surilganda sana ustuni ism ustuni ostida yarim qolmaydi", as
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     let skipped = 0;
-    for (const fs of ["m", "xl"]) for (const den of ["oddiy", "kompakt"]) for (const mode of ["week", "month", "quarter"]) {
+    for (const fs of ["m", "xl"]) for (const den of ["oddiy"]) for (const mode of ["week", "month", "quarter"]) {
       const gaps = await page.evaluate(async ([fs, den, mode]) => {
-        D.web.fsize = fs; D.web.density = den; S.page = "journal"; V.mode = mode; render();
+        D.web.fsize = fs; S.page = "journal"; V.mode = mode; render();
         const tw = $("#tw"), out = [];
         if (!tw) return null;   // bugungi haftada (yoki oyda) dars sanasi yo'q — jadval chizilmaydi
         for (const x of [37, 123, 250, 99999]) {
@@ -1847,7 +1847,7 @@ test("Jurnal: o'tgan darslar, sana menyusi, qidiruv va saralash", async () => {
   } finally { await browser.close(); }
 });
 
-test("jurnal: sana dars kunlari bo'yicha qo'shiladi; yon panel yig'iladi; ixcham dizaynda yozuv tugmadan chiqmaydi", async () => {
+test("jurnal: sana dars kunlari bo'yicha qo'shiladi; yon panel yig'iladi; yozuv tugmadan chiqmaydi", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     const page = await browser.newPage({viewport: {width: 1280, height: 800}});
@@ -1871,8 +1871,7 @@ test("jurnal: sana dars kunlari bo'yicha qo'shiladi; yon panel yig'iladi; ixcham
     assert.equal(await page.locator("[data-cpick]:visible").count(), 1);
     await page.click("[data-sidet]");
     assert.equal(await page.locator(".clsside").count(), 1);
-    // ixcham dizayn: hamma tugma bir qatorda, yozuv tugma ichida
-    await page.click(".side [data-go=settings]"); await page.click('[data-sec="3"]'); await page.click("[data-den=kompakt]");
+    // hamma tugma bir qatorda, yozuv tugma ichida
     for (const pg of ["journal", "settings", "today"]) {
       await page.evaluate((p) => { S.page = p; render(); }, pg);
       const bad = await page.evaluate(() => [...document.querySelectorAll(".btn")].filter((b) => b.offsetParent && b.scrollHeight > b.clientHeight + 2).map((b) => b.textContent.trim()));
@@ -2331,5 +2330,56 @@ test("Hamma dizaynda tugmalar bir xil: hech biri yo'qolmaydi yoki qirqilmaydi", 
         for (const st of ["dash", "qulay", "zich"]) assert.deepEqual([...all].filter((x) => !v[st].includes(x)), [], `${w}px ${pg} (${st}): boshqa dizaynda bor, bunda yo'q yoki qirqilgan tugma`);
       }
     }
+  } finally { await browser.close(); }
+});
+
+test("Sozlamalar: hafta/oy/chorak rejimlarini o'chirib-yoqish, ixcham dizayn va o'xshash shriftlar yo'q, bo'lim tugmalari alohida", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    // rejimlar: hammasi yoqilgan
+    await page.evaluate(() => { S.ci = 0; S.jpage = "j"; V.mode = "week"; go("journal"); });
+
+    // Funksiyalar bo'limida uchta almashtirgich bor; o'chirilsa rejim yo'qoladi
+    await page.evaluate(() => { S.sec = 6; go("settings"); });
+    for (const id of ["vweek", "vmonth", "vquarter"]) assert.equal(await page.locator(`[data-ft="${id}"]`).count(), 1, id);
+    await page.click('[data-ft="vweek"]'); await page.click('[data-ft="vmonth"]');
+    assert.deepEqual(await page.evaluate(() => viewModes().map(([k]) => k)), ["day", "quarter"]);
+    await page.evaluate(() => { V.mode = "week"; S.jpage = "j"; go("journal"); });
+    assert.equal(await page.evaluate(() => V.mode), "day", "o'chirilgan rejim o'rniga kunlik ochiladi");
+    await page.click("[data-per]");
+    assert.deepEqual(await page.$$eval(".perpop [data-mode]", (x) => x.map((e) => e.dataset.mode)), ["day", "quarter"]);
+    await page.keyboard.press("Escape");
+    await page.evaluate(() => { S.sec = 6; go("settings"); });
+    await page.click('[data-ft="vweek"]'); await page.click('[data-ft="vmonth"]');
+    assert.equal(await page.evaluate(() => viewModes().length), 4);
+    // ixcham dizayn va o'xshash shriftlar yo'q
+    await page.evaluate(() => { S.sec = 3; go("settings"); });
+    assert.equal(await page.locator("[data-den]").count(), 0);
+    assert.deepEqual(await page.$$eval("[data-font]", (x) => x.map((e) => e.dataset.font).filter((k) => k !== "custom")), ["lserif", "georgia", "verdana", "system"]);
+    // eski saqlangan qiymatlar tuzatiladi
+    const mig = await page.evaluate(() => { const a = migrate(normalize({web: {ui26: 1, font: "times", density: "kompakt"}})).web, b = migrate(normalize({web: {ui26: 1, font: "lsans"}})).web; return [a.font, "density" in a, b.font]; });
+    assert.deepEqual(mig, ["lserif", false, "system"]);
+    // bezak: 3 ta katakcha, tanlansa kartochka qirrasi o'zgaradi, qayta bossa dizaynning o'zi qaytadi
+    assert.equal(await page.locator("[data-deco]").count(), 3);
+    assert.equal(await page.locator(".deco.on").count(), 0);
+    const edge = () => page.evaluate(() => { const cs = getComputedStyle(document.querySelector(".card.sbody")); return [cs.borderTopWidth, cs.boxShadow === "none"]; });
+    const base = await edge();
+    await page.click('[data-deco="line"]'); assert.deepEqual(await edge(), ["2px", true]);
+    assert.equal(await page.getAttribute('[data-deco="line"]', "aria-checked"), "true");
+    await page.click('[data-deco="soft"]'); assert.deepEqual(await edge(), ["1px", false]); assert.equal(await page.locator(".deco.on").count(), 1);
+    await page.click('[data-deco="flat"]'); assert.deepEqual(await edge(), ["1px", true]);
+    await page.click('[data-deco="flat"]'); assert.deepEqual(await edge(), base);
+    assert.equal(await page.evaluate(() => D.web.deco), "");
+    // bo'lim tugmalari alohida kartochkalar
+    const bs = await page.$$eval("nav.secs button", (x) => x.map((b) => { const cs = getComputedStyle(b); return [cs.borderTopWidth, cs.backgroundColor !== "rgba(0, 0, 0, 0)"]; }));
+    assert.ok(bs.length >= 6 && bs.every(([w, bg]) => w === "1px" && bg), JSON.stringify(bs));
+    const gaps = await page.$$eval("nav.secs button", (x) => x.slice(1).map((b, i) => Math.round(b.getBoundingClientRect().top - x[i].getBoundingClientRect().bottom)));
+    assert.ok(gaps.every((g) => g >= 4), "tugmalar orasida bo'sh joy: " + gaps);
+    assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
