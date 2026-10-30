@@ -783,3 +783,4 @@ table.attm th,table.attm td{padding:6px 7px}table.attm td.ac{padding:6px 2px}
 .keys.kpop .key{min-width:0;width:100%;max-width:none;height:44px;padding:0;font-size:16px;flex:none}
 .keys.kpop .key.wide{grid-column:auto;padding:0 6px;white-space:nowrap;min-width:0;font-size:14px}
 @media (max-width:820px){.keys.kpop,.keys.kpop.g2{left:8px;right:8px;top:auto;bottom:64px;width:auto;max-width:none}.keys.kpop .key{height:46px}}
+.tdcard .tile{padding:10px 14px}.tdcard .tile>div:last-child{font-size:19px;font-weight:800}

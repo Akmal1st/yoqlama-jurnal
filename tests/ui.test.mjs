@@ -2253,3 +2253,32 @@ test("KTR: reja boshlanadigan sanani tanlash", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Jurnal tagida: bugungi dars bo'yicha sinf ma'lumoti kartasi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1280, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const ci = await page.evaluate(() => {
+      const t = todayIso();
+      D.classes.push(normalize({web: {dv: 2}, classes: [{name: "8-Z", subject: "Sinov", dates: [t], lessons: {[t]: {topic: "Kasrlar", hw: "12-mashq"}},
+        students: [{name: "Aliyev Sardor", marks: {[t]: "9"}}, {name: "Karimova Madina", marks: {[t]: "s"}}, {name: "Rahimov Jasur", marks: {[t]: "kq"}}, {name: "Olimova Nodira", marks: {}}]}]}).classes[0]);
+      save(); S.ci = D.classes.length - 1; S.jpage = "j"; V.mode = "week"; go("journal"); return S.ci;
+    });
+    const txt = await page.textContent(".tdcard");
+    assert.ok(txt.includes("Bugungi dars") && txt.includes("Kasrlar") && txt.includes("12-mashq"), txt);
+    assert.ok(txt.includes("2 / 4") || txt.includes("3 / 4"), txt);                  // keldi
+    assert.ok(txt.includes("K. Madina (sababsiz)") && txt.includes("R. Jasur"), txt);   // kelmagan va kech qolgan
+    assert.ok(txt.includes("1 / 4 (25%) ⚠") && txt.includes("yana 1 ta"), txt);       // 30% dan kam baholangan
+    // kartalar jadval tagida, belgi tugmalari esa katak tanlanmaguncha yo'q
+    assert.equal(await page.locator(".keys").count(), 0);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
+    // guruhda ko'rinmaydi
+    await page.evaluate((i) => { D.classes[i].kind = "club"; render(); }, ci);
+    assert.equal(await page.locator(".tdcard").count(), 0);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
