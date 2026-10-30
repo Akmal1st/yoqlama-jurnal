@@ -991,7 +991,8 @@ function workOfTopic(text) {
 }
 function reflowPlan(c, start) {
   const plan = c.plan; if (!plan || !plan.on || !plan.topics || !plan.topics.length) return null;
-  const lo = start || todayIso(), lessons = c.lessons, slots = planSlots(plan);
+  // boshlanish sanasi: o'qituvchi belgilagan (plan.start), bo'lmasa — bugundan
+  const lo = start || (ISO_D.test(String(plan.start)) ? plan.start : "") || todayIso(), lessons = c.lessons, slots = planSlots(plan);
   for (const [d, les] of Object.entries(lessons)) if (les.auto && (d >= lo || !c.dates.includes(d) || isNoLesson(c, d))) { if (les.hw) lessons[d] = {topic: "", hw: les.hw}; else delete lessons[d]; }
   const taken = new Set();
   for (const d of Object.keys(lessons).sort()) {
@@ -3841,18 +3842,22 @@ function pageYear(m) {
 /* ───────── KTR (kalendar-tematik reja) ───────── */
 function ktrDialog(ci) {
   const c = D.classes[ci], plan = c.plan || {on: false, topics: []};
-  const free = c.dates.filter((d) => d >= todayIso() && !isNoLesson(c, d)).length;
+  const free0 = (st) => c.dates.filter((d) => d >= (st || todayIso()) && !isNoLesson(c, d)).length, qs0 = quarterOf(todayIso()), qlo = qs0 && qRange(qs0) ? qRange(qs0)[0] : "";
   modal(`<h2>Kalendar-tematik reja · ${esc(label(c))}</h2>
     <div class="muted">Excel faylidan yuklash mumkin («Dars mavzusi», «Soat» ustunlari va «I CHORAK» qatorlari bilan) yoki qo'lda yozing: har qatorda bitta mavzu. Chorak sarlavhasi: <code>== 2-chorak</code>. Bir necha soatlik mavzu: <code>Kasrlar | 3</code>. «BSB» yoki «CHSB (40 ball)» bilan boshlangan mavzu summativ ish sifatida o'zi qo'shiladi.</div>
     <textarea id="kt" style="min-height:260px" placeholder="== 1-chorak&#10;Natural sonlar | 2&#10;Kasrlar&#10;BSB №1 (25 ball)">${esc(planToText(plan))}</textarea>
     <label class="hrow" style="gap:8px;font-weight:600"><input type="checkbox" id="kon" ${plan.on || !plan.topics.length ? "checked" : ""} style="width:20px;height:20px"> Mavzularni dars kunlariga avtomatik taqsimlash</label>
     ${(() => { const k = ktrProgress(c); return k ? `<div class="kprog"><div class="kbar"><i style="width:${Math.min(100, 100 * k.done / k.total)}%"></i><u style="left:${Math.min(100, 100 * k.expect / k.total)}%" title="Reja bo'yicha shu kungacha"></u></div><div>${ktrLine(k)}</div></div>` : ""; })()}
-    <div class="muted" id="kinfo">Bugundan keyin ${free} ta dars kuni bor.</div>
+    <div class="hrow wrap" style="gap:8px;align-items:flex-end"><label class="f">Reja boshlanadigan sana<input class="form-control" type="date" id="kst" value="${ISO_D.test(String(plan.start)) ? plan.start : ""}"></label>
+      <button class="btn btn-sm" data-kst="">Bugundan</button>${qlo ? `<button class="btn btn-sm" data-kst="${qlo}">Chorak boshidan</button>` : ""}</div>
+    <div class="muted">Birinchi mavzu shu sanadan keyingi birinchi dars kuniga qo'yiladi. Bo'sh qoldirsangiz — bugundan.</div>
+    <div class="muted" id="kinfo"></div>
     <div class="hrow wrap" id="ksb" style="display:none"><label class="f">Excel varag'i<select id="ksh"></select></label></div>
     <div class="hrow"><button class="btn" data-file>📂 Fayldan (Excel yoki .txt)</button><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn btn-primary" data-ok>Saqlash</button></div>`, (mm, close) => {
     const ta = $("#kt", mm), info = $("#kinfo", mm);
-    const upd = () => { const tp = parsePlanText(ta.value), h = tp.reduce((a, t) => a + t.h, 0); info.textContent = `${tp.length} ta mavzu, ${h} soat · bugundan keyin ${free} ta dars kuni bor.`; };
-    ta.oninput = upd; upd();
+    const kst = $("#kst", mm), upd = () => { const tp = parsePlanText(ta.value), h = tp.reduce((a, t) => a + t.h, 0); info.textContent = `${tp.length} ta mavzu, ${h} soat · ${kst.value ? fmt(kst.value) + " dan" : "bugundan"} keyin ${free0(kst.value)} ta dars kuni bor.`; };
+    ta.oninput = upd; kst.onchange = upd; upd();
+    mm.querySelectorAll("[data-kst]").forEach((b) => b.onclick = () => { kst.value = b.dataset.kst; upd(); });
     $("[data-file]", mm).onclick = () => {
       const f = document.createElement("input"); f.type = "file"; f.accept = ".xls,.xlsx,.txt,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
       f.onchange = async () => {
@@ -3869,7 +3874,10 @@ function ktrDialog(ci) {
     };
     $("[data-x]", mm).onclick = () => close();
     $("[data-ok]", mm).onclick = () => {
-      c.plan = {on: $("#kon", mm).checked, topics: parsePlanText(ta.value)};
+      const oldStart = ISO_D.test(String(plan.start)) ? plan.start : "";
+      c.plan = {on: $("#kon", mm).checked, topics: parsePlanText(ta.value)}; if (ISO_D.test($("#kst", mm).value)) c.plan.start = $("#kst", mm).value;
+      // boshlanish sanasi o'zgarsa, avtomatik qo'yilgan mavzular qaytadan yoyiladi (qo'lda yozilganlari qoladi)
+      if ((c.plan.start || "") !== oldStart) for (const [d, les] of Object.entries(c.lessons)) if (les.auto) { if (les.hw) c.lessons[d] = {topic: "", hw: les.hw}; else delete c.lessons[d]; }
       let msg = "Reja saqlandi";
       if (c.plan.on && c.plan.topics.length) { const r = reflowPlan(c); msg = `Reja: ${r.assigned} ta mavzu dars kunlariga qo'yildi${r.left.length ? `, ${r.left.length} tasiga kun yetmadi` : ""}`; }
       else for (const [d, les] of Object.entries(c.lessons)) if (les.auto) { if (les.hw) c.lessons[d] = {topic: "", hw: les.hw}; else delete c.lessons[d]; }

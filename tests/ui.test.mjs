@@ -2218,3 +2218,38 @@ test("Yutuqlarni yoqish/o'chirish: bo'lim, tugmalar va hisobot yashirinadi, ma'l
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("KTR: reja boshlanadigan sanani tanlash", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1280, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const ds = await page.evaluate(() => {
+      const t = todayIso(), ds = [10, 9, 8, 7, 6, 5].map((n) => iso(addDays(pdate(t), -n)));
+      D.classes.push(normalize({web: {dv: 2}, classes: [{name: "KTR", subject: "sinov", dates: ds, students: [{name: "A", marks: {}}]}]}).classes[0]);
+      save(); ktrDialog(D.classes.length - 1); return ds;
+    });
+    await page.fill("#kt", "Mavzu 1\nMavzu 2\nMavzu 3");
+    // sana tanlanmasa — bugundan (hamma sana o'tgan, joy yo'q)
+    assert.ok((await page.textContent("#kinfo")).includes("bugundan"));
+    await page.fill("#kst", ds[2]); await page.dispatchEvent("#kst", "change");
+    assert.ok((await page.textContent("#kinfo")).includes("4 ta dars kuni"), await page.textContent("#kinfo"));
+    await page.click(".modal [data-ok]");
+    const r = await page.evaluate(() => { const c = D.classes[D.classes.length - 1]; return [c.plan.start, Object.entries(c.lessons).filter(([, l]) => l.auto).map(([d, l]) => [d, l.topic]).sort()]; });
+    assert.equal(r[0], ds[2]);
+    assert.deepEqual(r[1], [[ds[2], "Mavzu 1"], [ds[3], "Mavzu 2"], [ds[4], "Mavzu 3"]]);
+    // qayta yuklanganda ham shu sanadan (reflowAll)
+    await page.evaluate(() => reflowAll());
+    assert.deepEqual(await page.evaluate(() => Object.entries(D.classes[D.classes.length - 1].lessons).filter(([, l]) => l.auto).map(([d, l]) => [d, l.topic]).sort()), r[1]);
+    // keyinroq sanaga ko'chirilsa, avvalgi joylashuv qoladigan emas
+    await page.evaluate(() => ktrDialog(D.classes.length - 1)); await page.fill("#kst", ds[4]); await page.dispatchEvent("#kst", "change"); await page.click(".modal [data-ok]");
+    assert.deepEqual(await page.evaluate(() => Object.entries(D.classes[D.classes.length - 1].lessons).filter(([, l]) => l.auto).map(([d, l]) => [d, l.topic]).sort()), [[ds[4], "Mavzu 1"], [ds[5], "Mavzu 2"]]);
+    // «Bugundan» tugmasi sanani tozalaydi
+    await page.evaluate(() => ktrDialog(D.classes.length - 1)); await page.click('.modal [data-kst=""]');
+    assert.equal(await page.inputValue("#kst"), "");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
