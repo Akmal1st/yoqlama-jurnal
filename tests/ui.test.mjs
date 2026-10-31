@@ -2540,6 +2540,16 @@ test("CHSB testi: to'g'ri javob belgilanadi, o'quvchi varianti mos kelsa maksima
     // to'g'ri javob o'zgarsa ballar qayta hisoblanadi
     await page.fill('[data-tk="4"]', "B"); await page.waitForTimeout(100);
     assert.deepEqual(await sc(), [6, 8]);
+    // savollarga turlicha ball: 1-savol 3 ball (qolganlari 2) → 3+2+2 va 3+2+2+2
+    await page.fill('[data-tp="0"]', "3"); await page.press('[data-tp="0"]', "Tab"); await page.waitForTimeout(100);
+    assert.deepEqual(await sc(), [7, 9]);
+    assert.ok(await page.evaluate(() => document.querySelector("[data-psum]").classList.contains("warn")), "yig'indi 11/10 — ogohlantirish");
+    // maksimaldan katta ball qabul qilinmaydi
+    await page.fill('[data-tp="1"]', "99"); await page.press('[data-tp="1"]', "Tab");
+    assert.equal(await page.inputValue('[data-tp="1"]'), "2");
+    // teng taqsimlash
+    await page.click("[data-peq]"); await page.waitForTimeout(100);
+    assert.deepEqual(await sc(), [6, 8]);
     // «BSB / CHSB» sahifasida ham ko'rinadi
     await page.click("[data-jp=sum]"); await page.waitForSelector("table.sum");
     assert.deepEqual(errors, []);
