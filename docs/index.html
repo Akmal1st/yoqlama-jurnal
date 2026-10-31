@@ -4517,7 +4517,12 @@ function bsbFormHtml(meta, an, c, B, H) {
     + `<div class="sign">${F.sign.map(([l, n]) => `<div><span class="ln"></span><span class="sl">${esc(l)}</span><span class="sn">${esc(n)}</span></div>`).join("")}</div>`;
   return `<div class="form2">${hdr}${tbl}${ftr}</div>`;
 }
-function printDoc(html, land, fit) {
+/* eksport fayl nomi: «sinf-nomi_fan_sana_IshTuri», masalan 6-A_Matematika_2026-10-31_CHSB */
+function baFileBase(c, B) {
+  const part = (x, d) => String(x || d).trim().replace(/[^\p{L}\p{N}-]+/gu, "-").replace(/^-+|-+$/g, "") || d;
+  return [part(c.name, "sinf"), part(c.subject, "fan"), part(B.date, "sana"), part(B.kind, "BSB")].join("_");
+}
+function printDoc(html, land, fit, fname) {
   let el = document.getElementById("pdoc"); if (!el) { el = document.createElement("div"); el.id = "pdoc"; document.body.append(el); }
   el.innerHTML = `<div class="pd">${html}</div>`; document.body.classList.add("pdoc");
   let st = document.getElementById("pdoc-css"); if (!st) { st = document.createElement("style"); st.id = "pdoc-css"; document.head.append(st); }
@@ -4537,6 +4542,10 @@ function printDoc(html, land, fit) {
     pd.style.width = ""; if (keep === null) el.removeAttribute("style"); else el.setAttribute("style", keep);
   }
   st.textContent = `@media print{@page{size:A4 ${land ? "landscape" : "portrait"};margin:${mg}mm}${fit ? `#pdoc>.pd{zoom:${zoom.toFixed(3)}}` : ""}}`;
+  if (fname) {                     // «PDF sifatida saqlash» fayl nomini sahifa sarlavhasidan oladi
+    const old = document.title, back = () => { document.title = old; window.removeEventListener("afterprint", back); };
+    document.title = fname; window.addEventListener("afterprint", back); setTimeout(back, 120000);
+  }
   window.print();                // tozalash keyingi render() da (ba'zi telefonlarda print() kutmaydi)
 }
 function clearPrintDoc() { document.body.classList.remove("pdoc"); const st = document.getElementById("pdoc-css"); if (st) st.remove(); }
@@ -4577,7 +4586,7 @@ async function baExcel(variant, c, B, an, rec, H) {
       F.sign.length ? ["", ...F.sign.flatMap(([l, n], i) => [`${l}: ____________ ${n}`, ...Array(Math.max(0, Math.floor((W - 1) / F.sign.length) - 1)).fill("")]).slice(0, W - 1)] : []];
     add(meta.kind || "BSB", aoa, [5, 32, ...Array(Math.max(nq, 9)).fill(8), 8, 7, 7], head.map((_, r) => ({s: {r, c: 0}, e: {r, c: W - 1}})));
   }
-  X.writeFile(wb, `${meta.kind || "BSB"}_${(meta.label + "_" + B.date).replace(/[^\p{L}\p{N}_-]+/gu, "_")}${variant === 2 ? "_shakl" : ""}.xlsx`);
+  X.writeFile(wb, `${baFileBase(c, B)}.xlsx`);
 }
 function baExportDialog(c, B) {
   const H = D.web.bsb_hdr = Object.assign({school: "", teacher: "", deputy: ""}, D.web.bsb_hdr || {});
@@ -4603,7 +4612,7 @@ function baExportDialog(c, B) {
       H.school = $("#hs", mm).value.trim(); H.teacher = $("#ht", mm).value.trim(); H.deputy = $("#hd", mm).value.trim(); save();
       const an = baAnalysis(c, B), rec = bsbRecs(an); close(); fn(an, rec); };
     $("[data-x]", mm).onclick = () => close();
-    $("[data-pdf]", mm).onclick = () => run((an, rec) => printDoc(v === 1 ? bsbReportHtml(baMeta(c, B), an, rec, true) : bsbFormHtml(baMeta(c, B), an, c, B, H), v === 2 && an.qmax.length > 12, v === 2));
+    $("[data-pdf]", mm).onclick = () => run((an, rec) => printDoc(v === 1 ? bsbReportHtml(baMeta(c, B), an, rec, true) : bsbFormHtml(baMeta(c, B), an, c, B, H), v === 2 && an.qmax.length > 12, v === 2, baFileBase(c, B)));
     $("[data-xl]", mm).onclick = () => run((an, rec) => baExcel(v, c, B, an, rec, H).catch((e) => toast(e.message)));
   });
 }
