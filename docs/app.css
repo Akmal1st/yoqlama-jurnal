@@ -801,3 +801,5 @@ nav.card.secs button.on{background:var(--acc-soft);border-color:var(--acc);box-s
 .bpop{position:fixed;z-index:60;display:grid;grid-template-columns:repeat(var(--n,6),42px);gap:4px;padding:6px;background:var(--base);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh-lg)}
 .bpop button{min-height:40px;border:1px solid var(--line);background:var(--alt);border-radius:8px;font-weight:700;font-size:15px;color:var(--text);padding:0}
 .bpop button:hover{border-color:var(--acc)}.bpop button.on{background:var(--acc);border-color:var(--acc);color:var(--acc-fg)}
+
+.tst .sc.ok{background:#d9f2df;color:#14532d;border-color:#7cc58f}.tst .sc.wr{background:#fde2e2;color:#7f1d1d;border-color:#e59a9a}.tst input{text-transform:uppercase;text-align:center;min-width:34px}

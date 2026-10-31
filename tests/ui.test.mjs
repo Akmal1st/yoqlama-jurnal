@@ -2511,3 +2511,37 @@ test("BSB tahlili: katakni bosganda 0 dan maksimalgacha sonlar oynasi chiqadi, t
     }
   } finally { await browser.close(); }
 });
+
+test("CHSB testi: to'g'ri javob belgilanadi, o'quvchi varianti mos kelsa maksimal ball, aks holda 0", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => { D.settings.protect.enabled = false; const c = D.classes[S.ci]; c.works.push({id: "wt1", type: "chsb", date: todayIso(), max: 10, title: "Test"}); save(); });
+    await page.click(".side [data-go=journal]"); await page.click("[data-jp=chsbt]"); await page.waitForSelector("table.tst");
+    await page.fill("#tn", "5"); await page.press("#tn", "Tab"); await page.waitForSelector('[data-tk="4"]');
+    assert.equal(await page.locator("[data-tk]").count(), 5);
+    // to'g'ri javoblar: A B C D A (har biri raqam ham bo'lishi mumkin: 2 = B)
+    await page.focus('[data-tk="0"]'); await page.keyboard.type("A2CDa");
+    assert.equal(await page.evaluate(() => D.classes[S.ci].works.find((w) => w.id === "wt1").test.key), "ABCDA");
+    // 1-o'quvchi: A B C C . → 3 ta to'g'ri = 6 ball
+    await page.focus('[data-ta="0|0"]'); await page.keyboard.type("ABCC");
+    assert.equal(await page.evaluate(() => document.activeElement.dataset.ta), "0|4");
+    const sc = () => page.evaluate(() => D.classes[S.ci].students.slice(0, 2).map((s) => (s.scores || {}).wt1 ?? null));
+    assert.equal((await sc())[0], 6);
+    // yaroqsiz variant qabul qilinmaydi
+    await page.fill('[data-ta="1|0"]', "Z"); assert.equal(await page.inputValue('[data-ta="1|0"]'), "");
+    // 2-o'quvchi hammasi to'g'ri = maksimal
+    await page.focus('[data-ta="1|0"]'); await page.keyboard.type("ABCDA");
+    assert.equal((await sc())[1], 10);
+    // to'g'ri javob o'zgarsa ballar qayta hisoblanadi
+    await page.fill('[data-tk="4"]', "B"); await page.waitForTimeout(100);
+    assert.deepEqual(await sc(), [6, 8]);
+    // «BSB / CHSB» sahifasida ham ko'rinadi
+    await page.click("[data-jp=sum]"); await page.waitForSelector("table.sum");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
