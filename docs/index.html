@@ -3815,7 +3815,9 @@ function testScore(w, t, ansStr) {
 }
 /* BSB tahlili bilan bir xil shakldagi ma'lumot: tahlil, xatolar kesimi va eksport shu bilan ishlaydi */
 function chsbB(c, w) {
-  const t = w.test || testBlank(), P = testPts(w, t), rows = {};
+  const t = w.test || testBlank(), rows = {};
+  // teng taqsimotda chop etishda ballar 2 xonagacha yaxlitlanadi, yig'indi aynan maksimalga teng bo'ladi
+  const P = t.pts || (() => { const b = Math.round(w.max / t.n * 100) / 100, a = Array(t.n).fill(b); a[t.n - 1] = Math.round((w.max - b * (t.n - 1)) * 100) / 100; return a; })();
   for (const s of c.students) {
     const a = t.ans[s.id] || ".".repeat(t.n), has = !/^\.*$/.test(a);
     rows[s.name] = {in: !(t.out || []).includes(s.id), pts: Array.from({length: t.n}, (_, i) => has ? (a[i] !== "." && a[i] === t.key[i] ? P[i] : 0) : null)};
@@ -4124,12 +4126,12 @@ function ktrDialog(ci) {
 /* ───────── BSB tahlili: savollar bo'yicha ballar (kompyuter dasturidagi bsb_stats / bsb_recommendations bilan bir xil) ───────── */
 const gnum = (v) => String(+(+v).toPrecision(6));
 const sumOf = (a) => a.reduce((x, y) => x + y, 0);
-function bsbStats(qmax, rows) {
+function bsbStats(qmax, rows, ceilTotal) {   // ceilTotal: CHSB testi — umumiy ball yuqoriga butunga yaxlitlanadi
   const nq = qmax.length, totMax = sumOf(qmax.map(Number)), stu = [];
   for (const r of rows) {
     if (!r.in) continue;
     const raw = (r.pts || []).slice(0, nq); while (raw.length < nq) raw.push(null);
-    const pts = raw.map((p, i) => Math.min(Math.max(+(p || 0), 0), +qmax[i])), total = sumOf(pts), pct = totMax ? 100 * total / totMax : 0;
+    const pts = raw.map((p, i) => Math.min(Math.max(+(p || 0), 0), +qmax[i])), total = ceilTotal ? Math.min(totMax, Math.ceil(Math.round(sumOf(pts) * 1e6) / 1e6 - 1e-9)) : sumOf(pts), pct = totMax ? 100 * total / totMax : 0;
     stu.push({name: r.name, pts, total, pct, grade: grade5(pct), empty: raw.filter((p) => p === null || p === undefined).length});
   }
   const absent = rows.filter((r) => !r.in).map((r) => r.name), n = stu.length;
@@ -4216,7 +4218,7 @@ function baCur() {               // har sinf uchun joriy (saqlanmagan bo'lishi m
 const baRow = (B, name) => B.rows[name] || {in: true, pts: []};
 function baAnalysis(c, B) {
   const rows = c.students.map((s) => ({name: s.name, ...baRow(B, s.name)}));
-  return bsbStats(B.max, rows);
+  return bsbStats(B.max, rows, B.kind === "CHSB");
 }
 const baMeta = (c, B) => ({kind: B.kind, label: label(c), cls: c.name, subject: c.subject || "", title: B.title, date: fmt(B.date), names: B.names || []});
 /* topshiriqlar kesimi: har savol (mezon) bo'yicha xato ulushi, yo'qotilgan ball va 50% dan past olganlar; bsbStats natijasiga tegmaydi */
