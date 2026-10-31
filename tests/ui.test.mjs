@@ -2555,3 +2555,52 @@ test("CHSB testi: to'g'ri javob belgilanadi, o'quvchi varianti mos kelsa maksima
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("CHSB testi: ishtirok, % va baho, tahlil, xatolar kesimi, joylash, variant oynasi, yangi va o'chirish, eksport", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => { D.settings.protect.enabled = false; });
+    await page.click(".side [data-go=journal]"); await page.click("[data-jp=chsbt]"); await page.waitForSelector("[data-newt]");
+    // yangi test yaratiladi (maksimal ball 40), 4 ta savol
+    await page.click("[data-newt]"); await page.waitForSelector("table.tst");
+    await page.fill("#tt", "Kasrlar"); await page.fill("#tn", "4"); await page.press("#tn", "Tab"); await page.waitForSelector('[data-tk="3"]');
+    const W = () => page.evaluate(() => { const c = D.classes[S.ci], w = c.works.find((x) => x.id === S.tw); return {title: w.title, max: w.max, key: w.test && w.test.key, sc: c.students.slice(0, 3).map((s) => (s.scores || {})[w.id] ?? null)}; });
+    // to'g'ri javoblar va Excel'dan bitta qatorni joylash (1-o'quvchi ABCD, 2-o'quvchi AAAA)
+    await page.focus('[data-tk="0"]'); await page.keyboard.type("ABCD");
+    await page.evaluate(() => { const i = document.querySelector('[data-ta="0|0"]'); i.focus(); const dt = new DataTransfer(); dt.setData("text", "A\tB\tC\tD\nA\tA\tA\tA\n"); i.dispatchEvent(new ClipboardEvent("paste", {clipboardData: dt, bubbles: true, cancelable: true})); });
+    await page.waitForSelector('[data-ta="1|3"]');
+    let w = await W(); assert.equal(w.key, "ABCD"); assert.deepEqual(w.sc, [40, 10, null]);
+    // % va baho ko'rinadi
+    assert.equal((await page.textContent('[data-row="0"] [data-pct]')).trim(), "100%");
+    assert.equal((await page.textContent('[data-row="1"] [data-pct]')).trim(), "25%");
+    assert.ok((await page.innerText('[data-row="0"] [data-g]')).includes("5"));
+    // variant oynasi: katakni bosganda harflar chiqadi, tanlansa yoziladi
+    await page.click('[data-ta="2|0"]'); await page.waitForSelector(".bpop");
+    assert.equal(await page.locator(".bpop [data-pl]").count(), 5);   // A B C D + tozalash
+    await page.click('.bpop [data-pl="A"]');
+    w = await W(); assert.equal(w.sc[2], 10);
+    assert.equal(await page.evaluate(() => document.activeElement.dataset.ta), "2|1");
+    // ishtirok etmadi: 2-o'quvchi balli o'chadi
+    await page.click('[data-tin="1"]'); await page.waitForSelector('[data-row="1"].off');
+    w = await W(); assert.equal(w.sc[1], null);
+    await page.click('[data-tin="1"]'); await page.waitForSelector('[data-row="1"]:not(.off)');
+    w = await W(); assert.equal(w.sc[1], 10);
+    // tahlil va xatolar kesimi
+    await page.click('[data-ctab="an"]'); await page.waitForSelector(".paper");
+    assert.ok((await page.innerText(".paper")).includes("CHSB tahlili"));
+    await page.click('[data-ctab="er"]'); await page.waitForSelector(".paper");
+    const er = await page.innerText(".paper");
+    assert.ok(er.includes("Variantlar bo'yicha taqsimot") && er.includes("To'g'ri %"));
+    // eksport oynasi
+    await page.click("[data-bexp]"); await page.waitForSelector("text=CHSB tahlilini eksport qilish"); await page.click("[data-x]");
+    // o'chirish
+    await page.click("[data-tdel]"); await page.click("text=O'chirish >> nth=-1");
+    await page.waitForFunction(() => !D.classes[S.ci].works.some((x) => x.title === "Kasrlar"));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
