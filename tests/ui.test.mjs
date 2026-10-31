@@ -2561,6 +2561,11 @@ test("CHSB testi: to'g'ri javob belgilanadi, o'quvchi varianti mos kelsa maksima
     assert.equal(await s3(), 4);
     await page.focus('[data-ta="2|1"]'); await page.keyboard.type("B");
     assert.equal(await s3(), 7);   // 6,67 → 7
+    // chop etish/eksport tahlili ham yaxlitlangan: ekrandagi bilan bir xil butun ball
+    const an = await page.evaluate(() => { const c = D.classes[S.ci], w = c.works.find((x) => x.id === S.tw), B = chsbB(c, w), a = baAnalysis(c, B); return {tot: a.tot_max, st: a.students.slice(0, 3).map((s) => s.total), sc: c.students.slice(0, 3).map((s) => (s.scores || {})[w.id] ?? null)}; });
+    assert.equal(an.tot, 10);
+    assert.ok(an.st.every((v) => Number.isInteger(v)), JSON.stringify(an));
+    assert.deepEqual(an.st, an.sc.map((v) => v ?? 0));
     // «BSB / CHSB» sahifasida ham ko'rinadi
     await page.click("[data-jp=sum]"); await page.waitForSelector("table.sum");
     assert.deepEqual(errors, []);
