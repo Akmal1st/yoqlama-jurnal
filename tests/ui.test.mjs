@@ -2566,6 +2566,9 @@ test("CHSB testi: to'g'ri javob belgilanadi, o'quvchi varianti mos kelsa maksima
     assert.equal(an.tot, 10);
     assert.ok(an.st.every((v) => Number.isInteger(v)), JSON.stringify(an));
     assert.deepEqual(an.st, an.sc.map((v) => v ?? 0));
+    // eksport fayl nomi: sinf_fan_sana_IshTuri (Excel va PDF)
+    const fn = await page.evaluate(() => { const c = D.classes[S.ci], w = c.works.find((x) => x.id === S.tw), B = chsbB(c, w); window.print = () => { window.__pt = document.title; }; printDoc("<p>x</p>", false, false, baFileBase(c, B)); return {n: baFileBase(c, B), t: window.__pt, exp: `${c.name}_${c.subject}_${w.date}_CHSB`.replace(/ /g, "-")}; });
+    assert.equal(fn.n, fn.exp); assert.equal(fn.t, fn.exp); assert.ok(/^[^_]+_[^_]+_\d{4}-\d{2}-\d{2}_CHSB$/.test(fn.n), fn.n);
     // «BSB / CHSB» sahifasida ham ko'rinadi
     await page.click("[data-jp=sum]"); await page.waitForSelector("table.sum");
     assert.deepEqual(errors, []);
