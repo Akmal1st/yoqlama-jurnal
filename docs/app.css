@@ -796,3 +796,8 @@ nav.card.secs button.on{background:var(--acc-soft);border-color:var(--acc);box-s
   .rk b,.secs .sn{font-size:13.5px}
   .rk .ic,.secs .si{width:30px;height:30px;font-size:17px}
 }
+
+/* BSB ballar: katakni bosganda 0 dan maksimalgacha sonlar oynasi */
+.bpop{position:fixed;z-index:60;display:grid;grid-template-columns:repeat(var(--n,6),42px);gap:4px;padding:6px;background:var(--base);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh-lg)}
+.bpop button{min-height:40px;border:1px solid var(--line);background:var(--alt);border-radius:8px;font-weight:700;font-size:15px;color:var(--text);padding:0}
+.bpop button:hover{border-color:var(--acc)}.bpop button.on{background:var(--acc);border-color:var(--acc);color:var(--acc-fg)}
