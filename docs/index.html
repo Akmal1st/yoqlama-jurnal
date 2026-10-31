@@ -3811,7 +3811,7 @@ const testPts = (w, t) => t.pts || Array(t.n).fill(w.max / t.n);
 function testScore(w, t, ansStr) {
   const P = testPts(w, t); let ok = 0, sum = 0;
   for (let i = 0; i < t.n; i++) if (ansStr[i] !== "." && ansStr[i] === t.key[i]) { ok++; sum += P[i]; }
-  return {ok, score: Math.min(w.max, Math.round(sum * 10) / 10)};
+  return {ok, score: Math.min(w.max, Math.ceil(Math.round(sum * 1e6) / 1e6 - 1e-9))};   // umumiy ball yuqoriga butunga yaxlitlanadi: 5,2 → 6
 }
 /* BSB tahlili bilan bir xil shakldagi ma'lumot: tahlil, xatolar kesimi va eksport shu bilan ishlaydi */
 function chsbB(c, w) {
@@ -3886,6 +3886,12 @@ function pageChsbTest(m) {
     await putScore(c, s, w.id, testScore(w, t, a).score, []);
   }
   async function rescoreAll() { for (const s of c.students) await rescore(s); }
+  // eski (yaxlitlanmagan) ballar bir marta yangilanadi
+  if (w.test && S.ctfix !== w.id) {
+    S.ctfix = w.id;
+    const stale = c.students.some((s) => { const t = w.test, a = ansOf(s), cur = (s.scores || {})[w.id]; return !(t.out || []).includes(s.id) && !/^\.*$/.test(a) && isNum(cur) && cur !== testScore(w, t, a).score; });
+    if (stale) rescoreAll().then(() => render());
+  }
   $("[data-newt]", m).onclick = newTest;
   $("#tws", m).onchange = (e) => { S.tw = e.target.value; render(); };
   m.querySelectorAll("[data-ctab]").forEach((b) => b.onclick = () => { S.cttab = b.dataset.ctab; render(); });

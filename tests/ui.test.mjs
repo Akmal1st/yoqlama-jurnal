@@ -2550,6 +2550,14 @@ test("CHSB testi: to'g'ri javob belgilanadi, o'quvchi varianti mos kelsa maksima
     // teng taqsimlash
     await page.click("[data-peq]"); await page.waitForTimeout(100);
     assert.deepEqual(await sc(), [6, 8]);
+    // umumiy ball yuqoriga butunga yaxlitlanadi: 3 savol, 10 ball → bittasi to'g'ri 3,33 → 4
+    await page.click("[data-peq]"); await page.waitForTimeout(100);
+    await page.fill("#tn", "3"); await page.press("#tn", "Tab"); await page.waitForSelector('[data-tk="2"]');
+    await page.focus('[data-ta="2|0"]'); await page.keyboard.type("A");
+    const s3 = () => page.evaluate(() => (D.classes[S.ci].students[2].scores || {}).wt1 ?? null);
+    assert.equal(await s3(), 4);
+    await page.focus('[data-ta="2|1"]'); await page.keyboard.type("B");
+    assert.equal(await s3(), 7);   // 6,67 → 7
     // «BSB / CHSB» sahifasida ham ko'rinadi
     await page.click("[data-jp=sum]"); await page.waitForSelector("table.sum");
     assert.deepEqual(errors, []);
