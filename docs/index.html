@@ -3998,7 +3998,7 @@ async function baAskDiscard(B) {
 }
 function baSave(c, B, quiet) {
   if (!B.max.every((v) => v > 0)) { toast("Hamma savol uchun maksimal ball (0 dan katta) kiriting"); return false; }
-  const rows = {}; c.students.forEach((s) => { const r = baRow(B, s.name); rows[s.name] = {in: r.in !== false, pts: Array.from({length: B.q}, (_, i) => r.pts[i] ?? null)}; });
+  const rows = {}; c.students.forEach((s) => { const r = baRow(B, s.name); rows[s.name] = {in: r.in !== false, pts: Array.from({length: B.q}, (_, i) => r.pts[i] == null ? null : Math.min(r.pts[i], B.max[i]))}; });
   const a = {id: B.id, title: B.title.trim(), date: B.date, q: B.q, max: B.max.slice(), names: Array.from({length: B.q}, (_, i) => (B.names[i] || "").trim()), rows};
   if (!B.id) { const ids = c.analyses.map((x) => String(x.id)).filter((x) => /^a\d+$/.test(x)).map((x) => +x.slice(1)); a.id = B.id = "a" + (Math.max(0, ...ids) + 1); c.analyses.push(a); }
   else { const i = c.analyses.findIndex((x) => x.id === B.id); if (i >= 0) c.analyses[i] = a; else c.analyses.push(a); }
@@ -4018,11 +4018,11 @@ function pageBsb(m) {
     const rows = c.students.map((s, si) => {
       const r = baRow(B, s.name), on = r.in !== false;
       return `<tr class="${on ? "" : "off"}" data-row="${si}"><td class="c"><input type="checkbox" data-bin="${si}" ${on ? "checked" : ""}></td><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>
-        ${B.max.map((mx, i) => { const v = r.pts[i]; return `<td class="c"><input class="sc ${v > mx ? "bad" : ""}" data-bp="${si}|${i}" value="${v === null || v === undefined ? "" : gnum(v)}" inputmode="decimal" enterkeyhint="next" autocomplete="off" ${on ? "" : "disabled"}></td>`; }).join("")}
+        ${B.max.map((mx, i) => { const v = r.pts[i]; return `<td class="c"><input class="sc ${v > mx ? "bad" : ""}" data-bp="${si}|${i}" value="${v === null || v === undefined ? "" : gnum(v)}" inputmode="decimal" enterkeyhint="next" autocomplete="off" maxlength="6" placeholder="/${gnum(mx)}" title="0 – ${gnum(mx)}" ${on ? "" : "disabled"}></td>`; }).join("")}
         <td class="s" data-tot></td><td class="s a" data-pct></td><td class="s" data-g></td></tr>`;
     }).join("");
     body = `<div class="tblwrap"><table class="j bsa">${head}${rows}</table></div>
-      <p class="muted" style="margin:0">Birinchi qator — savollarning maksimal ballari (o'zgartirish mumkin). ✔ olib tashlansa, o'quvchi ishtirok etmagan hisoblanadi. Bo'sh katak — 0 ball. Baho: 86–100% → 5, 66–85% → 4, 30–65% → 3, qolgani → 2.</p>`;
+      <p class="muted" style="margin:0">Birinchi qator — savollarning maksimal ballari (o'zgartirish mumkin). ✔ olib tashlansa, o'quvchi ishtirok etmagan hisoblanadi. Bo'sh katak — 0 ball. Ball maksimaldan oshmaydi (oshirib yozsangiz, maksimal ball qo'yiladi); maksimal ball yozilganda keyingi katakka o'zi o'tadi. Baho: 86–100% → 5, 66–85% → 4, 30–65% → 3, qolgani → 2.</p>`;
   } else if (tab === "er") {
     const an = baAnalysis(c, B);
     body = `${an.n ? gTiles([["Bilim sifati", pct0(an.quality)], ["O'zlashtirish", pct0(an.mastery)], ["O'rtacha ball", `${pyFixed(an.mean_total, 1)} / ${gnum(an.tot_max)}`], ["O'rtacha %", pct0(an.mean_pct)]]) : ""}<div class="paper"><div class="pd">${bsbErrHtml(an, B.names)}</div></div>`;
@@ -4114,26 +4114,46 @@ function pageBsb(m) {
   m.querySelectorAll("[data-bp]").forEach((inp) => inp.onpaste = (e) => {
     const txt = (e.clipboardData || window.clipboardData).getData("text"), rowsT = txt.replace(/\r/g, "").replace(/\n$/, "").split("\n").map((l) => l.split("\t"));
     if (rowsT.length < 2 && rowsT[0].length < 2) return;
-    e.preventDefault(); const [r0, k0] = posOf(inp); let put = 0;
+    e.preventDefault(); const [r0, k0] = posOf(inp); let put = 0, cut = 0;
     rowsT.forEach((cells, dr) => cells.forEach((t, dk) => {
       const st = c.students[r0 + dr], k = k0 + dk; if (!st || k >= B.q) return;
       const v = numIn(t), row = edit(st); if (row.in === false || Number.isNaN(v) || v < 0 || v > 1000) return;
-      while (row.pts.length < B.q) row.pts.push(null); row.pts[k] = v; put++;
+      while (row.pts.length < B.q) row.pts.push(null);
+      if (v !== null && v > B.max[k]) { row.pts[k] = B.max[k]; cut++; } else row.pts[k] = v;
+      put++;
     }));
-    if (put) { dirty(); const y = window.scrollY; render(); window.scrollTo(0, y); toast(`${put} ta katak joylandi`); }
+    if (put) { dirty(); const y = window.scrollY; render(); window.scrollTo(0, y); toast(`${put} ta katak joylandi${cut ? `, ${cut} tasi maksimal ballga tushirildi` : ""}`); }
   });
-  m.querySelectorAll("[data-bp]").forEach((inp) => inp.onchange = () => {
-    const [si, i] = inp.dataset.bp.split("|").map(Number), v = numIn(inp.value), mx = B.max[i];
-    if (Number.isNaN(v) || v < 0 || v > 1000) { toast("Musbat son kiriting (masalan 2 yoki 1,5)"); inp.classList.add("bad"); return; }
-    const r = edit(c.students[si]); while (r.pts.length < B.q) r.pts.push(null); r.pts[i] = v;
-    inp.value = v === null ? "" : gnum(v); inp.classList.toggle("bad", v !== null && v > mx);
-    if (v !== null && v > mx) toast(`${i + 1}-savolning maksimal bali ${gnum(mx)} — hisobda ${gnum(mx)} olinadi`);
-    dirty(); paint(si);
+  /* ball maksimaldan oshmaydi: yozish paytidayoq maksimalga tushiriladi; to'liq yozilgan ballda keyingi katakka o'tiladi */
+  const nextCell = (inp) => {
+    const [r, k] = posOf(inp), same = cellAt(r, k + 1);
+    if (same && !same.disabled) return [r, k + 1];
+    for (let q = r + 1; q < c.students.length; q++) { const t = cellAt(q, 0); if (t && !t.disabled) return [q, 0]; }
+    return null;
+  };
+  const warnMax = (i, mx) => toast(`${i + 1}-savolning maksimal bali ${gnum(mx)}`);
+  m.querySelectorAll("[data-bp]").forEach((inp) => {
+    inp.oninput = () => {
+      const [, i] = posOf(inp), mx = B.max[i], txt = inp.value.trim().replace(",", "."), v = numIn(txt);
+      if (v === null || Number.isNaN(v) || v < 0) return;
+      if (v > mx) { inp.value = gnum(mx); warnMax(i, mx); }
+      const val = Math.min(v, mx);
+      if (val >= mx) { const nx = nextCell(inp); if (nx) { inp.blur(); focusAt(nx[0], nx[1]); } }   // to'liq ball yozilganda keyingi katakka o'tiladi (1,5 kabi kasr yozishga xalaqit bermaydi)
+    };
+    inp.onchange = () => {
+      const [si, i] = inp.dataset.bp.split("|").map(Number); let v = numIn(inp.value); const mx = B.max[i];
+      if (Number.isNaN(v) || v < 0 || v > 1000) { toast("Musbat son kiriting (masalan 2 yoki 1,5)"); inp.classList.add("bad"); return; }
+      if (v !== null && v > mx) { v = mx; warnMax(i, mx); }
+      const r = edit(c.students[si]); while (r.pts.length < B.q) r.pts.push(null); r.pts[i] = v;
+      inp.value = v === null ? "" : gnum(v); inp.classList.remove("bad");
+      dirty(); paint(si);
+    };
   });
   m.querySelectorAll("[data-bx]").forEach((inp) => inp.onchange = () => {
     const i = +inp.dataset.bx, v = numIn(inp.value);
     if (!(v > 0) || v > 1000) { toast("Maksimal ball 0 dan katta bo'lishi kerak"); inp.value = gnum(B.max[i]); return; }
-    B.max[i] = v; dirty(); const y = window.scrollY, tw = $(".tblwrap", m), sl = tw ? tw.scrollLeft : 0; render(); window.scrollTo(0, y); const t2 = $(".tblwrap"); if (t2) t2.scrollLeft = sl;
+    B.max[i] = v; Object.values(B.rows).forEach((r) => { if (r.pts[i] != null && r.pts[i] > v) r.pts[i] = v; });   // maksimal kamaysa, undan oshgan ballar tushiriladi
+    dirty(); const y = window.scrollY, tw = $(".tblwrap", m), sl = tw ? tw.scrollLeft : 0; render(); window.scrollTo(0, y); const t2 = $(".tblwrap"); if (t2) t2.scrollLeft = sl;
   });
 }
 

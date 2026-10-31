@@ -2438,3 +2438,42 @@ test("Menyu tugmalari: Hisobotlar va Sozlamalarda bir xil o'lcham (telefon va ko
     }
   } finally { await browser.close(); }
 });
+
+test("BSB tahlili: ball maksimaldan oshmaydi (yozishda, joylashda, maksimal kamayganda, saqlashda), to'liq ballda keyingi katakka o'tadi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => { D.settings.protect.enabled = false; });
+    await page.click(".side [data-go=journal]"); await page.click("[data-jp=bsb]"); await page.waitForSelector("table.bsa");
+    const pts = () => page.evaluate(() => { const B = S.bas[label(D.classes[S.ci])]; return D.classes[S.ci].students.slice(0, 3).map((s) => (B.rows[s.name] || {pts: []}).pts.slice(0, 3)); });
+    const mx = await page.evaluate(() => S.bas[label(D.classes[S.ci])].max.slice(0, 3));
+    assert.equal(await page.getAttribute('[data-bp="0|0"]', "placeholder"), `/${mx[0]}`);
+    // maksimaldan katta ball yozilsa, maksimal qo'yiladi
+    await page.fill('[data-bp="0|0"]', "9");
+    assert.equal(await page.inputValue('[data-bp="0|0"]'), String(mx[0]));
+    assert.equal((await pts())[0][0], mx[0]);
+    // to'liq ball yozilganda fokus keyingi katakka o'tadi
+    assert.equal(await page.evaluate(() => document.activeElement.dataset.bp), "0|1");
+    // kasr yozish xalaqit bermaydi (maksimaldan kichik)
+    await page.focus('[data-bp="1|0"]'); await page.keyboard.type("1,5");
+    assert.equal(await page.evaluate(() => document.activeElement.dataset.bp), "1|0");
+    await page.keyboard.press("Tab");
+    assert.equal((await pts())[1][0], 1.5);
+    // Excel'dan joylash ham maksimaldan oshmaydi
+    await page.evaluate(() => { const i = document.querySelector('[data-bp="2|0"]'); i.focus(); const dt = new DataTransfer(); dt.setData("text", "50\t60\n"); i.dispatchEvent(new ClipboardEvent("paste", {clipboardData: dt, bubbles: true, cancelable: true})); });
+    assert.deepEqual((await pts())[2].slice(0, 2), [mx[0], mx[1]]);
+    // maksimal kamaytirilsa, undan oshgan ballar tushiriladi
+    await page.fill('[data-bx="0"]', "1"); await page.press('[data-bx="0"]', "Tab");
+    assert.deepEqual((await pts()).map((r) => r[0]), [1, 1, 1]);
+    // saqlashda ham
+    await page.evaluate(() => { const B = S.bas[label(D.classes[S.ci])]; const s = D.classes[S.ci].students[0]; B.rows[s.name].pts[1] = 999; });
+    await page.click("[data-bsave]");
+    const saved = await page.evaluate((m) => D.classes[S.ci].analyses.at(-1).rows[D.classes[S.ci].students[0].name].pts[1] <= m, mx[1]);
+    assert.ok(saved, "saqlangan ball maksimaldan oshmasin");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
