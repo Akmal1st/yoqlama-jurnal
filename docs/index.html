@@ -208,6 +208,16 @@ function cleanStudent(s) {
   else delete s.pays;
   return s;
 }
+/* CHSB test shakli: w.test = {n: savollar soni, o: variantlar soni, key: "ABCD.." (to'g'ri javoblar), ans: {o'quvchi id: "AB.D.."}}; "." — bo'sh */
+function cleanTest(w) {
+  const t = w.test; if (t == null) return;
+  if (w.type !== "chsb" || typeof t !== "object" || Array.isArray(t)) { delete w.test; return; }
+  const n = Math.min(100, Math.max(1, Math.trunc(num0(t.n)) || 10)), o = Math.min(6, Math.max(2, Math.trunc(num0(t.o)) || 4)), L = "ABCDEF".slice(0, o);
+  const fix = (x) => Array.from({length: n}, (_, i) => { const ch = String(x || "")[i] || "."; return L.includes(ch) ? ch : "."; }).join("");
+  const ans = {};
+  if (t.ans && typeof t.ans === "object") for (const [k, v] of Object.entries(t.ans)) if (SAFE_ID.test(k)) ans[k] = fix(v);
+  w.test = {n, o, key: fix(t.key), ans};
+}
 function cleanClass(c) {
   if (c.kind != null && c.kind !== "club" && c.kind !== "paid") delete c.kind;
   if (c.svc != null && c.svc !== "school" && c.svc !== "private") delete c.svc;
@@ -216,6 +226,7 @@ function cleanClass(c) {
   c.rc = Math.trunc(num0(c.rc));
   c.works = (Array.isArray(c.works) ? c.works : []).filter((w) => w && typeof w === "object" && SAFE_ID.test(String(w.id)) && (w.type === "bsb" || w.type === "chsb") && ISO_D.test(String(w.date)))
     .map((w) => Object.assign({}, w, {id: String(w.id), max: num0(w.max)}));
+  for (const w of c.works) cleanTest(w);
   c.analyses = c.analyses.filter((a) => a && typeof a === "object" && SAFE_ID.test(String(a.id)) && ISO_D.test(String(a.date)));
   c.students.forEach(cleanStudent); c.students_off = c.students_off.filter((s) => s && typeof s === "object").map(cleanStudent);
 }
@@ -2117,6 +2128,7 @@ function pageJournal(m) {
   if (S.jpage === "sum") return pageSum(m);
   if (S.jpage === "year") return pageYear(m);
   if (S.jpage === "bsb") return pageBsb(m);
+  if (S.jpage === "chsbt") return pageChsbTest(m);
   if (!viewModes().some(([k]) => k === V.mode)) V.mode = "day";
   if (V.mode === "day") return pageDay(m);
   const c = D.classes[S.ci], t = todayIso(), grp = isGrp(c);
@@ -2483,6 +2495,7 @@ async function moreMenu() {
     !isGrp(c) && ["Baholash", [
       ["📊 BSB / CHSB ballari", () => { S.jpage = "sum"; render(); }],
       ["🔍 BSB tahlili", () => { S.jpage = "bsb"; render(); }],
+      ["📝 CHSB testi", () => { S.jpage = "chsbt"; render(); }],
     ]],
     ["Jurnal", [
       UNDO.length && ["↶ Oxirgi o'zgarishni bekor qilish", undoLast],
@@ -3677,7 +3690,7 @@ const shownVal = (e, v) => e.work ? fmtNum(v) : /activate/.test(e.kind) ? v : (d
 
 /* ───────── jurnal bo'limlari: kundalik / BSB-CHSB / yillik ───────── */
 function jpSeg() {
-  return `<div class="jtabs" role="tablist">${(grpTabs(D.classes[S.ci]) || [["j", "Kundalik"], ["sum", "BSB / CHSB"], ["bsb", "BSB tahlili"], ["year", "Yillik"]]).map(([k, n]) => `<button role="tab" aria-selected="${S.jpage === k}" class="${S.jpage === k ? "on" : ""}" data-jp="${k}">${n}</button>`).join("")}</div>`;
+  return `<div class="jtabs" role="tablist">${(grpTabs(D.classes[S.ci]) || [["j", "Kundalik"], ["sum", "BSB / CHSB"], ["bsb", "BSB tahlili"], ["chsbt", "CHSB testi"], ["year", "Yillik"]]).map(([k, n]) => `<button role="tab" aria-selected="${S.jpage === k}" class="${S.jpage === k ? "on" : ""}" data-jp="${k}">${n}</button>`).join("")}</div>`;
 }
 function classGroups() {
   const g = new Map(); D.classes.forEach((c, i) => { if (isGrp(c)) return; const k = c.name; if (!g.has(k)) g.set(k, []); g.get(k).push(i); }); return [...g];
@@ -3786,6 +3799,96 @@ function workDialog(c, w) {
       save(); close(); render();
     };
   });
+}
+/* ───────── CHSB testi: to'g'ri javob varianti belgilanadi, o'quvchi varianti mos kelsa — maksimal ball, aks holda 0 ───────── */
+const TEST_L = "ABCDEF";
+const testBlank = () => ({n: 10, o: 4, key: ".".repeat(10), ans: {}});
+function testScore(w, t, ansStr) {
+  const per = w.max / t.n; let ok = 0;
+  for (let i = 0; i < t.n; i++) if (ansStr[i] !== "." && ansStr[i] === t.key[i]) ok++;
+  return {ok, score: Math.round(ok * per * 10) / 10};
+}
+function pageChsbTest(m) {
+  const c = D.classes[S.ci], ws = c.works.filter((w) => w.type === "chsb").sort((a, b) => a.date < b.date ? -1 : 1);
+  if (!ws.length) {
+    m.innerHTML = `<div class="vcol" style="gap:12px">${classChips()}<div class="hrow">${jpSeg()}</div><div class="card muted">CHSB testi uchun avval CHSB ishi kerak. «BSB / CHSB» sahifasida «＋ Ish qo'shish» ni bosib, turini CHSB qiling.</div><div><button class="btn btn-primary" data-addw>＋ CHSB ishi qo'shish</button></div></div>`;
+    bindTop(m); $("[data-addw]", m).onclick = () => workDialog(c, null); return;
+  }
+  if (!ws.some((w) => w.id === S.tw)) { const q = quarterOf(todayIso()), cur = ws.filter((w) => quarterOf(w.date) === q); S.tw = (cur.length ? cur : ws).at(-1).id; }
+  const w = ws.find((x) => x.id === S.tw), t0 = w.test || testBlank();
+  const L = TEST_L.slice(0, t0.o), per = w.max / t0.n;
+  const sel = `<select id="tws" title="CHSB ishi" style="width:auto;flex:0 1 280px;min-width:0">${ws.map((x) => `<option value="${esc(x.id)}" ${x.id === w.id ? "selected" : ""}>CHSB ${fmt(x.date).slice(0, 5)}${x.title ? " · " + esc(x.title) : ""} · ${gnum(x.max)} ball</option>`).join("")}</select>`;
+  const head = `<tr><th class="nm">O'quvchi</th>${Array.from({length: t0.n}, (_, i) => `<th class="d">${i + 1}</th>`).join("")}<th>To'g'ri</th><th>Ball</th></tr>
+    <tr class="mx"><td class="nm"><b>To'g'ri javob</b></td>${Array.from({length: t0.n}, (_, i) => `<td class="c"><input class="sc tk" data-tk="${i}" maxlength="1" value="${t0.key[i] === "." ? "" : t0.key[i]}" autocomplete="off" autocapitalize="characters" enterkeyhint="next" title="${i + 1}-savol: to'g'ri variant"></td>`).join("")}<td class="s"></td><td class="s">${gnum(w.max)}</td></tr>`;
+  const rows = c.students.map((s, si) => `<tr data-row="${si}"><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>${Array.from({length: t0.n}, (_, i) => `<td class="c"><input class="sc ta" data-ta="${si}|${i}" maxlength="1" value="${((t0.ans[s.id] || "")[i] || ".") === "." ? "" : t0.ans[s.id][i]}" autocomplete="off" autocapitalize="characters" enterkeyhint="next"></td>`).join("")}<td class="s" data-ok></td><td class="s" data-sc2></td></tr>`).join("");
+  m.innerHTML = `<div class="vcol" style="gap:12px">${classChips()}
+    <div class="hrow" style="gap:8px">${jpSeg()}${sel}<span class="sp"></span><button class="btn" data-addw>＋ Ish qo'shish</button></div>
+    <div class="card hrow" style="gap:12px;flex-wrap:wrap;align-items:flex-end"><label class="f">Savollar soni<input class="form-control" type="number" id="tn" min="1" max="100" value="${t0.n}" style="width:90px" inputmode="numeric"></label>
+      <label class="f">Variantlar soni<input class="form-control" type="number" id="to" min="2" max="6" value="${t0.o}" style="width:90px" inputmode="numeric"></label>
+      <div class="muted">Variantlar: <b>${L.split("").join(", ")}</b> · har savol <b id="tper">${gnum(Math.round(per * 100) / 100)}</b> ball</div></div>
+    <div class="tblwrap"><table class="j bsa tst">${head}${rows}<tr class="mx"><td class="nm"><b>To'g'ri javob, %</b></td>${Array.from({length: t0.n}, (_, i) => `<td class="c" data-qp="${i}"></td>`).join("")}<td class="s"></td><td class="s" data-avg></td></tr></table></div>
+    <p class="muted" style="margin:0">Birinchi qatorga har savolning to'g'ri variantini yozing, keyin har o'quvchining tanlagan variantini (${L[0]}–${L.at(-1)}, yoki 1–${t0.o}). O'quvchi varianti to'g'ri javobga mos kelsa — savolning maksimal bali, aks holda 0. Ball «BSB / CHSB» sahifasiga o'zi yoziladi. Bo'sh katak — javob berilmagan (0).</p></div>`;
+  bindTop(m);
+  $("[data-addw]", m).onclick = () => workDialog(c, null);
+  $("#tws", m).onchange = (e) => { S.tw = e.target.value; render(); };
+  const ensure = () => { if (!w.test) w.test = testBlank(); cleanTest(w); return w.test; };
+  const resize = () => {
+    const n = Math.min(100, Math.max(1, Math.trunc(+$("#tn", m).value) || t0.n)), o = Math.min(6, Math.max(2, Math.trunc(+$("#to", m).value) || t0.o));
+    const t = ensure(); t.n = n; t.o = o; cleanTest(w); rescoreAll(); save(); render();
+  };
+  $("#tn", m).onchange = resize; $("#to", m).onchange = resize;
+  const cells = (sel) => [...m.querySelectorAll(sel)];
+  const ansOf = (s) => { const t = w.test || testBlank(); return t.ans[s.id] || ".".repeat(t.n); };
+  async function rescore(s) {
+    const t = w.test; if (!t) return; const a = ansOf(s); if (/^\.*$/.test(a)) return;
+    await putScore(c, s, w.id, testScore(w, t, a).score, []);
+  }
+  async function rescoreAll() { for (const s of c.students) await rescore(s); }
+  function refresh() {
+    const t = w.test || testBlank(); let sum = 0, cnt = 0; const right = Array(t.n).fill(0), given = Array(t.n).fill(0);
+    c.students.forEach((s, si) => {
+      const a = ansOf(s), row = $(`[data-row="${si}"]`, m), has = !/^\.*$/.test(a);
+      row.querySelectorAll(".ta").forEach((inp, i) => {
+        const v = a[i] === "." ? "" : a[i]; if (inp.value !== v) inp.value = v;
+        const ok = v && t.key[i] !== "." && v === t.key[i];
+        inp.classList.toggle("ok", !!ok); inp.classList.toggle("wr", !!v && t.key[i] !== "." && !ok);
+        if (has && t.key[i] !== ".") { given[i]++; if (ok) right[i]++; }
+      });
+      const r = has ? testScore(w, t, a) : null, cur = (s.scores || {})[w.id];
+      $("[data-ok]", row).textContent = r ? `${r.ok}/${t.n}` : "";
+      $("[data-sc2]", row).textContent = isNum(cur) ? gnum(cur) : (cur ?? "") !== "" ? String(cur) : "—";
+      if (isNum(cur)) { sum += cur; cnt++; }
+    });
+    cells("[data-qp]").forEach((td, i) => { td.textContent = given[i] ? Math.round(100 * right[i] / given[i]) : ""; });
+    $("[data-avg]", m).textContent = cnt ? pyFixed(sum / cnt, 1) : "";
+  }
+  const nextOf = (inp, isKey) => {
+    const all = isKey ? cells(".tk") : cells(".ta"), i = all.indexOf(inp); return all[i + 1] || null;
+  };
+  const norm = (ch, o) => { ch = String(ch || "").trim().toUpperCase().slice(-1); if (/[1-6]/.test(ch)) ch = TEST_L[+ch - 1]; return TEST_L.slice(0, o).includes(ch) ? ch : ""; };
+  m.querySelectorAll(".tk, .ta").forEach((inp) => {
+    inp.onfocus = () => inp.select();
+    inp.oninput = async () => {
+      const isKey = inp.classList.contains("tk"), t = ensure(), raw = inp.value.trim();
+      const ch = norm(raw, t.o);
+      if (raw && !ch) { inp.value = ""; toast(`Variant ${TEST_L[0]}–${TEST_L[t.o - 1]} bo'lishi kerak`); }
+      else inp.value = ch;
+      const set = (str, i, v) => str.slice(0, i) + (v || ".") + str.slice(i + 1);
+      if (isKey) { const i = +inp.dataset.tk; t.key = set(t.key, i, ch); save(); await rescoreAll(); }
+      else { const [si, i] = inp.dataset.ta.split("|").map(Number), s = c.students[si]; t.ans[s.id] = set(t.ans[s.id] || ".".repeat(t.n), i, ch); save(); await rescore(s); }
+      refresh();
+      if (ch) { const nx = nextOf(inp, isKey); if (nx) nx.focus(); }
+    };
+    inp.onkeydown = (e) => {
+      const isKey = inp.classList.contains("tk"), all = isKey ? cells(".tk") : cells(".ta"), i = all.indexOf(inp);
+      const mv = (x) => { if (x) { e.preventDefault(); x.focus(); } };
+      if (e.key === "Enter" || e.key === "ArrowRight") mv(all[i + 1]);
+      else if (e.key === "ArrowLeft") mv(all[i - 1]);
+      else if (!isKey && (e.key === "ArrowDown" || e.key === "ArrowUp")) { const [si, q] = inp.dataset.ta.split("|").map(Number); mv(m.querySelector(`[data-ta="${si + (e.key === "ArrowDown" ? 1 : -1)}|${q}"]`)); }
+      else if (e.key === "Backspace" && !inp.value) mv(all[i - 1]);
+    };
+  });
+  refresh();
 }
 function pageYear(m) {
   const c = D.classes[S.ci], qOk = [1, 2, 3, 4].every(qRange);
