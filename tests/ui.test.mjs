@@ -2477,3 +2477,37 @@ test("BSB tahlili: ball maksimaldan oshmaydi (yozishda, joylashda, maksimal kama
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("BSB tahlili: katakni bosganda 0 dan maksimalgacha sonlar oynasi chiqadi, tanlansa keyingi katakka o'tadi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const [w, h] of [[1300, 800], [390, 844]]) {
+      const page = await browser.newPage({viewport: {width: w, height: h}});
+      const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await page.evaluate(() => { D.settings.protect.enabled = false; S.ci = 0; S.jpage = "bsb"; go("journal"); });
+      await page.waitForSelector("table.bsa");
+      const max0 = await page.evaluate(() => S.bas[label(D.classes[S.ci])].max[0]);
+      assert.equal(await page.locator(".bpop").count(), 0);
+      await page.click('[data-bp="0|0"]');
+      await page.waitForSelector(".bpop");
+      assert.equal(await page.locator(".bpop [data-pv]").count(), Math.floor(max0) + 1, `${w}px: 0 dan ${max0} gacha`);
+      const box = await page.evaluate(() => { const r = document.querySelector(".bpop").getBoundingClientRect(); return [r.left >= 0, r.right <= innerWidth, r.top >= 0, r.bottom <= innerHeight]; });
+      assert.deepEqual(box, [true, true, true, true], `${w}px: oyna ekrandan chiqib ketdi`);
+      // son tanlansa katakka yoziladi va fokus keyingi katakka o'tadi, oyna ham o'sha yerda
+      await page.click(`.bpop [data-pv="${max0}"]`);
+      assert.equal(await page.evaluate(() => { const B = S.bas[label(D.classes[S.ci])], s = D.classes[S.ci].students[0]; return B.rows[s.name].pts[0]; }), max0);
+      assert.equal(await page.inputValue('[data-bp="0|0"]'), String(max0));
+      await page.waitForFunction(() => document.activeElement.dataset.bp === "0|1");
+      await page.waitForSelector(".bpop");
+      assert.equal(await page.locator(".bpop").count(), 1);
+      // Esc oynani yopadi
+      await page.keyboard.press("Escape");
+      assert.equal(await page.locator(".bpop").count(), 0);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});

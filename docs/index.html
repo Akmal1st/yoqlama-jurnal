@@ -1471,7 +1471,7 @@ function labelTables(root) {
   });
 }
 function render() {
-  EPOCH++; clearPrintDoc(); applyTheme(); renderNav();
+  EPOCH++; clearPrintDoc(); applyTheme(); renderNav(); document.querySelectorAll(".bpop").forEach((x) => x.remove());
   const m = $("#main");
   ({today: pageToday, journal: pageJournal, groups: pageGroups, lesson: pageLesson, reports: pageReports, settings: pageSettings})[S.page](m);
   const pp = $(".perpop"); if (pp) pp.remove();
@@ -4004,6 +4004,7 @@ function baSave(c, B, quiet) {
   else { const i = c.analyses.findIndex((x) => x.id === B.id); if (i >= 0) c.analyses[i] = a; else c.analyses.push(a); }
   B.dirty = false; save(); if (!quiet) toast("BSB tahlili saqlandi"); return true;
 }
+const BA_COARSE = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;   // telefon: klaviatura o'rniga sonlar oynasi (⌨ — klaviatura)
 const numIn = (t) => { t = String(t).trim().replace(",", "."); if (t === "") return null; const v = Number(t); return isFinite(v) ? Math.round(v * 100) / 100 : NaN; };
 
 function pageBsb(m) {
@@ -4018,7 +4019,7 @@ function pageBsb(m) {
     const rows = c.students.map((s, si) => {
       const r = baRow(B, s.name), on = r.in !== false;
       return `<tr class="${on ? "" : "off"}" data-row="${si}"><td class="c"><input type="checkbox" data-bin="${si}" ${on ? "checked" : ""}></td><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>
-        ${B.max.map((mx, i) => { const v = r.pts[i]; return `<td class="c"><input class="sc ${v > mx ? "bad" : ""}" data-bp="${si}|${i}" value="${v === null || v === undefined ? "" : gnum(v)}" inputmode="decimal" enterkeyhint="next" autocomplete="off" maxlength="6" placeholder="/${gnum(mx)}" title="0 – ${gnum(mx)}" ${on ? "" : "disabled"}></td>`; }).join("")}
+        ${B.max.map((mx, i) => { const v = r.pts[i]; return `<td class="c"><input class="sc ${v > mx ? "bad" : ""}" data-bp="${si}|${i}" value="${v === null || v === undefined ? "" : gnum(v)}" inputmode="${BA_COARSE && mx <= 30 ? "none" : "decimal"}" enterkeyhint="next" autocomplete="off" maxlength="6" placeholder="/${gnum(mx)}" title="0 – ${gnum(mx)}" ${on ? "" : "disabled"}></td>`; }).join("")}
         <td class="s" data-tot></td><td class="s a" data-pct></td><td class="s" data-g></td></tr>`;
     }).join("");
     body = `<div class="tblwrap"><table class="j bsa">${head}${rows}</table></div>
@@ -4111,6 +4112,43 @@ function pageBsb(m) {
       else if (k === "ArrowRight" && atR) { e.preventDefault(); stepTo(inp, 0, 1); }
     };
   });
+  /* katakni bosganda: 0 dan maksimal ballgacha sonlar oynasi; tanlansa keyingi katakka o'tiladi */
+  let pop = null, popFor = null, skipPop = null;
+  const popClose = () => { if (pop) { pop.remove(); pop = null; popFor = null; } };
+  const popPlace = () => {
+    if (!pop || !popFor || !document.body.contains(popFor)) return popClose();
+    const r = popFor.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+    let x = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), innerWidth - w - 8), y = r.bottom + 6;
+    if (y + h > innerHeight - 8) y = Math.max(8, r.top - h - 6);
+    pop.style.left = x + "px"; pop.style.top = y + "px";
+  };
+  const popOpen = (inp) => {
+    const i = +inp.dataset.bp.split("|")[1], mx = B.max[i];
+    if (skipPop === inp) { skipPop = null; return; }
+    if (inp.disabled || !(mx > 0) || mx > 30) return popClose();
+    if (popFor === inp && pop) return popPlace();
+    popClose();
+    const nums = Array.from({length: Math.floor(mx) + 1}, (_, k) => k); if (mx % 1) nums.push(mx);
+    const cur = numIn(inp.value);
+    pop = h(`<div class="bpop" role="group" aria-label="Ball tanlash: 0 dan ${gnum(mx)} gacha" style="--n:${Math.min(6, nums.length + 1)}">${nums.map((v) => `<button type="button" class="${cur === v ? "on" : ""}" data-pv="${v}">${gnum(v)}</button>`).join("")}<button type="button" data-pkb title="Klaviatura bilan yozish (masalan 1,5)" aria-label="Klaviatura">⌨</button></div>`);
+    popFor = inp; document.body.append(pop);
+    pop.onmousedown = (e) => e.preventDefault();   // katakdan fokus ketmasin
+    pop.querySelectorAll("[data-pv]").forEach((b) => b.onclick = () => {
+      const cell = popFor; if (!cell) return;
+      cell.value = gnum(+b.dataset.pv); cell.dispatchEvent(new Event("change"));
+      const nx = nextCell(cell); if (nx) { cell.blur(); focusAt(nx[0], nx[1]); } else { popClose(); cell.blur(); }
+    });
+    $("[data-pkb]", pop).onclick = () => { const cell = popFor; if (!cell) return; cell.setAttribute("inputmode", "decimal"); skipPop = cell; popClose(); cell.blur(); setTimeout(() => cell.focus(), 0); };
+    popPlace();
+  };
+  m.querySelectorAll("[data-bp]").forEach((inp) => {
+    inp.addEventListener("focus", () => popOpen(inp));
+    inp.addEventListener("click", () => popOpen(inp));
+    inp.addEventListener("blur", () => setTimeout(() => { if (popFor === inp && document.activeElement !== inp) popClose(); }, 120));
+    inp.addEventListener("keydown", (e) => { if (e.key === "Escape") popClose(); });
+  });
+  if (pageBsb.off) pageBsb.off();
+  { const f = () => popPlace(); window.addEventListener("scroll", f, {passive: true}); window.addEventListener("resize", f); pageBsb.off = () => { window.removeEventListener("scroll", f); window.removeEventListener("resize", f); }; }
   m.querySelectorAll("[data-bp]").forEach((inp) => inp.onpaste = (e) => {
     const txt = (e.clipboardData || window.clipboardData).getData("text"), rowsT = txt.replace(/\r/g, "").replace(/\n$/, "").split("\n").map((l) => l.split("\t"));
     if (rowsT.length < 2 && rowsT[0].length < 2) return;
