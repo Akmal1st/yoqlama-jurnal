@@ -217,6 +217,7 @@ function cleanTest(w) {
   const ans = {};
   if (t.ans && typeof t.ans === "object") for (const [k, v] of Object.entries(t.ans)) if (SAFE_ID.test(k)) ans[k] = fix(v);
   w.test = {n, o, key: fix(t.key), ans};
+  if (Array.isArray(t.out)) w.test.out = [...new Set(t.out.filter((x) => typeof x === "string" && SAFE_ID.test(x)))];
   // har savolning bali (bo'lmasa — teng taqsimot)
   if (Array.isArray(t.pts) && t.pts.length === n && t.pts.every((x) => typeof x === "number" && x >= 0 && x <= 1000)) w.test.pts = t.pts.map((x) => Math.round(x * 100) / 100);
 }
@@ -3802,102 +3803,231 @@ function workDialog(c, w) {
     };
   });
 }
-/* ───────── CHSB testi: to'g'ri javob varianti belgilanadi, o'quvchi varianti mos kelsa — maksimal ball, aks holda 0 ───────── */
+/* ───────── CHSB testi: to'g'ri javob varianti belgilanadi, o'quvchi varianti mos kelsa — shu savolning bali, aks holda 0 ─────────
+   BSB tahlilidagi imkoniyatlar: ish (tahlil) tanlash/yangi/o'chirish, ✔ ishtirok, jadval (%, baho), tahlil, xatolar kesimi, eksport, joylash, tugmalar, variant oynasi */
 const TEST_L = "ABCDEF";
-const testBlank = () => ({n: 10, o: 4, key: ".".repeat(10), ans: {}});
-const testPts = (w, t) => t.pts || Array(t.n).fill(Math.round(w.max / t.n * 100) / 100);
+const testBlank = () => ({n: 10, o: 4, key: ".".repeat(10), ans: {}, out: []});
+const testPts = (w, t) => t.pts || Array(t.n).fill(w.max / t.n);
 function testScore(w, t, ansStr) {
   const P = testPts(w, t); let ok = 0, sum = 0;
   for (let i = 0; i < t.n; i++) if (ansStr[i] !== "." && ansStr[i] === t.key[i]) { ok++; sum += P[i]; }
   return {ok, score: Math.min(w.max, Math.round(sum * 10) / 10)};
 }
+/* BSB tahlili bilan bir xil shakldagi ma'lumot: tahlil, xatolar kesimi va eksport shu bilan ishlaydi */
+function chsbB(c, w) {
+  const t = w.test || testBlank(), P = testPts(w, t), rows = {};
+  for (const s of c.students) {
+    const a = t.ans[s.id] || ".".repeat(t.n), has = !/^\.*$/.test(a);
+    rows[s.name] = {in: !(t.out || []).includes(s.id), pts: Array.from({length: t.n}, (_, i) => has ? (a[i] !== "." && a[i] === t.key[i] ? P[i] : 0) : null)};
+  }
+  return {kind: "CHSB", ci: S.ci, id: w.id, title: w.title || "", date: w.date, q: t.n, max: P, names: [], rows, dirty: false};
+}
+function chsbOptions(c, w) {   // har savol bo'yicha variantlar taqsimoti
+  const t = w.test || testBlank(), L = TEST_L.slice(0, t.o), out = t.out || [];
+  return Array.from({length: t.n}, (_, i) => {
+    const cnt = Object.fromEntries(L.split("").map((x) => [x, 0])); let blank = 0, n = 0;
+    for (const s of c.students) {
+      const a = t.ans[s.id]; if (out.includes(s.id) || !a || /^\.*$/.test(a)) continue;
+      n++; if (a[i] === ".") blank++; else cnt[a[i]]++;
+    }
+    const key = t.key[i] === "." ? "" : t.key[i], wrong = L.split("").filter((x) => x !== key).sort((a, b) => cnt[b] - cnt[a])[0];
+    return {i, key, cnt, blank, n, pct: n && key ? Math.round(100 * cnt[key] / n) : null, top: wrong && cnt[wrong] ? wrong : ""};
+  });
+}
+function chsbOptHtml(c, w) {
+  const t = w.test || testBlank(), L = TEST_L.slice(0, t.o).split(""), R = chsbOptions(c, w);
+  if (!R.some((r) => r.n)) return "";
+  return `<h3>Variantlar bo'yicha taqsimot</h3><table><tr><th>Savol</th><th>To'g'ri</th>${L.map((x) => `<th>${x}</th>`).join("")}<th>Bo'sh</th><th>To'g'ri %</th><th>Eng ko'p tanlangan noto'g'ri variant</th></tr>
+    ${R.map((r) => `<tr><td>${r.i + 1}</td><td><b>${r.key || "—"}</b></td>${L.map((x) => `<td ${x === r.key ? 'style="background:#d9f2df"' : ""}>${r.cnt[x]}</td>`).join("")}<td>${r.blank}</td><td>${r.pct === null ? "—" : r.pct + "%"}</td><td>${r.top ? `<b>${r.top}</b> (${r.cnt[r.top]} ta)` : "—"}</td></tr>`).join("")}</table>
+    <p class="small">Noto'g'ri variant ko'p tanlangan savolda o'quvchilar odatda bitta xato tushunchaga ega — shu mavzuni qayta tushuntiring.</p>`;
+}
 function pageChsbTest(m) {
   const c = D.classes[S.ci], ws = c.works.filter((w) => w.type === "chsb").sort((a, b) => a.date < b.date ? -1 : 1);
+  const newTest = () => { const nw = {id: newWorkId(c), type: "chsb", date: todayIso(), max: CHSB_TOTAL, title: ""}; c.works.push(nw); S.tw = nw.id; S.cttab = "tbl"; save(); render(); };
   if (!ws.length) {
-    m.innerHTML = `<div class="vcol" style="gap:12px">${classChips()}<div class="hrow">${jpSeg()}</div><div class="card muted">CHSB testi uchun avval CHSB ishi kerak. «BSB / CHSB» sahifasida «＋ Ish qo'shish» ni bosib, turini CHSB qiling.</div><div><button class="btn btn-primary" data-addw>＋ CHSB ishi qo'shish</button></div></div>`;
-    bindTop(m); $("[data-addw]", m).onclick = () => workDialog(c, null); return;
+    m.innerHTML = `<div class="vcol" style="gap:12px">${classChips()}<div class="hrow">${jpSeg()}</div><div class="card muted">Hali CHSB testi yo'q. Test shaklidagi CHSB ni shu yerda yarating: to'g'ri javoblarni belgilab, o'quvchilarning variantlarini kiriting — ball o'zi hisoblanadi.</div><div><button class="btn btn-primary" data-newt>＋ Yangi CHSB testi</button></div></div>`;
+    bindTop(m); $("[data-newt]", m).onclick = newTest; return;
   }
   if (!ws.some((w) => w.id === S.tw)) { const q = quarterOf(todayIso()), cur = ws.filter((w) => quarterOf(w.date) === q); S.tw = (cur.length ? cur : ws).at(-1).id; }
-  const w = ws.find((x) => x.id === S.tw), t0 = w.test || testBlank();
-  const L = TEST_L.slice(0, t0.o), P0 = testPts(w, t0), psum = P0.reduce((a, b) => a + b, 0);
-  const sel = `<select id="tws" title="CHSB ishi" style="width:auto;flex:0 1 280px;min-width:0">${ws.map((x) => `<option value="${esc(x.id)}" ${x.id === w.id ? "selected" : ""}>CHSB ${fmt(x.date).slice(0, 5)}${x.title ? " · " + esc(x.title) : ""} · ${gnum(x.max)} ball</option>`).join("")}</select>`;
-  const head = `<tr><th class="nm">O'quvchi</th>${Array.from({length: t0.n}, (_, i) => `<th class="d">${i + 1}</th>`).join("")}<th>To'g'ri</th><th>Ball</th></tr>
-    <tr class="mx"><td class="nm"><b>Savol bali</b></td>${P0.map((v, i) => `<td class="c"><input class="sc tp" data-tp="${i}" value="${gnum(v)}" inputmode="decimal" autocomplete="off" title="${i + 1}-savol: maksimal ball"></td>`).join("")}<td class="s"></td><td class="s" data-psum></td></tr>
-    <tr class="mx"><td class="nm"><b>To'g'ri javob</b></td>${Array.from({length: t0.n}, (_, i) => `<td class="c"><input class="sc tk" data-tk="${i}" maxlength="1" value="${t0.key[i] === "." ? "" : t0.key[i]}" autocomplete="off" autocapitalize="characters" enterkeyhint="next" title="${i + 1}-savol: to'g'ri variant"></td>`).join("")}<td class="s"></td><td class="s">${gnum(w.max)}</td></tr>`;
-  const rows = c.students.map((s, si) => `<tr data-row="${si}"><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>${Array.from({length: t0.n}, (_, i) => `<td class="c"><input class="sc ta" data-ta="${si}|${i}" maxlength="1" value="${((t0.ans[s.id] || "")[i] || ".") === "." ? "" : t0.ans[s.id][i]}" autocomplete="off" autocapitalize="characters" enterkeyhint="next"></td>`).join("")}<td class="s" data-ok></td><td class="s" data-sc2></td></tr>`).join("");
+  const w = ws.find((x) => x.id === S.tw), tab = S.cttab || "tbl", t0 = w.test || testBlank(), out0 = t0.out || [];
+  const L = TEST_L.slice(0, t0.o), P0 = testPts(w, t0);
+  const sel = `<select id="tws" title="Saqlangan CHSB testlari" style="width:auto;flex:0 1 280px;min-width:0">${ws.map((x) => `<option value="${esc(x.id)}" ${x.id === w.id ? "selected" : ""}>${esc(x.title || "Nomsiz")} · ${fmt(x.date)}</option>`).join("")}</select>`;
+  let body;
+  if (tab === "tbl") {
+    const head = `<tr><th title="Ishtirok etdi">✔</th><th class="nm">O'quvchi</th>${Array.from({length: t0.n}, (_, i) => `<th class="d">${i + 1}<small>savol</small></th>`).join("")}<th>To'g'ri</th><th>Ball</th><th>%</th><th>Baho</th></tr>
+      <tr class="mx"><td></td><td class="nm"><b>Savol bali</b></td>${P0.map((v, i) => `<td class="c"><input class="sc tp" data-tp="${i}" value="${gnum(Math.round(v * 100) / 100)}" inputmode="decimal" autocomplete="off" title="${i + 1}-savol: maksimal ball"></td>`).join("")}<td class="s"></td><td class="s" data-psum></td><td class="s">100</td><td></td></tr>
+      <tr class="mx"><td></td><td class="nm"><b>To'g'ri javob</b></td>${Array.from({length: t0.n}, (_, i) => `<td class="c"><input class="sc tk" data-tk="${i}" maxlength="1" value="${t0.key[i] === "." ? "" : t0.key[i]}" autocomplete="off" autocapitalize="characters" enterkeyhint="next" inputmode="${BA_COARSE ? "none" : "text"}" title="${i + 1}-savol: to'g'ri variant"></td>`).join("")}<td class="s" colspan="4"></td></tr>`;
+    const rows = c.students.map((s, si) => { const on = !out0.includes(s.id);
+      return `<tr class="${on ? "" : "off"}" data-row="${si}"><td class="c"><input type="checkbox" data-tin="${si}" ${on ? "checked" : ""}></td><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>${Array.from({length: t0.n}, (_, i) => `<td class="c"><input class="sc ta" data-ta="${si}|${i}" maxlength="1" value="${((t0.ans[s.id] || "")[i] || ".") === "." ? "" : t0.ans[s.id][i]}" autocomplete="off" autocapitalize="characters" enterkeyhint="next" inputmode="${BA_COARSE ? "none" : "text"}" ${on ? "" : "disabled"}></td>`).join("")}<td class="s" data-ok></td><td class="s" data-sc2></td><td class="s a" data-pct></td><td class="s" data-g></td></tr>`; }).join("");
+    body = `<div class="tblwrap"><table class="j bsa tst">${head}${rows}<tr class="mx"><td></td><td class="nm"><b>To'g'ri javob, %</b></td>${Array.from({length: t0.n}, (_, i) => `<td class="c" data-qp="${i}"></td>`).join("")}<td class="s"></td><td class="s" data-avg></td><td class="s a" data-avgp></td><td></td></tr></table></div>
+      <p class="muted" style="margin:0">Birinchi qatorda har savolning bali (o'zgartirish mumkin), keyingisida to'g'ri variant. Pastda har o'quvchining tanlagan varianti: ${L[0]}–${L.at(-1)} yoki 1–${t0.o}; katakni bosganda variantlar oynasi chiqadi, Excel'dan ko'p katakli nusxa joylash mumkin. Mos kelsa — savolning bali, aks holda 0; bo'sh katak — javob berilmagan. ✔ olib tashlansa, o'quvchi ishtirok etmagan hisoblanadi va balli o'chadi. Ball «BSB / CHSB» sahifasiga o'zi yoziladi. Baho: 86–100% → 5, 66–85% → 4, 30–65% → 3, qolgani → 2.</p>`;
+  } else {
+    const B = chsbB(c, w), an = baAnalysis(c, B), tiles = an.n ? gTiles([["Bilim sifati", pct0(an.quality)], ["O'zlashtirish", pct0(an.mastery)], ["O'rtacha ball", `${pyFixed(an.mean_total, 1)} / ${gnum(an.tot_max)}`], ["O'rtacha %", pct0(an.mean_pct)]]) : "";
+    body = tab === "er" ? `${tiles}<div class="paper"><div class="pd">${bsbErrHtml(an, [])}${chsbOptHtml(c, w)}</div></div>` : `${tiles}<div class="paper"><div class="pd">${bsbReportHtml(baMeta(c, B), an, bsbRecs(an), false)}</div></div>`;
+  }
   m.innerHTML = `<div class="vcol" style="gap:12px">${classChips()}
-    <div class="hrow" style="gap:8px">${jpSeg()}${sel}<span class="sp"></span><button class="btn" data-addw>＋ Ish qo'shish</button></div>
-    <div class="card hrow" style="gap:12px;flex-wrap:wrap;align-items:flex-end"><label class="f">Savollar soni<input class="form-control" type="number" id="tn" min="1" max="100" value="${t0.n}" style="width:90px" inputmode="numeric"></label>
-      <label class="f">Variantlar soni<input class="form-control" type="number" id="to" min="2" max="6" value="${t0.o}" style="width:90px" inputmode="numeric"></label>
-      <div class="muted">Variantlar: <b>${L.split("").join(", ")}</b> · har savolning bali jadvaldagi «Savol bali» qatorida o'zgartiriladi</div><button class="btn" data-peq title="Barcha savollarga teng ball: ${gnum(w.max)} ÷ ${t0.n}">⚖ Teng taqsimlash</button></div>
-    <div class="tblwrap"><table class="j bsa tst">${head}${rows}<tr class="mx"><td class="nm"><b>To'g'ri javob, %</b></td>${Array.from({length: t0.n}, (_, i) => `<td class="c" data-qp="${i}"></td>`).join("")}<td class="s"></td><td class="s" data-avg></td></tr></table></div>
-    <p class="muted" style="margin:0">Birinchi qatorga har savolning to'g'ri variantini yozing, keyin har o'quvchining tanlagan variantini (${L[0]}–${L.at(-1)}, yoki 1–${t0.o}). O'quvchi varianti to'g'ri javobga mos kelsa — shu savolning bali (har savolga turlicha ball qo'yish mumkin), aks holda 0. Savol ballari yig'indisi ishning maksimal ballidan (${gnum(w.max)}) oshmasligi kerak. Ball «BSB / CHSB» sahifasiga o'zi yoziladi. Bo'sh katak — javob berilmagan (0).</p></div>`;
+    <div class="hrow" style="gap:8px">${jpSeg()}<span class="sp"></span>${sel}<button class="btn" data-newt>＋ Yangi</button><button class="btn" data-tdel title="O'chirish">🗑</button></div>
+    <div class="card hrow bahd" style="gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <label class="f sp" style="min-width:200px">Bo'lim / mavzu<input class="form-control" type="text" id="tt" value="${esc(w.title || "")}" placeholder="Masalan: «Kasrlar» bo'limi"></label>
+      <label class="f">Sana<input class="form-control" type="date" id="tdt" value="${esc(w.date)}"></label>
+      <label class="f" style="width:110px">Maksimal ball<input class="form-control" type="number" id="tmx" min="1" step="0.5" value="${gnum(w.max)}" inputmode="decimal"></label>
+      <label class="f" style="width:110px">Savollar soni<input class="form-control" type="number" id="tn" min="1" max="100" value="${t0.n}" inputmode="numeric"></label>
+      <label class="f" style="width:110px">Variantlar soni<input class="form-control" type="number" id="to" min="2" max="6" value="${t0.o}" inputmode="numeric"></label></div>
+    <div class="hrow" style="gap:8px"><div class="seg"><button class="${tab === "tbl" ? "on" : ""}" data-ctab="tbl">✎ Javoblar jadvali</button><button class="${tab === "an" ? "on" : ""}" data-ctab="an">🔍 Tahlil</button><button class="${tab === "er" ? "on" : ""}" data-ctab="er">❌ Xatolar kesimi</button></div>
+      <span class="sp"></span><button class="btn" data-peq title="Barcha savollarga teng ball: ${gnum(w.max)} ÷ ${t0.n}">⚖ Teng ball</button><button class="btn" data-bexp>⬇ Eksport</button><button class="btn" data-btr title="Barcha o'quvchilarning ballini «BSB / CHSB» sahifasiga qayta yozadi">↳ Summativga o'tkazish</button></div>
+    ${body}</div>`;
   bindTop(m);
-  $("[data-addw]", m).onclick = () => workDialog(c, null);
-  $("#tws", m).onchange = (e) => { S.tw = e.target.value; render(); };
   const ensure = () => { if (!w.test) w.test = testBlank(); cleanTest(w); return w.test; };
-  const resize = () => {
-    const n = Math.min(100, Math.max(1, Math.trunc(+$("#tn", m).value) || t0.n)), o = Math.min(6, Math.max(2, Math.trunc(+$("#to", m).value) || t0.o));
-    const t = ensure(); t.n = n; t.o = o; cleanTest(w); rescoreAll(); save(); render();
-  };
-  $("#tn", m).onchange = resize; $("#to", m).onchange = resize;
-  const cells = (sel) => [...m.querySelectorAll(sel)];
-  $("[data-peq]", m).onclick = async () => { const t = ensure(); delete t.pts; save(); await rescoreAll(); render(); };
-  m.querySelectorAll(".tp").forEach((inp) => inp.onchange = async () => {
-    const v = parseFloat(String(inp.value).replace(",", "."));
-    if (!(v >= 0) || v > w.max) { toast(`Ball 0 dan ${gnum(w.max)} gacha bo'lishi kerak`); inp.value = gnum(testPts(w, w.test || testBlank())[+inp.dataset.tp]); return; }
-    const t = ensure(), P = testPts(w, t).slice(); P[+inp.dataset.tp] = Math.round(v * 100) / 100; t.pts = P; save(); await rescoreAll(); refresh();
-  });
   const ansOf = (s) => { const t = w.test || testBlank(); return t.ans[s.id] || ".".repeat(t.n); };
   async function rescore(s) {
-    const t = w.test; if (!t) return; const a = ansOf(s); if (/^\.*$/.test(a)) return;
+    const t = w.test; if (!t) return;
+    if ((t.out || []).includes(s.id)) { await putScore(c, s, w.id, "", []); return; }
+    const a = ansOf(s); if (/^\.*$/.test(a)) return;
     await putScore(c, s, w.id, testScore(w, t, a).score, []);
   }
   async function rescoreAll() { for (const s of c.students) await rescore(s); }
+  $("[data-newt]", m).onclick = newTest;
+  $("#tws", m).onchange = (e) => { S.tw = e.target.value; render(); };
+  m.querySelectorAll("[data-ctab]").forEach((b) => b.onclick = () => { S.cttab = b.dataset.ctab; render(); });
+  $("#tt", m).oninput = (e) => { w.title = e.target.value; save(); };
+  $("#tdt", m).onchange = (e) => { if (e.target.value) { w.date = e.target.value; save(); render(); } };
+  $("#tmx", m).onchange = async (e) => {
+    const mx = Math.round(parseFloat(String(e.target.value).replace(",", ".")) * 10) / 10;
+    if (!(mx > 0)) { toast("Maksimal ball noto'g'ri"); e.target.value = gnum(w.max); return; }
+    const manual = c.students.some((s) => !w.test || !ansOf(s) || /^\.*$/.test(ansOf(s)) ? isNum((s.scores || {})[w.id]) && s.scores[w.id] > mx : false);
+    if (manual) { toast("Ba'zi o'quvchilarning bali yangi maksimaldan katta"); e.target.value = gnum(w.max); return; }
+    w.max = mx; if (w.test && w.test.pts) delete w.test.pts; save(); await rescoreAll(); render();
+  };
+  const resize = async () => {
+    const n = Math.min(100, Math.max(1, Math.trunc(+$("#tn", m).value) || t0.n)), o = Math.min(6, Math.max(2, Math.trunc(+$("#to", m).value) || t0.o));
+    const t = ensure(); t.n = n; t.o = o; cleanTest(w); save(); await rescoreAll(); render();
+  };
+  $("#tn", m).onchange = resize; $("#to", m).onchange = resize;
+  $("[data-peq]", m).onclick = async () => { const t = ensure(); delete t.pts; save(); await rescoreAll(); render(); };
+  $("[data-bexp]", m).onclick = () => { const B = chsbB(c, w); if (!B.max.every((v) => v > 0)) { toast("Hamma savol uchun ball (0 dan katta) kiriting"); return; } baExportDialog(c, B); };
+  $("[data-btr]", m).onclick = async () => {
+    if (!w.test) { toast("Avval to'g'ri javoblar va o'quvchi variantlarini kiriting"); return; }
+    await rescoreAll(); const n = c.students.filter((s) => !(w.test.out || []).includes(s.id) && isNum((s.scores || {})[w.id])).length;
+    const q = quarterOf(w.date); if (q) S.sq = q;
+    toast(`CHSB (${fmt(w.date)}, maks. ${fmtNum(w.max)}): ${n} ta o'quvchining bali «BSB / CHSB» sahifasida`); render();
+  };
+  $("[data-tdel]", m).onclick = async () => {
+    const scored = c.students.some((s) => ((s.scores || {})[w.id] ?? "") !== "");
+    if (scored && isLocked() && !await unlock()) return;
+    if (!await confirmBox("CHSB testini o'chirish", `${esc(w.title || "Nomsiz")} (${fmt(w.date)}) o'chirilsinmi?${scored ? " Kiritilgan ballar ham o'chadi." : ""}`, "O'chirish")) return;
+    c.works.splice(c.works.indexOf(w), 1); c.students.forEach((s) => { if (s.scores) delete s.scores[w.id]; }); S.tw = null; save(); render();
+  };
+  if (tab !== "tbl") return;
+  const cells = (sel) => [...m.querySelectorAll(sel)];
+  m.querySelectorAll(".tp").forEach((inp) => inp.onchange = async () => {
+    const v = parseFloat(String(inp.value).replace(",", "."));
+    if (!(v >= 0) || v > w.max) { toast(`Ball 0 dan ${gnum(w.max)} gacha bo'lishi kerak`); inp.value = gnum(Math.round(testPts(w, w.test || testBlank())[+inp.dataset.tp] * 100) / 100); return; }
+    const t = ensure(), P = testPts(w, t).slice(); P[+inp.dataset.tp] = Math.round(v * 100) / 100; t.pts = P; save(); await rescoreAll(); refresh();
+  });
+  m.querySelectorAll("[data-tin]").forEach((cb) => cb.onchange = async () => {
+    const s = c.students[+cb.dataset.tin], t = ensure(), set = new Set(t.out || []);
+    if (cb.checked) set.delete(s.id); else set.add(s.id);
+    t.out = [...set]; save(); await rescore(s); render();
+  });
   function refresh() {
-    const t = w.test || testBlank(); let sum = 0, cnt = 0; const right = Array(t.n).fill(0), given = Array(t.n).fill(0);
+    const t = w.test || testBlank(), out = t.out || []; let sum = 0, cnt = 0; const right = Array(t.n).fill(0), given = Array(t.n).fill(0), P = testPts(w, t);
     c.students.forEach((s, si) => {
-      const a = ansOf(s), row = $(`[data-row="${si}"]`, m), has = !/^\.*$/.test(a);
+      const a = ansOf(s), row = $(`[data-row="${si}"]`, m), has = !/^\.*$/.test(a), on = !out.includes(s.id);
       row.querySelectorAll(".ta").forEach((inp, i) => {
         const v = a[i] === "." ? "" : a[i]; if (inp.value !== v) inp.value = v;
         const ok = v && t.key[i] !== "." && v === t.key[i];
         inp.classList.toggle("ok", !!ok); inp.classList.toggle("wr", !!v && t.key[i] !== "." && !ok);
-        if (has && t.key[i] !== ".") { given[i]++; if (ok) right[i]++; }
+        if (on && has && t.key[i] !== ".") { given[i]++; if (ok) right[i]++; }
       });
-      const r = has ? testScore(w, t, a) : null, cur = (s.scores || {})[w.id];
+      const r = has && on ? testScore(w, t, a) : null, cur = (s.scores || {})[w.id];
       $("[data-ok]", row).textContent = r ? `${r.ok}/${t.n}` : "";
-      $("[data-sc2]", row).textContent = isNum(cur) ? gnum(cur) : (cur ?? "") !== "" ? String(cur) : "—";
-      if (isNum(cur)) { sum += cur; cnt++; }
+      $("[data-sc2]", row).textContent = !on ? "—" : isNum(cur) ? gnum(cur) : (cur ?? "") !== "" ? String(cur) : "—";
+      const pc = on && isNum(cur) ? 100 * cur / w.max : null;
+      $("[data-pct]", row).textContent = pc === null ? "" : pyFixed(pc, 0) + "%"; $("[data-g]", row).innerHTML = pc === null ? "" : g5pill(grade5(pc));
+      if (on && isNum(cur)) { sum += cur; cnt++; }
     });
-    const P = testPts(w, t), ps = Math.round(P.reduce((a, b) => a + b, 0) * 100) / 100, pc = $("[data-psum]", m);
+    const ps = Math.round(P.reduce((a, b) => a + b, 0) * 100) / 100, pc = $("[data-psum]", m);
     pc.textContent = `${gnum(ps)}/${gnum(w.max)}`; pc.classList.toggle("warn", Math.abs(ps - w.max) > 0.01); pc.title = Math.abs(ps - w.max) > 0.01 ? "Savol ballari yig'indisi ishning maksimal balliga teng emas" : "";
     cells("[data-qp]").forEach((td, i) => { td.textContent = given[i] ? Math.round(100 * right[i] / given[i]) : ""; });
-    $("[data-avg]", m).textContent = cnt ? pyFixed(sum / cnt, 1) : "";
+    $("[data-avg]", m).textContent = cnt ? pyFixed(sum / cnt, 1) : ""; $("[data-avgp]", m).textContent = cnt ? pyFixed(100 * sum / cnt / w.max, 0) + "%" : "";
   }
-  const nextOf = (inp, isKey) => {
-    const all = isKey ? cells(".tk") : cells(".ta"), i = all.indexOf(inp); return all[i + 1] || null;
-  };
   const norm = (ch, o) => { ch = String(ch || "").trim().toUpperCase().slice(-1); if (/[1-6]/.test(ch)) ch = TEST_L[+ch - 1]; return TEST_L.slice(0, o).includes(ch) ? ch : ""; };
+  const setCh = (str, i, v) => str.slice(0, i) + (v || ".") + str.slice(i + 1);
+  const grid = (isKey) => isKey ? cells(".tk") : cells(".ta");
+  const nextOf = (inp) => { const all = grid(inp.classList.contains("tk")).filter((x) => !x.disabled), i = all.indexOf(inp); return all[i + 1] || null; };
+  const apply = async (inp, ch) => {
+    const isKey = inp.classList.contains("tk"), t = ensure();
+    if (isKey) { t.key = setCh(t.key, +inp.dataset.tk, ch); save(); await rescoreAll(); }
+    else { const [si, i] = inp.dataset.ta.split("|").map(Number), s = c.students[si]; t.ans[s.id] = setCh(t.ans[s.id] || ".".repeat(t.n), i, ch); save(); await rescore(s); }
+  };
+  /* katakni bosganda: variantlar oynasi; tanlansa keyingi katakka o'tiladi (ball oynasi bilan bir xil) */
+  let pop = null, popFor = null, skipPop = null;
+  const popClose = () => { if (pop) { pop.remove(); pop = null; popFor = null; } };
+  const popPlace = () => {
+    if (!pop || !popFor || !document.body.contains(popFor)) return popClose();
+    const r = popFor.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+    let x = Math.min(Math.max(8, r.left + r.width / 2 - pw / 2), innerWidth - pw - 8), y = r.bottom + 6;
+    if (y + ph > innerHeight - 8) y = Math.max(8, r.top - ph - 6);
+    pop.style.left = x + "px"; pop.style.top = y + "px";
+  };
+  const popOpen = (inp) => {
+    if (skipPop === inp) { skipPop = null; return; }
+    if (inp.disabled) return popClose();
+    if (popFor === inp && pop) return popPlace();
+    popClose();
+    const o = (w.test || testBlank()).o, cur = norm(inp.value, o);
+    pop = h(`<div class="bpop" role="group" aria-label="Variant tanlash" style="--n:${Math.min(6, o + 1)}">${TEST_L.slice(0, o).split("").map((x) => `<button type="button" class="${cur === x ? "on" : ""}" data-pl="${x}">${x}</button>`).join("")}<button type="button" data-pl="" title="Katakni tozalash" aria-label="Tozalash">✕</button>${BA_COARSE ? `<button type="button" data-pkb title="Klaviatura bilan yozish" aria-label="Klaviatura">⌨</button>` : ""}</div>`);
+    popFor = inp; document.body.append(pop);
+    pop.onmousedown = (e) => e.preventDefault();
+    pop.querySelectorAll("[data-pl]").forEach((b) => b.onclick = () => {
+      const cell = popFor; if (!cell) return;
+      cell.value = b.dataset.pl; cell.dispatchEvent(new Event("input"));
+      if (!b.dataset.pl) popPlace();
+    });
+    const kb = $("[data-pkb]", pop); if (kb) kb.onclick = () => { const cell = popFor; if (!cell) return; cell.setAttribute("inputmode", "text"); skipPop = cell; popClose(); cell.blur(); setTimeout(() => cell.focus(), 0); };
+    popPlace();
+  };
+  if (pageChsbTest.off) pageChsbTest.off();
+  { const f = () => popPlace(); window.addEventListener("scroll", f, {passive: true}); window.addEventListener("resize", f); pageChsbTest.off = () => { window.removeEventListener("scroll", f); window.removeEventListener("resize", f); }; }
   m.querySelectorAll(".tk, .ta").forEach((inp) => {
-    inp.onfocus = () => inp.select();
+    inp.onfocus = () => { inp.select(); popOpen(inp); };
+    inp.addEventListener("click", () => popOpen(inp));
+    inp.addEventListener("blur", () => setTimeout(() => { if (popFor === inp && document.activeElement !== inp) popClose(); }, 120));
     inp.oninput = async () => {
-      const isKey = inp.classList.contains("tk"), t = ensure(), raw = inp.value.trim();
-      const ch = norm(raw, t.o);
-      if (raw && !ch) { inp.value = ""; toast(`Variant ${TEST_L[0]}–${TEST_L[t.o - 1]} bo'lishi kerak`); }
-      else inp.value = ch;
-      const set = (str, i, v) => str.slice(0, i) + (v || ".") + str.slice(i + 1);
-      if (isKey) { const i = +inp.dataset.tk; t.key = set(t.key, i, ch); save(); await rescoreAll(); }
-      else { const [si, i] = inp.dataset.ta.split("|").map(Number), s = c.students[si]; t.ans[s.id] = set(t.ans[s.id] || ".".repeat(t.n), i, ch); save(); await rescore(s); }
-      refresh();
-      if (ch) { const nx = nextOf(inp, isKey); if (nx) nx.focus(); }
+      const t = ensure(), raw = inp.value.trim(), ch = norm(raw, t.o);
+      if (raw && !ch) { inp.value = ""; toast(`Variant ${TEST_L[0]}–${TEST_L[t.o - 1]} bo'lishi kerak`); } else inp.value = ch;
+      await apply(inp, ch); refresh();
+      if (ch) { const nx = nextOf(inp); if (nx) nx.focus(); else popClose(); }
     };
     inp.onkeydown = (e) => {
-      const isKey = inp.classList.contains("tk"), all = isKey ? cells(".tk") : cells(".ta"), i = all.indexOf(inp);
+      if (e.key === "Escape") { popClose(); return; }
+      const isKey = inp.classList.contains("tk"), all = grid(isKey).filter((x) => !x.disabled), i = all.indexOf(inp);
       const mv = (x) => { if (x) { e.preventDefault(); x.focus(); } };
-      if (e.key === "Enter" || e.key === "ArrowRight") mv(all[i + 1]);
+      if (e.key === "Enter") mv(e.shiftKey ? all[i - 1] : all[i + 1]);
+      else if (e.key === "ArrowRight") mv(all[i + 1]);
       else if (e.key === "ArrowLeft") mv(all[i - 1]);
-      else if (!isKey && (e.key === "ArrowDown" || e.key === "ArrowUp")) { const [si, q] = inp.dataset.ta.split("|").map(Number); mv(m.querySelector(`[data-ta="${si + (e.key === "ArrowDown" ? 1 : -1)}|${q}"]`)); }
+      else if (!isKey && (e.key === "ArrowDown" || e.key === "ArrowUp")) { const [si, q] = inp.dataset.ta.split("|").map(Number); let r = si + (e.key === "ArrowDown" ? 1 : -1), tg = null; while (r >= 0 && r < c.students.length && !(tg = m.querySelector(`[data-ta="${r}|${q}"]`)) ) r += e.key === "ArrowDown" ? 1 : -1; if (tg && !tg.disabled) mv(tg); }
       else if (e.key === "Backspace" && !inp.value) mv(all[i - 1]);
+    };
+    /* Excel'dan joylash: qatorlar — o'quvchilar, ustunlar — savollar (yoki bitta katakka «ABCDA» yozuvi) */
+    inp.onpaste = async (e) => {
+      const txt = (e.clipboardData || window.clipboardData).getData("text"), isKey = inp.classList.contains("tk");
+      let R = txt.replace(/\r/g, "").replace(/\n$/, "").split("\n").map((l) => l.split("\t"));
+      if (R.length === 1 && R[0].length === 1 && R[0][0].trim().length > 1) R = [R[0][0].trim().split("")];
+      if (R.length < 2 && R[0].length < 2) return;
+      e.preventDefault(); const t = ensure(); let put = 0, bad = 0;
+      if (isKey) { const k0 = +inp.dataset.tk; for (const [dk, v] of R[0].entries()) { const k = k0 + dk; if (k >= t.n) break; const ch = norm(v, t.o); if (v.trim() && !ch) { bad++; continue; } t.key = setCh(t.key, k, ch); put++; } save(); await rescoreAll(); }
+      else {
+        const [r0, k0] = inp.dataset.ta.split("|").map(Number), touched = new Set();
+        R.forEach((cs, dr) => cs.forEach((v, dk) => {
+          const s = c.students[r0 + dr], k = k0 + dk; if (!s || k >= t.n || (t.out || []).includes(s.id)) return;
+          const ch = norm(v, t.o); if (v.trim() && !ch) { bad++; return; }
+          t.ans[s.id] = setCh(t.ans[s.id] || ".".repeat(t.n), k, ch); touched.add(s); put++;
+        }));
+        save(); for (const s of touched) await rescore(s);
+      }
+      const y = window.scrollY; render(); window.scrollTo(0, y);
+      toast(`${put} ta katak joylandi${bad ? `, ${bad} tasi yaroqsiz variant — o'tkazib yuborildi` : ""}`);
     };
   });
   refresh();
@@ -4081,7 +4211,7 @@ function baAnalysis(c, B) {
   const rows = c.students.map((s) => ({name: s.name, ...baRow(B, s.name)}));
   return bsbStats(B.max, rows);
 }
-const baMeta = (c, B) => ({label: label(c), cls: c.name, subject: c.subject || "", title: B.title, date: fmt(B.date), names: B.names || []});
+const baMeta = (c, B) => ({kind: B.kind, label: label(c), cls: c.name, subject: c.subject || "", title: B.title, date: fmt(B.date), names: B.names || []});
 /* topshiriqlar kesimi: har savol (mezon) bo'yicha xato ulushi, yo'qotilgan ball va 50% dan past olganlar; bsbStats natijasiga tegmaydi */
 const qLabel = (names, i) => (names || [])[i] ? `${i + 1}. ${names[i]}` : `${i + 1}-savol`;
 function bsbErrors(an, names) {
@@ -4322,7 +4452,7 @@ function bsbChart(qs) {
 }
 function bsbReportHtml(meta, an, rec, pdf) {
   const qs = an.questions, nq = an.qmax.length, g = an.grades;
-  let o = `<h1>BSB tahlili — ${esc(meta.label)}</h1><p class="sub"><b>Bo'lim / mavzu:</b> ${esc(meta.title || "—")} &nbsp; <b>Sana:</b> ${meta.date} &nbsp; <b>Maksimal ball:</b> ${gnum(an.tot_max)} &nbsp; <b>Savollar:</b> ${nq}</p>`;
+  let o = `<h1>${meta.kind || "BSB"} tahlili — ${esc(meta.label)}</h1><p class="sub"><b>Bo'lim / mavzu:</b> ${esc(meta.title || "—")} &nbsp; <b>Sana:</b> ${meta.date} &nbsp; <b>Maksimal ball:</b> ${gnum(an.tot_max)} &nbsp; <b>Savollar:</b> ${nq}</p>`;
   if (!an.n || !qs.length) return o + "<p>Tahlil uchun ishtirok etgan o'quvchilar va ballar kiritilmagan.</p>";
   o += `<table><tr>${["Bor", "Yo'q", "O'rt. ball", "O'rt. %", "Mediana", "Eng yuq.", "Eng past", "«5»", "«4»", "«3»", "«2»", "Sifat", "O'zlash."].map((x) => `<th>${x}</th>`).join("")}</tr>
     <tr><td>${an.n}</td><td>${an.absent.length}</td><td>${pyFixed(an.mean_total, 1)}</td><td>${pct0(an.mean_pct)}</td><td>${pct0(an.median_pct)}</td><td>${gnum(an.best.total)}</td><td>${gnum(an.worst.total)}</td>
@@ -4350,7 +4480,7 @@ function bsbFormCfg(meta, an, H) {
   const info = BF_INFO.filter(([k]) => !hide[k]).map(([k, l]) => [l, val[k], k === "mavzu" || k === "teacher"]);
   const lines = String(H.sign || "").split("\n").map((x) => x.trim()).filter(Boolean);
   const sign = (lines.length ? lines : ["Fan o'qituvchisi | " + (H.teacher || ""), "Metod birlashma rahbari | " + (H.deputy || "")]).map((l) => { const i = l.indexOf("|"); return i < 0 ? [l.trim(), ""] : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; });
-  return {title: (H.title || "").trim() || "Bo'lim bo'yicha summativ baholash (BSB) natijalari", note: (H.note || "").trim(), fnote: (H.fnote || "").trim(), info, sign, sum: !hide.sum, dist: !hide.dist, kpi: !hide.kpi};
+  return {title: (H.title || "").trim() || `Bo'lim bo'yicha summativ baholash (${meta.kind || "BSB"}) natijalari`, note: (H.note || "").trim(), fnote: (H.fnote || "").trim(), info, sign, sum: !hide.sum, dist: !hide.dist, kpi: !hide.kpi};
 }
 function bsbFormHtml(meta, an, c, B, H) {
   const by = Object.fromEntries(an.students.map((s) => [s.name, s])), g = an.grades, nq = an.qmax.length, total = c.students.length, ok = an.n && an.questions.length, qs = an.questions, names = meta.names || [];
@@ -4408,7 +4538,7 @@ async function baExcel(variant, c, B, an, rec, H) {
   const qh = an.qmax.map((_, i) => `${i + 1}-savol`), maxRow = ["", "Maksimal ball", ...an.qmax, an.tot_max, 100, ""];
   if (variant === 1) {
     const st = an.students.slice().sort((a, b) => b.total - a.total);
-    add("Natijalar", [[`BSB — ${meta.label}`], [`Bo'lim / mavzu: ${meta.title || "—"}      Sana: ${meta.date}`], [], ["№", "O'quvchi", ...qh, "Jami", "%", "Baho"], maxRow,
+    add("Natijalar", [[`${meta.kind || "BSB"} — ${meta.label}`], [`Bo'lim / mavzu: ${meta.title || "—"}      Sana: ${meta.date}`], [], ["№", "O'quvchi", ...qh, "Jami", "%", "Baho"], maxRow,
       ...st.map((s, i) => [i + 1, s.name, ...s.pts, s.total, Math.round(s.pct), s.grade]), [], ...(an.absent.length ? [["", "Ishtirok etmaganlar: " + an.absent.join(", ")]] : [])],
       [5, 30, ...Array(nq).fill(9), 8, 7, 7]);
     if (an.n) {
@@ -4416,7 +4546,7 @@ async function baExcel(variant, c, B, an, rec, H) {
         ...an.questions.map((q) => [q.i, meta.names[q.i - 1] || "", q.max, Math.round(q.mean * 100) / 100, r1(q.pct), q.full, q.zero, q.d === null ? "" : Math.round(q.d * 100) / 100, q.level])], [8, 28, ...Array(7).fill(16)]);
       add("Xatolar kesimi", [["O'rin", "Savol / mezon", "Maks. ball", "Xato %", "0 ball olgan", "50% dan past", "Yo'qotilgan ball ulushi %", "50% dan past olganlar"],
         ...bsbErrors(an, meta.names).sort((a, b) => a.rank - b.rank).map((r) => [r.rank, r.name, r.max, r1(r.err), r.zero, r.fail, r1(r.share), r.failNames.join(", ")])], [8, 30, 12, 10, 12, 12, 16, 50]);
-      add("Xulosa", [[`BSB tahlili — ${meta.label}`], [`Bo'lim / mavzu: ${meta.title || "—"}      Sana: ${meta.date}`], [],
+      add("Xulosa", [[`${meta.kind || "BSB"} tahlili — ${meta.label}`], [`Bo'lim / mavzu: ${meta.title || "—"}      Sana: ${meta.date}`], [],
         ["Ishtirok etdi", an.n], ["Ishtirok etmadi", an.absent.length], ["Maksimal ball", an.tot_max], ["O'rtacha ball", Math.round(an.mean_total * 100) / 100], ["O'rtacha %", r1(an.mean_pct)],
         ["Mediana %", r1(an.median_pct)], ["Eng yuqori ball", an.best.total], ["Eng past ball", an.worst.total], ["Bilim sifati, % («4» va «5»)", r1(an.quality)], ["O'zlashtirish, % («3» va undan yuqori)", r1(an.mastery)], [],
         ["Baho", "O'quvchilar soni"], ...[5, 4, 3, 2].map((k) => [k, an.grades[k]]), [],
@@ -4436,14 +4566,14 @@ async function baExcel(variant, c, B, an, rec, H) {
       [c.students.length, "", an.n, an.absent.length, an.n ? Math.round(an.mean_total * 10) / 10 : "", an.n ? Math.round(an.mastery) : "", an.n ? Math.round(an.quality) : ""], []] : []),
       ...(F.fnote ? F.fnote.split("\n").map((x) => [x]).concat([[]]) : []),
       F.sign.length ? ["", ...F.sign.flatMap(([l, n], i) => [`${l}: ____________ ${n}`, ...Array(Math.max(0, Math.floor((W - 1) / F.sign.length) - 1)).fill("")]).slice(0, W - 1)] : []];
-    add("BSB", aoa, [5, 32, ...Array(Math.max(nq, 9)).fill(8), 8, 7, 7], head.map((_, r) => ({s: {r, c: 0}, e: {r, c: W - 1}})));
+    add(meta.kind || "BSB", aoa, [5, 32, ...Array(Math.max(nq, 9)).fill(8), 8, 7, 7], head.map((_, r) => ({s: {r, c: 0}, e: {r, c: W - 1}})));
   }
-  X.writeFile(wb, `BSB_${(meta.label + "_" + B.date).replace(/[^\p{L}\p{N}_-]+/gu, "_")}${variant === 2 ? "_shakl" : ""}.xlsx`);
+  X.writeFile(wb, `${meta.kind || "BSB"}_${(meta.label + "_" + B.date).replace(/[^\p{L}\p{N}_-]+/gu, "_")}${variant === 2 ? "_shakl" : ""}.xlsx`);
 }
 function baExportDialog(c, B) {
   const H = D.web.bsb_hdr = Object.assign({school: "", teacher: "", deputy: ""}, D.web.bsb_hdr || {});
   let v = S.bavar || 1;
-  modal(`<h2>BSB tahlilini eksport qilish</h2>
+  modal(`<h2>${B.kind || "BSB"} tahlilini eksport qilish</h2>
     <button class="opt" data-v="1"><b>1. Ballar tahlili va jadval</b>Ko'rsatkichlar, savollar bo'yicha diagramma va tahlil, yutuqlar, kamchiliklar, tavsiyalar hamda o'quvchilar ballari jadvali.</button>
     <button class="opt" data-v="2"><b>2. Header, jadval va footer</b>Rasmiy shakl: yuqorida maktab, sinf, fan, mavzu va sana; o'rtada ballar jadvali; pastda yakuniy ko'rsatkichlar va imzolar.</button>
     <div class="vcol" id="hdrf" style="gap:8px"><label class="f">Maktab nomi<input class="form-control" type="text" id="hs" value="${esc(H.school)}" placeholder="Masalan: 12-umumta'lim maktabi"></label>
