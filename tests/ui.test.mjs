@@ -2412,3 +2412,29 @@ test("To'garak va pullik guruh: yo'qlama va baho yo'q, faqat kelgan kunlar (bugu
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Menyu tugmalari: Hisobotlar va Sozlamalarda bir xil o'lcham (telefon va kompyuter)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const [w, h] of [[390, 844], [1300, 800]]) {
+      const page = await browser.newPage({viewport: {width: w, height: h}});
+      const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      const sizes = async (sel) => page.$$eval(sel, (x) => x.filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(), i = b.querySelector(".ic, .si").getBoundingClientRect(); return [Math.round(r.height), Math.round(i.width), parseFloat(getComputedStyle(b.querySelector("b, .sn")).fontSize)]; }));
+      await page.evaluate(() => { S.rep.band = "grp"; go("reports"); });
+      const rep = await sizes(".rk");
+      await page.evaluate(() => { S.sec = 0; go("settings"); });
+      const set = await sizes("nav.secs button");
+      assert.ok(rep.length >= 6 && set.length >= 6);
+      const all = [...rep, ...set];
+      assert.equal(new Set(all.map((x) => x[1])).size, 1, `${w}px: belgi o'lchami bir xil emas ${JSON.stringify(all.map((x) => x[1]))}`);
+      assert.equal(new Set(all.map((x) => x[2])).size, 1, `${w}px: yozuv o'lchami bir xil emas`);
+      if (w < 560) assert.equal(new Set(all.map((x) => x[0])).size, 1, `${w}px: tugma balandligi bir xil emas ${JSON.stringify(all.map((x) => x[0]))}`);
+      assert.ok(Math.min(...all.map((x) => x[0])) >= 56);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});
