@@ -3866,7 +3866,7 @@ function pageChsbTest(m) {
     body = tab === "er" ? `${tiles}<div class="paper"><div class="pd">${bsbErrHtml(an, [])}${chsbOptHtml(c, w)}</div></div>` : `${tiles}<div class="paper"><div class="pd">${bsbReportHtml(baMeta(c, B), an, bsbRecs(an), false)}</div></div>`;
   }
   m.innerHTML = `<div class="vcol" style="gap:12px">${classChips()}
-    <div class="hrow" style="gap:8px">${jpSeg()}<span class="sp"></span>${sel}<button class="btn" data-newt>＋ Yangi</button><button class="btn" data-tdel title="O'chirish">🗑</button></div>
+    <div class="hrow" style="gap:8px">${jpSeg()}<span class="sp"></span>${sel}<button class="btn" data-newt>＋ Yangi</button><button class="btn btn-primary" data-tsave title="Barcha o'zgarishlar kiritilgan zahoti o'zi ham saqlanadi">💾 Saqlash</button><button class="btn" data-tdel title="O'chirish">🗑</button></div>
     <div class="card hrow bahd" style="gap:10px;align-items:flex-end;flex-wrap:wrap">
       <label class="f sp" style="min-width:200px">Bo'lim / mavzu<input class="form-control" type="text" id="tt" value="${esc(w.title || "")}" placeholder="Masalan: «Kasrlar» bo'limi"></label>
       <label class="f">Sana<input class="form-control" type="date" id="tdt" value="${esc(w.date)}"></label>
@@ -3874,7 +3874,7 @@ function pageChsbTest(m) {
       <label class="f" style="width:110px">Savollar soni<input class="form-control" type="number" id="tn" min="1" max="100" value="${t0.n}" inputmode="numeric"></label>
       <label class="f" style="width:110px">Variantlar soni<input class="form-control" type="number" id="to" min="2" max="6" value="${t0.o}" inputmode="numeric"></label></div>
     <div class="hrow" style="gap:8px"><div class="seg"><button class="${tab === "tbl" ? "on" : ""}" data-ctab="tbl">✎ Javoblar jadvali</button><button class="${tab === "an" ? "on" : ""}" data-ctab="an">🔍 Tahlil</button><button class="${tab === "er" ? "on" : ""}" data-ctab="er">❌ Xatolar kesimi</button></div>
-      <span class="sp"></span><button class="btn" data-peq title="Barcha savollarga teng ball: ${gnum(w.max)} ÷ ${t0.n}">⚖ Teng ball</button><button class="btn" data-bexp>⬇ Eksport</button><button class="btn" data-btr title="Barcha o'quvchilarning ballini «BSB / CHSB» sahifasiga qayta yozadi">↳ Summativga o'tkazish</button></div>
+      <span class="muted" id="tsaved">✓ saqlangan</span><span class="sp"></span><button class="btn" data-peq title="Barcha savollarga teng ball: ${gnum(w.max)} ÷ ${t0.n}">⚖ Teng ball</button><button class="btn" data-bexp>⬇ Eksport</button><button class="btn" data-btr title="Barcha o'quvchilarning ballini «BSB / CHSB» sahifasiga qayta yozadi">↳ Summativga o'tkazish</button></div>
     ${body}</div>`;
   bindTop(m);
   const ensure = () => { if (!w.test) w.test = testBlank(); cleanTest(w); return w.test; };
@@ -3893,6 +3893,7 @@ function pageChsbTest(m) {
     if (stale) rescoreAll().then(() => render());
   }
   $("[data-newt]", m).onclick = newTest;
+  $("[data-tsave]", m).onclick = () => { save(); const el = $("#tsaved", m); if (el) el.textContent = "✓ saqlangan"; toast("CHSB testi saqlandi"); };
   $("#tws", m).onchange = (e) => { S.tw = e.target.value; render(); };
   m.querySelectorAll("[data-ctab]").forEach((b) => b.onclick = () => { S.cttab = b.dataset.ctab; render(); });
   $("#tt", m).oninput = (e) => { w.title = e.target.value; save(); };

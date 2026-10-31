@@ -2544,6 +2544,9 @@ test("CHSB testi: to'g'ri javob belgilanadi, o'quvchi varianti mos kelsa maksima
     await page.fill('[data-tp="0"]', "3"); await page.press('[data-tp="0"]', "Tab"); await page.waitForTimeout(100);
     assert.deepEqual(await sc(), [7, 9]);
     assert.ok(await page.evaluate(() => document.querySelector("[data-psum]").classList.contains("warn")), "yig'indi 11/10 — ogohlantirish");
+    // saqlash tugmasi bor va ishlaydi
+    await page.click("[data-tsave]"); await page.waitForSelector("text=CHSB testi saqlandi");
+    assert.equal((await page.textContent("#tsaved")).trim(), "✓ saqlangan");
     // maksimaldan katta ball qabul qilinmaydi
     await page.fill('[data-tp="1"]', "99"); await page.press('[data-tp="1"]', "Tab");
     assert.equal(await page.inputValue('[data-tp="1"]'), "2");
