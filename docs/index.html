@@ -217,6 +217,8 @@ function cleanTest(w) {
   const ans = {};
   if (t.ans && typeof t.ans === "object") for (const [k, v] of Object.entries(t.ans)) if (SAFE_ID.test(k)) ans[k] = fix(v);
   w.test = {n, o, key: fix(t.key), ans};
+  // har savolning bali (bo'lmasa — teng taqsimot)
+  if (Array.isArray(t.pts) && t.pts.length === n && t.pts.every((x) => typeof x === "number" && x >= 0 && x <= 1000)) w.test.pts = t.pts.map((x) => Math.round(x * 100) / 100);
 }
 function cleanClass(c) {
   if (c.kind != null && c.kind !== "club" && c.kind !== "paid") delete c.kind;
@@ -3803,10 +3805,11 @@ function workDialog(c, w) {
 /* ───────── CHSB testi: to'g'ri javob varianti belgilanadi, o'quvchi varianti mos kelsa — maksimal ball, aks holda 0 ───────── */
 const TEST_L = "ABCDEF";
 const testBlank = () => ({n: 10, o: 4, key: ".".repeat(10), ans: {}});
+const testPts = (w, t) => t.pts || Array(t.n).fill(Math.round(w.max / t.n * 100) / 100);
 function testScore(w, t, ansStr) {
-  const per = w.max / t.n; let ok = 0;
-  for (let i = 0; i < t.n; i++) if (ansStr[i] !== "." && ansStr[i] === t.key[i]) ok++;
-  return {ok, score: Math.round(ok * per * 10) / 10};
+  const P = testPts(w, t); let ok = 0, sum = 0;
+  for (let i = 0; i < t.n; i++) if (ansStr[i] !== "." && ansStr[i] === t.key[i]) { ok++; sum += P[i]; }
+  return {ok, score: Math.min(w.max, Math.round(sum * 10) / 10)};
 }
 function pageChsbTest(m) {
   const c = D.classes[S.ci], ws = c.works.filter((w) => w.type === "chsb").sort((a, b) => a.date < b.date ? -1 : 1);
@@ -3816,18 +3819,19 @@ function pageChsbTest(m) {
   }
   if (!ws.some((w) => w.id === S.tw)) { const q = quarterOf(todayIso()), cur = ws.filter((w) => quarterOf(w.date) === q); S.tw = (cur.length ? cur : ws).at(-1).id; }
   const w = ws.find((x) => x.id === S.tw), t0 = w.test || testBlank();
-  const L = TEST_L.slice(0, t0.o), per = w.max / t0.n;
+  const L = TEST_L.slice(0, t0.o), P0 = testPts(w, t0), psum = P0.reduce((a, b) => a + b, 0);
   const sel = `<select id="tws" title="CHSB ishi" style="width:auto;flex:0 1 280px;min-width:0">${ws.map((x) => `<option value="${esc(x.id)}" ${x.id === w.id ? "selected" : ""}>CHSB ${fmt(x.date).slice(0, 5)}${x.title ? " · " + esc(x.title) : ""} · ${gnum(x.max)} ball</option>`).join("")}</select>`;
   const head = `<tr><th class="nm">O'quvchi</th>${Array.from({length: t0.n}, (_, i) => `<th class="d">${i + 1}</th>`).join("")}<th>To'g'ri</th><th>Ball</th></tr>
+    <tr class="mx"><td class="nm"><b>Savol bali</b></td>${P0.map((v, i) => `<td class="c"><input class="sc tp" data-tp="${i}" value="${gnum(v)}" inputmode="decimal" autocomplete="off" title="${i + 1}-savol: maksimal ball"></td>`).join("")}<td class="s"></td><td class="s" data-psum></td></tr>
     <tr class="mx"><td class="nm"><b>To'g'ri javob</b></td>${Array.from({length: t0.n}, (_, i) => `<td class="c"><input class="sc tk" data-tk="${i}" maxlength="1" value="${t0.key[i] === "." ? "" : t0.key[i]}" autocomplete="off" autocapitalize="characters" enterkeyhint="next" title="${i + 1}-savol: to'g'ri variant"></td>`).join("")}<td class="s"></td><td class="s">${gnum(w.max)}</td></tr>`;
   const rows = c.students.map((s, si) => `<tr data-row="${si}"><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>${Array.from({length: t0.n}, (_, i) => `<td class="c"><input class="sc ta" data-ta="${si}|${i}" maxlength="1" value="${((t0.ans[s.id] || "")[i] || ".") === "." ? "" : t0.ans[s.id][i]}" autocomplete="off" autocapitalize="characters" enterkeyhint="next"></td>`).join("")}<td class="s" data-ok></td><td class="s" data-sc2></td></tr>`).join("");
   m.innerHTML = `<div class="vcol" style="gap:12px">${classChips()}
     <div class="hrow" style="gap:8px">${jpSeg()}${sel}<span class="sp"></span><button class="btn" data-addw>＋ Ish qo'shish</button></div>
     <div class="card hrow" style="gap:12px;flex-wrap:wrap;align-items:flex-end"><label class="f">Savollar soni<input class="form-control" type="number" id="tn" min="1" max="100" value="${t0.n}" style="width:90px" inputmode="numeric"></label>
       <label class="f">Variantlar soni<input class="form-control" type="number" id="to" min="2" max="6" value="${t0.o}" style="width:90px" inputmode="numeric"></label>
-      <div class="muted">Variantlar: <b>${L.split("").join(", ")}</b> · har savol <b id="tper">${gnum(Math.round(per * 100) / 100)}</b> ball</div></div>
+      <div class="muted">Variantlar: <b>${L.split("").join(", ")}</b> · har savolning bali jadvaldagi «Savol bali» qatorida o'zgartiriladi</div><button class="btn" data-peq title="Barcha savollarga teng ball: ${gnum(w.max)} ÷ ${t0.n}">⚖ Teng taqsimlash</button></div>
     <div class="tblwrap"><table class="j bsa tst">${head}${rows}<tr class="mx"><td class="nm"><b>To'g'ri javob, %</b></td>${Array.from({length: t0.n}, (_, i) => `<td class="c" data-qp="${i}"></td>`).join("")}<td class="s"></td><td class="s" data-avg></td></tr></table></div>
-    <p class="muted" style="margin:0">Birinchi qatorga har savolning to'g'ri variantini yozing, keyin har o'quvchining tanlagan variantini (${L[0]}–${L.at(-1)}, yoki 1–${t0.o}). O'quvchi varianti to'g'ri javobga mos kelsa — savolning maksimal bali, aks holda 0. Ball «BSB / CHSB» sahifasiga o'zi yoziladi. Bo'sh katak — javob berilmagan (0).</p></div>`;
+    <p class="muted" style="margin:0">Birinchi qatorga har savolning to'g'ri variantini yozing, keyin har o'quvchining tanlagan variantini (${L[0]}–${L.at(-1)}, yoki 1–${t0.o}). O'quvchi varianti to'g'ri javobga mos kelsa — shu savolning bali (har savolga turlicha ball qo'yish mumkin), aks holda 0. Savol ballari yig'indisi ishning maksimal ballidan (${gnum(w.max)}) oshmasligi kerak. Ball «BSB / CHSB» sahifasiga o'zi yoziladi. Bo'sh katak — javob berilmagan (0).</p></div>`;
   bindTop(m);
   $("[data-addw]", m).onclick = () => workDialog(c, null);
   $("#tws", m).onchange = (e) => { S.tw = e.target.value; render(); };
@@ -3838,6 +3842,12 @@ function pageChsbTest(m) {
   };
   $("#tn", m).onchange = resize; $("#to", m).onchange = resize;
   const cells = (sel) => [...m.querySelectorAll(sel)];
+  $("[data-peq]", m).onclick = async () => { const t = ensure(); delete t.pts; save(); await rescoreAll(); render(); };
+  m.querySelectorAll(".tp").forEach((inp) => inp.onchange = async () => {
+    const v = parseFloat(String(inp.value).replace(",", "."));
+    if (!(v >= 0) || v > w.max) { toast(`Ball 0 dan ${gnum(w.max)} gacha bo'lishi kerak`); inp.value = gnum(testPts(w, w.test || testBlank())[+inp.dataset.tp]); return; }
+    const t = ensure(), P = testPts(w, t).slice(); P[+inp.dataset.tp] = Math.round(v * 100) / 100; t.pts = P; save(); await rescoreAll(); refresh();
+  });
   const ansOf = (s) => { const t = w.test || testBlank(); return t.ans[s.id] || ".".repeat(t.n); };
   async function rescore(s) {
     const t = w.test; if (!t) return; const a = ansOf(s); if (/^\.*$/.test(a)) return;
@@ -3859,6 +3869,8 @@ function pageChsbTest(m) {
       $("[data-sc2]", row).textContent = isNum(cur) ? gnum(cur) : (cur ?? "") !== "" ? String(cur) : "—";
       if (isNum(cur)) { sum += cur; cnt++; }
     });
+    const P = testPts(w, t), ps = Math.round(P.reduce((a, b) => a + b, 0) * 100) / 100, pc = $("[data-psum]", m);
+    pc.textContent = `${gnum(ps)}/${gnum(w.max)}`; pc.classList.toggle("warn", Math.abs(ps - w.max) > 0.01); pc.title = Math.abs(ps - w.max) > 0.01 ? "Savol ballari yig'indisi ishning maksimal balliga teng emas" : "";
     cells("[data-qp]").forEach((td, i) => { td.textContent = given[i] ? Math.round(100 * right[i] / given[i]) : ""; });
     $("[data-avg]", m).textContent = cnt ? pyFixed(sum / cnt, 1) : "";
   }
