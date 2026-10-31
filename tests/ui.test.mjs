@@ -885,7 +885,7 @@ test("Bugun: «Hamma keldi» va oldingi uy vazifasi; mavzular oynasi", async () 
     assert.ok(await page.evaluate(() => D.classes[0].att_ok.includes(todayIso())));
     await page.waitForSelector('[data-open="0"]');
     // mavzular oynasi: kiritilgan qiymat saqlanadi
-    await page.evaluate(() => { S.ci = 0; S.page = "journal"; render(); lessonsDialog(0); });
+    await page.evaluate((p) => { D.settings.quarters[0] = [iso(addDays(pdate(p), -5)), iso(addDays(pdate(todayIso()), 5))]; S.ci = 0; S.page = "journal"; render(); lessonsDialog(0); }, prev);   // sana chorak tanaffusiga to'g'ri kelmasin
     await page.fill(`[data-lt="${prev}"]`, "Kasrlarni qo'shish"); await page.press(`[data-lt="${prev}"]`, "Tab");
     await page.fill(`[data-lh="${prev}"]`, ""); await page.press(`[data-lh="${prev}"]`, "Tab");
     const l = await page.evaluate((p) => D.classes[0].lessons[p], prev);
@@ -1924,19 +1924,15 @@ test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqla
     const mig = await page.evaluate(() => migrate(normalize({web: {dv: 1}, classes: [{name: "G", kind: "paid", dates: ["2026-03-02", "2026-03-04", "2099-01-01"], att_ok: ["2026-03-02"],
       students: [{name: "A", marks: {"2026-03-04": "dq"}}, {name: "B", marks: {}}, {name: "C", joined: "2026-03-03", marks: {}}]}]})).classes[0].students.map((s) => s.marks));
     assert.deepEqual(mig, [{"2026-03-02": "ot", "2026-03-04": "ox"}, {"2026-03-02": "ot", "2026-03-04": "ot"}, {"2026-03-04": "ot"}]);
-    // davomat: baho yo'q
-    await page.evaluate(() => { D.classes[D.classes.length - 1].dates.push(todayIso()); save(); render(); });
-    await page.click("[data-jp=j]");
-    assert.equal(await page.locator("table.j th", {hasText: "O'rt."}).count(), 0);
-    await page.evaluate(() => { V.mode = "day"; V.anchor = todayIso(); render(); });
-    assert.equal(await page.locator(".dg").count(), 0);
-    assert.equal(await page.locator(".da[data-a$='|s']").count(), 0);
-    assert.ok(await page.locator(".da[data-a$='|ot']").count() >= 1);
-    await page.evaluate(() => { V.mode = "week"; render(); });
+    // yo'qlama va baho yo'q: «Darslar» jadvali ham yo'q, faqat kelgan kunlar
+    await page.evaluate(() => { S.jpage = "cards"; render(); });
+    assert.equal(await page.locator(".jtabs [data-jp=j]").count(), 0);
+    assert.equal(await page.locator("table.j").count(), 0);
+    assert.ok(!(await page.textContent("main")).includes("Qatnashuv"));
     // qo'shilgan sanadan oldingi darslar: katak bo'sh, belgi qo'yilmaydi
     const pre = await page.evaluate((i) => { const c = D.classes[i], s = c.students[0]; s.joined = "2099-01-01"; render();
-      const n = document.querySelectorAll(".cell.pre").length, ok = putMark(c, 0, todayIso(), "ot", true); delete s.joined; render(); return [n > 0, ok]; }, ci);
-    assert.deepEqual(pre, [true, false]);
+      const ok = putMark(c, 0, todayIso(), "ot", true); delete s.joined; render(); return ok; }, ci);
+    assert.equal(pre, false);
     // to'lov yozish va hisobot
     await page.click("[data-jp=pay]");
     await page.click("[data-pay='1']"); await page.fill(".modal #ps", "50000"); await page.click(".modal [data-ok]");
@@ -1951,10 +1947,7 @@ test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqla
     assert.equal(await page.evaluate(() => S.jpage), "cards");
     await page.click("[data-tog='0']");
     assert.equal(await page.evaluate((i) => D.classes[i].students[0].marks[todayIso()], ci), "ot");
-    await page.evaluate(() => { unlockedUntil = Date.now() + 60000; });   // qo'yilgan belgini o'zgartirish — qulf ochiq bo'lsa
-    await page.click("[data-tog='0']");
-    assert.equal(await page.evaluate((i) => D.classes[i].students[0].marks[todayIso()], ci), "ox");
-    await page.click("[data-tog='0']");
+    await page.click("[data-tog='0']");   // qayta bosish — o'chadi
     assert.equal(await page.evaluate((i) => D.classes[i].students[0].marks[todayIso()] || "", ci), "");
     // «Jurnal» bosilsa — sinf ochiladi, guruh emas
     await page.click(".side [data-go=journal]");
@@ -1969,22 +1962,15 @@ test("to'garak va pullik ta'lim: a'zolar, faqat davomat, to'lov va qarz, yutuqla
     assert.equal(await page.locator("table.pay").count(), 0);
     await page.waitForSelector("text=To'lovlar himoyalangan");
     await page.evaluate(() => { D.settings.protect.pin = null; render(); });
-    // darsni boshlash: baholar qadami yo'q; «o'tildi / o'tilmadi»; yakunlanganda belgisizlarga «o'tildi»
-    await page.evaluate((i) => startLesson(i), ci);
-    await page.click("[data-att='1|ox']");
-    await page.click("[data-next]");
-    assert.equal(await page.evaluate(() => S.step), 2);
-    await page.click("[data-next]");
-    assert.deepEqual(await page.evaluate((i) => D.classes[i].students.map((s) => s.marks[todayIso()]), ci), ["ot", "ox"]);
     // to'garak: yutuq va ko'nikma bahosi
     await page.evaluate(() => addClassDialog("club"));
     await page.fill(".modal #cn", "Robototexnika"); await page.fill(".modal #cl", "Aliyev Sardor, 7-B"); await page.click(".modal [data-ok]");
     const k = await page.evaluate(() => D.classes.length - 1);
-    assert.equal(await page.locator(".jtabs [data-jp]").allTextContents().then((x) => x.join("|")), "A'zolar|Darslar|Yutuqlar|Ro'yxat");
-    await page.click("[data-jp=mem]"); await page.selectOption("[data-mf='0|skill']", "8");
+    assert.equal(await page.locator(".jtabs [data-jp]").allTextContents().then((x) => x.join("|")), "A'zolar|Yutuqlar|Ro'yxat");
+    await page.click("[data-jp=mem]"); assert.equal(await page.locator("[data-mf$='|skill']").count(), 0, "to'garakda baho yo'q");
     await page.click("[data-jp=ach]"); await page.fill("#at", "Robototexnika tanlovi"); await page.selectOption("#al", "Tuman"); await page.click("[data-adda]");
     const st = await page.evaluate((i) => D.classes[i].students[0], k);
-    assert.equal(st.ach.length, 1); assert.equal(st.ach[0].lvl, "Tuman"); assert.equal(Object.values(st.skill)[0], 8);
+    assert.equal(st.ach.length, 1); assert.equal(st.ach[0].lvl, "Tuman");
     assert.ok(await page.evaluate((i) => riskOverview().every((r) => r.ci !== i), k));
     // Hisobotlar: sinflar va guruhlar alohida bandda
     await page.click(".side [data-go=reports]");
@@ -2061,14 +2047,14 @@ test("Guruhlar: tavsiyalar, davr bo'yicha kelgan kunlar va yutuqlar (pullik guru
       const c = normalize({classes: [{name: "Ingliz", kind: "paid", dates: ds, fee: {month: 0, day: 1000}, students: [
         {name: "Ketma Ket", marks: mk(["ot", "ot", "ot", "ot", "ot", "ot", "ot", "ox", "ox", "ox"]), plan: {t: "day", sum: 1000}},
         {name: "Pasaygan", marks: mk(["ot", "ot", "ot", "ot", "ox", "ot", "ox", "ox", "ot", "ox"]), plan: {t: "day", sum: 1000}},
-        {name: "Doimiy", marks: mk(Array(10).fill("ot")), plan: {t: "day", sum: 1000}}]}]}).classes[0];
+        {name: "Doimiy", marks: mk(Array(10).fill("ot")), plan: {t: "day", sum: 1000}},
+        {name: "Uzoq", marks: Object.fromEntries([60, 59, 58, 57].map((n) => { const d = new Date(); d.setDate(d.getDate() - n); return [iso(d), "ot"]; })), plan: {t: "day", sum: 0}}]}]}).classes[0];
       D.classes.push(c); const L = grpInsights(c, t, false);
       return {names: L.map((x) => c.students[x.si].name + ":" + x.lv), per: c.students.map((s) => grpPeriod(c, s, ds[0], t)), n: D.classes.length - 1};
     });
-    assert.ok(r.names.includes("Ketma Ket:0"), "ketma-ket qoldirish topilmadi: " + r.names);
-    assert.ok(r.names.some((x) => x.startsWith("Pasaygan")), "faollik pasayishi topilmadi");
+    assert.ok(r.names.includes("Uzoq:1"), "uzoq vaqt kelmaganlik topilmadi: " + r.names);
     assert.deepEqual(r.names.filter((x) => x.startsWith("Doimiy")), ["Doimiy:1"], "doimiy qatnashchiga faqat qarz haqida tavsiya chiqishi kerak");
-    assert.deepEqual(r.per.map((x) => x.came), [7, 6, 10]);
+    assert.deepEqual(r.per.slice(0, 3).map((x) => x.came), [7, 6, 10]);
     assert.equal(r.per[2].sum, 10000);
     await page.evaluate((n) => { S.ci = n; S.jpage = "cards"; go("journal"); }, r.n);
     await page.waitForSelector("text=Tavsiyalar");
@@ -2128,7 +2114,7 @@ test("Bugun: sinflar ko'rsatkichi kartasi (davomat, o'zlashtirish, baholanganlik
   } finally { await browser.close(); }
 });
 
-test("Pullik guruh: dars paketi — kelgan sanalar, to'lov vaqti ogohlantirishi, paket to'lovi", async () => {
+test("Pullik guruh: kelishilgan dars soni — kelgan sanalar, to'lov vaqti ogohlantirishi, to'lov bilan yopish", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     const page = await browser.newPage({viewport: {width: 1280, height: 800}});
@@ -2147,12 +2133,12 @@ test("Pullik guruh: dars paketi — kelgan sanalar, to'lov vaqti ogohlantirishi,
     assert.deepEqual(st, [[3, 3, true, undefined, undefined], [2, 2, true, 2, undefined], [1, 3, false, undefined, undefined], [0, 3, false, undefined, undefined]]);
     // «Bugun»da ogohlantirish
     await page.evaluate(() => go("today"));
-    assert.ok((await page.textContent("main")).includes("Paket tugadi"));
+    assert.ok((await page.textContent("main")).includes("Kelishilgan darslar tugadi"));
     assert.equal(await page.locator(`[data-packci="${ci}"]`).count(), 1);
     // guruh kartochkalari: nishon va kelgan kunlar oynasi
     await page.evaluate((i) => { S.ci = i; S.jpage = "cards"; go("journal"); }, ci);
     assert.equal(await page.locator(".mcard .gpay.no", {hasText: "to'lov vaqti"}).count(), 2);
-    assert.ok((await page.locator(".mcard").nth(2).textContent()).includes("Paket: 1/3"));
+    assert.ok((await page.locator(".mcard").nth(2).textContent()).includes("Dars: 1/3"));
     await page.click('[data-cdates="2"]');
     await page.fill(".modal #cd", await page.evaluate(() => iso(addDays(pdate(todayIso()), -3))));
     await page.click(".modal [data-add]");
@@ -2380,6 +2366,49 @@ test("Sozlamalar: hafta/oy/chorak rejimlarini o'chirib-yoqish, ixcham dizayn va 
     assert.ok(bs.length >= 6 && bs.every(([w, bg]) => w === "1px" && bg), JSON.stringify(bs));
     const gaps = await page.$$eval("nav.secs button", (x) => x.slice(1).map((b, i) => Math.round(b.getBoundingClientRect().top - x[i].getBoundingClientRect().bottom)));
     assert.ok(gaps.every((g) => g >= 4), "tugmalar orasida bo'sh joy: " + gaps);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("To'garak va pullik guruh: yo'qlama va baho yo'q, faqat kelgan kunlar (bugun bir bosish, sana bilan yozish)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1280, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const ci = await page.evaluate(() => {
+      const t = todayIso(), g = normalize({web: {dv: 2}, classes: [{name: "Kurs", kind: "paid", pack: 3, dates: [], fee: {month: 300000, day: 50000},
+        students: [{name: "Aliyev A", marks: {}}, {name: "Karimova B", marks: {}}]}, {name: "Robot", kind: "club", dates: [], students: [{name: "Valiyev C", marks: {}}]}]});
+      D.classes.push(...g.classes); save(); return [D.classes.length - 2, D.classes.length - 1];
+    });
+    for (const [i, kind] of [[ci[0], "paid"], [ci[1], "club"]]) {
+      await page.evaluate((n) => { S.ci = n; S.jpage = "cards"; go("journal"); }, i);
+      assert.equal(await page.locator(".jtabs [data-jp=j]").count(), 0, kind + ": «Darslar» yo'q");
+      assert.equal(await page.locator("[data-start], [data-allok], [data-att]").count(), 0, kind + ": dars boshlash va yo'qlama yo'q");
+      assert.ok(!(await page.textContent("main")).includes("Qatnashuv"));
+      // bugun: bir bosish — yoziladi, qayta bosish — o'chadi (o'tilmadi belgisi yo'q)
+      await page.click("[data-tog='0']");
+      assert.equal(await page.evaluate(([n]) => D.classes[n].students[0].marks[todayIso()], [i]), "ot");
+      assert.ok((await page.locator(".mcard").first().textContent()).includes("1 kun"));
+      await page.click("[data-tog='0']");
+      assert.equal(await page.evaluate(([n]) => D.classes[n].students[0].marks[todayIso()] || "", [i]), "");
+      // boshqa sana bilan yozish
+      await page.click('[data-cdates="0"]');
+      const d = await page.evaluate(() => iso(addDays(pdate(todayIso()), -2)));
+      await page.fill(".modal #cd", d); await page.click(".modal [data-add]");
+      assert.deepEqual(await page.evaluate(([n]) => cameDates(D.classes[n], D.classes[n].students[0]), [i]), [d]);
+      await page.evaluate(() => document.querySelectorAll(".modal").forEach((m) => m._close && m._close()));
+    }
+    // maktab funksiyalari «Yana» menyusida yo'q
+    await page.evaluate((n) => { S.ci = n; S.jpage = "cards"; go("journal"); }, ci[0]);
+    await page.click("[data-more]");
+    const menu = await page.textContent(".modal");
+    for (const x of ["Doskaga chaqirish", "O'rindiq", "Mavzular va uy vazifalari", "KTR", "Sana qo'shish"]) assert.ok(!menu.includes(x), x);
+    await page.evaluate(() => document.querySelectorAll(".modal").forEach((m) => m._close && m._close()));
+    // «Bugun»da guruhlar uchun yo'qlama kartochkasi chiqmaydi
+    assert.ok(await page.evaluate(() => lessonsToday().every((x) => !isGrp(x.c))));
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });

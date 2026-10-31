@@ -703,7 +703,7 @@ function hwOverview() {
 }
 function lessonsToday() {
   const t = todayIso(), sc = schedToday(t);
-  const L = D.classes.map((c, ci) => ({c, ci})).filter(({c}) => c.dates.includes(t) && !isNoLesson(c, t))
+  const L = D.classes.map((c, ci) => ({c, ci})).filter(({c}) => !isGrp(c) && c.dates.includes(t) && !isNoLesson(c, t))
     .map(({c, ci}) => ({c, ci, done: hasMarks(c, t) || c.att_ok.includes(t)}));
   if (!sc.length) return L;
   // jadval bo'yicha: birinchi soati bo'yicha tartiblash, vaqtini qo'shish
@@ -715,6 +715,7 @@ const GAP_DAYS = 14;
 function lessonGaps(upto = iso(addDays(new Date(), -1)), days = GAP_DAYS) {
   const lo = iso(addDays(pdate(upto), -days + 1)), out = [];
   D.classes.forEach((c, ci) => {
+    if (isGrp(c)) return;   // to'garak va pullik guruhlarda yo'qlama va mavzu yo'q: faqat kelgan kunlar yoziladi
     // mavzu faqat oxirgi 30 kunda kamida bitta mavzu yozilgan sinflarda so'raladi
     const usesTopic = Object.entries(c.lessons || {}).some(([d, l]) => l && l.topic && d >= iso(addDays(pdate(upto), -30)));
     for (const d of c.dates) {
@@ -1685,8 +1686,8 @@ const monthOf = (d) => d.slice(0, 7);
 const monthName = (m) => `${MONTHS[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}`;
 const shiftMonth = (m, n) => iso(new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + n, 1)).slice(0, 7);
 function grpTabs(c) {
-  const t = c.kind === "club" ? [["cards", "A'zolar"], ["j", "Darslar"], ["ach", "Yutuqlar"], ["mem", "Ro'yxat"]]
-    : c.kind === "paid" ? [["cards", "O'quvchilar"], ["j", "Darslar"], ["pay", "To'lovlar"], ["ach", "Yutuqlar"], ["mem", "Ro'yxat"]] : null;
+  const t = c.kind === "club" ? [["cards", "A'zolar"], ["ach", "Yutuqlar"], ["mem", "Ro'yxat"]]
+    : c.kind === "paid" ? [["cards", "O'quvchilar"], ["pay", "To'lovlar"], ["ach", "Yutuqlar"], ["mem", "Ro'yxat"]] : null;
   return t && t.filter(([k]) => k !== "ach" || feat("ach"));
 }
 // narx: har o'quvchi bilan kelishiladi — maktabda oylik, uyida kunlik (o'tilgan dars × narx)
@@ -1744,23 +1745,22 @@ function bindLocked(m) { const u = $("[data-unl]", m); if (u) u.onclick = async 
 function pageMem(m) {
   const c = D.classes[S.ci], paid = c.kind === "paid", mo = monthOf(todayIso()), lock = paid && moneyLocked();
   const rows = c.students.map((s, si) => {
-    const p = planOf(c, s), held = c.dates.filter((d) => d.startsWith(mo) && d <= todayIso() && !isNoLesson(c, d) && GRP_KEYS.includes(s.marks[d])), came = held.filter((d) => s.marks[d] === "ot").length;
+    const p = planOf(c, s), came = cameDates(c, s).filter((d) => d.startsWith(mo)).length;
     return `<tr><td><button class="link" data-st="${si}" title="Kartochkani ochish">${esc(s.name)}</button></td>
       <td><input class="form-control mi" type="text" data-mf="${si}|cls" value="${esc(s.cls || "")}" placeholder="7-B" aria-label="Sinfi"></td>
       <td><input class="form-control mi ph" type="tel" data-mf="${si}|phone" value="${esc((s.par || {}).phone || "")}" placeholder="+998 90 …" inputmode="tel" aria-label="Ota-ona telefoni"></td>
       <td><input class="form-control mi" type="date" data-mf="${si}|joined" value="${esc(s.joined || "")}" aria-label="Qo'shilgan sana"></td>
       ${paid ? `<td><select class="mi" data-mf="${si}|pt" aria-label="Narx turi"><option value="month" ${p.t === "month" ? "selected" : ""}>Maktabda (oylik)</option><option value="day" ${p.t === "day" ? "selected" : ""}>Uyida (kunlik)</option></select></td>
         <td>${lock ? `<span class="muted">🔒</span>` : `<input class="form-control mi sum" type="text" data-mf="${si}|ps" value="${p.sum || ""}" inputmode="numeric" aria-label="Narx, so'm">`}</td>
-        <td><input class="form-control mi sum" type="text" data-mf="${si}|pack" value="${s.pack || ""}" placeholder="${c.pack || "—"}" inputmode="numeric" aria-label="Paket, darslar soni"></td>`
-      : `<td><select class="mi" data-mf="${si}|skill" aria-label="Ko'nikma bahosi">${["", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((g) => `<option ${String((s.skill || {})[mo] ?? "") === String(g) ? "selected" : ""} value="${g}">${g || "—"}</option>`).join("")}</select></td>
-        ${feat("ach") ? `<td class="s">${(s.ach || []).length || "—"}</td>` : ""}`}
-      <td class="s">${held.length ? Math.round(100 * came / held.length) + "%" : "—"}</td></tr>`;
+        <td><input class="form-control mi sum" type="text" data-mf="${si}|pack" value="${s.pack || ""}" placeholder="${c.pack || "—"}" inputmode="numeric" aria-label="Kelishilgan dars soni"></td>`
+      : (feat("ach") ? `<td class="s">${(s.ach || []).length || "—"}</td>` : "")}
+      <td class="s">${came || "—"}</td></tr>`;
   }).join("");
   m.innerHTML = `<div class="vcol" style="gap:12px">${jHead("", "", `<button class="btn" data-addm>＋ ${paid ? "O'quvchi" : "A'zo"} qo'shish</button>`)}
     ${c.students.length ? `<div class="tblwrap"><table class="table r mem"><tr><th>${paid ? "O'quvchi" : "A'zo"}</th><th>Sinfi</th><th>Ota-ona telefoni</th><th>Qo'shilgan</th>
-      ${paid ? `<th>Narx turi</th><th>Narx, so'm</th><th title="Paket: to'lovgacha darslar soni">Paket, dars</th>` : `<th title="Oyda bir marta qo'yiladigan ko'nikma bahosi">Ko'nikma · ${MONTHS[+mo.slice(5) - 1]}</th>${feat("ach") ? "<th>Yutuqlar</th>" : ""}`}<th>Qatnashuv · ${MONTHS[+mo.slice(5) - 1]}</th></tr>${rows}</table></div>`
+      ${paid ? `<th>Narx turi</th><th>Narx, so'm</th><th title="Oyiga nechta dars bo'lishi shu o'quvchi bilan kelishilgan; shuncha dars kelgach to'lov eslatiladi">Kelishilgan dars soni</th>` : (feat("ach") ? "<th>Yutuqlar</th>" : "")}<th>Kelgan kunlar · ${MONTHS[+mo.slice(5) - 1]}</th></tr>${rows}</table></div>`
       : `<div class="card muted">Hali ${paid ? "o'quvchi" : "a'zo"} yo'q. «＋ ${paid ? "O'quvchi" : "A'zo"} qo'shish» tugmasini bosing.</div>`}
-    <p class="muted" style="margin:0">${paid ? "Narx har o'quvchi bilan alohida kelishiladi: maktabda — oylik, uyida — har o'tilgan dars uchun. Uyida — faqat «✓ o'tildi» belgilangan darslar hisoblanadi; dars o'tilmasa (✗) puli olinmaydi, u boshqa kuni o'tib beriladi." : "Ko'nikma bahosi ixtiyoriy — oyda bir marta. Yutuqlar «Yutuqlar» bo'limida."} O'zgarish o'zi saqlanadi.</p></div>`;
+    <p class="muted" style="margin:0">${paid ? "Narx va oyiga dars soni har o'quvchi bilan alohida kelishiladi: maktabda — oylik, uyida — har kelgan kun uchun. Hisob kelgan kunlar bo'yicha yuritiladi." : "Yutuqlar «Yutuqlar» bo'limida."} O'zgarish o'zi saqlanadi.</p></div>`;
   bindJHead(m);
   m.querySelectorAll("[data-st]").forEach((b) => b.onclick = () => studentCard(S.ci, c.students[+b.dataset.st].name));
   m.querySelectorAll("[data-mf]").forEach((x) => x.onchange = () => {
@@ -1867,7 +1867,7 @@ function payDialog(ci, si, mo) {
       <label class="f">Usul<select id="ph">${PAY_HOW.map((h) => `<option ${svcOf(c) === "school" && h === "Bank" ? "selected" : ""}>${h}</option>`).join("")}</select></label></div>
     ${svcOf(c) === "school" ? `<div class="muted" id="phw">Maktab xizmati (343-son nizom, 10-band): to'lov bank yoki bank kassasi orqali maktabning g'aznachilik hisobiga o'tkaziladi — naqd qabul qilinmaydi.</div>` : ""}
     <label class="f">Izoh<input class="form-control" type="text" id="pn" placeholder="ixtiyoriy"></label>
-    ${packN(c, s) ? `<label class="hrow" style="gap:6px"><input type="checkbox" id="ppk" checked> Paket to'lovi — yangi ${packN(c, s)} dars uchun (${packOf(c, s).used}/${packN(c, s)} dars o'tgan)</label>` : ""}
+    ${packN(c, s) ? `<label class="hrow" style="gap:6px"><input type="checkbox" id="ppk" checked> To'lov kelishilgan ${packN(c, s)} dars uchun (${packOf(c, s).used}/${packN(c, s)} kelgan)</label>` : ""}
     <div class="hrow"><span class="sp"></span><button class="btn" data-x>Yopish</button><button class="btn btn-primary" data-ok>💾 Saqlash</button></div>
     ${(s.pays || []).length ? `<h3 style="margin:6px 0 0">To'lovlar tarixi</h3><div class="tblwrap"><table class="table r"><tr><th>№</th><th>Sana</th><th>Oy</th><th>Summa</th><th>Usul</th><th></th></tr>
       ${list().map((p) => `<tr><td>${esc(p.no || "")}</td><td>${fmt(p.d)}</td><td>${monthName(p.m)}</td><td class="s">${som(p.sum)}</td><td>${esc(p.how || "")}</td><td class="act"><button class="btn btn-sm" data-rc="${esc(p.id)}" title="Kvitansiya">🧾</button><button class="btn btn-sm" data-pdel="${p.id}" title="O'chirish">🗑</button></td></tr>`).join("")}</table></div>` : ""}`, (mm, close) => {
@@ -1931,24 +1931,30 @@ function markCame(c, si, d) {
   if (!c.dates.includes(d)) { c.dates.push(d); c.dates.sort(); }
   s.marks[d] = "ot"; log(c, s, d, old, "ot"); pushUndo([{kind: "mark", c, s, key: d, old, nw: "ot"}]); save(); return true;
 }
+// kelgan kunni o'chirish (qaytarish mumkin)
+function unCame(c, si, d) {
+  const s = c.students[si], old = s.marks[d] || ""; if (!old) return false;
+  delete s.marks[d]; log(c, s, d, old, ""); pushUndo([{kind: "mark", c, s, key: d, old, nw: ""}]); save(); return true;
+}
 function packDialog(ci, si) {
-  const c = D.classes[ci], s = c.students[si], t = todayIso(), pk = packOf(c, s, t);
+  const c = D.classes[ci], s = c.students[si], t = todayIso(), pk = packOf(c, s, t), mo = monthOf(t);
+  const dates = pk ? pk.dates : cameDates(c, s, t).filter((d) => d.startsWith(mo));
   modal(`<h2>Kelgan kunlar — ${esc(s.name)}</h2>
-    <div class="muted">${esc(label(c))} · ${pk ? `paket ${pk.n} dars · hozir ${pk.used} ta${pk.due ? ` — <b class="warn">to'lov vaqti</b>` : `, yana ${pk.left} ta qoldi`}` : "paket belgilanmagan (guruh sozlamalarida yoki «Ro'yxat» da qo'ying)"}</div>
+    <div class="muted">${esc(label(c))} · ${pk ? `kelishilgan ${pk.n} dars · hozir ${pk.used} ta${pk.due ? ` — <b class="warn">to'lov vaqti</b>` : `, yana ${pk.left} ta qoldi`}` : c.kind === "paid" ? "kelishilgan dars soni belgilanmagan («Ro'yxat» da yoki guruh sozlamalarida qo'ying)" : `${MONTHS[+mo.slice(5) - 1]} oyida ${dates.length} kun keldi`}</div>
     <div class="hrow wrap"><label class="f">Kelgan sana<input class="form-control" type="date" id="cd" value="${t}" max="${t}"></label><button class="btn btn-primary" data-add>＋ Yozish</button></div>
-    ${pk && pk.dates.length ? `<div class="hrow wrap" style="gap:6px">${pk.dates.map((d, k) => `<span class="gpay">${k + 1}. ${fmt(d).slice(0, 5)} <button class="link" data-del="${d}" title="O'chirish" aria-label="O'chirish">✕</button></span>`).join("")}</div>`
-      : `<div class="muted">Joriy paketda kelgan kun hali yo'q.</div>`}
+    ${dates.length ? `<div class="hrow wrap" style="gap:6px">${dates.map((d, k) => `<span class="gpay">${k + 1}. ${fmt(d).slice(0, 5)} <button class="link" data-del="${d}" title="O'chirish" aria-label="O'chirish">✕</button></span>`).join("")}</div>`
+      : `<div class="muted">${pk ? "Joriy paketda" : "Bu oyda"} kelgan kun hali yo'q.</div>`}
     <div class="hrow"><span class="sp"></span>${pk && pk.due ? `<button class="btn btn-primary" data-pay>💰 To'lov yozish</button>` : ""}<button class="btn" data-x>Yopish</button></div>`, (mm, close) => {
     $("[data-x]", mm).onclick = () => close();
-    $("[data-add]", mm).onclick = () => { if (markCame(c, si, $("#cd", mm).value)) { close(); render(); const q = packOf(c, s); toast(q && q.used === q.n ? `🔔 ${s.name}: paket (${q.n} dars) tugadi — to'lov vaqti` : "Yozildi"); packDialog(ci, si); } };
-    mm.querySelectorAll("[data-del]").forEach((b) => b.onclick = () => { const d = b.dataset.del, old = s.marks[d]; delete s.marks[d]; log(c, s, d, old, ""); pushUndo([{kind: "mark", c, s, key: d, old, nw: ""}]); save(); close(); render(); packDialog(ci, si); });
+    $("[data-add]", mm).onclick = () => { if (markCame(c, si, $("#cd", mm).value)) { close(); render(); const q = packOf(c, s); toast(q && q.used === q.n ? `🔔 ${s.name}: kelishilgan ${q.n} dars tugadi — to'lov vaqti` : "Yozildi"); packDialog(ci, si); } };
+    mm.querySelectorAll("[data-del]").forEach((b) => b.onclick = () => { unCame(c, si, b.dataset.del); close(); render(); packDialog(ci, si); });
     const pb = $("[data-pay]", mm); if (pb) pb.onclick = () => { close(); payDialog(ci, si, monthOf(t)); };
   });
 }
 // «Bugun»: paketi tugagan o'quvchilar (to'lov vaqti)
 function packCard() {
   const t = todayIso(), L = D.classes.map((c, ci) => ({c, ci, u: packDueList(c, t)})).filter((x) => x.u.length); if (!L.length) return "";
-  return `<section class="card vcol gaps"><h2>🔔 Paket tugadi — to'lov vaqti</h2>${L.map(({c, ci, u}) => `<div class="hrow" style="gap:8px;flex-wrap:nowrap"><div class="sp" style="min-width:0"><b>${esc(label(c))}</b>
+  return `<section class="card vcol gaps"><h2>🔔 Kelishilgan darslar tugadi — to'lov vaqti</h2>${L.map(({c, ci, u}) => `<div class="hrow" style="gap:8px;flex-wrap:nowrap"><div class="sp" style="min-width:0"><b>${esc(label(c))}</b>
     <div class="muted">${u.length} kishi: ${esc(u.slice(0, 4).map((s) => shortName(s.name)).join(", "))}${u.length > 4 ? " …" : ""}</div></div>
     <button class="btn btn-sm" data-packci="${ci}">Ko'rish</button></div>`).join("")}</section>`;
 }
@@ -1963,48 +1969,51 @@ function payCard() {
 
 /* «Guruhlar» bo'limi: to'garak va pullik guruhlar sinf jurnallaridan alohida */
 const grpIdx = () => D.classes.map((c, i) => isGrp(c) ? i : -1).filter((i) => i >= 0);
-function grpAtt(c, mo, t = todayIso()) {   // shu oy: «o'tildi» belgilari ulushi (o'tildi + o'tilmadi ichida)
+function grpAtt(c, mo, t = todayIso()) {   // eski ma'lumotlar uchun: «o'tildi/o'tilmadi» ulushi (faqat guruhlar taqqoslash hisobotida)
   let ot = 0, n = 0;
   for (const d of c.dates) { if (!d.startsWith(mo) || d > t || isNoLesson(c, d)) continue; for (const s of c.students) { const k = s.marks[d]; if (GRP_KEYS.includes(k)) { n++; ot += k === "ot"; } } }
   return n ? Math.round(100 * ot / n) : null;
+}
+function grpCame(c, mo, t = todayIso()) {   // shu oy hamma o'quvchilarning kelgan kunlari yig'indisi
+  return c.students.reduce((a, s) => a + cameDates(c, s, t).filter((d) => d.startsWith(mo)).length, 0);
 }
 const taken = (c, d) => c.att_ok.includes(d) || c.students.some((s) => s.marks[d]);
 const wdTxt = (c) => (c.weekdays || []).map((k) => WD[k]).join(" · ");
 function grpOpen(ci, jp = "cards") { S.ci = ci; S.jpage = jp; S.sel = null; S.pm = monthOf(todayIso()); go("journal"); }
 function pageGroups(m) {
-  const t = todayIso(), mo = monthOf(t), G = grpIdx(), lk = moneyLocked(), today = new Set(lessonsToday().map((x) => x.ci));
+  const t = todayIso(), mo = monthOf(t), G = grpIdx(), lk = moneyLocked(), today = new Set(G.filter((i) => (D.classes[i].weekdays || []).includes(pyWd(t))));
   const paid = G.filter((i) => D.classes[i].kind === "paid").map((i) => D.classes[i]);
   const income = paid.reduce((a, c) => a + c.students.reduce((b, s) => b + paidIn(s, mo), 0), 0);
   const debt = paid.reduce((a, c) => a + c.students.reduce((b, s) => b + Math.max(0, debtOf(c, s, t)), 0), 0);
   const tile = (k, v, cls = "") => `<div class="tile"><div>${k}</div><div class="${cls}">${v}</div></div>`;
   const card = (ci) => {
-    const c = D.classes[ci], att = grpAtt(c, mo, t), un = c.kind === "paid" ? unpaidNow(c, t).length : 0;
+    const c = D.classes[ci], came = grpCame(c, mo, t), un = c.kind === "paid" ? unpaidNow(c, t).length : 0;
     const ach = c.students.reduce((a, s) => a + (s.ach || []).length, 0), pkDue = packDueList(c, t).length;
     return `<article class="gcard"><button class="gbandc ${c.kind}" data-gopen="${ci}"><small>${KINDS[c.kind][0].toUpperCase()}${today.has(ci) ? " · BUGUN" : ""}</small><b>${esc(label(c))}</b><span>${esc(wdTxt(c) || "dars kunlari belgilanmagan")}</span></button>
       <div class="gcb"><div class="hrow"><span class="muted sp">${c.kind === "club" ? "A'zolar" : "O'quvchilar"}</span><b>${c.students.length}</b></div>
-        <div class="hrow"><span class="muted sp">Qatnashuv · ${MONTHS[+mo.slice(5) - 1]}</span><b>${att === null ? "—" : att + "%"}</b></div>
+        <div class="hrow"><span class="muted sp">Kelgan kunlar · ${MONTHS[+mo.slice(5) - 1]}</span><b>${came}</b></div>
         ${c.kind === "paid" || feat("ach") ? `<div class="hrow"><span class="muted sp">${c.kind === "paid" ? "Shu oy to'lamagan" : "Yutuqlar"}</span><b class="${un ? "warn" : ""}">${c.kind === "paid" ? `${un} kishi` : `${ach} ta`}</b></div>` : ""}
-        ${pkDue ? `<div class="hrow"><span class="muted sp">Paketi tugagan</span><b class="warn">${pkDue} kishi</b></div>` : ""}
-        <div class="hrow" style="gap:8px"><button class="btn btn-primary sp" data-gopen="${ci}|j">Darslar</button>${c.kind === "paid" || feat("ach") ? `<button class="btn sp" data-gopen="${ci}|${c.kind === "paid" ? "pay" : "ach"}">${c.kind === "paid" ? "To'lovlar" : "Yutuqlar"}</button>` : ""}</div></div></article>`;
+        ${pkDue ? `<div class="hrow"><span class="muted sp">Darslari tugagan</span><b class="warn">${pkDue} kishi</b></div>` : ""}
+        <div class="hrow" style="gap:8px"><button class="btn btn-primary sp" data-gopen="${ci}|cards">Kelgan kunlar</button>${c.kind === "paid" || feat("ach") ? `<button class="btn sp" data-gopen="${ci}|${c.kind === "paid" ? "pay" : "ach"}">${c.kind === "paid" ? "To'lovlar" : "Yutuqlar"}</button>` : ""}</div></div></article>`;
   };
   m.innerHTML = `<div class="vcol" style="gap:18px">
     <header class="hrow wrap"><div class="vcol sp" style="gap:4px;flex:1 1 260px"><h1>Guruhlar</h1><span class="muted">To'garaklar va pullik ta'lim — sinf jurnallaridan alohida</span></div>
       <div class="hrow" style="gap:8px"><button class="btn" data-gadd="club">＋ To'garak</button><button class="btn btn-primary" data-gadd="paid">＋ Pullik guruh</button></div></header>
     ${G.length ? `<div class="tiles">${paid.length ? tile("Shu oy tushum", lk ? "🔒" : som(income)) + tile("Qarz", lk ? "🔒" : som(debt), debt && !lk ? "warn" : "") : ""}${tile("Bugun mashg'ulot", `${G.filter((i) => today.has(i)).length} ta`)}${tile("Jami a'zolar", G.reduce((a, i) => a + D.classes[i].students.length, 0))}</div>
       <div class="ggrid">${G.map(card).join("")}</div>`
-      : `<div class="card vcol" style="align-items:flex-start"><h2>Hali guruh yo'q</h2><div class="muted">To'garak — baho qo'yilmaydi: davomat, a'zolar, yutuqlar. Pullik ta'lim — davomat, narx (maktabda oylik, uyida har dars), to'lovlar va qarz.</div></div>`}</div>`;
+      : `<div class="card vcol" style="align-items:flex-start"><h2>Hali guruh yo'q</h2><div class="muted">To'garak va pullik ta'limda yo'qlama va baho yo'q: har o'quvchining kelgan kunlari yoziladi. Pullik ta'limda oyiga dars soni har o'quvchi bilan kelishiladi, soni yetganda to'lov eslatiladi.</div></div>`}</div>`;
   m.querySelectorAll("[data-gadd]").forEach((b) => b.onclick = () => addClassDialog(b.dataset.gadd));
   m.querySelectorAll("[data-gopen]").forEach((b) => b.onclick = () => { const [ci, jp] = b.dataset.gopen.split("|"); grpOpen(+ci, jp || "cards"); });
 }
 // guruh sarlavhasi: rangli lenta (turi, nomi, ko'rsatkichlar) + bo'limlar
 function gHead(per, row2, tools) {
-  const c = D.classes[S.ci], t = todayIso(), mo = monthOf(t), att = grpAtt(c, mo, t), lk = moneyLocked();
-  const st = [[c.kind === "club" ? "A'zolar" : "O'quvchilar", c.students.length], ["Qatnashuv", att === null ? "—" : att + "%"]];
+  const c = D.classes[S.ci], t = todayIso(), mo = monthOf(t), came = grpCame(c, mo, t), lk = moneyLocked();
+  const st = [[c.kind === "club" ? "A'zolar" : "O'quvchilar", c.students.length], ["Shu oy kelgan kunlar", came]];
   if (c.kind === "paid") { const u = unpaidNow(c, t).length; st.push(["Shu oy to'ladi", `${c.students.length - u} / ${c.students.length}`], ["Umumiy qarz", lk ? "🔒" : som(c.students.reduce((a, s) => a + Math.max(0, debtOf(c, s, t)), 0))]); }
   else if (feat("ach")) st.push(["Yutuqlar", c.students.reduce((a, s) => a + (s.ach || []).length, 0)]);
   return `<div class="jhead ghead"><div class="gband ${c.kind}">
       <div class="hrow gb1"><button class="btn btn-sm gback" data-gback aria-label="Guruhlar">‹<span class="lg">&nbsp;Guruhlar</span></button><span class="gkind">${KINDS[c.kind][0]}${c.kind === "paid" && c.svc ? ` · ${SVC[c.svc][0]}` : ""}</span><span class="gwd">${esc(wdTxt(c))}</span><span class="sp"></span>
-        ${UNDO.length ? `<button class="btn btn-sm" data-undo title="Bekor qilish (Ctrl+Z)">↶</button>` : ""}<button class="btn btn-primary gstart" data-start>▶ Bugungi dars</button><button class="btn btn-sm more" data-more title="Yana: boshqa amallar" aria-label="Yana">⋯</button></div>
+        ${UNDO.length ? `<button class="btn btn-sm" data-undo title="Bekor qilish (Ctrl+Z)">↶</button>` : ""}<button class="btn btn-sm more" data-more title="Yana: boshqa amallar" aria-label="Yana">⋯</button></div>
       <h1>${esc(label(c))}</h1>
       <div class="gstats">${st.map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join("")}</div></div>
     ${row2 ? `<div class="hrow jr2">${row2}</div>` : ""}
@@ -2014,29 +2023,19 @@ function gHead(per, row2, tools) {
 /* Avtomatik tavsiyalar: davomat, faollik, qarz va yutuqlardan kelib chiqib o'qituvchiga ogohlantirishlar.
    lv: 0 — jiddiy, 1 — e'tibor, 2 — ma'lumot, 3 — yaxshi xabar. Faqat belgilangan (✓/✗) darslar hisobga olinadi. */
 function grpInsights(c, t = todayIso(), lock = false) {
-  const held = c.dates.filter((d) => d <= t && !isNoLesson(c, d)), mo = monthOf(t), pm = shiftMonth(mo, -1), out = [];
-  const since = (n) => iso(addDays(pdate(t), -n));
+  const since = (n) => iso(addDays(pdate(t), -n)), out = [];
   c.students.forEach((s, si) => {
-    const mk = held.filter((d) => !preJoin(c, s, d) && (s.marks[d] === "ot" || s.marks[d] === "ox")).map((d) => [d, s.marks[d]]);
+    const came = cameDates(c, s, t), last = came[came.length - 1] || "";
     const add = (lv, txt) => out.push({lv, si, txt});
-    let streak = 0; for (let i = mk.length - 1; i >= 0 && mk[i][1] === "ox"; i--) streak++;
-    const miss30 = mk.filter(([d, v]) => v === "ox" && d >= since(30)).length;
-    if (streak >= 3) add(0, `${streak} ta dars ketma-ket qatnashmadi — ota-onasi bilan bog'laning`);
-    else if (miss30 >= 3) add(1, `so'nggi 30 kunda ${miss30} ta darsni qoldirdi`);
-    if (mk.length >= 8) {
-      const rate = (a) => a.filter(([, v]) => v === "ot").length / a.length, last = mk.slice(-4), prev = mk.slice(-8, -4);
-      if (rate(prev) - rate(last) >= 0.5) add(1, `faolligi pasaydi: avvalgi 4 darsda ${Math.round(100 * rate(prev))}% → oxirgi 4 darsda ${Math.round(100 * rate(last))}%`);
-    }
+    if (came.length >= 3 && last < since(30)) add(1, `${fmt(last)} dan beri kelmadi — ota-onasi bilan bog'laning`);
     if (c.kind === "paid" && !lock) {
       const dbt = debtOf(c, s, t); if (dbt > 0) add(1, `to'lov qarzi ${som(dbt)}`);
     }
     if (c.kind === "club" && feat("ach")) {
       const a = (s.ach || []).map((x) => x.d || "").sort(), la = a[a.length - 1] || "";
       if (la && la >= since(30)) add(3, `yaqinda yutuq qayd etilgan (${(s.ach || []).length} ta jami)`);
-      else if (mk.length >= 4 && (!la || la < since(90))) add(2, `so'nggi 3 oyda yutuq qayd etilmagan — musobaqa yoki ko'rgazmaga taklif qiling`);
+      else if (came.length >= 4 && (!la || la < since(90))) add(2, `so'nggi 3 oyda yutuq qayd etilmagan — musobaqa yoki ko'rgazmaga taklif qiling`);
     }
-    const k1 = (s.skill || {})[mo], k0 = (s.skill || {})[pm];
-    if (k1 != null && k0 != null && k0 - k1 >= 2) add(1, `ko'nikma bahosi pasaydi: ${k0} → ${k1}`);
   });
   return out.sort((a, b) => a.lv - b.lv || a.si - b.si);
 }
@@ -2059,39 +2058,37 @@ function periodCard(c, lock) {
   const rows = c.students.map((s) => ({s, r: grpPeriod(c, s, P.a, P.b)}));
   return `<details class="card" ${S.gperOpen ? "open" : ""}><summary><b>📅 Davr bo'yicha kelgan kunlar${paid ? " va to'lov" : ""}</b></summary>
     <div class="vcol" style="gap:10px;margin-top:10px"><div class="hrow wrap" style="gap:10px"><label class="f">Dan<input class="form-control" type="date" id="gpa" value="${esc(P.a)}"></label><label class="f">Gacha<input class="form-control" type="date" id="gpb" value="${esc(P.b)}"></label></div>
-    <div class="tblwrap"><table class="table r"><tr><th>${paid ? "O'quvchi" : "A'zo"}</th><th>Keldi</th><th>Kelmadi</th><th>Belgisiz</th>${money ? "<th>Hisoblangan</th>" : ""}</tr>
-    ${rows.map(({s, r}) => `<tr><td>${esc(s.name)}</td><td class="s">${r.came}</td><td class="s">${r.miss}</td><td class="s">${r.none}</td>${money ? `<td class="s">${som(r.sum)}</td>` : ""}</tr>`).join("")}
-    ${money ? `<tr><td><b>Jami</b></td><td></td><td></td><td></td><td class="s"><b>${som(rows.reduce((x, {r}) => x + r.sum, 0))}</b></td></tr>` : ""}</table></div>
+    <div class="tblwrap"><table class="table r"><tr><th>${paid ? "O'quvchi" : "A'zo"}</th><th>Kelgan kunlar</th>${money ? "<th>Hisoblangan</th>" : ""}</tr>
+    ${rows.map(({s, r}) => `<tr><td>${esc(s.name)}</td><td class="s">${r.came}</td>${money ? `<td class="s">${som(r.sum)}</td>` : ""}</tr>`).join("")}
+    ${money ? `<tr><td><b>Jami</b></td><td></td><td class="s"><b>${som(rows.reduce((x, {r}) => x + r.sum, 0))}</b></td></tr>` : ""}</table></div>
     <span class="muted">«Keldi» — dars o'tildi (✓) deb belgilangan kunlar${paid ? ". Kunlik narxda summa = kelgan kun × narx, oylikda — dars bo'lgan har oy uchun oylik narx" : ""}.</span></div></details>`;
 }
 function pageCards(m) {
   const c = D.classes[S.ci], t = todayIso(), mo = S.pm = S.pm || monthOf(t), paid = c.kind === "paid", lk = paid && moneyLocked();
-  const ds = c.dates.filter((d) => d.startsWith(mo) && !isNoLesson(c, d)), tOk = c.dates.includes(t) && !isNoLesson(c, t) && canEdit(t);
-  const dot = (s, d) => { const mk = s.marks[d] || "", k = mk === "ot" ? "yes" : mk === "ox" ? "no" : "";
-    return `<i class="gd ${k} ${d === t ? "t" : ""}" title="${fmt(d)}: ${{yes: "dars o'tildi", no: "dars o'tilmadi", "": d > t ? "hali bo'lmagan" : "belgilanmagan"}[k]}"></i>`; };
+  const tOk = canEdit(t);
   const cards = c.students.map((s, si) => {
     let badge = "", acts = "";
     if (paid) {
       const ch = chargeOf(c, s, mo, t), pd = paidIn(s, mo), dbt = debtOf(c, s, t);
       const pk = packOf(c, s, t);
-      badge = (pk ? `<span class="gpay ${pk.due ? "no" : ""}" title="Kelgan kunlar / paket">${pk.due ? `⚠ Paket tugadi — to'lov vaqti (${pk.used}/${pk.n})` : `Paket: ${pk.used}/${pk.n}`}</span>` : "") + (lk ? `<span class="gpay">🔒</span>` : ch && pd >= ch ? `<span class="gpay ok">✓ ${MONTHS[+mo.slice(5) - 1]} to'langan</span>` : dbt > 0 ? `<span class="gpay no">Qarz: ${som(dbt)}</span>` : pd ? `<span class="gpay ok">✓ ${som(pd)} to'langan</span>` : `<span class="gpay">To'lov yo'q</span>`);
+      badge = (pk ? `<span class="gpay ${pk.due ? "no" : ""}" title="Kelgan kunlar / kelishilgan dars soni">${pk.due ? `⚠ To'lov vaqti (${pk.used}/${pk.n})` : `Dars: ${pk.used}/${pk.n} (kelishilgan)`}</span>` : "") + (lk ? `<span class="gpay">🔒</span>` : ch && pd >= ch ? `<span class="gpay ok">✓ ${MONTHS[+mo.slice(5) - 1]} to'langan</span>` : dbt > 0 ? `<span class="gpay no">Qarz: ${som(dbt)}</span>` : pd ? `<span class="gpay ok">✓ ${som(pd)} to'langan</span>` : `<span class="gpay">To'lov yo'q</span>`);
       if (feat("ach") && (s.ach || []).length) badge += `<span class="gpay ok">🏆 ${(s.ach || []).length}</span>`;
-      acts = `<button class="btn btn-sm" data-cdates="${si}" title="Kelgan kunlar" aria-label="Kelgan kunlar">📅</button><button class="btn btn-sm" data-cpay="${si}">＋ To'lov</button>${!lk && dbt > 0 ? `<button class="btn btn-sm" data-crem="${si}" title="Ota-onaga eslatma" aria-label="Ota-onaga eslatma">✉</button>` : ""}`;
+      acts = `<button class="btn btn-sm" data-cpay="${si}">＋ To'lov</button>${!lk && dbt > 0 ? `<button class="btn btn-sm" data-crem="${si}" title="Ota-onaga eslatma" aria-label="Ota-onaga eslatma">✉</button>` : ""}`;
     } else {
-      const sk = (s.skill || {})[mo], n = (s.ach || []).length;
-      badge = `<span class="gpay">${sk ? `Ko'nikma: ${sk}` : "Ko'nikma: —"}</span>${n && feat("ach") ? `<span class="gpay ok">🏆 ${n}</span>` : ""}`;
+      const n = (s.ach || []).length;
+      badge = n && feat("ach") ? `<span class="gpay ok">🏆 ${n}</span>` : "";
       acts = feat("ach") ? `<button class="btn btn-sm" data-cach="${si}">＋ Yutuq</button>` : "";
     }
-    const tm = s.marks[t] || "", sd = ds.filter((d) => !preJoin(c, s, d)), tg = tOk && !preJoin(c, s, t);
+    const tm = s.marks[t] || "", came = cameDates(c, s, t).filter((d) => d.startsWith(mo)), tg = tOk && !preJoin(c, s, t);
     return `<article class="mcard"><div class="hrow" style="gap:10px;flex-wrap:nowrap"><span class="av">${esc(initials(s.name))}</span>
         <div class="sp" style="min-width:0"><button class="link mname" data-st="${si}">${esc(s.name)}</button><div class="muted msub">${esc([s.cls, paid ? planTxt(c, s) : "", fmtPhone((s.par || {}).phone || "")].filter(Boolean).join(" · ") || "—")}</div></div>
-        ${tg ? `<button class="btn btn-sm mtog ${tm === "ot" ? "yes" : tm === "ox" ? "no" : ""}" data-tog="${si}" title="Bugungi dars: bosib almashtiring (o'tildi → o'tilmadi → belgisiz)">${tm === "ot" ? "✓ o'tildi" : tm === "ox" ? "✗ o'tilmadi" : "Bugun: belgilash"}</button>` : ""}</div>
-      <div class="gdots" aria-label="${MONTHS[+mo.slice(5) - 1]} darslari">${sd.map((d) => dot(s, d)).join("") || `<span class="muted">${ds.length ? `${fmt(s.joined)} dan qo'shilgan` : "bu oyda dars yo'q"}</span>`}</div>
-      <div class="hrow" style="gap:6px">${badge}<span class="sp"></span>${acts}</div></article>`;
+        ${tg ? `<button class="btn btn-sm mtog ${tm === "ot" ? "yes" : ""}" data-tog="${si}" title="Bugun keldi: bosing — yoziladi, qayta bosing — o'chadi">${tm === "ot" ? "✓ bugun keldi" : "＋ bugun keldi"}</button>` : ""}</div>
+      <div class="gdots" aria-label="${MONTHS[+mo.slice(5) - 1]} oyida kelgan kunlar"><b>${came.length} kun</b>${came.map((d) => `<span class="gpay" title="${fmt(d)}">${+d.slice(8)}</span>`).join("") || `<span class="muted">${MONTHS[+mo.slice(5) - 1]} oyida kelgan kun yozilmagan</span>`}</div>
+      <div class="hrow" style="gap:6px">${badge}<span class="sp"></span><button class="btn btn-sm" data-cdates="${si}" title="Kelgan kunlarni yozish" aria-label="Kelgan kunlarni yozish">📅 Kelgan kunlar</button>${acts}</div></article>`;
   }).join("");
   m.innerHTML = `<div class="vcol" style="gap:14px">
     ${jHead(`<div class="pernav"><button class="btn btn-sm" data-pm="-1" aria-label="Oldingi oy">‹</button><span class="perbtn" style="cursor:default"><h2>${monthName(mo)}</h2></span><button class="btn btn-sm" data-pm="1" aria-label="Keyingi oy">›</button>${mo !== monthOf(t) ? `<button class="btn btn-sm today" data-pm="0">Shu oy</button>` : ""}</div>`, "", `<button class="btn" data-addm>＋ ${paid ? "O'quvchi" : "A'zo"}</button>`)}
-    ${c.students.length ? insightsCard(c, lk) + `<div class="mgrid2">${cards}</div>${periodCard(c, lk)}<p class="muted" style="margin:0">Nuqtalar — ${MONTHS_GEN[+mo.slice(5) - 1]} darslari (o'quvchi qo'shilgan kundan): yashil — dars o'tildi, qizil — o'tilmadi, bo'sh — hali bo'lmagan yoki belgilanmagan.${tOk ? " Bugungi tugma: bir bosish — o'tildi, ikki — o'tilmadi, uch — belgisiz." : ""}</p>`
+    ${c.students.length ? insightsCard(c, lk) + `<div class="mgrid2">${cards}</div>${periodCard(c, lk)}<p class="muted" style="margin:0">Raqamlar — ${MONTHS_GEN[+mo.slice(5) - 1]} oyida o'quvchi kelgan kunlar. Bugun kelganini bir bosishda yozing; boshqa kunni «📅 Kelgan kunlar» orqali sanasi bilan yozing.</p>`
       : `<div class="card muted">Hali ${paid ? "o'quvchi" : "a'zo"} yo'q. «＋ ${paid ? "O'quvchi" : "A'zo"}» tugmasini bosing.</div>`}</div>`;
   bindJHead(m);
   m.querySelectorAll("[data-pm]").forEach((b) => b.onclick = () => { const n = +b.dataset.pm; S.pm = n ? shiftMonth(mo, n) : monthOf(t); render(); });
@@ -2101,8 +2098,8 @@ function pageCards(m) {
   m.querySelectorAll("[data-crem]").forEach((b) => b.onclick = () => payRemind(S.ci, +b.dataset.crem));
   m.querySelectorAll("[data-cach]").forEach((b) => b.onclick = () => { S.achSel = +b.dataset.cach; S.jpage = "ach"; render(); });
   m.querySelectorAll("[data-tog]").forEach((b) => b.onclick = () => {
-    const si = +b.dataset.tog, old = c.students[si].marks[t] || "", y = window.scrollY;
-    if (putMark(c, si, t, old === "ot" ? "ox" : old === "ox" ? "" : "ot")) { save(); render(); window.scrollTo(0, y); }
+    const si = +b.dataset.tog, y = window.scrollY;
+    if (c.students[si].marks[t] === "ot" ? unCame(c, si, t) : markCame(c, si, t)) { render(); window.scrollTo(0, y); }
   });
   const ga = $("#gpa", m), gb = $("#gpb", m);
   if (ga && gb) { const ch = () => { if (ISO_D.test(ga.value) && ISO_D.test(gb.value)) { S.gper = {a: ga.value, b: gb.value}; S.gperOpen = true; render(); } }; ga.onchange = gb.onchange = ch; }
@@ -2463,7 +2460,7 @@ async function moreMenu() {
       ["⏸ Faolsizlantirish", async () => { deactivate(c, [S.sel[0]]); render(); const n = await askOthers(c, [sel.name], false); toast(`«${sel.name}» faolsizlantirildi${n ? ` (yana ${n} ta fanda)` : ""} — qaytarish: ↶`); }],
       ["✕ Shu kunni «dars yo'q» deb belgilash / qaytarish", () => toggleX(c, S.sel[1])],
     ]],
-    ["Darsda", [
+    !isGrp(c) && ["Darsda", [
       feat("call") && ["🎲 Doskaga chaqirish", () => callDialog(S.ci)],
       feat("groups") && ["👥 Guruhlarga bo'lish", () => groupsDialog(S.ci)],
       feat("seats") && ["🪑 O'rindiq xaritasi", () => seatsDialog(S.ci)],
@@ -2489,8 +2486,8 @@ async function moreMenu() {
     ]],
     ["Jurnal", [
       UNDO.length && ["↶ Oxirgi o'zgarishni bekor qilish", undoLast],
-      ["📅 Sana qo'shish (dars kunlari bo'yicha)", () => addDatesDialog(S.ci)],
-      !c.dates.includes(t) && ["📅 Bugunni dars kuni qilish", () => { c.dates.push(t); c.dates.sort(); save(); V.anchor = t; render(); }],
+      !isGrp(c) && ["📅 Sana qo'shish (dars kunlari bo'yicha)", () => addDatesDialog(S.ci)],
+      !isGrp(c) && !c.dates.includes(t) && ["📅 Bugunni dars kuni qilish", () => { c.dates.push(t); c.dates.sort(); save(); V.anchor = t; render(); }],
       [isGrp(c) ? "✎ Guruh sozlamalari: narx, sig'im, xizmat turi" : "✎ Sinf nomi va fani", () => editClass(S.ci)],
     ]],
   ].filter(Boolean).map(([h, l]) => [h, l.filter(Boolean)]).filter(([, l]) => l.length);
@@ -3483,8 +3480,8 @@ function editClass(i) {
   modal(`<h2>${g ? `${KINDS[c.kind][0]} — sozlamalar` : "Sinf"}</h2><div class="hrow"><label class="f sp">${g ? "Nomi" : "Sinf"}<input class="form-control" type="text" id="cn" value="${esc(c.name)}"></label><label class="f sp">${g ? "Yo'nalish" : "Fan"}<input class="form-control" type="text" id="cs" value="${esc(c.subject)}"></label></div>
     ${g ? `<div class="hrow"><label class="f sp">Sig'im (o'rinlar soni)<input class="form-control" type="text" id="ccap" inputmode="numeric" value="${c.cap || ""}" placeholder="masalan, 15"></label><label class="f sp">Vaqti<input class="form-control" type="text" id="ctm" value="${esc(c.time || "")}" placeholder="15:00–16:20"></label></div>` : ""}
     ${paid ? `${svcSeg(c.svc)}<div class="hrow"><label class="f sp">Oylik narx, so'm<input class="form-control" type="text" id="cfm" inputmode="numeric" value="${fee.month || ""}"></label><label class="f sp">Bir dars narxi, so'm<input class="form-control" type="text" id="cfd" inputmode="numeric" value="${fee.day || ""}"></label></div>
-      <div class="hrow"><label class="f sp">Dars paketi (darslar soni)<input class="form-control" type="text" id="cpk" inputmode="numeric" value="${c.pack || ""}" placeholder="masalan, 12"></label></div>
-      <div class="muted">Paket: shuncha dars o'tgach «to'lov vaqti» deb ogohlantiriladi. Ayrim o'quvchiga boshqa son «Ro'yxat» bo'limida qo'yiladi.</div>
+      <div class="hrow"><label class="f sp">Oyiga dars soni (kelishilgan)<input class="form-control" type="text" id="cpk" inputmode="numeric" value="${c.pack || ""}" placeholder="masalan, 12"></label></div>
+      <div class="muted">Shuncha kun kelgach «to'lov vaqti» deb ogohlantiriladi. Har o'quvchiga alohida son «Ro'yxat» bo'limida qo'yiladi.</div>
       <div class="muted">Narx o'zgarsa, faqat o'z narxi yozilmagan o'quvchilarga ta'sir qiladi.</div>` : ""}
     <div class="hrow"><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn btn-primary" data-ok>Saqlash</button></div>`, (mm, close) => {
     const svc = paid ? bindSvc(mm, c.svc || "") : null;
