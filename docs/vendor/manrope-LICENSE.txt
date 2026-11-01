@@ -1,0 +1,3 @@
+Manrope (docs/vendor/manrope-*.woff2) — Copyright 2018 The Manrope Project Authors (https://github.com/sharanda/manrope).
+SIL Open Font License, Version 1.1: https://openfontlicense.org
+Fayllar Google Fonts dan olingan (latin va latin-ext qismlari), o'zgartirilmagan.
