@@ -1,0 +1,223 @@
+/* «Bugun» sahifasi — tasdiqlangan dizayn (maket v1, 2026-11-01). Hamma qoidalar .bn ichida, sinflar «bn-» bilan.
+   Ranglar ilovaning umumiy belgilaridan (--base, --line, --acc …) olinadi — Sozlamalar → Dizayn ularni boshqaradi.
+   Faqat holat ranglari (ogohlantirish, ma'lumot, pushti) shu yerda: kunduzgi va tungi. */
+.bn{--bn-warn:#a15c07;--bn-warn-s:#fef3e2;--bn-warn-b:#eaa23a;--bn-ok-s:#e5f6ee;--bn-bad-s:#fdecec;--bn-info:#2563eb;--bn-info-s:#e8f0fe;--bn-pink:#e0559a}
+html[data-theme="dark"] .bn{--bn-warn:#f5b454;--bn-warn-s:#2e2414;--bn-warn-b:#d99a3c;--bn-ok-s:#0f2a1f;--bn-bad-s:#331a1c;--bn-info:#7aa7ff;--bn-info-s:#15223d;--bn-pink:#f07ab5}
+.bn{display:flex;flex-direction:column;gap:16px;max-width:1180px}
+.bn *{min-width:0}
+.bn h1{margin:0}
+.bn h1 em{font-style:normal;color:var(--muted);font-weight:700}
+.bn h2{font-size:17px;font-weight:800;margin:0;letter-spacing:-.01em;line-height:1.25}
+.bn h3{font-size:14px;font-weight:700;margin:0}
+.bn .bn-mut{color:var(--muted)}
+.bn .bn-ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bn .bn-okt{color:var(--ok)}.bn .bn-warnt{color:var(--bn-warn);font-weight:700}
+.bn .card{margin:0;padding:0}
+.bn .btn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.bn-pair{display:flex;gap:8px}
+.bn-pair>.btn{flex:1}
+.bn.pl .bn-pair .btn-primary,.bn-sheet.pl .bn-pair .btn-primary{order:-1}
+.bn-lnk{border:0;background:none;padding:0;color:var(--acc);font-weight:700;cursor:pointer;font:inherit;font-weight:700}
+
+/* sarlavha */
+.bn-hd{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.bn-t{flex:1 1 300px;display:flex;flex-direction:column;gap:2px}
+.bn-sub{color:var(--muted);font-weight:600;font-size:13px}
+.bn-hdacts{display:flex;gap:8px}
+.bn-srch{position:relative;width:300px;max-width:100%}
+.bn-srch::before{content:"🔍";position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:13px;opacity:.7;pointer-events:none}
+.bn .bn-srch input{padding-left:34px;height:38px}
+.bn-found{position:absolute;top:44px;right:0;width:340px;max-width:90vw;z-index:30;background:var(--base);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh-lg);padding:6px;display:flex;flex-direction:column;gap:2px;max-height:360px;overflow:auto}
+.bn-found[hidden]{display:none}
+.bn-ibtn{flex:none;width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--base);box-shadow:var(--sh);display:grid;place-items:center;font-size:16px;color:var(--text);cursor:pointer}
+.bn-qrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bn-qrow .btn{padding:0 6px}
+.bn-opt{display:flex;align-items:center;gap:10px;border:0;background:none;padding:7px 10px;border-radius:9px;text-align:left;width:100%;color:var(--text);min-height:40px;cursor:pointer}
+.bn-opt:hover{background:var(--alt)}
+.bn-opt>span:last-child{flex:1;display:flex;flex-direction:column}
+.bn-opt b{font-weight:700}
+.bn-opt small{font-size:12px;color:var(--muted)}
+.bn-oic{width:30px;height:30px;border-radius:8px;background:var(--soft);display:grid;place-items:center;flex:none;font-size:12px;font-weight:800}
+.bn-opts{display:flex;flex-direction:column;gap:2px;max-height:60vh;overflow:auto}
+
+/* eslatmalar */
+.bn-rems{display:flex;flex-direction:column;padding:4px 0}
+.bn-rm{display:flex;align-items:center;gap:10px;padding:7px 14px;border-left:3px solid var(--bn-c,var(--line))}
+.bn-rm+.bn-rm{border-top:1px solid var(--line)}
+.bn-rm .bn-ic{font-size:17px;flex:none;width:22px;text-align:center}
+.bn-rm .bn-rt{flex:1}
+.bn-rm .bn-rt b{font-weight:700}
+.bn-rm>.btn,.bn-rm .bn-two{flex:none}
+.bn-two{display:flex;gap:6px}
+.bn-rm.warn{--bn-c:var(--bn-warn-b)}.bn-rm.info{--bn-c:var(--bn-info)}.bn-rm.pink{--bn-c:var(--bn-pink)}.bn-rm.bad{--bn-c:var(--danger)}
+
+/* panjara */
+.bn-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.bn-one{display:grid;grid-template-columns:minmax(0,1fr)}
+.bn-col{display:flex;flex-direction:column;gap:16px}
+.bn-ch{display:flex;align-items:center;gap:8px;padding:14px 16px 10px}
+.bn-ch h2{flex:1}
+.bn-per{font-size:12.5px;font-weight:600}
+.bn-cnt{font-size:12px;font-weight:800;border-radius:999px;padding:1px 8px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.bn-cnt.bad{background:var(--bn-bad-s);color:var(--danger)}.bn-cnt.warn{background:var(--bn-warn-s);color:var(--bn-warn)}
+
+/* belgilar */
+.bn-badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:800;letter-spacing:.04em;white-space:nowrap;background:var(--soft);color:var(--muted)}
+.bn-badge.now{background:var(--acc);color:var(--acc-fg,#fff)}
+.bn-badge.now::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;animation:bn-pl 1.6s infinite}
+@keyframes bn-pl{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.bn-badge.now::before{animation:none}}
+.bn-badge.next{background:var(--bn-info-s);color:var(--bn-info)}
+.bn-badge.ok{background:var(--bn-ok-s);color:var(--ok)}
+.bn-badge.warn{background:var(--bn-warn-s);color:var(--bn-warn)}
+.bn-chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:600;background:var(--soft);color:var(--muted);white-space:nowrap}
+.bn-chip.ok{background:var(--bn-ok-s);color:var(--ok)}.bn-chip.warn{background:var(--bn-warn-s);color:var(--bn-warn)}.bn-chip.bad{background:var(--bn-bad-s);color:var(--danger)}
+.bn-gp{display:inline-block;min-width:44px;text-align:center;border-radius:7px;padding:1px 7px;font-weight:800;font-variant-numeric:tabular-nums;font-size:13px;background:var(--soft);color:var(--muted)}
+.bn-gp.lo{background:var(--bn-bad-s);color:var(--danger)}.bn-gp.mid{background:var(--bn-warn-s);color:var(--bn-warn)}.bn-gp.hi{background:var(--bn-ok-s);color:var(--ok)}
+
+/* hozirgi dars */
+.bn .bn-hero{padding:16px 18px;display:flex;flex-direction:column;gap:8px;border-left:4px solid var(--acc)!important}
+.bn-hero.late{border-left-color:var(--bn-warn-b)!important}.bn-hero.fin{border-left-color:var(--ok)!important}
+.bn-tg{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;font-weight:700;color:var(--muted)}
+.bn-nm{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+.bn-meta{color:var(--muted);font-size:13px}
+.bn-ln{display:flex;gap:8px;font-size:13.5px}
+.bn-ln i{font-style:normal;flex:none;width:18px;text-align:center}
+.bn-tbar{height:6px;border-radius:999px;background:var(--soft);overflow:hidden}
+.bn-tbar i{display:block;height:100%;background:var(--acc);border-radius:999px}
+.bn-hero .bn-pair{margin-top:4px}
+.bn-stats{display:flex;gap:18px;flex-wrap:wrap}
+.bn-stats b{display:block;font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.bn-stats small{color:var(--muted);font-size:12px;font-weight:600}
+
+/* darslar chizig'i */
+.bn-tl{display:flex;flex-direction:column;padding:0 8px 8px}
+.bn-ls{display:grid;grid-template-columns:54px 14px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 8px;border-radius:10px;border:0;background:none;text-align:left;width:100%;color:var(--text);cursor:pointer;font:inherit}
+.bn-ls:hover{background:var(--alt)}
+.bn-ls.cur{background:var(--acc-soft)}
+.bn-tm{font-variant-numeric:tabular-nums;line-height:1.15}
+.bn-tm b{display:block;font-weight:800;font-size:14px}
+.bn-tm small{color:var(--muted);font-size:11.5px;font-weight:600}
+.bn-dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--line);background:var(--base);justify-self:center;position:relative;z-index:1}
+.bn-ls:not(:last-child) .bn-dot::after{content:"";position:absolute;left:50%;top:10px;width:2px;height:38px;margin-left:-1px;background:var(--line);z-index:-1}
+.bn-ls.done .bn-dot{background:var(--ok);border-color:var(--ok)}
+.bn-ls.now .bn-dot{background:var(--acc);border-color:var(--acc);box-shadow:0 0 0 4px var(--acc-soft)}
+.bn-ls.late .bn-dot{background:var(--bn-warn-b);border-color:var(--bn-warn-b)}
+.bn-tx{display:flex;flex-direction:column;gap:1px}
+.bn-tx b{font-weight:700}
+.bn-tx small{color:var(--muted);font-size:12.5px}
+.bn-tx small.ok{color:var(--ok)}.bn-tx small.warn{color:var(--bn-warn)}
+.bn-r{display:flex;gap:6px;align-items:center;flex:none}
+.bn-car{color:var(--muted);font-size:18px;line-height:1}
+.bn-tl.notime .bn-ls{grid-template-columns:14px minmax(0,1fr) auto}
+.bn-tl.notime .bn-tm{display:none}
+
+/* vazifalar */
+.bn-todo{display:flex;flex-direction:column;padding:0 6px 8px}
+.bn-g{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px 10px 2px;display:flex;gap:6px}
+.bn-g span{margin-left:auto;letter-spacing:0;text-transform:none;font-weight:600;white-space:nowrap}
+.bn-ti{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px}
+.bn-ti:hover{background:var(--alt)}
+.bn-ti .bn-tx{flex:1}
+.bn-ti .bn-tx b{font-size:13.5px}
+.bn-ti .bn-tx small{font-size:12px}
+.bn-ti.two{flex-wrap:wrap}
+.bn-ti.two .bn-tx{flex:1 1 100%}
+.bn-ti.two .bn-r{flex:1 1 100%;justify-content:flex-end}
+.bn-okl{color:var(--ok);padding:8px 10px;font-weight:600}
+.bn-more2{color:var(--muted);font-size:13px;padding:4px 10px}
+
+/* e'tibor */
+.bn-rl{display:flex;flex-direction:column;padding:0 6px 8px}
+.bn-ri{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:9px;border:0;background:none;text-align:left;width:100%;color:var(--text);cursor:pointer;font:inherit}
+.bn-ri:hover{background:var(--alt)}
+.bn-av{width:34px;height:34px;border-radius:50%;background:var(--bn-bad-s);color:var(--danger);display:grid;place-items:center;font-weight:800;font-size:12.5px;flex:none}
+.bn-ri .bn-tx{flex:1;gap:2px}
+.bn-ri .bn-tx b small{color:var(--muted);font-weight:600;font-size:12px}
+.bn-why{display:flex;gap:4px;flex-wrap:wrap}
+.bn-why .bn-chip{white-space:normal}
+.bn-more{padding:6px 16px 12px;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:13px}
+
+/* sinflar */
+.bn-ct{width:100%;border-collapse:collapse;font-size:13.5px;color:var(--text);margin:0}
+.bn-ct th{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--alt);white-space:nowrap}
+.bn-ct td{padding:9px 12px;border-bottom:1px solid var(--line);background:none}
+.bn-ct tr:last-child td{border-bottom:0}
+.bn-ct tbody tr{cursor:pointer}
+.bn-ct tbody tr:hover td{background:var(--alt)}
+.bn-ct .s{text-align:center}
+.bn-mb{display:flex;align-items:center;gap:8px;min-width:120px}
+.bn-tr{flex:1;height:7px;border-radius:999px;background:var(--soft);overflow:hidden}
+.bn-tr i{display:block;height:100%;border-radius:999px}
+.bn-mb b{font-weight:700;font-size:12.5px;width:38px;font-variant-numeric:tabular-nums}
+.bn-cr{display:flex;flex-direction:column;gap:6px;padding:9px 12px;border:0;border-top:1px solid var(--line);background:none;text-align:left;width:100%;color:var(--text);cursor:pointer;font:inherit}
+.bn-l1{display:flex;align-items:center;gap:8px}
+.bn-l1 b{flex:1;font-weight:700}
+.bn-l2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bn-l2 small{display:block;font-size:11px;color:var(--muted);font-weight:700}
+.bn-cr .bn-mb{min-width:0}
+
+/* yaqin kunlar */
+.bn-up{display:flex;flex-direction:column;padding:0 6px 8px}
+.bn-ui{display:flex;align-items:center;gap:10px;padding:6px 10px}
+.bn-dt{flex:none;width:44px;border-radius:9px;background:var(--soft);text-align:center;padding:3px 0;line-height:1.1}
+.bn-dt b{display:block;font-weight:800;font-size:14px}
+.bn-dt small{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.bn-dt.hot{background:var(--bn-warn-s)}.bn-dt.hot b{color:var(--bn-warn)}
+.bn-ui .bn-tx{flex:1}
+.bn-ui .bn-tx b{font-size:13.5px}
+.bn-ui .bn-tx small{font-size:12px}
+
+/* hafta xulosasi */
+.bn .bn-wk{padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.bn-top{display:flex;align-items:center;gap:8px}
+.bn-top h3{flex:1}
+.bn-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.bn-nums div{background:var(--alt);border-radius:9px;padding:6px 8px}
+.bn-nums b{display:block;font-weight:800;font-size:16px;font-variant-numeric:tabular-nums}
+.bn-nums small{font-size:11px;color:var(--muted);font-weight:700}
+.bn-x{border:0;background:var(--soft);width:30px;height:30px;border-radius:50%;font-size:14px;color:var(--text);cursor:pointer;flex:none}
+
+/* tezkor amallar */
+.bn .bn-qa{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.bn-qa .btn{justify-content:flex-start}
+
+/* qotgan tugmalar (Dizayn → Oyna tugmalari: Qotgan) */
+.bn-stick{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;gap:12px;padding:10px 16px;margin:0 -4px;background:color-mix(in srgb,var(--base) 94%,transparent);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:var(--r,12px);box-shadow:var(--sh-lg)}
+.bn-stick small{flex:1;font-weight:600;font-size:13.5px;color:var(--text)}
+.bn-stick .bn-pair{width:420px;flex:none}
+
+/* oynalar */
+.bn.bn-sheet{gap:10px}
+.bn-shd{display:flex;align-items:center;gap:8px}
+.bn-shd h2{flex:1}
+.bn-lsd{display:flex;flex-direction:column;gap:8px}
+.bn-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* telefon */
+.bn-seg{display:flex;background:var(--soft);border-radius:10px;padding:3px;gap:2px}
+.bn-seg button{flex:1;border:0;background:none;border-radius:8px;height:32px;padding:0 6px;font-weight:700;font-size:13px;color:var(--muted);white-space:nowrap;cursor:pointer;overflow:hidden;text-overflow:ellipsis}
+.bn-seg button.on{background:var(--base);color:var(--text);box-shadow:var(--sh)}
+.bn-seg button em{font-style:normal;font-weight:600;opacity:.8;margin-left:4px}
+@media screen and (max-width:820px){
+  .bn{gap:12px}
+  .bn-col{gap:12px}
+  .bn-hd{flex-wrap:nowrap;align-items:center;gap:10px}
+  .bn-t{flex:1 1 auto}
+  .bn h1{font-size:21px}
+  .bn-sub{font-size:12.5px}
+  .bn-rm{padding:7px 10px;gap:8px;font-size:13px}
+  .bn .bn-hero{padding:12px 14px}
+  .bn-nm{font-size:19px}
+  .bn-ch{padding:12px 12px 8px}
+  .bn-tl{padding:0 4px 6px}
+  .bn-ls{grid-template-columns:46px 12px minmax(0,1fr) auto;gap:8px;padding:8px 6px}
+  .bn-tl.notime .bn-ls{grid-template-columns:12px minmax(0,1fr) auto}
+  .bn .bn-pair .btn{height:40px}
+  .bn .bn-qa{display:grid;grid-template-columns:repeat(3,1fr)}
+  .bn-qa h3{grid-column:1/-1}
+  .bn-qa .btn{justify-content:center;padding:0 6px}
+  .bn-stick{bottom:calc(64px + env(safe-area-inset-bottom,0px));flex-direction:column;align-items:stretch;gap:6px;padding:8px 12px;margin:0 -12px;border-radius:0;border-left:0;border-right:0}
+  .bn-stick small{font-size:12px;color:var(--muted)}
+  .bn-stick .bn-pair{width:auto}
+}

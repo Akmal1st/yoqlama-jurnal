@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="tpt-tema.css">
 <link rel="stylesheet" href="dizayn.css">
 <link rel="stylesheet" href="hisobotlar.css">
+<link rel="stylesheet" href="bugun.css">
 </head>
 <body>
 <div class="app" id="app">
@@ -28,6 +29,7 @@
 <script src="guruhlar.js"></script>
 <script src="dizayn.js"></script>
 <script src="hisobotlar.js"></script>
+<script src="bugun.js"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
@@ -856,17 +858,21 @@ function weekDialog(back = 0) {
     $("[data-x]", m).onclick = () => close();
   });
 }
-function upcoming(days = 7) {
+// yaqin kunlar: {date, left, title, sub} — sana tartibida («Bugun» sahifasi)
+function upcomingItems(days = 7) {
   const t = todayIso(), hi = iso(addDays(new Date(), days)), out = [];
+  const when = (left, d) => left === 0 ? "bugun" : left === 1 ? "ertaga" : `${left} kundan keyin`;
   for (const c of D.classes) for (const w of c.works) if (t <= w.date && w.date <= hi) {
     const left = Math.round((pdate(w.date) - pdate(t)) / 864e5);
-    out.push([w.date, `${w.type.toUpperCase()} — ${label(c)} (${left === 0 ? "bugun" : left === 1 ? "ertaga" : fmt(w.date)})`]);
+    out.push({date: w.date, left, title: w.type.toUpperCase(), sub: `${label(c)} · ${when(left)}`, text: `${w.type.toUpperCase()} — ${label(c)} (${left === 0 ? "bugun" : left === 1 ? "ertaga" : fmt(w.date)})`});
   }
-  if (feat("bday")) for (const b of birthdays(days)) if (b.left) out.push([iso(addDays(pdate(t), b.left)), `🎂 ${b.s.name} (${D.classes[b.ci].name}) — tug'ilgan kun ${b.left === 1 ? "ertaga" : fmt(iso(addDays(pdate(t), b.left))).slice(0, 5)}${b.age ? `, ${b.age} yosh` : ""}`]);
+  if (feat("bday")) for (const b of birthdays(days)) if (b.left) { const d = iso(addDays(pdate(t), b.left));
+    out.push({date: d, left: b.left, title: `🎂 ${b.s.name}`, sub: `${D.classes[b.ci].name}${b.age ? `, ${b.age} yosh` : ""} · tug'ilgan kun ${b.left === 1 ? "ertaga" : fmt(d).slice(0, 5)}`, text: `🎂 ${b.s.name} (${D.classes[b.ci].name}) — tug'ilgan kun ${b.left === 1 ? "ertaga" : fmt(d).slice(0, 5)}${b.age ? `, ${b.age} yosh` : ""}`}); }
   const q = quarterOf(t);
-  if (q) { const e = qRange(q)[1]; const left = Math.round((pdate(e) - pdate(t)) / 864e5); if (left >= 0 && left <= 7) out.push([e, `${q}-chorak ${fmt(e)} da tugaydi — baholarni tekshiring`]); }
-  return out.sort().map((x) => x[1]);
+  if (q) { const e = qRange(q)[1]; const left = Math.round((pdate(e) - pdate(t)) / 864e5); if (left >= 0 && left <= 7) out.push({date: e, left, title: `${q}-chorak tugaydi`, sub: `Baholarni tekshiring · ${when(left)}`, text: `${q}-chorak ${fmt(e)} da tugaydi — baholarni tekshiring`}); }
+  return out.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : a.text < b.text ? -1 : 1);
 }
+const upcoming = (days = 7) => upcomingItems(days).map((x) => x.text);
 
 /* ───────── belgini matndan o'qish (qo'lda yozilganda va importda) ───────── */
 function parseMark(text) {
@@ -1552,121 +1558,11 @@ function render() {
 }
 
 /* ───────── 1. Bugun ───────── */
-// «Bugun»: sinflar bo'yicha davomat, o'zlashtirish, o'rtacha va bugungi baholanganlik (kamida 30%)
-function classesCard(t) {
-  const q = quarterOf(t), lo = q ? qRange(q)[0] : t.slice(0, 8) + "01", R = compareRows(lo, t, q).filter((r) => r.n);
-  if (!R.length) return "";
-  const tone = (v) => v >= 85 ? "bg-success" : v >= 70 ? "bg-primary" : v >= 55 ? "bg-warning" : "bg-danger";
-  const bar = (v) => v === null || v === undefined ? `<span class="muted">—</span>` : `<div class="d-flex align-items-center gap-2"><div class="progress flex-grow-1" style="height:8px"><div class="progress-bar ${tone(v)}" style="width:${Math.max(0, Math.min(100, v))}%"></div></div><span class="small fw-semibold" style="width:40px">${v.toFixed(0)}%</span></div>`;
-  const rows = R.map((r) => {
-    const g = r.c.dates.includes(t) && !isNoLesson(r.c, t) ? gradedShare(r.c, t) : null;
-    return `<tr><td class="fw-semibold">${esc(label(r.c))}</td><td style="min-width:130px">${bar(r.att)}</td><td style="min-width:130px">${bar(r.qu)}</td><td class="text-end fw-bold">${r.avg === null ? "—" : r.avg.toFixed(1)}</td>
-      <td>${g ? `<span class="badge ${g.ok ? "text-bg-success" : "text-bg-warning"}" title="Bugun baholangan: ${g.graded} / ${g.total}; kamida ${GRADED_MIN}% kerak">${g.pct}% ${g.ok ? "✓" : "⚠"}</span>` : `<span class="muted">—</span>`}</td></tr>`; }).join("");
-  return `<section class="bs clsstat"><div class="card"><div class="card-body"><h2 style="margin:0 0 8px">Sinflar ko'rsatkichi${q ? ` · ${q}-chorak` : ""}</h2>
-    <div class="table-responsive"><table class="table r align-middle mb-0"><thead><tr><th>Sinf</th><th>Davomat</th><th>O'zlashtirish</th><th class="text-end">O'rtacha</th><th>Bugun baholangan</th></tr></thead><tbody>${rows}</tbody></table></div></div></div></section>`;
-}
+// «Bugun» sahifasining ko'rinishi — alohida faylda: bugun.js / bugun.css (tasdiqlangan dizayn, 2026-11-01)
 function pageToday(m) {
-  const t = todayIso(), q = quarterOf(t), hr = new Date().getHours();
-  const hello = hr < 11 ? "Xayrli tong!" : hr < 17 ? "Xayrli kun!" : "Xayrli kech!";
-  let sub = longDate(t); if (q) sub += ` · ${q}-chorak, ${Math.floor((pdate(t) - pdate(qRange(q)[0])) / 6048e5) + 1}-hafta`;
-  if (!D.classes.some((c) => !isGrp(c))) { m.innerHTML = welcome(sub); bindWelcome(m); return; }
-  const L = lessonsToday();
-  const nowd = D.classes.filter((c) => !isGrp(c) && (!c.weekdays || !c.weekdays.length)).length;
-  const risk = riskOverview().flatMap((r) => r.names.map((n) => ({ci: r.ci, ...n})));
-  for (const h of hwOverview()) { const x = risk.find((r) => r.ci === h.ci && r.name === h.name); if (x) x.why = x.why.concat(h.why); else risk.push(h); }
-  const ups = upcoming();
-  const hm = `${pad(new Date().getHours())}:${pad(new Date().getMinutes())}`;
-  const nextNo = (() => { const all = L.flatMap((x) => x.slots || []).filter((x) => x.from).sort((a, b) => a.no - b.no); const cur = all.find((x) => x.from <= hm && hm < x.to); return cur ? ["now", cur.no] : (all.find((x) => hm < x.from) ? ["next", all.find((x) => hm < x.from).no] : null); })();
-  const cards = L.length ? L.map(({c, ci, done, slots}) => {
-    const n = c.students.filter((s) => s.marks[t]).length;
-    const tag = slots && slots.length ? slots.map((x) => `${x.no + 1}-soat${x.from ? ` · ${x.from}–${x.to}` : ""}`).join(", ") : "BUGUN";
-    const live = nextNo && slots && slots.some((x) => x.no === nextNo[1]) ? (nextNo[0] === "now" ? `<span class="tag now">HOZIR</span>` : `<span class="tag">KEYINGI</span>`) : "";
-    const w = c.works.find((x) => x.date === t), topic = (c.lessons[t] || {}).topic;
-    const prev = c.dates.filter((d) => d < t && !isNoLesson(c, d)).pop(), phw = prev && c.lessons[prev] && c.lessons[prev].hw;
-    const note = w ? `Bugun ${w.type.toUpperCase()}${w.max ? ` (${w.max} ball)` : ""} — natijalarni kiritish` : topic ? `Mavzu: ${esc(topic)}` : "Mavzu kiritilmagan";
-    const stat = done ? `${isGrp(c) ? "Belgilandi" : "Yo'qlama"} ✓ · ${n} belgi` : isGrp(c) ? "Dars belgilanmagan" : "Yo'qlama qilinmagan";
-    return `<div class="col-12 col-md-6 col-xl-4"><article class="card h-100 shadow-sm ${done ? "" : "border-primary border-2"}"><div class="card-body d-flex flex-column gap-1">
-      <div class="d-flex align-items-center gap-1 flex-wrap"><span class="tag">${tag}</span>${live}<span class="ms-auto small fw-semibold ${done ? "ok" : "warn"}">${stat}</span></div>
-      <div class="big">${esc(c.name)}</div><div class="text-body-secondary small">${esc(c.subject || "Fan ko'rsatilmagan")} · ${c.students.length} o'quvchi</div>
-      <div>${note}</div>${phw ? `<div class="text-body-secondary small">🏠 Uyga berilgan (${fmt(prev).slice(0, 5)}): ${esc(phw)}</div>` : ""}
-      <div class="mt-auto pt-2 d-flex flex-wrap gap-2">${done ? `<button class="btn btn-outline-secondary" data-open="${ci}">Jurnalni ochish</button>` : `<button class="btn btn-primary" data-start="${ci}">▶ Darsni boshlash</button><button class="btn btn-outline-secondary" data-allok="${ci}" title="${isGrp(c) ? "Hammaga «dars o'tildi»" : "Hech kim qoldirmagan bo'lsa — bitta bosishda yo'qlama tugaydi"}">${isGrp(c) ? "✓ Hammaga o'tildi" : "✓ Hamma keldi"}</button>`}</div></div></article></div>`;
-  }).join("") : `<div class="col-12"><article class="card"><div class="card-body d-flex flex-column gap-2"><b>Bugun jadvalda dars yo'q</b><div class="text-body-secondary">Kerak bo'lsa, istalgan sinf jurnalini ochib baho qo'yishingiz mumkin.</div>
-      <div><button class="btn btn-outline-secondary" data-go2="journal">Jurnalni ochish</button></div></div></article></div>`;
-  m.innerHTML = `<div class="vcol" style="gap:18px">
-    <header class="hrow"><div class="vcol" style="gap:4px;flex:1 1 300px"><span class="muted">${sub}</span>
-      <h1>${hello} ${L.length ? `Bugun ${L.length} ta darsingiz bor` : "Bugun darsingiz yo'q"}</h1></div>
-      <input class="form-control" type="text" id="find" placeholder="🔍 O'quvchi yoki sinfni qidirish" style="max-width:320px"></header>
-    ${nowd ? `<div class="card hot hrow"><span class="sp">📆 ${nowd} ta sinf uchun dars kunlari belgilanmagan — «Bugun» ro'yxati to'liq bo'lmasligi mumkin.</span><button class="btn" data-days>Belgilash</button></div>` : ""}
-    ${NEWER ? `<div class="card hot hrow"><span class="sp">⚠ Ma'lumotlar ilovaning yangiroq versiyasida saqlangan. Buzilmasligi uchun o'zgarishlar saqlanmaydi — sahifani yangilang (internetga ulanib).</span><button class="btn btn-primary" onclick="location.reload()">Yangilash</button></div>` : ""}
-    ${TG_NEW ? (() => { const w = new Date(TG_NEW.date * 1000); return `<div class="card hot hrow"><span class="sp">🔄 Telegram'da boshqa qurilmadan yangiroq zaxira bor (${fmt(iso(w))} ${pad(w.getHours())}:${pad(w.getMinutes())}). Shu qurilmaga yuklaysizmi?</span><button class="btn btn-primary" data-tg="tgnew">Yuklash</button><button class="btn" data-tg="tgkeep">Yo'q, menikini saqlash</button></div>`; })() : ""}
-    ${(() => { const a = backupAge(), t = tgAge(); return (a === null || a > 7) && (t === null || t > 7) ? `<div class="card hrow"><span class="sp">💾 ${a === null ? "Ma'lumotlar hali faylga saqlanmagan." : `Oxirgi zaxira ${a} kun oldin olingan.`} Brauzer tozalansa, ma'lumot yo'qolishi mumkin — faylga saqlab qo'ying.</span><button class="btn btn-primary" data-backup2>Saqlash</button></div>` : ""; })()}
-    ${(() => { const b = feat("bday") ? birthdays(0) : []; return b.length ? `<div class="card hrow bday"><span style="font-size:28px">🎂</span><span class="sp">Bugun tug'ilgan kun: ${b.map((x) => `<button class="link" data-stud="${x.ci}|${esc(x.s.name)}"><b>${esc(x.s.name)}</b></button> (${esc(D.classes[x.ci].name)}${x.age ? `, ${x.age} yosh` : ""})`).join(", ")}. Tabriklashni unutmang!</span></div>` : ""; })()}
-    <div id="found"></div>
-    <section class="bs"><div class="row g-3">${cards}</div></section>
-    ${classesCard(t)}
-    <div class="tgrid">
-${(() => { const qe = feat("qend") && quarterEnd(); if (!qe) return "";
-      const rows = D.classes.map((c, ci) => ({c, ci, g: quarterGaps(c, qe.q)})).filter((x) => !isGrp(x.c) && (x.g.low.length || x.g.noScore.length));
-      return `<section class="card vcol qend"><h2>📋 ${qe.q}-chorak tugashiga ${qe.left ? `${qe.left} kun` : "bugun"} qoldi (${fmt(qe.end)})</h2>
-        ${rows.length ? rows.map(({c, ci, g}) => `<div class="hrow" style="gap:8px;flex-wrap:nowrap"><div class="sp" style="min-width:0"><b>${esc(label(c))}</b><div class="muted">${[g.low.length ? `${g.low.length} o'quvchida formativ baho kam (kamida ${fbMin()} ta kerak)` : "", g.noScore.length ? `${g.noScore.length} o'quvchida BSB/CHSB balli yo'q` : "", feat("debts") && (() => { const [lo, hi] = periodNow(), n = c.students.reduce((a, st) => a + debtsOf(c, st, lo, hi).filter((d) => !d.done).length, 0); return n ? `qarzlar: ${n}` : ""; })(), `qolgan darslar: ${g.left}`].filter(Boolean).join(" · ")}</div></div>
-          <button class="btn btn-sm" data-qready="${ci}">Ko'rish</button></div>`).join("") : `<div class="ok">✓ Hamma sinflarda baholar va ballar yetarli — chorak bahosini qo'yishga tayyor.</div>`}</section>`; })()}
-    ${(() => { if (!feat("gaps")) return ""; const g = lessonGaps(); if (!g.length) return "";
-      return `<section class="card vcol gaps"><div class="hrow"><h2 class="sp">📝 To'ldirilmagan darslar — ${g.length} ta</h2><span class="muted">oxirgi ${GAP_DAYS} kun</span></div>
-        ${g.slice(0, 5).map((x) => `<div class="hrow wrap" style="gap:8px"><div class="sp" style="flex:1 1 200px;min-width:0"><b>${esc(label(x.c))}</b> · ${fmt(x.d).slice(0, 5)} ${WD[pyWd(x.d)]}<div class="muted">${[x.noAtt ? "yo'qlama belgilanmagan" : "", x.noTopic ? "mavzu yozilmagan" : ""].filter(Boolean).join(", ")}</div></div>
-          ${x.noAtt ? `<button class="btn btn-sm" data-gapok="${x.ci}|${x.d}" title="${isGrp(x.c) ? "Hammaga «dars o'tildi»" : "Hech kim qoldirmagan bo'lsa"}">${isGrp(x.c) ? "✓ Hammaga o'tildi" : "✓ Hamma keldi"}</button>` : ""}<button class="btn btn-sm" data-gap="${x.ci}|${x.d}|${x.noAtt ? 1 : 0}">To'ldirish</button></div>`).join("")}
-        ${g.length > 5 ? `<div class="muted">va yana ${g.length - 5} ta</div>` : ""}</section>`; })()}
-    ${(() => { const wr = feat("week") && weekCardRange(); if (!wr || D.web.wk_seen === wr[0]) return ""; const [lo, hi, back] = wr, T = weekTotals(weekSummary(lo, hi)); if (!T.planned && !T.grades) return "";
-      return `<section class="card vcol wkc"><div class="hrow"><h2 class="sp">📊 ${back ? "O'tgan hafta" : "Hafta"} xulosasi · ${fmt(lo).slice(0, 5)}–${fmt(hi).slice(0, 5)}</h2><button class="btn btn-sm" data-wkx="${lo}" title="Yopish">✕</button></div>
-        <div>${T.held} / ${T.planned} dars · ${T.grades} baho${T.avg !== null ? ` (o'rtacha ${pyFixed(T.avg, 1)})` : ""} · davomat ${T.att !== null ? Math.round(T.att) + "%" : "—"}</div>
-        <div class="${T.newRisk ? "warn" : "ok"}">${T.newRisk ? `⚠ ${T.newRisk} o'quvchi xavf ostiga yangi tushdi` : "✓ Yangi xavf yo'q"}${T.outRisk ? ` · ${T.outRisk} o'quvchi xavfdan chiqdi` : ""}</div>
-        <div><button class="btn" data-wk="${back}">Batafsil</button></div></section>`; })()}
-    ${(() => { if (!feat("ktr")) return ""; const ks = D.classes.map((c, ci) => ({c, ci, k: ktrProgress(c)})).filter((x) => x.k && (x.k.behind >= 2 || x.k.short));
-      return ks.length ? `<section class="card vcol gaps"><h2>📚 KTR: rejadan orqada</h2>${ks.map(({c, ci, k}) => `<div class="hrow" style="gap:8px;flex-wrap:nowrap"><div class="sp" style="min-width:0"><b>${esc(label(c))}</b><div class="muted">${ktrLine(k)}</div></div><button class="btn btn-sm" data-ktr="${ci}">Reja</button></div>`).join("")}</section>` : ""; })()}
-      <section class="card"><div class="hrow"><h2 class="sp">E'tibor talab qiladi${risk.length ? ` — ${risk.length} o'quvchi` : ""}</h2>${risk.length ? `<button class="link" data-go2="reports">Hammasi</button>` : ""}</div>
-        ${risk.length ? risk.slice(0, 6).map((r) => `<div class="item"><div class="av">${esc(initials(r.name))}</div><div class="sp"><b>${esc(r.name)}</b> <span class="muted">· ${esc(label(D.classes[r.ci]))}</span><div class="muted">${esc(r.why.slice(0, 2).join("; "))}</div></div>
-          <button class="btn btn-sm" data-stud="${r.ci}|${esc(r.name)}">Ko'rish</button></div>`).join("") + (risk.length > 6 ? `<div class="muted" style="padding-top:8px">va yana ${risk.length - 6} ta</div>` : "")
-          : `<div class="muted" style="padding-top:8px">Hozircha hamma o'quvchi me'yorda — xavf ostida hech kim yo'q. 👍</div>`}</section>
-      <div class="vcol" style="gap:16px">
-        <section class="card vcol"><h2>Yaqin kunlarda</h2>${ups.length ? ups.slice(0, 6).map((u) => `<div>• ${esc(u)}</div>`).join("") : `<div class="muted">Yaqin bir haftada summativ ish yoki chorak yakuni yo'q.</div>`}</section>
-        <section class="card vcol"><h2>Tezkor amallar</h2>
-          <button class="btn" data-go2="reports">📄 Sinf hisoboti</button>
-          ${feat("week") ? `<button class="btn" data-wk="0">📊 Haftalik xulosa</button>` : ""}
-          <button class="btn" data-backup>💾 Ma'lumotlarni faylga saqlash</button></section>
-      </div></div></div>`;
-  m.querySelectorAll("[data-start]").forEach((b) => b.onclick = () => startLesson(+b.dataset.start));
-  m.querySelectorAll("[data-open]").forEach((b) => b.onclick = () => { S.ci = +b.dataset.open; go("journal"); });
-  // tezkor yo'qlama: hamma darsda — kelmaganlar belgisi yo'q, kun «yo'qlama qilindi» deb belgilanadi
-  m.querySelectorAll("[data-allok]").forEach((b) => b.onclick = () => {
-    const c = D.classes[+b.dataset.allok]; allDone(c, t); save(); render();
-    toast(isGrp(c) ? `${label(c)}: hammaga dars o'tildi ✓` : `${label(c)}: hamma keldi ✓ — kimdir kelmagan bo'lsa, «Jurnalni ochish» orqali belgilang`);
-  });
-  m.querySelectorAll("[data-go2]").forEach((b) => b.onclick = () => go(b.dataset.go2));
-  m.querySelectorAll("[data-ktr]").forEach((b) => b.onclick = () => ktrDialog(+b.dataset.ktr));
-  m.querySelectorAll("[data-wk]").forEach((b) => b.onclick = () => weekDialog(+b.dataset.wk));
-  m.querySelectorAll("[data-wkx]").forEach((b) => b.onclick = () => { D.web.wk_seen = b.dataset.wkx; save(); render(); });
-  m.querySelectorAll("[data-gapok]").forEach((b) => b.onclick = () => { const [ci, d] = b.dataset.gapok.split("|"), c = D.classes[+ci]; allDone(c, d); save(); render(); toast(`${label(c)} · ${fmt(d)}: ${isGrp(c) ? "dars o'tildi" : "hamma keldi"} ✓`); });
-  m.querySelectorAll("[data-gap]").forEach((b) => b.onclick = () => {
-    const [ci, d, na] = b.dataset.gap.split("|"); S.ci = +ci; V.anchor = d;
-    if (na === "1") { S.page = "journal"; S.jpage = "j"; V.mode = "day"; V.anchor = d; go("journal"); toast(`${fmt(d)}: kelmaganlarni belgilang`); }
-    else lessonsDialog(+ci, d);
-  });
-  m.querySelectorAll("[data-qready]").forEach((b) => b.onclick = () => { S.rep.ci = +b.dataset.qready; S.rep.kind = "ready"; S.rq = quarterEnd().q; go("reports"); });
-  m.querySelectorAll("[data-stud]").forEach((b) => b.onclick = () => { const [ci, n] = b.dataset.stud.split("|"); studentCard(+ci, n); });
-  const dd = $("[data-days]", m); if (dd) dd.onclick = () => { S.sec = 1; go("settings"); };
-  $("[data-backup]", m).onclick = exportJson;
-  m.querySelectorAll("[data-tg]").forEach((b) => b.onclick = () => tgAction(b.dataset.tg));
-  const b2 = $("[data-backup2]", m); if (b2) b2.onclick = () => { exportJson(); render(); };
-  const f = $("#find", m);
-  f.oninput = () => {
-    const qq = f.value.trim().toLowerCase(); const out = [];
-    if (qq.length >= 2) D.classes.forEach((c, ci) => {
-      if (label(c).toLowerCase().includes(qq)) out.push(`<button class="chip" data-cls="${ci}">${esc(label(c))}</button>`);
-      c.students.forEach((s) => { if (s.name.toLowerCase().includes(qq)) out.push(`<button class="chip" data-stud="${ci}|${esc(s.name)}">${esc(s.name)} · ${esc(label(c))}</button>`); });
-    });
-    const box = $("#found", m); box.innerHTML = out.length ? `<div class="hrow">${out.slice(0, 20).join("")}</div>` : (qq.length >= 2 ? `<div class="muted">Topilmadi</div>` : "");
-    box.querySelectorAll("[data-cls]").forEach((b) => b.onclick = () => { S.ci = +b.dataset.cls; go("journal"); });
-    box.querySelectorAll("[data-stud]").forEach((b) => b.onclick = () => { const [ci, n] = b.dataset.stud.split("|"); studentCard(+ci, n); });
-  };
+  const t = todayIso(), q = quarterOf(t);
+  if (!D.classes.some((c) => !isGrp(c))) { let sub = longDate(t); if (q) sub += ` · ${q}-chorak, ${Math.floor((pdate(t) - pdate(qRange(q)[0])) / 6048e5) + 1}-hafta`; m.innerHTML = welcome(sub); bindWelcome(m); return; }
+  BGN.page(m);
 }
 function welcome(sub) {
   return `<div class="vcol" style="gap:18px;max-width:640px"><span class="muted">${sub}</span><span class="tag">XUSH KELIBSIZ</span>
