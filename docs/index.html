@@ -5029,10 +5029,28 @@ async function copyText(t) {
 }
 function studentCard(ci, name, tab = "sum") {
   const c = D.classes[ci], s = c.students.find((x) => x.name === name); if (!s) return;
-  const [lo, hi, q] = periodNow(), r = reportRows(c, lo, hi, q).rows.find((x) => x.name === name), per = q ? `${q}-chorak` : "joriy oy";
-  const tabs = [["sum", "Umumiy"], ["grow", "O'sish"], ["notes", `Eslatmalar${(s.notes || []).length ? " (" + s.notes.length + ")" : ""}`], ["msg", "Ota-onaga xabar"]];
+  const grp = isGrp(c), noteTab = ["notes", `Eslatmalar${(s.notes || []).length ? " (" + s.notes.length + ")" : ""}`];
+  if (grp && !["sum", "notes", "ach"].includes(tab)) tab = "sum";
+  const [lo, hi, q] = periodNow(), r = grp ? null : reportRows(c, lo, hi, q).rows.find((x) => x.name === name), per = grp ? monthName(monthOf(todayIso())) : q ? `${q}-chorak` : "joriy oy";
+  const tabs = grp ? [["sum", "Umumiy"]].concat(c.kind === "club" && feat("ach") ? [["ach", `Yutuqlar${(s.ach || []).length ? " (" + s.ach.length + ")" : ""}`]] : [], [noteTab])
+    : [["sum", "Umumiy"], ["grow", "O'sish"], noteTab, ["msg", "Ota-onaga xabar"]];
   let body = "";
-  if (tab === "sum") {
+  if (grp && tab === "sum") {
+    // to'garak va pullik guruh a'zosi: baho va yo'qlama yo'q — kelgan kunlar, narx va to'lov
+    const t0 = todayIso(), si = c.students.indexOf(s), mo = monthOf(t0), came = cameDates(c, s, t0), inMo = came.filter((d) => d.startsWith(mo)), y = gYear(c, s, t0), paid = c.kind === "paid", lk = paid && moneyLocked();
+    const pk = paid ? packOf(c, s, t0) : null, dbt = paid && !lk ? debtOf(c, s, t0) : 0;
+    body = `<div class="tiles"><div class="tile"><div class="muted">Shu oy kelgan</div><div>${inMo.length}</div></div><div class="tile"><div class="muted">Jami kelgan kunlar</div><div>${came.length}</div></div>
+      <div class="tile"><div class="muted">Qatnashuv</div><div>${pctTxt(y.pct)}</div></div>${paid && !lk ? `<div class="tile"><div class="muted">${dbt < 0 ? "Oldindan to'langan" : "Qarz"}</div><div class="${dbt > 0 ? "warn" : ""}">${dbt ? som(Math.abs(dbt)) : "—"}</div></div>` : ""}</div>
+      <div class="muted">${esc([s.cls, s.joined ? "qo'shilgan " + fmt(s.joined) : "", paid ? planTxt(c, s) : ""].filter(Boolean).join(" · ") || "—")}</div>
+      ${pk && pk.pkg ? `<div class="${pk.due ? "warn" : ""}">📦 ${esc(pkgTxt(pk.pkg))}: kelgan ${pk.used}, to'langan ${pk.covered} dars${pk.left < 0 ? ` — ${-pk.left} dars to'lanmagan` : pk.left > 0 ? ` — qolgan ${pk.left} dars` : ""}</div>` : pk ? `<div class="${pk.due ? "warn" : ""}">📦 Kelishilgan ${pk.n} dars: kelgan ${pk.used}${pk.due ? " — to'lov vaqti" : `, qolgan ${pk.left}`}</div>` : ""}
+      ${s.par ? `<div>👪 ${esc(s.par.name || "Ota-ona")}${s.par.phone ? ` · <a href="tel:${esc(s.par.phone)}">${fmtPhone(s.par.phone)}</a>` : ""}${s.par.tg ? ` · <a href="https://t.me/${esc(s.par.tg)}" target="_blank" rel="noopener">@${esc(s.par.tg)}</a>` : ""}</div>` : ""}
+      <div><b>${monthName(mo)}</b> — kelgan kunlar:</div>
+      <div class="hrow wrap" style="gap:4px">${inMo.map((d) => `<span class="gpay" title="${fmt(d)}">${+d.slice(8)}</span>`).join("") || '<span class="muted">Bu oy kelgan kun yozilmagan</span>'}</div>
+      <div class="hrow wrap" style="gap:6px"><button class="btn btn-sm" data-gdates>📅 Kelgan kunlar</button>${paid ? `<button class="btn btn-sm" data-gpay>＋ To'lov</button>${dbt > 0 ? `<button class="btn btn-sm" data-grem title="Ota-onaga eslatma">✉ Eslatma</button>` : ""}` : ""}</div>`;
+  } else if (grp && tab === "ach") {
+    const A = (s.ach || []).slice().sort((a, b) => (b.d || "").localeCompare(a.d || ""));
+    body = A.length ? A.map((a) => `<div class="item"><div class="sp"><div class="muted" style="font-size:13px">${a.d ? fmt(a.d) : "—"}${a.lvl ? " · " + esc(a.lvl) : ""}${a.pl ? " · " + esc(a.pl) : ""}</div>${esc(a.t)}</div></div>`).join("") : `<div class="muted">Yutuq hali yozilmagan. «Yutuqlar» bo'limida qo'shiladi.</div>`;
+  } else if (tab === "sum") {
     const last = c.dates.filter((d) => s.marks[d]).slice(-14), sc = s.scores || {};
     const qw = q ? worksInQuarter(c, q) : [], qr = q ? quarterResult(c, s, q, qw) : null;
     body = `<div class="tiles"><div class="tile"><div class="muted">O'rtacha</div><div>${r.avg !== null ? r.avg.toFixed(1) : "—"}</div></div>
@@ -5065,7 +5083,7 @@ function studentCard(ci, name, tab = "sum") {
       <div class="pcon one"><span class="muted">👪 Ota-ona:</span><input class="form-control" type="text" id="cpn" value="${esc((s.par || {}).name || "")}" placeholder="Ism"><input class="form-control" type="tel" id="cpp" value="${esc((s.par || {}).phone ? fmtPhone(s.par.phone) : "")}" placeholder="+998 90 123-45-67"><input class="form-control" type="text" id="cpt" value="${esc((s.par || {}).tg ? "@" + s.par.tg : "")}" placeholder="@telegram"></div>`;
   }
   document.querySelectorAll(".modal").forEach((x) => x.remove());
-  modal(`<div class="hrow"><div class="vcol sp" style="gap:0"><span class="tag">${esc(label(c))} · ${per}</span><h2>${s.star ? "⭐ " : ""}${esc(name)}</h2></div>
+  modal(`<div class="hrow"><div class="vcol sp" style="gap:0"><span class="tag">${esc(label(c))} · ${grp ? KINDS[c.kind][0] : per}</span><h2>${s.star ? "⭐ " : ""}${esc(name)}</h2></div>
       <button class="btn btn-sm" data-star title="Kuzatuv ro'yxati">${s.star ? "★ Kuzatuvda" : "☆ Kuzatish"}</button></div>
     <div class="seg tabs">${tabs.map(([k, n]) => `<button class="${k === tab ? "on" : ""}" data-tab="${k}">${n}</button>`).join("")}</div>${body}
     <div class="hrow"><span class="sp"></span><button class="btn" data-x>Yopish</button></div>`, (mm, close) => {
@@ -5074,6 +5092,9 @@ function studentCard(ci, name, tab = "sum") {
     $("[data-x]", mm).onclick = () => close();
     mm.querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => again(b.dataset.tab));
     $("[data-star]", mm).onclick = () => { s.star = !s.star; save(); render(); again(tab); };
+    { const si = c.students.indexOf(s), mo = monthOf(todayIso()), go = (f) => () => { close(); f(); };
+      const a = $("[data-gdates]", mm), b = $("[data-gpay]", mm), d = $("[data-grem]", mm);
+      if (a) a.onclick = go(() => packDialog(ci, si)); if (b) b.onclick = go(() => payDialog(ci, si, mo)); if (d) d.onclick = go(() => payRemind(ci, si)); }
     mm.querySelectorAll("[data-gp]").forEach((b) => b.onclick = () => { S.gper = b.dataset.gp; again("grow"); });
     const an = $("[data-addn]", mm); if (an) { const inp = $("#nt", mm); const add = () => { const v = inp.value.trim(); if (!v) return; (s.notes = s.notes || []).push({t: new Date().toISOString().slice(0, 16), text: v}); save(); again("notes"); }; an.onclick = add; inp.onkeydown = (e) => { if (e.key === "Enter") add(); }; }
     mm.querySelectorAll("[data-deln]").forEach((b) => b.onclick = async () => { if (!await confirmBox("Eslatmani o'chirish", "Eslatma o'chirilsinmi?", "O'chirish")) { again("notes"); return; } s.notes.splice(+b.dataset.deln, 1); save(); again("notes"); });

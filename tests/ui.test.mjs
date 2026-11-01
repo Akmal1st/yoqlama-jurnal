@@ -2782,3 +2782,36 @@ test("Guruh o'quvchi kartochkalari: kartochkalar tagma-tag, ichidagi elementlar 
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Guruh a'zosi kartochkasi (ism bosilganda): baho va yo'qlama emas, kelgan kunlar, narx va to'lov", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.click(".side [data-go=settings]"); await page.click('[data-sec="0"]'); await page.click("[data-a=addpaid]");
+    await page.fill(".modal #cn", "Ingliz tili kursi"); await page.fill(".modal #cl", "Aliyev Sardor, 7-B, 90 123 45 67");
+    await page.click(".modal #cw [data-k='0']"); await page.click(".modal [data-ok]");
+    await page.waitForSelector(".mcard");
+    await page.click(".mcard .mname");
+    await page.waitForSelector(".modal [data-gdates]");
+    const txt = await page.textContent(".modal");
+    for (const bad of ["Sababsiz", "O'rtacha", "Baholar", "shu kungacha", "O'sish", "Ota-onaga xabar"]) assert.ok(!txt.includes(bad), `guruh oynasida «${bad}» bo'lmasin`);
+    for (const ok of ["Shu oy kelgan", "Jami kelgan kunlar", "Qatnashuv", "Qarz", "Kelgan kunlar", "To'lov"]) assert.ok(txt.includes(ok), `guruh oynasida «${ok}» bo'lsin`);
+    assert.equal(await page.locator(".modal [data-tab]").count(), 2, "Umumiy va Eslatmalar");
+    await page.click(".modal [data-tab=notes]"); await page.fill("#nt", "Sinov"); await page.click("[data-addn]");
+    assert.equal(await page.evaluate(() => D.classes[D.classes.length - 1].students[0].notes.length), 1);
+    await page.click(".modal [data-tab=sum]");
+    await page.click(".modal [data-gdates]"); await page.waitForSelector(".modal #cd");
+    assert.match(await page.textContent(".modal"), /Kelgan kunlar —/);
+    await page.click(".modal [data-x]");
+    await page.click(".mcard .mname"); await page.click(".modal [data-gpay]"); await page.waitForSelector(".modal #ps");
+    // sinf o'quvchisi uchun eski oyna o'zgarmagan
+    await page.evaluate(() => { document.querySelectorAll(".modal").forEach((x) => x.remove()); studentCard(0, D.classes[0].students[0].name); });
+    assert.match(await page.textContent(".modal"), /Sababsiz/);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
