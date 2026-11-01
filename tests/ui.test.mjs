@@ -2671,3 +2671,40 @@ test("CHSB testi: ishtirok, % va baho, tahlil, xatolar kesimi, joylash, variant 
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Guruh hisobotlari faqat kelgan kunlar bo'yicha: kelgan / o'tilgan darslar va qatnashuv %", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => addClassDialog("club"));
+    await page.fill(".modal #cn", "Shaxmat"); await page.fill(".modal #cl", "Aliyev Sardor, 7-B\nKarimova Dilnoza, 6-A"); await page.click(".modal [data-ok]");
+    // 4 ta dars kuni: 1-darsda ikkalasi, 2-darsda faqat Sardor, 3-darsda hech kim (dars o'tilmagan), 4-darsda faqat Sardor
+    const r = await page.evaluate(() => {
+      const ci = D.classes.length - 1, c = D.classes[ci], [a, b] = c.students, ds = ["2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08"];
+      c.dates = ds.slice(); a.marks = {}; b.marks = {};
+      a.marks[ds[0]] = a.marks[ds[1]] = a.marks[ds[3]] = "ot"; b.marks[ds[0]] = "ot"; b.marks[ds[2]] = "ox";   // eski «o'tilmadi» belgisi hisobga olinmaydi
+      a.joined = ""; b.joined = "";
+      const ga = gMon(c, a, "2026-10"), gb = gMon(c, b, "2026-10");
+      b.joined = "2026-10-06"; const gb2 = gMon(c, b, "2026-10"); b.joined = "";
+      S.rep.band = "grp"; S.rep.gci = ci; S.rep.gm = "2026-10"; S.rep.gkind = "gsum";
+      return {ga, gb, gb2, held: gHeld(c, "2026-10"), att: grpAtt(c, "2026-10"), ci};
+    });
+    assert.deepEqual([r.ga.came, r.ga.held, r.ga.pct], [3, 3, 100]);
+    assert.deepEqual([r.gb.came, r.gb.held, r.gb.pct], [1, 3, 33]);
+    assert.deepEqual([r.gb2.came, r.gb2.held], [0, 2], "qo'shilgan sanadan oldingi darslar hisoblanmaydi");
+    assert.equal(r.held, 3); assert.equal(r.att, 67);
+    for (const kk of ["gsum", "gdays", "gmem", "gfill", "gcmp"]) {
+      await page.evaluate((k) => { S.rep.gkind = k; go("reports"); render(); }, kk);
+      const txt = await page.textContent("main");
+      assert.ok(!/O'tilmadi|o'tilmadi/.test(txt), `${kk}: «o'tilmadi» ustuni bo'lmasin`);
+    }
+    await page.evaluate(() => { S.rep.gkind = "gsum"; render(); });
+    assert.match(await page.textContent("main"), /3 \/ 3[\s\S]*1 \/ 3/);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
