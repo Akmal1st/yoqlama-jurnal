@@ -35,7 +35,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       await nav("reports");
       for (const k of ["att", "stats", "ready", "cmp", "blank", "cls"]) await page.click(`[data-kind=${k}]`);
       await nav("settings");
-      for (const i of [0, 1, 2, 4, 5, 6]) await page.click(`[data-sec="${i}"]`);
+      for (let i = 0; i < 7; i++) await page.click(`[data-sec="${i}"]`);
       await nav("today");
       const start = await page.$("[data-start]");
       if (start) { await start.click(); await page.click("[data-next]"); await page.click("[data-next]"); await page.click("[data-next]"); }
@@ -1685,7 +1685,7 @@ test("Sozlamalar: bo'limlar guruhlangan, kalitlar holatni ko'rsatadi, telefonda 
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
-    for (const i of [0, 1, 2, 4, 5, 6]) {
+    for (let i = 0; i < 7; i++) {
       await page.evaluate((i) => { S.sec = i; go("settings"); }, i);
       const r = await page.evaluate(() => ({g: document.querySelectorAll(".sbody .sgroup").length, over: document.documentElement.scrollWidth - innerWidth, cur: $(".secs [aria-current]").dataset.sec}));
       assert.ok(r.g >= 1, `bo'lim ${i}: guruh yo'q`); assert.ok(r.over <= 0, `bo'lim ${i}: ${r.over}px yonga chiqdi`); assert.equal(r.cur, String(i));
@@ -2057,11 +2057,9 @@ test("Sozlamalar: hafta/oy/chorak rejimlarini o'chirib-yoqish, ixcham dizayn va 
     await page.evaluate(() => { S.sec = 6; go("settings"); });
     await page.click('[data-ft="vweek"]'); await page.click('[data-ft="vmonth"]');
     assert.equal(await page.evaluate(() => viewModes().length), 4);
-    // «Dizayn» bo'limi menyuda yo'q (vaqtincha TPT ko'rinishi), eski raqam bilan ochilsa birinchi bo'lim chiqadi
+    // eski uslub/bezak tugmalari yo'q, asosiy ko'rinish — TPT (Manrope)
     await page.evaluate(() => { S.sec = 3; go("settings"); });
-    assert.equal(await page.locator('[data-sec="3"]').count(), 0);
-    assert.equal(await page.evaluate(() => S.sec), 0);
-    assert.equal(await page.locator("[data-deco], [data-sty], [data-font], [data-dsw]").count(), 0);
+    assert.equal(await page.locator("[data-deco], [data-sty], [data-dsw]").count(), 0);
     assert.ok(await page.evaluate(() => document.documentElement.classList.contains("tpt-all") && /Manrope/.test(getComputedStyle(document.body).fontFamily)));
     // eski saqlangan qiymatlar tuzatiladi
     const mig = await page.evaluate(() => { const a = migrate(normalize({web: {ui26: 1, font: "times", density: "kompakt"}})).web, b = migrate(normalize({web: {ui26: 1, font: "lsans"}})).web; return [a.font, "density" in a, b.font]; });
@@ -2482,3 +2480,54 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
     } finally { await browser.close(); }
   });
 }
+
+test("Sozlamalar → Dizayn: mavzular, tungi variant, rang, tugmalar joyi va qaytarish", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const [w, h] of [[1300, 860], [390, 844]]) {
+      const page = await browser.newPage({viewport: {width: w, height: h}});
+      const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await page.evaluate(() => { S.sec = 3; S.dztab = "look"; go("settings"); });
+      const tok = (k) => page.evaluate((k) => getComputedStyle(document.documentElement).getPropertyValue(k).trim(), k);
+      assert.equal(await page.locator(".dz-sec [data-dz-theme]").count(), 6);
+      assert.equal(await tok("--win"), "#f3f5f9", `${w}: standart — TPT`);
+      // mavzu almashadi, kunduzgi mavzuning tungi varianti o'ziniki
+      await page.click('[data-dz-theme="osmon"]'); assert.equal(await tok("--win"), "#eaf1fb");
+      await page.click("[data-dz-force]");
+      assert.equal(await tok("--win"), "#0a1222"); assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), "dark");
+      await page.click('[data-dz-theme="daftar"]'); assert.equal(await tok("--win"), "#17140f", "har mavzuning tungi varianti boshqa");
+      await page.click("[data-dz-force]"); assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), "light");
+      // to'q mavzuda «Kechqurun» o'chadi
+      await page.click('[data-dz-theme="grafit"]'); assert.ok(await page.isDisabled('[data-dz-night="time"]'));
+      // asosiy rang; xira rangda ogohlantirish
+      await page.click('[data-dz-theme="tpt"]'); await page.click('[data-dz-hue="#6d4fd3"]'); assert.equal(await tok("--acc"), "#6d4fd3");
+      await page.evaluate(() => { const p = $("#dzpick"); p.value = "#f3e36b"; p.dispatchEvent(new Event("change")); }); assert.equal(await page.locator(".dzwarn").count(), 1);
+      // qaytarish — oxirgi o'zgarish bekor bo'ladi
+      await page.click("[data-dz-undo]"); assert.equal(await page.evaluate(() => D.web.dz.hue), "#6d4fd3");
+      await page.click("[data-dz-reset]"); assert.equal(await page.evaluate(() => [D.web.dz.theme, D.web.dz.hue]).then(JSON.stringify), JSON.stringify(["tpt", ""]));
+      // tugmalar: menyu tartibi va yashirish, emoji kalitlar
+      await page.click('[data-dz-tab="btn"]');
+      await page.click('[data-dz-eye="help"]');
+      assert.equal(await page.locator(w > 820 ? "#side [data-help]" : "#tabbar [data-help]").count(), 0, "Yordam yashirildi");
+      await page.click('[data-dz-mv="reports|-1"]');
+      const order = await page.$$eval(w > 820 ? "#side [data-go]" : "#tabbar [data-go]", (x) => x.map((b) => b.dataset.go));
+      assert.deepEqual(order, ["today", "journal", "reports", "groups", "settings"]);
+      assert.equal(await page.locator('[data-dz-eye="settings"]').count(), 0, "Sozlamalar yashirilmaydi");
+      await page.click('[data-dz-emo="sun"]');
+      await page.evaluate(() => { S.sec = 6; go("settings"); });
+      assert.match(await page.textContent(".swt.on"), /🌞/);
+      // menyu tepada (kompyuter)
+      await page.evaluate(() => { D.web.dz.nav = "top"; save(); render(); });
+      if (w > 820) { const r = await page.evaluate(() => { const s = $("#side").getBoundingClientRect(); return [Math.round(s.top), Math.round(s.width)]; }); assert.equal(r[0], 0); assert.ok(r[1] > 900, "yon panel tepada qator bo'ldi"); }
+      // eski sozlama: tungi mavzu → «Tungi», avto → qurilmaga qarab
+      const mig = await page.evaluate(() => [normalize({web: {theme: "dark"}}).web.dz.theme, normalize({web: {theme: "auto"}}).web.dz.night, normalize({web: {dz: {theme: "yoq", ord: ["x"], hid: ["settings"]}}}).web.dz]);
+      assert.equal(mig[0], "tun"); assert.equal(mig[1], "device"); assert.equal(mig[2].theme, "tpt"); assert.equal(mig[2].ord.length, 6); assert.deepEqual(mig[2].hid, []);
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "yonga chiqmasin");
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});

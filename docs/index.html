@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="uz" class="tpt-all">
+<html lang="uz" class="tpt-all dz">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="guruhlar.css">
 <link rel="stylesheet" href="tpt-tema.css">
+<link rel="stylesheet" href="dizayn.css">
 </head>
 <body>
 <div class="app" id="app">
@@ -24,6 +25,7 @@
 </div>
 <input type="file" id="file" accept=".json,application/json" class="hide">
 <script src="guruhlar.js"></script>
+<script src="dizayn.js"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
@@ -180,13 +182,13 @@ const CLS_COLORS = ["#ffe7a3", "#c9f0dc", "#d8e3ff", "#ffd6e0", "#ead9ff", "#ffd
 const ccOf = (i) => `--cc:${CLS_COLORS[i % CLS_COLORS.length]}`;
 // kompyuterdagi shrift nomi CSS ga xavfsiz tushishi uchun
 const cleanFont = (n) => String(n || "").replace(/["'\\;{}<>()]/g, "").replace(/\s+/g, " ").trim().slice(0, 80);
-const sideMin = () => !!D.web.sidemin;
+const sideMin = () => !!D.web.sidemin || DZN.compact();
 const curStyle = () => (STYLES[D.web.style] ? D.web.style : DESIGN_DEF.style);
-// VAQTINCHA (Akmal, 2026-11-01): TPT Guruhlar ko'rinishi butun dasturga (tpt-tema.css). Yangi «Dizayn» menyusi tasdiqlanguncha
-// saqlangan shrift/rang/uslub/bezak tanlovlari qo'llanmaydi, lekin D.web da o'chirilmaydi. Mavzu (kunduzgi/tungi/avto) ishlayveradi.
+// Asosiy ko'rinish — TPT (tpt-tema.css); mavzu, rang, o'lcham va tugmalar joyi — Sozlamalar → Dizayn (dizayn.js, D.web.dz).
+// Eski uslub/shrift/rang tanlovlari (STYLES, FONTS, ACCENTS) endi ishlatilmaydi, lekin D.web da o'chirilmaydi.
 const TPT_ALL = true;
 function designCss(w) {
-  if (TPT_ALL) return `@media screen{${ZAMONAVIY_CSS}}`;
+  if (TPT_ALL) return `@media screen{${ZAMONAVIY_CSS}}` + DZN.css();
   const cf = cleanFont(w.cfont), f = w.font === "custom" && cf ? `"${cf}",system-ui,sans-serif` : (FONTS.find((x) => x[0] === w.font) || FONTS.find((x) => x[0] === DESIGN_DEF.font))[2], z = (FSIZES.find((x) => x[0] === w.fsize) || FSIZES[1])[2], a = ACCENTS[w.accent] || ACCENTS.teal;
   const st = STYLES[w.style] || STYLES[DESIGN_DEF.style];
   // foydalanuvchi «Asosiy rang»ni o'zi tanlagan bo'lsa, uslubning o'z rangi (--acc*) uni bosib ketmasin
@@ -302,6 +304,7 @@ function normalize(d) {
   }
   d.fin = cleanFin(d.fin);
   d.web = Object.assign({theme: "auto", gen: []}, DESIGN_DEF, d.web || {});
+  d.web.dz = DZN.clean(d.web.dz, d.web);
   d.v2 = d.v2 || {};
   if (!d.v2.ranges3 && !d.web.ranges3) { st.ranges = clone(DEFAULTS.ranges); d.web.ranges3 = true; }
   return d;
@@ -1376,10 +1379,13 @@ function renderNav() {
   const btns = NAV.map(([k, t]) => `<button class="nav ${cur === k ? "on" : ""}" data-go="${k}" title="${t}">${ICONS[k]}<span class="lbl">${t}</span></button>`).join("");
   const lockTxt = !D.settings.protect.enabled ? "⚠ Himoya o'chiq" : isLocked() ? "🔒 Himoyalangan" : "🔓 Ochiq — qulflash";
   const hb = `<button class="nav hlp" data-help title="Shu sahifa bo'yicha qo'llanma">${ICONS.help}<span class="lbl">Yordam</span></button>`;
-  $("#side").innerHTML = `<div class="logo"><b>Y</b><span>Yo'qlama jurnali<small>web</small></span></div><button class="btn btn-sm cmdb" data-cmdk title="Qidirish va buyruqlar (Ctrl+K)">🔍<span class="lbl">Qidirish</span><kbd>Ctrl K</kbd></button>${btns}${hb}${sideView()}<div class="grow"></div>
+  // tartib va yashirilganlar — Sozlamalar → Dizayn → Tugmalar
+  const one = Object.fromEntries(NAV.map(([k, t]) => [k, `<button class="nav ${cur === k ? "on" : ""}" data-go="${k}" title="${t}">${ICONS[k]}<span class="lbl">${t}</span></button>`]));
+  const navs = DZN.navList().map((k) => k === "help" ? hb : one[k] || "").join("");
+  $("#side").innerHTML = `<div class="logo"><b>Y</b><span>Yo'qlama jurnali<small>web</small></span></div><button class="btn btn-sm cmdb" data-cmdk title="Qidirish va buyruqlar (Ctrl+K)">🔍<span class="lbl">Qidirish</span><kbd>Ctrl K</kbd></button>${navs}${sideView()}<div class="grow"></div>
     <div class="sbot"><button class="btn btn-sm sidet" data-sidet title="${sideMin() ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}" aria-label="${sideMin() ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}">${sideMin() ? "»" : "« Yig'ish"}</button>
     <button class="btn btn-sm" data-lock title="Qo'yilgan baholar himoyasi: ${lockTxt.slice(2)}">${sideMin() ? lockTxt.slice(0, 2) : lockTxt}</button></div>`;
-  $("#tabbar").innerHTML = btns + hb;
+  $("#tabbar").innerHTML = navs;
   document.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => {
     // «Jurnal» — faqat sinflar; guruhdan o'tilsa birinchi sinf ochiladi
     if (b.dataset.go === "journal" && isGrp(D.classes[S.ci])) { const r = D.classes.findIndex((c) => !isGrp(c)); if (r < 0) return go("today"); S.ci = r; S.jpage = "j"; }
@@ -1400,7 +1406,7 @@ function cmdItems() {
   if (c && !isGrp(c)) it.push({ic: "▶", t: `Darsni boshlash — ${label(c)}`, s: "Dars", run: () => startLesson(S.ci)});
   it.push({ic: "＋", t: "Yangi sinf qo'shish", s: "Amal", run: () => addClassDialog()},
     {ic: "💾", t: "Faylga saqlash (zaxira)", s: "Amal", run: () => exportJson()},
-    {ic: "🌓", t: "Kunduzgi / tungi rejim", s: "Amal", run: () => { const dk = document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches); D.web.theme = dk ? "light" : "dark"; save(); render(); }},
+    {ic: "🌓", t: "Kunduzgi / tungi rejim", s: "Amal", run: () => DZN.toggleNight()},
     {ic: "⌨", t: "Tezkor tugmalar ro'yxati", s: "?", run: () => keysDialog()},
     {ic: "❔", t: "Yordam — shu sahifa", s: "Amal", run: () => helpDialog()});
   if (UNDO.length) it.push({ic: "↶", t: "Oxirgi o'zgarishni bekor qilish", s: "Ctrl+Z", run: undoLast});
@@ -1510,9 +1516,9 @@ async function toggleLock() {
 function applyTheme() {
   let dc = document.getElementById("design-css"); if (!dc) { dc = document.createElement("style"); dc.id = "design-css"; document.head.append(dc); }
   const css = designCss(D.web); if (dc.textContent !== css) dc.textContent = css;
-  document.documentElement.classList.toggle("tpt-all", TPT_ALL);
-  const t = D.web.theme; document.documentElement.dataset.theme = t === "auto" ? "" : t;
-  if (t === "auto") delete document.documentElement.dataset.theme;
+  document.documentElement.classList.toggle("tpt-all", TPT_ALL); document.documentElement.classList.toggle("dz", TPT_ALL);
+  // kunduzgi/tungi — Dizayn bo'limidagi mavzu va «Kechqurun» sozlamasidan
+  document.documentElement.dataset.theme = DZN.isDark() ? "dark" : "light";
   // Chorak ko'rinishida kataklar kichik — butun chorak bitta ekranga sig'adi
   document.body.classList.toggle("dense", S.page === "journal" && S.jpage === "j" && V.mode === "quarter");
   document.body.classList.remove("jonly");   // «Faqat jadval» — jurnal jadvali o'zi qo'yadi
@@ -2470,14 +2476,15 @@ function pageReports(m) {
 /* ───────── 5. Sozlamalar ───────── */
 // [belgi, nomi, qisqa izoh]
 const SECS = [["👥", "Sinflar va o'quvchilar", "Sinf qo'shish, ro'yxatlar"], ["📅", "Dars kunlari va choraklar", "Jadval, eslatmalar, choraklar"], ["🎯", "Baholash", "Baho ranglari, xavf mezonlari"],
-  ["🎨", "Dizayn", "Mavzu, shrift, ranglar"], ["🔒", "Himoya", "Baholarni qulflash, parol"], ["💾", "Ma'lumotlar", "Zaxira, import, o'quv yili"], ["🧩", "Funksiyalar", "Keraksizlarini yashirish"]];
-// «Dizayn» bo'limi (3) olib tashlandi (Akmal, 2026-11-01) — yangisi alohida faylda bo'ladi. Raqamlar o'zgarmasin deb joyi saqlanadi, menyuda ko'rinmaydi.
-const SEC_OFF = new Set([3]);
+  ["🎨", "Dizayn", "Mavzu, rang, tugmalar joyi"], ["🔒", "Himoya", "Baholarni qulflash, parol"], ["💾", "Ma'lumotlar", "Zaxira, import, o'quv yili"], ["🧩", "Funksiyalar", "Keraksizlarini yashirish"]];
+// menyuda ko'rinmaydigan bo'limlar (hozir yo'q). 3 — «Dizayn», alohida faylda: dizayn.js / dizayn.css
+const SEC_OFF = new Set([]);
 function srow(t, d, btn) { return `<div class="srow${String(btn).startsWith('<button class="swt') ? " tog" : ""}"><div><b>${t}</b>${d ? `<div class="muted">${d}</div>` : ""}</div>${btn ? `<div class="hrow sact">${btn}</div>` : ""}</div>`; }
 // sozlamalar guruhi: kichik sarlavha va ramkali qatorlar
 const sgroup = (title, html, cls = "") => html ? `<div class="sgroup ${cls}">${title ? `<h3 class="sgt">${title}</h3>` : ""}<div class="sgbox">${html}</div></div>` : "";
 // yoqish/o'chirish tugmasi (kalit ko'rinishida)
-const swt = (attrs, on) => `<button class="swt ${on ? "on" : ""}" role="switch" aria-checked="${on}" ${attrs}><i></i><span>${on ? "Yoqilgan" : "O'chiq"}</span></button>`;
+// yoqilgan/o'chiq belgisi (🐵/🙈 va h.k.) — Sozlamalar → Dizayn → Tugmalar
+const swt = (attrs, on) => `<button class="swt ${on ? "on" : ""}" role="switch" aria-checked="${on}" ${attrs}><i></i><span><em class="swe" aria-hidden="true">${DZN.emo(on)}</em> ${on ? "Yoqilgan" : "O'chiq"}</span></button>`;
 function pageSettings(m) {
   const st = D.settings; let body = "";
   if (SEC_OFF.has(S.sec) || !SECS[S.sec]) S.sec = 0;
@@ -2524,6 +2531,8 @@ function pageSettings(m) {
         srow("KTRdagi BSB/CHSB mavzulari", "Rejadagi «BSB …» va «CHSB …» mavzulari uchun summativ ish o'zi qo'shilsin", swt('data-a="ktrw"', ktrWorksOn()))) +
       sgroup("Jurnal", srow("O'tgan darslarga belgi qo'yish", "Darsda ulgurmagan yoki keyin to'ldiriladigan baho va yo'qlamalar uchun. Kelgusi kunlarga belgi qo'yilmaydi; har bir o'zgarish tarixga yoziladi.",
         `<div class="seg wrap">${PAST.map(([k, n]) => `<button class="${(D.web.past || "today") === k ? "on" : ""}" data-past="${k}">${n}</button>`).join("")}</div>`));
+  } else if (S.sec === 3) {
+    body = DZN.body();
   } else if (S.sec === 4) {
     const p = st.protect;
     body = sgroup("", srow("Qo'yilgan baholarni himoyalash", "Mavjud bahoni o'zgartirishdan oldin qulfni ochish kerak (bo'sh katakka baho qo'yish erkin)", swt('data-a="prot"', p.enabled)) +
@@ -2560,6 +2569,7 @@ function pageSettings(m) {
     <nav class="card secs" aria-label="Sozlamalar bo'limlari">${SECS.map(([i0, n, d], i) => SEC_OFF.has(i) ? "" : `<button class="${i === S.sec ? "on" : ""}" data-sec="${i}" ${i === S.sec ? 'aria-current="page"' : ""}><span class="si">${i0}</span><span class="sn">${n}<small>${d}</small></span></button>`).join("")}</nav>
     <section class="card sbody"><div class="shead"><span class="si big">${ic}</span><div><h2>${nm}</h2><div class="muted">${ds}</div></div></div>${body}</section></div></div>`;
   m.querySelectorAll("[data-sec]").forEach((b) => b.onclick = () => { S.sec = +b.dataset.sec; render(); });
+  if (S.sec === 3) DZN.bind(m);
   m.querySelectorAll("[data-deco]").forEach((b) => b.onclick = () => { D.web.deco = D.web.deco === b.dataset.deco ? "" : b.dataset.deco; save(); applyTheme(); render(); });
   m.querySelectorAll("[data-ft]").forEach((b) => b.onclick = () => { const o = D.web.off = D.web.off || {}, k = b.dataset.ft; if (o[k]) delete o[k]; else o[k] = 1; save(); render(); });
   m.querySelectorAll("[data-fp]").forEach((b) => b.onclick = () => { D.web.off = b.dataset.fp === "all" ? {} : Object.fromEntries(SIMPLE_OFF.map((k) => [k, 1])); save(); render(); toast(b.dataset.fp === "all" ? "Hamma funksiyalar yoqildi" : "Faqat asosiy funksiyalar qoldi"); });

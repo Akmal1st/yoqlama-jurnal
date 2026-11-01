@@ -6,7 +6,8 @@ const read = (p) => readFileSync(new URL(p, new URL(".", import.meta.url)), "utf
 
 export function loadApp(today) {
   const html = read("../docs/index.html");
-  const src = html.slice(html.indexOf("<script>") + 8, html.lastIndexOf("</script>"));
+  // dizayn.js asosiy skriptdan oldin ulanadi (normalize D.web.dz ni shu yerda tekshiradi)
+  const src = read("../docs/dizayn.js") + "\n" + html.slice(html.indexOf("<script>") + 8, html.lastIndexOf("</script>"));
   const [y, m, d] = today.split("-").map(Number);
   const FIXED = new Date(y, m - 1, d, 12).getTime();
   class FixedDate extends Date {
