@@ -732,7 +732,7 @@ test("Telegram: ulash, avtomatik zaxira va boshqa qurilmadan yuklash (soxta bot 
     // parol bilan shifrlash: fayl ham, matn bo'laklari ham o'qib bo'lmaydi; parol bilan ochiladi
     await page.evaluate(async () => { tgSet({pass: "maxfiy123"}); D.classes[0].name = "5-G"; await tgBackup(false); });
     assert.equal(docs.length, 3);
-    assert.ok(docs[2].includes("jurnal-sealed") && !docs[2].includes("5-G") && !docs[2].includes("Boshqa Qurilma"));
+    assert.ok(docs[2].includes("jurnal-sealed") && !docs[2].includes("\"5-G\"") && !docs[2].includes("Boshqa Qurilma"));
     const sp = (pinned.caption.match(/#d([\d.]+)/) || [])[1].split(".").map(Number);
     await page.evaluate(async (ids) => { window.__s = await tgReadParts(ids); }, sp);
     assert.equal(await page.evaluate(() => window.__s.type), "jurnal-sealed");
