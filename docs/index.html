@@ -40,6 +40,20 @@ const DEFAULTS = {
   risk: {avg_below: 5.0, att_below: 80, s_ge: 3, min_n: 3, few_lt: 4, avg_min_grades: 3, consec_ge: 3, drop_ge: 1.5, work_below: 40,
          on: {avg: true, few: true, min_n: true, att: true, s: true, qgrade: true, consec: false, drop: false, work: false}},
 };
+// xavf turlari (sozlamalar uchun): [kalit, [nomi, izoh], [[chegara kaliti, nomi, qadam, birlik]]]
+const RISK_TYPES = [
+  ["avg", ["O'rtacha baho past", "O'rtacha baho shundan past bo'lsa (kamida «baho soni» ta baho qo'yilgan bo'lsa)"], [["avg_below", "O'rtacha baho shundan past", "0.5", ""], ["avg_min_grades", "Kamida shuncha baho", "1", "ta"]]],
+  ["few", ["Baholar kam", "Dars o'tilgan bo'lsa-yu, baholar soni shundan kam bo'lsa"], [["few_lt", "Baholar soni shundan kam", "1", "ta"]]],
+  ["min_n", ["BSB dan keyin baholar kam", "BSB topshirilgandan keyin ham baholar soni shundan kam bo'lsa"], [["min_n", "Baholar soni shundan kam", "1", "ta"]]],
+  ["att", ["Davomat past", "Davomat foizi shundan past bo'lsa"], [["att_below", "Davomat shundan past", "1", "%"]]],
+  ["s", ["Sababsiz qoldirish", "Sababsiz qoldirilgan darslar soni shuncha va undan ko'p bo'lsa"], [["s_ge", "Sababsiz qoldirish, kamida", "1", "ta"]]],
+  ["qgrade", ["Chorak bahosi 2", "Chorak natijasi to'liq bo'lib, baho 2 chiqsa"], []],
+  ["consec", ["Ketma-ket qoldirish", "Ketma-ket shuncha dars qoldirgan bo'lsa"], [["consec_ge", "Ketma-ket qoldirilgan darslar", "1", "ta"]]],
+  ["drop", ["Baholar pasaymoqda", "Baholarning ikkinchi yarmi birinchisidan shuncha ballga past bo'lsa"], [["drop_ge", "Pasayish, ball", "0.5", "ball"]]],
+  ["work", ["BSB/CHSB natijasi past", "Summativ ish natijasi maksimalning shu foizidan past bo'lsa"], [["work_below", "Natija shundan past", "5", "%"]]],
+];
+const RISK_PRESETS = [["default", "Asosiy"], ["att", "Faqat davomat"], ["grade", "Faqat baho"], ["all", "Hammasi"], ["none", "Hech biri"]];
+const RISK_SETS = {default: ["avg", "few", "min_n", "att", "s", "qgrade"], att: ["att", "s", "consec"], grade: ["avg", "few", "min_n", "qgrade", "drop", "work"], all: RISK_TYPES.map((x) => x[0]), none: []};
 const clone = (o) => JSON.parse(JSON.stringify(o));
 let D = null;
 
@@ -3256,9 +3270,15 @@ function pageSettings(m) {
       `<input class="form-control" type="text" data-rname="${i}" value="${esc(r.name)}" aria-label="Guruh nomi">
        <div class="grb"><select data-rmin="${i}" aria-label="Boshlanishi">${Array.from({length: 10}, (_, k) => `<option value="${k + 1}" ${r.min === k + 1 ? "selected" : ""}>${k + 1}</option>`).join("")}</select><span>– ${upTo(i)}</span></div>
        <input type="color" data-rcol="${i}" value="${r.color}" aria-label="Rang">`).join("")}</div></div></div>`) +
-      `<div class="sgroup"><h3 class="sgt">Xavf mezonlari</h3><p class="muted shint">Shu shartlardan biri bajarilsa, o'quvchi «xavf ostida» deb belgilanadi: jurnalda qatori qizil, «Bugun»da «E'tibor talab qiladi».</p><div class="sgbox"><div class="rkgrid">
-        ${[["avg_below", "O'rtacha baho shundan past", "0.5", ""], ["att_below", "Davomat shundan past", "1", "%"], ["s_ge", "Sababsiz qoldirish, kamida", "1", "ta"], ["few_lt", "Baholar soni shundan kam", "1", "ta"]].map(([k, n, stp, u]) =>
-          `<label class="rkf"><span>${n}</span><span class="hrow" style="gap:6px;flex-wrap:nowrap"><input class="form-control" type="number" step="${stp}" data-rk="${k}" value="${st.risk[k]}">${u ? `<i>${u}</i>` : ""}</span></label>`).join("")}</div></div></div>` +
+      (() => {
+        // xavf turlari: har biri alohida yoqiladi/o'chiriladi, kerak bo'lsa chegarasi yoziladi
+        const num = (k, stp, u) => `<span class="hrow" style="gap:6px;flex-wrap:nowrap"><input class="form-control rkn" type="number" step="${stp}" min="0" data-rk="${k}" value="${st.risk[k]}" aria-label="${esc(RISK_TYPES.flatMap((x) => x[2]).find((f) => f[0] === k)[1])}">${u ? `<i>${u}</i>` : ""}</span>`;
+        const row = ([k, [t, d], fields]) => `<div class="srow tog rkrow"><div><b>${t}</b><div class="muted">${d}</div></div><div class="hrow sact">${fields.map(([fk, , stp, u]) => num(fk, stp, u)).join("")}${swt(`data-rkon="${k}"`, !!st.risk.on[k])}</div></div>`;
+        const nOn = RISK_TYPES.filter(([k]) => st.risk.on[k]).length;
+        return `<div class="sgroup"><h3 class="sgt">Xavf turlari</h3><p class="muted shint">Qaysi shartlar bo'yicha o'quvchi «xavf ostida» deb belgilanishini o'zingiz tanlang. Yoqilgan shartlardan biri bajarilsa, jurnalda qatori qizil, «Bugun»da «E'tibor talab qiladi». Hozir yoqilgan: ${nOn} / ${RISK_TYPES.length}.</p>
+          <div class="seg wrap" style="margin-bottom:10px">${RISK_PRESETS.map(([k, n]) => `<button data-rkpre="${k}">${n}</button>`).join("")}</div>
+          <div class="sgbox">${RISK_TYPES.map(row).join("")}</div></div>`;
+      })() +
       sgroup("Chorak bahosi", srow("Formativ baho (FB) uchun kamida", "Chorakda shuncha kundalik baho bo'lmasa, FB = 0", `<input class="form-control" type="number" min="1" id="fbm" value="${fbMin()}" style="width:90px">`) +
         srow("KTRdagi BSB/CHSB mavzulari", "Rejadagi «BSB …» va «CHSB …» mavzulari uchun summativ ish o'zi qo'shilsin", swt('data-a="ktrw"', ktrWorksOn()))) +
       sgroup("Jurnal", srow("O'tgan darslarga belgi qo'yish", "Darsda ulgurmagan yoki keyin to'ldiriladigan baho va yo'qlamalar uchun. Kelgusi kunlarga belgi qo'yilmaydi; har bir o'zgarish tarixga yoziladi.",
@@ -3344,6 +3364,8 @@ function pageSettings(m) {
   m.querySelectorAll("[data-rcol]").forEach((x) => x.onchange = () => { ranges()[+x.dataset.rcol].color = x.value; save(); render(); });
   m.querySelectorAll("[data-rname]").forEach((x) => x.onchange = () => { ranges()[+x.dataset.rname].name = x.value; save(); });
   m.querySelectorAll("[data-rk]").forEach((x) => x.onchange = () => { st.risk[x.dataset.rk] = +x.value; save(); toast("Saqlandi"); });
+  m.querySelectorAll("[data-rkon]").forEach((b) => b.onclick = () => { const k = b.dataset.rkon; st.risk.on[k] = !st.risk.on[k]; save(); render(); });
+  m.querySelectorAll("[data-rkpre]").forEach((b) => b.onclick = () => { const set = RISK_SETS[b.dataset.rkpre] || []; RISK_TYPES.forEach(([k]) => st.risk.on[k] = set.includes(k)); save(); render(); toast(`Xavf turlari: ${set.length} ta yoqildi`); });
   m.querySelectorAll("[data-th]").forEach((b) => b.onclick = () => { D.web.theme = b.dataset.th; save(); render(); });
   m.querySelectorAll("[data-past]").forEach((b) => b.onclick = () => { D.web.past = b.dataset.past; save(); render(); toast(b.dataset.past === "today" ? "Faqat bugungi kunga belgi qo'yiladi" : "O'tgan darslarga ham belgi qo'yish mumkin"); });
   for (const [attr, key] of [["font", "font"], ["fs", "fsize"], ["accent", "accent"], ["rad", "radius"], ["sty", "style"]])
