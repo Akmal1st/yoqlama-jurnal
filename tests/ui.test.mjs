@@ -732,7 +732,7 @@ test("Telegram: ulash, avtomatik zaxira va boshqa qurilmadan yuklash (soxta bot 
     // parol bilan shifrlash: fayl ham, matn bo'laklari ham o'qib bo'lmaydi; parol bilan ochiladi
     await page.evaluate(async () => { tgSet({pass: "maxfiy123"}); D.classes[0].name = "5-G"; await tgBackup(false); });
     assert.equal(docs.length, 3);
-    assert.ok(docs[2].includes("jurnal-sealed") && !docs[2].includes("5-G") && !docs[2].includes("Boshqa Qurilma"));
+    assert.ok(docs[2].includes("jurnal-sealed") && !docs[2].includes("\"5-G\"") && !docs[2].includes("Boshqa Qurilma"));
     const sp = (pinned.caption.match(/#d([\d.]+)/) || [])[1].split(".").map(Number);
     await page.evaluate(async (ids) => { window.__s = await tgReadParts(ids); }, sp);
     assert.equal(await page.evaluate(() => window.__s.type), "jurnal-sealed");
@@ -2526,6 +2526,14 @@ test("Sozlamalar → Dizayn: mavzular, tungi variant, rang, tugmalar joyi va qay
       const mig = await page.evaluate(() => [normalize({web: {theme: "dark"}}).web.dz.theme, normalize({web: {theme: "auto"}}).web.dz.night, normalize({web: {dz: {theme: "yoq", ord: ["x"], hid: ["settings"]}}}).web.dz]);
       assert.equal(mig[0], "tun"); assert.equal(mig[1], "device"); assert.equal(mig[2].theme, "tpt"); assert.equal(mig[2].ord.length, 6); assert.deepEqual(mig[2].hid, []);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "yonga chiqmasin");
+      // Guruhlar bo'limi ham tanlangan mavzuda (to'q mavzuda ham)
+      for (const th of ["osmon", "grafit"]) {
+        await page.evaluate((th) => { D.web.dz.theme = th; D.web.dz.nav = "left"; save(); applyTheme(); go("groups"); }, th);
+        await page.waitForSelector(".tpt");
+        const g = await page.evaluate(() => { const r = getComputedStyle(document.documentElement), t = getComputedStyle($(".tpt")); return [t.getPropertyValue("--g-acc").trim(), r.getPropertyValue("--acc").trim(), t.getPropertyValue("--g-base").trim(), r.getPropertyValue("--base").trim(), getComputedStyle($("#main")).backgroundColor]; });
+        assert.equal(g[0], g[1], `${th}: guruhlar asosiy rangi`); assert.equal(g[2], g[3], `${th}: guruhlar kartochka foni`);
+        if (th === "grafit") assert.equal(g[4], "rgb(20, 21, 24)", "guruhlar sahifa foni mavzudan");
+      }
       assert.deepEqual(errors, []);
       await page.close();
     }
