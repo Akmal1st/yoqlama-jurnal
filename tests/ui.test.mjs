@@ -2815,3 +2815,34 @@ test("Guruh a'zosi kartochkasi (ism bosilganda): baho va yo'qlama emas, kelgan k
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("O'chirilgan BSB/CHSB qayta paydo bo'lmaydi: KTR rejasi va eMaktab importi o'tkazib yuboradi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const r = await page.evaluate(() => {
+      const c = D.classes[0], d = c.dates.find((x) => x >= "2026-09-10" && !isNoLesson(c, x)), keys = () => c.works.map((w) => `${w.type}|${w.date}`);
+      const slots = [{text: "BSB-1", q: null}];
+      c.lessons[d] = {topic: "BSB-1", hw: "", auto: true, si: 0};
+      const out = {};
+      planWorks(c, slots); out.created = keys().includes(`bsb|${d}`);
+      const w = c.works.find((x) => x.type === "bsb" && x.date === d); removeWork(c, w);
+      planWorks(c, slots); out.afterPlan = keys().includes(`bsb|${d}`);
+      // eMaktab importi o'chirilgan ishni qayta qo'shmaydi
+      const before = c.works.length; mergeImport({name: c.name, subject: c.subject, dates: [], students: [], works: [{type: "bsb", date: d, max: 25, title: ""}]}, false);
+      out.afterImport = c.works.length - before;
+      // qo'lda yangidan qo'shilsa — endi qayta ishlaydi
+      reviveWork(c, "bsb", d); mergeImport({name: c.name, subject: c.subject, dates: [], students: [], works: [{type: "bsb", date: d, max: 25, title: ""}]}, false);
+      out.revived = keys().includes(`bsb|${d}`); out.wdel = (c.wdel || []).length;
+      return out;
+    });
+    assert.equal(r.created, true); assert.equal(r.afterPlan, false, "KTR rejasi o'chirilgan ishni qayta yaratmasin");
+    assert.equal(r.afterImport, 0, "import o'chirilgan ishni qayta qo'shmasin"); assert.equal(r.revived, true); assert.equal(r.wdel, 0);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
