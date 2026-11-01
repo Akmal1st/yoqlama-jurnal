@@ -850,10 +850,12 @@ test("Bugun: «Hamma keldi» va oldingi uy vazifasi; mavzular oynasi", async () 
       c.att_ok = c.att_ok.filter((d) => d !== t); c.students.forEach((s) => delete s.marks[t]);
       c.lessons[p] = {topic: "Kasrlar", hw: "45-bet, 3-mashq"}; save(); S.page = "today"; render(); return p;
     });
-    await page.waitForSelector("text=45-bet, 3-mashq");
-    await page.click('[data-allok="0"]');
+    // dars qatori (bugun.js) → dars oynasi: oldingi uy vazifasi va «Hamma keldi»
+    await page.click('.bn-ls[data-les="0"]');
+    await page.waitForSelector(".modal >> text=45-bet, 3-mashq");
+    await page.click('.modal [data-allok="0"]');
     assert.ok(await page.evaluate(() => D.classes[0].att_ok.includes(todayIso())));
-    await page.waitForSelector('[data-open="0"]');
+    await page.waitForSelector('.bn-ls.done[data-les="0"]');
     // mavzular oynasi: kiritilgan qiymat saqlanadi
     await page.evaluate((p) => { D.settings.quarters[0] = [iso(addDays(pdate(p), -5)), iso(addDays(pdate(todayIso()), 5))]; S.ci = 0; S.page = "journal"; render(); lessonsDialog(0); }, prev);   // sana chorak tanaffusiga to'g'ri kelmasin
     await page.fill(`[data-lt="${prev}"]`, "Kasrlarni qo'shish"); await page.press(`[data-lt="${prev}"]`, "Tab");
@@ -1869,7 +1871,7 @@ test("Dars: 30% dan kam baholangan bo'lsa ogohlantiradi, yetarli bo'lsa to'xtatm
   } finally { await browser.close(); }
 });
 
-test("Bugun: sinflar ko'rsatkichi kartasi (davomat, o'zlashtirish, baholanganlik)", async () => {
+test("Bugun: sinflar ko'rsatkichi kartasi (davomat, o'zlashtirish)", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     const page = await browser.newPage({viewport: {width: 1300, height: 900}});
@@ -1880,8 +1882,7 @@ test("Bugun: sinflar ko'rsatkichi kartasi (davomat, o'zlashtirish, baholanganlik
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     await page.waitForSelector(".clsstat tbody tr");
     assert.equal(await page.locator(".clsstat tbody tr").count(), await page.evaluate(() => D.classes.filter((c) => !isGrp(c)).length));
-    assert.ok((await page.textContent(".clsstat")).includes("Bugun baholangan"));
-    assert.ok(await page.locator(".clsstat .progress-bar").count() > 0);
+    assert.ok(await page.locator(".clsstat .bn-tr i").count() > 0);   // davomat va o'zlashtirish chiziqlari (bugun.js)
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
