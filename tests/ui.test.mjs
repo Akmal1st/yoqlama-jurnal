@@ -2879,3 +2879,29 @@ test("Xavf turlarini tanlash: har tur alohida yoqiladi, chegarasi o'zgaradi, tay
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Hisobotda xavf turi bo'yicha saralash", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => {
+      const c = D.classes[0], ds = c.dates.filter((d) => d <= todayIso() && !isNoLesson(c, d)).slice(-10);
+      c.students.forEach((s, k) => { s.marks = {}; ds.forEach((d, i) => s.marks[d] = k === 0 && i < 5 ? "s" : "9"); });
+      S.rep.band = "cls"; S.rep.kind = "cls"; S.rep.ci = 0; S.rep.per = "all"; S.rtype = ""; save(); go("reports");
+    });
+    assert.ok(await page.locator("#rtype").count(), "xavf turi tanlagichi bor");
+    const all = await page.locator("table.rcls tr").count();
+    await page.selectOption("#rtype", "att");
+    const n = await page.locator("table.rcls tr").count();
+    assert.ok(n < all && n >= 3, `davomat bo'yicha ${n} < ${all}`);
+    assert.ok((await page.locator("table.rcls td.warn").allTextContents()).every((t) => t.includes("davomat")));
+    await page.selectOption("#rtype", "drop");
+    assert.equal(await page.locator("table.rcls td.warn").count(), 0);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
