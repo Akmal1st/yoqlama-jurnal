@@ -616,24 +616,24 @@ function reportRows0(c, lo, hi, q) {
     if (grp) att = ot + ox ? +pyFixed(100 * ot / (ot + ox), 1) : null;
     const avg = gr.length ? +pyFixed(gr.reduce((a, b) => a + b, 0) / gr.length, 2) : null;
     const qr = hasQ ? quarterResult(c, s, q, works) : null;
-    const why = [];
-    if (on.avg && avg !== null && gr.length >= Math.max(1, rk.avg_min_grades) && avg < rk.avg_below) why.push(`o'rtacha ${pyFixed(avg, 1)} < ${rk.avg_below}`);
+    const why = [], kinds = [], W = (k, t) => { why.push(t); kinds.push(k); };
+    if (on.avg && avg !== null && gr.length >= Math.max(1, rk.avg_min_grades) && avg < rk.avg_below) W("avg", `o'rtacha ${pyFixed(avg, 1)} < ${rk.avg_below}`);
     const few = !!(on.few && lessons && lessons >= (rk.few_lt ?? 4) && gr.length < (rk.few_lt ?? 4));
-    if (few) why.push(`shu kungacha ${gr.length} ta baho (< ${rk.few_lt ?? 4})`);
-    if (!few && on.min_n && rk.min_n && lessons && bsbTaken && gr.length < rk.min_n) why.push(`baholar soni ${gr.length} < ${rk.min_n}`);
-    if (on.att && att !== null && att < rk.att_below) why.push(`davomat ${pyFixed(att, 0)}% < ${rk.att_below}%`);
-    if (on.s && cnt.s >= rk.s_ge) why.push(`sababsiz ${cnt.s} ta`);
-    if (on.qgrade && qr && qr.complete && qr.grade === 2) why.push("chorak bahosi 2");
-    if (on.consec && best >= Math.max(2, rk.consec_ge ?? 3)) why.push(`ketma-ket ${best} dars qoldirgan`);
+    if (few) W("few", `shu kungacha ${gr.length} ta baho (< ${rk.few_lt ?? 4})`);
+    if (!few && on.min_n && rk.min_n && lessons && bsbTaken && gr.length < rk.min_n) W("min_n", `baholar soni ${gr.length} < ${rk.min_n}`);
+    if (on.att && att !== null && att < rk.att_below) W("att", `davomat ${pyFixed(att, 0)}% < ${rk.att_below}%`);
+    if (on.s && cnt.s >= rk.s_ge) W("s", `sababsiz ${cnt.s} ta`);
+    if (on.qgrade && qr && qr.complete && qr.grade === 2) W("qgrade", "chorak bahosi 2");
+    if (on.consec && best >= Math.max(2, rk.consec_ge ?? 3)) W("consec", `ketma-ket ${best} dars qoldirgan`);
     if (on.drop && gr.length >= 4) {
       const hh = Math.floor(gr.length / 2), a1 = gr.slice(0, hh).reduce((a, b) => a + b, 0) / hh, a2 = gr.slice(hh).reduce((a, b) => a + b, 0) / (gr.length - hh);
-      if (a1 - a2 >= +(rk.drop_ge ?? 1.5)) why.push(`baholar pasaymoqda (${pyFixed(a1, 1)} → ${pyFixed(a2, 1)})`);
+      if (a1 - a2 >= +(rk.drop_ge ?? 1.5)) W("drop", `baholar pasaymoqda (${pyFixed(a1, 1)} → ${pyFixed(a2, 1)})`);
     }
     if (on.work) for (const w of c.works) {
       const v = (s.scores || {})[w.id];
-      if (lo <= w.date && w.date <= hi && isNum(v) && w.max) { const pct = 100 * v / w.max; if (pct < +(rk.work_below ?? 40)) why.push(`${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)}: ${pyFixed(pct, 0)}%`); }
+      if (lo <= w.date && w.date <= hi && isNum(v) && w.max) { const pct = 100 * v / w.max; if (pct < +(rk.work_below ?? 40)) W("work", `${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)}: ${pyFixed(pct, 0)}%`); }
     }
-    return {name: s.name, n: gr.length, avg, att, ...cnt, ch: nch, absent, q: qr, why, risk: why.length > 0};
+    return {name: s.name, n: gr.length, avg, att, ...cnt, ch: nch, absent, q: qr, why, kinds, risk: why.length > 0};
   });
   return {rows, lessons, dates};
 }
@@ -2855,6 +2855,7 @@ function pageReports(m) {
   const rc = $("#rc", m); if (rc) rc.onchange = (e) => { R.ci = +e.target.value; render(); };
   const rp = $("#rp", m); if (rp) rp.onchange = (e) => { R.per = e.target.value; keep(); render(); };
   const rqs = $("#rq", m); if (rqs) rqs.onchange = () => { S.rq = +rqs.value; render(); };
+  const rty = $("#rtype", m); if (rty) rty.onchange = () => { S.rtype = rty.value; render(); };
   const rso = $("#rsort", m); if (rso) rso.onchange = () => { const [k, d] = rso.value.split("|"); S.rsort = k ? {k, dir: +d} : null; render(); };
   m.querySelectorAll("[data-cmpc]").forEach((b) => b.onclick = () => { R.ci = +b.dataset.cmpc; R.kind = "cls"; keep(); render(); window.scrollTo(0, 0); });
   const rx = $("[data-rxlsx]", m); if (rx) rx.onclick = () => {
@@ -5335,10 +5336,11 @@ function repClass(c, lo, hi, rows, lessons, rq, perTxt) {
   const atts = rows.filter((r) => r.att !== null), att = atts.length ? atts.reduce((a, r) => a + r.att, 0) / atts.length : null;
   const nRisk = rows.filter((r) => r.risk).length, ql = rq ? qualityOf(rows) : null;
   const bands = ranges().map((b, i, a) => ({b, n: gr.filter((r) => r.avg >= b.min && (i + 1 >= a.length || r.avg < a[i + 1].min)).length}));
-  const so = S.rsort || {}, filt = S.rfilt === "risk" ? "risk" : "all";
+  const so = S.rsort || {}, filt = S.rfilt === "risk" ? "risk" : "all", rt = RISK_TYPES.some(([k]) => k === S.rtype) ? S.rtype : "";
   const key = {name: (r) => r.name, avg: (r) => r.avg, n: (r) => r.n, att: (r) => r.att, s: (r) => r.s, dq: (r) => r.dq, k: (r) => r.k, kq: (r) => r.kq, qt: (r) => r.q ? r.q.total : null, why: (r) => r.why.length}[so.k];
   let list = rows.map((r, i) => [r, i]);
   if (filt === "risk") list = list.filter(([r]) => r.risk);
+  if (rt) list = list.filter(([r]) => r.kinds.includes(rt));
   if (key) list.sort(([a], [b]) => { const x = key(a), y = key(b); if (x === null || x === undefined) return 1; if (y === null || y === undefined) return -1; return (typeof x === "string" ? x.localeCompare(y, "uz") : x - y) * so.dir; });
   const th = (k, n) => `<th data-rs="${k}" data-h="${n}" class="srt" title="Saralash">${n}${so.k === k ? `<span class="sa"> ${so.dir > 0 ? "▲" : "▼"}</span>` : ""}</th>`;
   const sorts = [["", "№ tartibida"], ["name|1", "Ism (A–Z)"], ["avg|-1", "O'rtacha: yuqoridan"], ["avg|1", "O'rtacha: pastdan"], ["att|1", "Davomat: pastdan"], ["s|-1", "Sababsiz: ko'pdan"], ["why|-1", "Muammolar: ko'pdan"]].concat(rq ? [["qt|-1", "Chorak balli: yuqoridan"]] : []);
@@ -5353,7 +5355,8 @@ function repClass(c, lo, hi, rows, lessons, rq, perTxt) {
       <div class="tile wide2"><div class="muted">Chorak baholari (${ql.n} o'quvchi)</div><div class="qby">${["5", "4", "3", "2"].map((k, i) => `<span><b>${k}</b> — ${ql.by[i]}</span>`).join("")}</div></div>` : ""}</div>
     ${gr.length ? `<div class="bands" title="O'rtacha baho bo'yicha">${bands.map(({b, n}) => `<span class="bnd" style="background:${b.color};color:${contrast(b.color)}">${esc(b.name)}: <b>${n}</b></span>`).join("")}<span class="muted">o'quvchi (o'rtacha baho bo'yicha)</span></div>` : ""}
     <div class="hrow noprint" style="gap:8px"><div class="seg"><button class="${filt === "all" ? "on" : ""}" data-rf="all">Hammasi (${rows.length})</button><button class="${filt === "risk" ? "on" : ""}" data-rf="risk">Xavf ostida (${nRisk})</button></div>
-      <label class="hrow" style="gap:6px;flex-wrap:nowrap"><span class="muted">Saralash</span><select id="rsort" style="width:auto">${sorts.map(([k, n]) => `<option value="${k}" ${k === sv ? "selected" : ""}>${n}</option>`).join("")}${sv && !sorts.some(([k]) => k === sv) ? `<option value="${sv}" selected>Ustun bo'yicha</option>` : ""}</select></label></div>
+      <label class="hrow" style="gap:6px;flex-wrap:nowrap"><span class="muted">Saralash</span><select id="rsort" style="width:auto">${sorts.map(([k, n]) => `<option value="${k}" ${k === sv ? "selected" : ""}>${n}</option>`).join("")}${sv && !sorts.some(([k]) => k === sv) ? `<option value="${sv}" selected>Ustun bo'yicha</option>` : ""}</select></label>
+      <label class="hrow" style="gap:6px;flex-wrap:nowrap;max-width:100%;min-width:0"><span class="muted">Xavf turi</span><select id="rtype" style="width:auto;min-width:0;max-width:100%;flex:1 1 auto"><option value="">Barchasi</option>${RISK_TYPES.map(([k, n]) => `<option value="${k}" ${k === rt ? "selected" : ""}>${esc(n[0])} (${rows.filter((r) => r.kinds.includes(k)).length})</option>`).join("")}</select></label></div>
     <div style="overflow:auto"><table class="table r rcls"><tr><th>№</th>${th("name", "O'quvchi")}${th("avg", "O'rtacha")}${th("n", "Baholar")}${th("att", "Davomat")}${th("s", "S")}${th("dq", "DQ")}${th("k", "K")}${th("kq", "KQ")}${rq ? th("qt", "Chorak") : ""}${th("why", "Izoh")}</tr>
     ${list.map(([r, i]) => { const col = r.avg !== null ? gradeColor(r.avg) : null; return `<tr><td>${i + 1}</td><td><button class="link nmlink" data-card="${esc(r.name)}">${esc(r.name)}</button></td>
       <td>${r.avg !== null ? `<span class="pill" style="background:${col};color:${contrast(col)}">${r.avg.toFixed(2)}</span>` : "—"}</td><td class="n">${r.n}</td>
@@ -5361,7 +5364,7 @@ function repClass(c, lo, hi, rows, lessons, rq, perTxt) {
       ${rq ? `<td class="n">${r.q ? `${pyFixed(r.q.total, 1)}${r.q.complete ? ` · <b>${r.q.grade}</b>` : ` <span class="muted" title="BSB/CHSB ballari to'liq emas">(to'liq emas)</span>`}` : "—"}</td>` : ""}
       <td class="${r.risk ? "warn" : "muted"}" style="font-weight:600">${esc(r.why.join("; ")) || "—"}</td></tr>`; }).join("")}
     ${rows.length ? (() => { const qs = rows.filter((r) => r.q), sm = (k) => rows.reduce((a, r) => a + r[k], 0); return `<tr class="tot"><td></td><td><b>Sinf bo'yicha</b></td><td>${avg !== null ? `<b>${avg.toFixed(2)}</b>` : "—"}</td><td class="n">${sm("n")}</td><td>${att !== null ? att.toFixed(1) + "%" : "—"}</td><td class="n">${sm("s") || ""}</td><td class="n">${sm("dq") || ""}</td><td class="n">${sm("k") || ""}</td><td class="n">${sm("kq") || ""}</td>${rq ? `<td class="n">${qs.length ? pyFixed(qs.reduce((a, r) => a + r.q.total, 0) / qs.length, 1) : "—"}</td>` : ""}<td class="muted">${nRisk ? `${nRisk} xavf ostida` : ""}</td></tr>`; })() : ""}</table></div>
-    ${list.length ? "" : `<div class="muted">Xavf ostida o'quvchi yo'q. 👍</div>`}`;
+    ${list.length ? "" : `<div class="muted">${rt || filt === "risk" ? "Xavf ostida o'quvchi yo'q. 👍" : ""}</div>`}`;
 }
 // oylik davomat: o'quvchilar × dars kunlari; belgilar S/DQ/K/KQ, kelganlar bo'sh
 function attMonth(c, ym) {
