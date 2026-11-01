@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="dizayn.css">
 <link rel="stylesheet" href="hisobotlar.css">
 <link rel="stylesheet" href="bugun.css">
+<link rel="stylesheet" href="sozlamalar.css">
 </head>
 <body>
 <div class="app" id="app">
@@ -30,6 +31,7 @@
 <script src="dizayn.js"></script>
 <script src="hisobotlar.js"></script>
 <script src="bugun.js"></script>
+<script src="sozlamalar.js"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
@@ -1397,6 +1399,8 @@ function renderNav() {
   document.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => {
     // «Jurnal» — faqat sinflar; guruhdan o'tilsa birinchi sinf ochiladi
     if (b.dataset.go === "journal" && isGrp(D.classes[S.ci])) { const r = D.classes.findIndex((c) => !isGrp(c)); if (r < 0) return go("today"); S.ci = r; S.jpage = "j"; }
+    // telefonda «Sozlamalar» avval bo'limlar ro'yxatini ochadi (sozlamalar.js)
+    if (b.dataset.go === "settings" && SZL.phone()) S.sec = -1;
     go(b.dataset.go);
   });
   document.querySelectorAll("[data-help]").forEach((b) => b.onclick = () => helpDialog());
@@ -2303,103 +2307,13 @@ function repRange(per) {
 function pageReports(m) { HSB.page(m); }
 
 /* ───────── 5. Sozlamalar ───────── */
-// [belgi, nomi, qisqa izoh]
-const SECS = [["👥", "Sinflar va o'quvchilar", "Sinf qo'shish, ro'yxatlar"], ["📅", "Dars kunlari va choraklar", "Jadval, eslatmalar, choraklar"], ["🎯", "Baholash", "Baho ranglari, xavf mezonlari"],
-  ["🎨", "Dizayn", "Mavzu, rang, tugmalar joyi"], ["🔒", "Himoya", "Baholarni qulflash, parol"], ["💾", "Ma'lumotlar", "Zaxira, import, o'quv yili"], ["🧩", "Funksiyalar", "Keraksizlarini yashirish"]];
-// menyuda ko'rinmaydigan bo'limlar (hozir yo'q). 3 — «Dizayn», alohida faylda: dizayn.js / dizayn.css
-const SEC_OFF = new Set([]);
-function srow(t, d, btn) { return `<div class="srow${String(btn).startsWith('<button class="swt') ? " tog" : ""}"><div><b>${t}</b>${d ? `<div class="muted">${d}</div>` : ""}</div>${btn ? `<div class="hrow sact">${btn}</div>` : ""}</div>`; }
-// sozlamalar guruhi: kichik sarlavha va ramkali qatorlar
-const sgroup = (title, html, cls = "") => html ? `<div class="sgroup ${cls}">${title ? `<h3 class="sgt">${title}</h3>` : ""}<div class="sgbox">${html}</div></div>` : "";
-// yoqish/o'chirish tugmasi (kalit ko'rinishida)
-// yoqilgan/o'chiq belgisi (🐵/🙈 va h.k.) — Sozlamalar → Dizayn → Tugmalar
-const swt = (attrs, on) => `<button class="swt ${on ? "on" : ""}" role="switch" aria-checked="${on}" ${attrs}><i></i><span><em class="swe" aria-hidden="true">${DZN.emo(on)}</em> ${on ? "Yoqilgan" : "O'chiq"}</span></button>`;
+// ko'rinish — alohida faylda: sozlamalar.js / sozlamalar.css (tasdiqlangan dizayn, 2026-11-01). 3-bo'lim «Dizayn» — dizayn.js / dizayn.css.
+// Bu yerda faqat bog'lashlar (saqlash va amallar). Telefonda S.sec = -1 — bo'limlar ro'yxati.
 function pageSettings(m) {
-  const st = D.settings; let body = "";
-  if (SEC_OFF.has(S.sec) || !SECS[S.sec]) S.sec = 0;
-  if (S.sec === 0) {
-    body = sgroup("", srow("Yangi sinf", "Sinf nomi, fani va o'quvchilar ro'yxati — ro'yxatni Excel yoki Word'dan nusxalab qo'yish mumkin", `<button class="btn btn-primary" data-a="addc">＋ Sinf qo'shish</button>`)) +
-      sgroup(`Sinflaringiz · ${D.classes.filter((c) => !isGrp(c)).length}`, D.classes.map((c, i) => isGrp(c) ? "" : `<div class="srow scls"><div class="av">${esc(c.name.slice(0, 3))}</div><div class="sp" style="min-width:0"><b>${esc(label(c))}</b>
-        <div class="muted">${c.students.length} o'quvchi${c.students_off.length ? ` (+${c.students_off.length} faolsiz)` : ""} · ${c.dates.length} dars kuni</div></div>
-        <div class="hrow sact"><button class="btn btn-sm" data-a="stud" data-i="${i}">＋ O'quvchi</button><button class="btn btn-sm" data-a="rmst" data-i="${i}">⏸ Faolsiz${c.students_off.length ? ` (${c.students_off.length})` : ""}</button><button class="btn btn-sm" data-a="cmore" data-i="${i}" title="Yana: tahrirlash, o'chirish" aria-label="Yana">⋯</button></div></div>`).join(""));
-  } else if (S.sec === 1) {
-    const qs = `<div class="qgrid"><span></span><span class="gh">Boshlanishi</span><span class="gh">Tugashi</span>${[1, 2, 3, 4].map((q) => { const r = st.quarters[q - 1] || ["", ""]; return `<b>${q}-chorak</b><input class="form-control" type="date" data-q="${q}|0" value="${r[0] || ""}" aria-label="${q}-chorak boshlanishi"><input class="form-control" type="date" data-q="${q}|1" value="${r[1] || ""}" aria-label="${q}-chorak tugashi">`; }).join("")}</div>`;
-    const sc = sched(), nL = sc ? sc.days.reduce((a, d) => a + d.filter(Boolean).length, 0) : 0;
-    body = sgroup("Haftalik jadval", srow("📅 Dars jadvali", sc ? `Haftasiga ${nL} ta dars · ${sc.bells.length} soatlik kun. Dars kunlari va «Bugun» sahifasi shu jadvalga qarab ishlaydi.` : "Haftalik jadvalni bir marta kiriting — «Bugun» sahifasi darslarni soat tartibida ko'rsatadi, dars kunlari o'zi belgilanadi.",
-      `<button class="btn btn-primary" data-a="sch">${sc ? "Tahrirlash" : "Kiritish"}</button>`)) +
-      sgroup("Eslatmalar", (() => { const r = remCfg(), perm = "Notification" in window ? Notification.permission : "denied";
-        return srow("🔔 Dars eslatmasi", `Jadvaldagi har bir darsdan oldin telefonga/kompyuterga bildirishnoma keladi: soat, sinf, mavzu va oldingi uy vazifasi.${r.on && perm !== "granted" ? " <span class='warn'>Bildirishnomaga ruxsat yo'q — eslatma faqat ilova ichida chiqadi.</span>" : ""} Ilova ochiq yoki fonda turganda ishlaydi.`,
-          `<select id="remm" style="width:auto" ${r.on ? "" : "disabled"}>${[0, 2, 5, 10, 15].map((k) => `<option value="${k}" ${r.min === k ? "selected" : ""}>${k ? `${k} daqiqa oldin` : "Dars boshlanganda"}</option>`).join("")}</select>
-          <button class="btn ${r.on ? "" : "btn-primary"}" data-a="rem">${r.on ? "O'chirish" : "Yoqish"}</button>${r.on ? `<button class="btn" data-a="remt">Sinab ko'rish</button>` : ""}`); })() +
-      (feat("gaps") ? srow("📝 Kechki eslatma", "Kechqurun shu vaqtda bugungi darslardan yo'qlama yoki mavzu kiritilmaganlari bo'lsa, bildirishnoma keladi. Dars jadvali shart emas.",
-        `<select id="eve" style="width:auto"><option value="">O'chiq</option>${["16:00", "17:00", "18:00", "19:00", "20:00", "21:00"].map((k) => `<option ${D.web.eve === k ? "selected" : ""}>${k}</option>`).join("")}</select>`) : "")) +
-      `<div class="sgroup"><h3 class="sgt">Har bir sinfning dars kunlari</h3><p class="muted shint">Bosib belgilang. «Saqlash va dars kunlarini yaratish» bosilgach, chorak sanalari o'zi yaratiladi.</p><div class="sgbox">` +
-      D.classes.map((c, i) => `<div class="srow"><div><b>${esc(label(c))}</b></div><div class="days">${WD.slice(0, 6).map((w, k) => `<button class="${(c.weekdays || []).includes(k) ? "on" : ""}" data-wd="${i}|${k}">${w}</button>`).join("")}</div></div>`).join("") + `</div></div>` +
-      sgroup("Choraklar", `<div class="srow"><div style="flex:1 1 100%"><div class="muted">Boshlanish va tugash sanalari — hamma sinflar uchun umumiy.</div>${qs}</div>
-        <button class="btn btn-primary" data-a="genq">Saqlash va dars kunlarini yaratish</button></div>`) +
-      sgroup("Dars bo'lmaydigan kunlar", srow("Bayramlar", "Har yili (OO-KK) yoki bir martalik (YYYY-OO-KK), vergul bilan", `<input type="text" id="hol" value="${esc(st.holidays.join(", "))}" class="form-control winp">`));
-  } else if (S.sec === 2) {
-    const rs = ranges();
-    const upTo = (i) => i + 1 < rs.length ? rs[i + 1].min - 1 : 10;
-    body = sgroup("Baho ranglari", `<div class="srow"><div><div class="muted">Jurnalda har bir baho qaysi rangda chiqishi. Har guruh tanlangan bahodan boshlanib, keyingi guruhgacha davom etadi.</div>
-      <div class="gprev">${Array.from({length: 10}, (_, k) => { const col = gradeColor(k + 1); return `<span style="${col ? `background:${col};color:${contrast(col)}` : ""}">${k + 1}</span>`; }).join("")}</div>
-      <div class="grng"><div class="gh">Guruh nomi</div><div class="gh">Baholar</div><div class="gh">Rang</div>${rs.map((r, i) =>
-      `<input class="form-control" type="text" data-rname="${i}" value="${esc(r.name)}" aria-label="Guruh nomi">
-       <div class="grb"><select data-rmin="${i}" aria-label="Boshlanishi">${Array.from({length: 10}, (_, k) => `<option value="${k + 1}" ${r.min === k + 1 ? "selected" : ""}>${k + 1}</option>`).join("")}</select><span>– ${upTo(i)}</span></div>
-       <input type="color" data-rcol="${i}" value="${r.color}" aria-label="Rang">`).join("")}</div></div></div>`) +
-      (() => {
-        // xavf turlari: har biri alohida yoqiladi/o'chiriladi, kerak bo'lsa chegarasi yoziladi
-        const num = (k, stp, u) => `<span class="hrow" style="gap:6px;flex-wrap:nowrap"><input class="form-control rkn" type="number" step="${stp}" min="0" data-rk="${k}" value="${st.risk[k]}" aria-label="${esc(RISK_TYPES.flatMap((x) => x[2]).find((f) => f[0] === k)[1])}">${u ? `<i>${u}</i>` : ""}</span>`;
-        const row = ([k, [t, d], fields]) => `<div class="srow tog rkrow"><div><b>${t}</b><div class="muted">${d}</div></div><div class="hrow sact">${fields.map(([fk, , stp, u]) => num(fk, stp, u)).join("")}${swt(`data-rkon="${k}"`, !!st.risk.on[k])}</div></div>`;
-        const nOn = RISK_TYPES.filter(([k]) => st.risk.on[k]).length;
-        return `<div class="sgroup"><h3 class="sgt">Xavf turlari</h3><p class="muted shint">Qaysi shartlar bo'yicha o'quvchi «xavf ostida» deb belgilanishini o'zingiz tanlang. Yoqilgan shartlardan biri bajarilsa, jurnalda qatori qizil, «Bugun»da «E'tibor talab qiladi». Hozir yoqilgan: ${nOn} / ${RISK_TYPES.length}.</p>
-          <div class="seg wrap" style="margin-bottom:10px">${RISK_PRESETS.map(([k, n]) => `<button data-rkpre="${k}">${n}</button>`).join("")}</div>
-          <div class="sgbox">${RISK_TYPES.map(row).join("")}</div></div>`;
-      })() +
-      sgroup("Chorak bahosi", srow("Formativ baho (FB) uchun kamida", "Chorakda shuncha kundalik baho bo'lmasa, FB = 0", `<input class="form-control" type="number" min="1" id="fbm" value="${fbMin()}" style="width:90px">`) +
-        srow("KTRdagi BSB/CHSB mavzulari", "Rejadagi «BSB …» va «CHSB …» mavzulari uchun summativ ish o'zi qo'shilsin", swt('data-a="ktrw"', ktrWorksOn()))) +
-      sgroup("Jurnal", srow("O'tgan darslarga belgi qo'yish", "Darsda ulgurmagan yoki keyin to'ldiriladigan baho va yo'qlamalar uchun. Kelgusi kunlarga belgi qo'yilmaydi; har bir o'zgarish tarixga yoziladi.",
-        `<div class="seg wrap">${PAST.map(([k, n]) => `<button class="${(D.web.past || "today") === k ? "on" : ""}" data-past="${k}">${n}</button>`).join("")}</div>`));
-  } else if (S.sec === 3) {
-    body = DZN.body();
-  } else if (S.sec === 4) {
-    const p = st.protect;
-    body = sgroup("", srow("Qo'yilgan baholarni himoyalash", "Mavjud bahoni o'zgartirishdan oldin qulfni ochish kerak (bo'sh katakka baho qo'yish erkin)", swt('data-a="prot"', p.enabled)) +
-      srow("Parol", p.pin ? "O'rnatilgan" : "O'rnatilmagan — qulf bitta bosish bilan ochiladi", `<button class="btn" data-a="pin">${p.pin ? "O'zgartirish" : "O'rnatish"}</button>${p.pin ? `<button class="btn btn-outline-danger" data-a="nopin">Olib tashlash</button>` : ""}`) +
-      srow("Avtomatik qulflash", "Harakatsiz qolgandan keyin, daqiqa", `<input class="form-control" type="number" min="1" id="alm" value="${p.auto_lock_min || 10}" style="width:90px">`)) +
-      `<p class="muted shint">Parol baholarni tasodifan o'zgartirishdan va to'lov summalarini begona ko'zdan saqlaydi. U ma'lumotni shifrlamaydi: brauzerni yaxshi biladigan odam telefon yoki kompyuteringizdan jurnalni o'qiy oladi. Shuning uchun qurilmaning o'z ekran qulfini yoqing va uni boshqalarga qoldirmang. Telegram zaxirasini parol bilan shifrlash — Sozlamalar → Ma'lumotlar → Telegram.</p>`;
-  } else if (S.sec === 6) {
-    const nOn = FEATS.filter(([k]) => feat(k)).length;
-    body = `<p class="muted shint">Ishlatmaydigan funksiyalaringizni o'chirib qo'ying — ular menyu, «Bugun» sahifasi va darsdan yo'qoladi. Kiritilgan ma'lumotlar o'chmaydi, qayta yoqsangiz hammasi joyida bo'ladi. Yo'qlama, baholar, BSB/CHSB va hisobotlar doim yoqilgan.</p>` +
-      sgroup("", srow("Tayyor to'plam", `${nOn} / ${FEATS.length} ta yoqilgan. «Oddiy»da doskaga chaqirish, guruhlar, o'rindiq xaritasi, yo'qlama rejimlari va qarzdorlar o'chadi.`, `<button class="btn" data-fp="simple">Oddiy</button><button class="btn" data-fp="all">Hammasi</button>`)) +
-      sgroup("Qo'shimcha funksiyalar", FEATS.map(([k, n, d]) => srow(n, d, swt(`data-ft="${k}"`, feat(k)))).join(""));
-  } else {
-    const n = (D.changelog || []).length;
-    const age = backupAge();
-    body = sgroup("", installEvt ? srow("Ilovani o'rnatish", "Telefon yoki kompyuter ekraniga ilova sifatida qo'shiladi va internetsiz ochiladi", `<button class="btn btn-primary" data-a="inst">📲 O'rnatish</button>`)
-      : isStandalone() ? "" : srow("Telefonga o'rnatish", /iPhone|iPad/.test(navigator.userAgent) ? "Safari'da «Ulashish» → «Bosh ekranga qo'shish» (Add to Home Screen)" : "Brauzer menyusi (⋮) → «Ilovani o'rnatish» yoki «Bosh ekranga qo'shish»", "")) +
-      sgroup("Zaxira", (() => { const c = tgCfg(), on = tgOn(), l = c.last ? new Date(c.last) : null;
-        return srow("✈️ Telegram'ga avtomatik zaxira", on ? `Ulangan: @${esc(c.bot || "bot")} · oxirgi zaxira: ${l ? `${fmt(iso(l))} ${pad(l.getHours())}:${pad(l.getMinutes())}` : "hali yo'q"}. Boshqa qurilmada ham shu botni ulasangiz, ma'lumotlar ular orasida almashinadi.`
-          : "Ma'lumotlar har kuni o'zingizning Telegram botingizga fayl bo'lib boradi. Telefon yo'qolsa yoki brauzer tozalansa ham jurnal saqlanib qoladi.",
-          on ? `<button class="btn btn-primary" data-a="tgsend">📤 Hozir yuborish</button><button class="btn" data-a="tgload">📥 Telegram'dan yuklash</button><button class="btn" data-a="tgoff">Uzish</button>` : `<button class="btn btn-primary" data-a="tgon">🔗 Ulash</button>`) +
-          (on ? srow("🔐 Zaxirani parol bilan shifrlash", c.pass ? "Yoqilgan. Boshqa qurilmada yuklashda shu parol so'raladi. Parolni unutsangiz, shifrlangan zaxirani ochib bo'lmaydi — eslab qoling."
-            : "Telegram akkauntingizga begona kirsa ham o'quvchilar ma'lumoti o'qilmasin. Parolni unutsangiz, zaxirani ochib bo'lmaydi.",
-            c.pass ? `<button class="btn" data-a="tgpass">Parolni o'zgartirish</button><button class="btn btn-outline-danger" data-a="tgnopass">O'chirish</button>` : `<button class="btn" data-a="tgpass">Yoqish</button>`) : ""); })() +
-      srow("Faylga saqlash (zaxira)" + (age === null ? "" : ` <span class="muted" style="font-weight:500">· oxirgisi ${age ? age + " kun oldin" : "bugun"}</span>`), "journal.json — kompyuterdagi dastur yoki boshqa qurilmada ochish uchun. Vaqti-vaqti bilan saqlab qo'ying.", `<button class="btn btn-primary" data-a="exp">💾 Yuklab olish</button>`) +
-      srow("🕒 Kunlik avtomatik nusxalar", `Ilova har kuni jurnal holatini brauzerning zaxira xotirasiga o'zi saqlaydi (oxirgi ${SNAP_DAYS} kun) — xato o'chirilgan ma'lumotni qaytarish mumkin.${IDB.db ? "" : " <span class='warn'>Bu brauzerda zaxira xotira ishlamayapti.</span>"}`, `<button class="btn" data-a="snaps">Ko'rish</button>`)) +
-      sgroup("Yuklash va import", srow("Fayldan yuklash", "Kompyuterdagi dasturning journal.json fayli yoki oldin saqlangan zaxira. Hozirgi ma'lumotlar almashtiriladi.", `<button class="btn" data-a="imp">📂 Faylni tanlash</button>`) +
-      srow("emaktab'dan import", "Saytdan to'g'ridan-to'g'ri (xatcho'p, telefon yoki fayl orqali) yoki emaktab «Fan jurnali» Excel fayli: o'quvchilar, baholar, yo'qlama va BSB/CHSB ballari mavjud jurnalga qo'shiladi", `<button class="btn btn-primary" data-a="emk">🌐 emaktab.uz dan</button><button class="btn" data-a="xls">📊 Excel fayl</button>`)) +
-      sgroup("O'quv yili", srow("Yangi o'quv yiliga o'tish", "Jurnal arxivlanadi, sinflar o'quvchilari bilan yangi bo'sh jurnalga o'tadi (6-A → 7-A)", `<button class="btn" data-a="roll">Boshlash</button>`) +
-      srow("O'zgarishlar tarixi", `${n} ta yozuv (qo'yilgan bahoni o'zgartirish yoki o'chirish)`, `<button class="btn" data-a="hist">Ko'rish</button>`) +
-      "") + sgroup("Xavfli amallar", srow("Hammasini o'chirish", "Shu brauzerdagi barcha sinflar, baholar va sozlamalar o'chadi. Oldin faylga saqlab qo'ying.", `<button class="btn btn-outline-danger" data-a="wipe">O'chirish</button>`), "danger");
-  }
-  const [ic, nm, ds] = SECS[S.sec];
-  m.innerHTML = `<div class="vcol" style="gap:18px"><h1>Sozlamalar</h1><div class="set">
-    <nav class="card secs" aria-label="Sozlamalar bo'limlari">${SECS.map(([i0, n, d], i) => SEC_OFF.has(i) ? "" : `<button class="${i === S.sec ? "on" : ""}" data-sec="${i}" ${i === S.sec ? 'aria-current="page"' : ""}><span class="si">${i0}</span><span class="sn">${n}<small>${d}</small></span></button>`).join("")}</nav>
-    <section class="card sbody"><div class="shead"><span class="si big">${ic}</span><div><h2>${nm}</h2><div class="muted">${ds}</div></div></div>${body}</section></div></div>`;
-  m.querySelectorAll("[data-sec]").forEach((b) => b.onclick = () => { S.sec = +b.dataset.sec; render(); });
+  const st = D.settings;
+  SZL.page(m);
+  SZL.bind(m);
   if (S.sec === 3) DZN.bind(m);
-  m.querySelectorAll("[data-deco]").forEach((b) => b.onclick = () => { D.web.deco = D.web.deco === b.dataset.deco ? "" : b.dataset.deco; save(); applyTheme(); render(); });
   m.querySelectorAll("[data-ft]").forEach((b) => b.onclick = () => { const o = D.web.off = D.web.off || {}, k = b.dataset.ft; if (o[k]) delete o[k]; else o[k] = 1; save(); render(); });
   m.querySelectorAll("[data-fp]").forEach((b) => b.onclick = () => { D.web.off = b.dataset.fp === "all" ? {} : Object.fromEntries(SIMPLE_OFF.map((k) => [k, 1])); save(); render(); toast(b.dataset.fp === "all" ? "Hamma funksiyalar yoqildi" : "Faqat asosiy funksiyalar qoldi"); });
   m.querySelectorAll("[data-a]").forEach((b) => b.onclick = () => settingsAction(b.dataset.a, +b.dataset.i));
@@ -2417,7 +2331,6 @@ function pageSettings(m) {
     remSchedule(); toast(eve.value ? `Kechki eslatma: har kuni ${eve.value}` : "Kechki eslatma o'chirildi");
   };
   const remm = $("#remm", m); if (remm) remm.onchange = () => { D.web.remind = Object.assign(remCfg(), {min: +remm.value}); save(); remSchedule(); toast("Eslatma vaqti saqlandi"); };
-  const hol = $("#hol", m); if (hol) hol.onchange = () => { st.holidays = hol.value.split(/[,\s]+/).filter(Boolean); save(); toast("Bayramlar saqlandi"); };
   m.querySelectorAll("[data-rmin]").forEach((x) => x.onchange = () => {
     const rs = ranges(), r = rs[+x.dataset.rmin], v = +x.value;
     if (rs.some((o) => o !== r && o.min === v)) { toast(`${v} dan boshlanadigan guruh allaqachon bor`); render(); return; }
@@ -2428,10 +2341,7 @@ function pageSettings(m) {
   m.querySelectorAll("[data-rk]").forEach((x) => x.onchange = () => { st.risk[x.dataset.rk] = +x.value; save(); toast("Saqlandi"); });
   m.querySelectorAll("[data-rkon]").forEach((b) => b.onclick = () => { const k = b.dataset.rkon; st.risk.on[k] = !st.risk.on[k]; save(); render(); });
   m.querySelectorAll("[data-rkpre]").forEach((b) => b.onclick = () => { const set = RISK_SETS[b.dataset.rkpre] || []; RISK_TYPES.forEach(([k]) => st.risk.on[k] = set.includes(k)); save(); render(); toast(`Xavf turlari: ${set.length} ta yoqildi`); });
-  m.querySelectorAll("[data-th]").forEach((b) => b.onclick = () => { D.web.theme = b.dataset.th; save(); render(); });
   m.querySelectorAll("[data-past]").forEach((b) => b.onclick = () => { D.web.past = b.dataset.past; save(); render(); toast(b.dataset.past === "today" ? "Faqat bugungi kunga belgi qo'yiladi" : "O'tgan darslarga ham belgi qo'yish mumkin"); });
-  for (const [attr, key] of [["font", "font"], ["fs", "fsize"], ["accent", "accent"], ["rad", "radius"], ["sty", "style"]])
-    m.querySelectorAll(`[data-${attr}]`).forEach((b) => b.onclick = () => { D.web[key] = b.dataset[attr]; save(); render(); });
   const fbm = $("#fbm", m); if (fbm) fbm.onchange = () => { st.fb_min = Math.max(1, +fbm.value || 4); save(); toast("Saqlandi"); };
   const alm = $("#alm", m); if (alm) alm.onchange = () => { st.protect.auto_lock_min = Math.max(1, +alm.value); save(); };
 }
@@ -2444,6 +2354,8 @@ async function settingsAction(a, i) {
   else if (a === "rmst") studentsDialog(i);
   else if (a === "jur") { S.ci = i; S.jpage = "j"; go("journal"); }
   else if (a === "cmore") { const c = D.classes[i]; await rowMenu(label(c), [
+    // telefonda sinf qatorining o'zi shu menyuni ochadi — «O'quvchi» va «Faolsiz» ham shu yerda
+    ...(SZL.phone() ? [["＋ O'quvchi qo'shish", () => settingsAction("stud", i)], [`⏸ Faolsiz o'quvchilar${c.students_off.length ? ` (${c.students_off.length})` : ""}`, () => settingsAction("rmst", i)]] : []),
     ["📖 Jurnalni ochish", () => { S.ci = i; S.jpage = "j"; go("journal"); }],
     ["✎ Nomi va fanini o'zgartirish", () => editClass(i)],
     ["📅 Dars kunlari qo'shish", () => addDatesDialog(i)],
