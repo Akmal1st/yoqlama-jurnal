@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="guruhlar.css">
 <link rel="stylesheet" href="tpt-tema.css">
 <link rel="stylesheet" href="dizayn.css">
+<link rel="stylesheet" href="hisobotlar.css">
 </head>
 <body>
 <div class="app" id="app">
@@ -26,6 +27,7 @@
 <input type="file" id="file" accept=".json,application/json" class="hide">
 <script src="guruhlar.js"></script>
 <script src="dizayn.js"></script>
+<script src="hisobotlar.js"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
@@ -1480,7 +1482,7 @@ const HELP = [
     ["3 · Mavzu", "Mavzu va uy vazifasi. KTR kiritilgan bo'lsa, mavzu rejadan o'zi chiqadi."],
   ]],
   ["reports", "📊 Hisobotlar", [
-    ["Hisobot turini tanlang", "Kartochkalardan birini bosing, keyin sinf va davrni tanlang. «🖨 Chop etish» — PDF yoki printer (varaqqa o'zi sig'diriladi), «📊 Excel» — .xlsx fayl."],
+    ["Hisobot turini tanlang", "Kompyuterda chapdagi ro'yxatdan, telefonda tepadagi «Almashtirish ▾» tugmasidan. Sinf va davr hisobotning o'zidagi tugmalarda. «🖨 Chop etish» — PDF yoki printer (varaqqa o'zi sig'diriladi), «📊 Excel» — .xlsx fayl. O'quvchini bossangiz, qisqacha ma'lumoti chiqadi."],
     ["Sinf hisoboti", "O'rtacha baho, davomat, xavf sabablari. Chorak tanlansa — chorak bahosi, sifat (4 va 5) va o'zlashtirish (3–5). «Saralash» va «Xavf ostida» filtri."],
     ["Davomat varag'i", "Oy bo'yicha kunma-kun S/DQ/K/KQ va har o'quvchining davomat foizi."],
     ["Ota-onalar majlisi", "Har o'quvchiga alohida varaq — A4 ga ikkitadan. Majlisda qo'lga berish uchun."],
@@ -1543,7 +1545,7 @@ function render() {
   EPOCH++; clearPrintDoc(); applyTheme(); renderNav(); document.querySelectorAll(".bpop").forEach((x) => x.remove());
   const m = $("#main");
   // Guruhlar (to'garak va pullik ta'lim) — alohida faylda: guruhlar.js / guruhlar.css
-  document.body.classList.toggle("tpt-on", S.page === "groups"); if (S.page !== "groups" && typeof TPT !== "undefined") TPT.leave();
+  document.body.classList.toggle("tpt-on", S.page === "groups"); if (S.page !== "groups" && typeof TPT !== "undefined") TPT.leave(); if (typeof HSB !== "undefined") HSB.leave();
   ({today: pageToday, journal: pageJournal, groups: (x) => TPT.page(x), lesson: pageLesson, reports: pageReports, settings: pageSettings})[S.page](m);
   const pp = $(".perpop"); if (pp) pp.remove();
   labelTables(m); snapCols();
@@ -2392,9 +2394,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 /* ───────── 4. Hisobotlar ───────── */
-const REP_KINDS = [["cls", "📋", "Sinf hisoboti", "Baholar, davomat, xavf"], ["sum", "🧮", "BSB va CHSB natijalari", "Ishlar bo'yicha, chorak yakuni"], ["stats", "📈", "Grafik va statistika", "Haftalar bo'yicha o'zgarish"], ["att", "📅", "Davomat varag'i", "Oy bo'yicha kunma-kun"], ["par", "👪", "Ota-onalar majlisi", "Har o'quvchiga varaq"],
-  ["ready", "✅", "Chorakka tayyorlik", "Nima yetishmaydi"], ["cmp", "⚖️", "Sinflarni solishtirish", "Barcha sinflar yonma-yon"], ["blank", "📝", "Bo'sh varaq", "Qo'lda to'ldirish uchun"]];
-try { const r = JSON.parse(localStorage.getItem("yoqlama_rep") || "null"); if (r && REP_KINDS.some(([k]) => k === r.kind)) Object.assign(S.rep, {kind: r.kind, per: r.per || "cur"}); } catch (e) {}
+try { const r = JSON.parse(localStorage.getItem("yoqlama_rep") || "null"); if (r && HSB.has(r.kind)) Object.assign(S.rep, {kind: r.kind, per: r.per || "cur"}); } catch (e) {}
 function repRange(per) {
   const t = todayIso(), d = new Date();
   if (per === "cur") { const [lo, hi] = periodNow(); return [lo, hi]; }
@@ -2403,75 +2403,8 @@ function repRange(per) {
   if (per === "week") return [iso(addDays(d, -pyWd(t))), t];
   const all = D.classes.flatMap((c) => c.dates); return [all.sort()[0] || t, t];
 }
-function pageReports(m) {
-  if (!D.classes.some((c) => !isGrp(c))) { m.innerHTML = `<h1>Hisobotlar</h1><p class="muted">Avval sinf qo'shing.</p>`; return; }
-  const R = S.rep, CL = D.classes.map((_, i) => i).filter((i) => !isGrp(D.classes[i]));
-  if (!CL.includes(R.ci)) R.ci = CL[0];
-  R.kind = R.kind || "cls";
-  const c = D.classes[R.ci], [lo, hi] = repRange(R.per), rq = /^q\d$/.test(R.per) ? +R.per[1] : R.per === "cur" ? periodNow()[2] : null, {rows, lessons} = reportRows(c, lo, hi, rq);
-  const qNow = periodNow()[2];
-  const pers = [["cur", qNow ? `Joriy chorak (${qNow}-chorak)` : "Joriy oy"], ...[1, 2, 3, 4].filter(qRange).map((q) => [`q${q}`, `${q}-chorak`]), ["month", "Shu oy"], ["week", "Shu hafta"], ["all", "Butun yil"]];
-  const perTxt = `${rq ? `${rq}-chorak · ` : ""}${fmt(lo)} – ${fmt(hi)}`;
-  const K = REP_KINDS.find(([k]) => k === R.kind) || REP_KINDS[0];
-  const needCls = R.kind !== "cmp", needPer = ["cls", "cmp", "stats", "par"].includes(R.kind);
-  const xlsAttr = {cls: "data-xlsx", att: "data-axlsx", cmp: "data-ccsv", ready: "data-rxlsx", sum: "data-sxlsx"}[R.kind];
-  let sec, extra = "";
-  if (R.kind === "cls") sec = repClass(c, lo, hi, rows, lessons, rq, perTxt);
-  else if (R.kind === "stats") sec = `<h2>${esc(label(c))} · ${perTxt}</h2>${repStats(c, lo, hi, rows)}`;
-  else if (R.kind === "att") { const A = attMonth(c, S.amon); extra = `<label class="f">Oy<select id="amon">${A.months.map((x) => `<option value="${x}" ${x === A.ym ? "selected" : ""}>${MONTHS[+x.slice(5) - 1]} ${x.slice(0, 4)}</option>`).join("")}</select></label>`; sec = repAtt(c); }
-  else if (R.kind === "par") sec = repPar(c, lo, hi, rows, rq);
-  else if (R.kind === "ready") { const q = S.rq || curQuarter(); extra = `<label class="f">Chorak<select id="rq">${[1, 2, 3, 4].map((k) => `<option value="${k}" ${k === q ? "selected" : ""}>${k}-chorak</option>`).join("")}</select></label>`; sec = repReady(c); }
-  else if (R.kind === "sum") { const q = S.rq || curQuarter(); extra = `<label class="f">Chorak<select id="rq">${[1, 2, 3, 4].map((k) => `<option value="${k}" ${k === q ? "selected" : ""}>${k}-chorak</option>`).join("")}</select></label>`; sec = repSum(c, q); }
-  else if (R.kind === "cmp") sec = repCompare(lo, hi, rq);
-  else sec = repBlank(c);
-  m.innerHTML = `<div class="vcol" style="gap:14px">
-    <div class="noprint hrow wrap" style="gap:10px"><h1 class="sp">Hisobotlar</h1></div>
-    <div class="rkinds noprint">${REP_KINDS.map(([k, ic, n, d]) => `<button class="rk ${R.kind === k ? "on" : ""}" data-kind="${k}"><span class="ic">${ic}</span><span class="vcol" style="gap:0;min-width:0"><b>${n}</b><small>${d}</small></span></button>`).join("")}</div>
-    <div class="card rbar noprint">${needCls ? `<label class="f">Sinf<select id="rc">${CL.map((i) => `<option value="${i}" ${i === R.ci ? "selected" : ""}>${esc(label(D.classes[i]))}</option>`).join("")}</select></label>` : ""}
-      ${needPer ? `<label class="f">Davr<select id="rp">${pers.map(([k, n]) => `<option value="${k}" ${k === R.per ? "selected" : ""}>${n}</option>`).join("")}</select></label>` : ""}${extra}
-      <span class="sp"></span><div class="hrow" style="gap:8px"><button class="btn btn-primary" data-print>🖨 Chop etish</button>${xlsAttr ? `<button class="btn" ${xlsAttr}>📊 Excel</button>` : ""}</div></div>
-    <section class="card vcol" style="gap:14px">${sec}</section></div>`;
-  const keep = () => { try { localStorage.setItem("yoqlama_rep", JSON.stringify({kind: R.kind, per: R.per})); } catch (e) {} };
-  m.querySelectorAll("[data-kind]").forEach((b) => b.onclick = () => { R.kind = b.dataset.kind; keep(); render(); });
-  const rc = $("#rc", m); if (rc) rc.onchange = (e) => { R.ci = +e.target.value; render(); };
-  const rp = $("#rp", m); if (rp) rp.onchange = (e) => { R.per = e.target.value; keep(); render(); };
-  const rqs = $("#rq", m); if (rqs) rqs.onchange = () => { S.rq = +rqs.value; render(); };
-  const rty = $("#rtype", m); if (rty) rty.onchange = () => { S.rtype = rty.value; render(); };
-  const rso = $("#rsort", m); if (rso) rso.onchange = () => { const [k, d] = rso.value.split("|"); S.rsort = k ? {k, dir: +d} : null; render(); };
-  m.querySelectorAll("[data-cmpc]").forEach((b) => b.onclick = () => { R.ci = +b.dataset.cmpc; R.kind = "cls"; keep(); render(); window.scrollTo(0, 0); });
-  const rx = $("[data-rxlsx]", m); if (rx) rx.onclick = () => {
-    const q = S.rq || curQuarter(); if (!qRange(q)) return toast(`${q}-chorak sanalari belgilanmagan`);
-    const [cp, per] = readiness(c, q);
-    saveTable(`${label(c)} ${q}-chorak tayyorlik`, [[`${label(c)} · ${q}-chorak bahosiga tayyorlik`], ...cp.map((x) => [x]), [], ["№", "O'quvchi", "Nima yetishmaydi"], ...Object.keys(per).map((n, i) => [i + 1, n, per[n].join("; ")])], [5, 30, 80]);
-  };
-  m.querySelectorAll("[data-print]").forEach((b) => b.onclick = () => { fitPrint(); window.print(); });
-  m.querySelectorAll("[data-card]").forEach((b) => b.onclick = () => studentCard(R.ci, b.dataset.card));
-  m.querySelectorAll("[data-bm]").forEach((b) => b.onclick = () => { S.bmode = b.dataset.bm; render(); });
-  m.querySelectorAll("[data-pf]").forEach((b) => b.onclick = () => { S.pfilt = b.dataset.pf; render(); });
-  const am = $("#amon", m); if (am) am.onchange = () => { S.amon = am.value; render(); };
-  const ax = $("[data-axlsx]", m); if (ax) ax.onclick = () => {
-    const A = attMonth(c, S.amon), codes = {s: "S", dq: "DQ", k: "K", kq: "KQ", ch: "CH"};
-    saveTable(`${label(c)} davomat ${A.ym}`, [[`${label(c)} · davomat · ${A.title}`], [],
-      ["№", "O'quvchi", ...A.dates.map((d) => d.slice(8)), "S", "DQ", "K", "KQ", "Davomat %"],
-      ...A.rows.map((r, i) => [i + 1, r.name, ...r.cells.map((v) => codes[v] || ""), r.s, r.dq, r.k, r.kq, r.att]),
-      ["", "Kelmaganlar", ...A.dayAbs, A.tot.s, A.tot.dq, A.tot.k, A.tot.kq, A.att]], [5, 28, ...A.dates.map(() => 4), 5, 5, 5, 5, 10]);
-  };
-  const bd = $("#bday", m); if (bd) bd.onchange = () => { S.bday = bd.value || null; render(); };
-  m.querySelectorAll("[data-rs]").forEach((th) => th.onclick = () => { const k = th.dataset.rs, o = S.rsort || {}; S.rsort = {k, dir: o.k === k ? -(o.dir || 1) : (k === "name" ? 1 : -1)}; render(); });
-  m.querySelectorAll("[data-rf]").forEach((b) => b.onclick = () => { S.rfilt = b.dataset.rf; render(); });
-  const xl = $("[data-xlsx]", m); if (xl) xl.onclick = () => {
-    const hd = ["№", "O'quvchi", "O'rtacha", "Baholar", "Davomat %", "S", "DQ", "K", "KQ"].concat(rq ? ["Chorak balli", "Chorak bahosi"] : [], ["Izoh"]);
-    const body = rows.map((r, i) => [i + 1, r.name, r.avg, r.n, r.att, r.s, r.dq, r.k, r.kq].concat(rq ? [r.q ? Math.round(r.q.total * 10) / 10 : null, r.q && r.q.complete ? r.q.grade : null] : [], [r.why.join("; ")]));
-    saveTable(`${label(c)} ${lo} ${hi}`, [[`${label(c)} · ${fmt(lo)} – ${fmt(hi)}`], [], hd, ...body], [5, 28, 9, 8, 10, 5, 5, 5, 5].concat(rq ? [11, 12] : [], [50]));
-  };
-  const cc = $("[data-ccsv]", m); if (cc) cc.onclick = () => {
-    const r2 = (v, d) => v === null || v === undefined ? null : +v.toFixed(d), L = compareRows(lo, hi, rq), T = compareTotal(L), line = (r, nm) => [nm, r.n, r.lessons, r2(r.avg, 2), r2(r.att, 1), r.risk, r2(r.bsb, 0), r2(r.chsb, 0)].concat(rq ? [r2(r.qq, 0), r2(r.qu, 0)] : []);
-    saveTable(`sinflar ${lo} ${hi}`, [[`Sinflarni solishtirish · ${fmt(lo)} – ${fmt(hi)}`], [], ["Sinf", "O'quvchi", "Darslar", "O'rtacha", "Davomat %", "Xavf ostida", "BSB %", "CHSB %"].concat(rq ? ["Sifat %", "O'zlashtirish %"] : []),
-      ...L.map((r) => line(r, label(r.c))), line(T, "Jami / o'rtacha")], [22, 10, 9, 10, 11, 12, 8, 8, 9, 14]);
-  };
-  const sx = $("[data-sxlsx]", m); if (sx) sx.onclick = () => { const q = S.rq || curQuarter(); if (!qRange(q)) return toast(`${q}-chorak sanalari belgilanmagan`); saveTable(`${label(c)} ${q}-chorak BSB CHSB`, ...sumAoa(c, q)); };
-
-}
+// ko'rinish — alohida faylda: hisobotlar.js / hisobotlar.css (tasdiqlangan dizayn, 2026-11-01)
+function pageReports(m) { HSB.page(m); }
 
 /* ───────── 5. Sozlamalar ───────── */
 // [belgi, nomi, qisqa izoh]
@@ -4408,15 +4341,6 @@ function fitPrint() {
   return z;
 }
 window.addEventListener("beforeprint", () => { try { fitPrint(); } catch (e) {} });
-function repReady(c) {
-  const q = S.rq || curQuarter();
-  if (!qRange(q)) return `<div class="muted">${q}-chorak sanalari belgilanmagan.</div>`;
-  const [cp, per] = readiness(c, q), names = Object.keys(per);
-  return `<h2>${esc(label(c))} · ${q}-chorak bahosiga tayyorlik</h2>
-    ${!cp.length && !names.length ? `<div class="ok">✓ Hammasi tayyor: barcha ballar kiritilgan, formativ baholar yetarli. Chorak baholarini qo'yish mumkin.</div>` : ""}
-    ${cp.length ? `<div class="warnbox card">⚠ ${cp.map(esc).join("<br>⚠ ")}</div>` : ""}
-    ${names.length ? `<div class="muted">${names.length} ta o'quvchida kamchilik bor:</div><table class="table r"><tr><th>№</th><th>O'quvchi</th><th>Nima yetishmaydi</th></tr>${names.map((n, i) => `<tr><td>${i + 1}</td><td><b>${esc(n)}</b></td><td>${per[n].map(esc).join("<br>")}</td></tr>`).join("")}</table>` : ""}`;
-}
 /* ───────── grafik va statistika ───────── */
 // haftalar bo'yicha: sinf o'rtacha bahosi va davomat; baholar taqsimoti; kim ko'p qoldirgan / eng past / eng yaxshi
 function statsData(c, lo, hi) {
@@ -4432,59 +4356,6 @@ function statsData(c, lo, hi) {
   }
   const W = [...weeks.values()].map((w) => ({from: w.from, avg: w.g.length ? w.g.reduce((a, b) => a + b, 0) / w.g.length : null, n: w.g.length, att: w.seats ? 100 * (1 - w.abs / w.seats) : null}));
   return {weeks: W, dist, lessons: ds.length};
-}
-function lineSvg(pts, {min, max, fmtV, label: lbl, ticks}) {
-  const Wd = 440, H = 230, L = 42, R = 14, T = 14, B = 30, n = pts.length;
-  const x = (i) => L + (n < 2 ? (Wd - L - R) / 2 : i * (Wd - L - R) / (n - 1)), y = (v) => T + (H - T - B) * (1 - (v - min) / (max - min));
-  let s = `<svg viewBox="0 0 ${Wd} ${H}" class="stat" role="img" aria-label="${esc(lbl)}">`;
-  for (const v of ticks) s += `<line x1="${L}" x2="${Wd - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" font-size="13" fill="var(--muted)">${fmtV(v)}</text>`;
-  const step = Math.max(1, Math.ceil(n / 5));
-  pts.forEach((p, i) => { if (i % step === 0 || i === n - 1) s += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="13" fill="var(--muted)">${fmt(p.from).slice(0, 5)}</text>`; });
-  const segs = []; let cur = [];
-  pts.forEach((p, i) => { if (p.v === null) { if (cur.length) segs.push(cur); cur = []; } else cur.push(`${x(i)},${y(p.v)}`); });
-  if (cur.length) segs.push(cur);
-  for (const g of segs) s += `<polyline points="${g.join(" ")}" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-  pts.forEach((p, i) => { if (p.v !== null) s += `<g class="pt"><circle cx="${x(i)}" cy="${y(p.v)}" r="14" fill="transparent"/><circle cx="${x(i)}" cy="${y(p.v)}" r="4.5" fill="var(--acc)" stroke="var(--base)" stroke-width="2"/><title>${fmt(p.from)} haftasi: ${fmtV(p.v)}${p.note ? " · " + p.note : ""}</title></g>`; });
-  return s + `</svg>`;
-}
-function distSvg(dist) {
-  const Wd = 440, H = 230, L = 10, R = 10, T = 22, B = 28, mx = Math.max(1, ...dist.slice(1)), bw = (Wd - L - R) / 10;
-  const y = (v) => T + (H - T - B) * (1 - v / mx), tot = dist.slice(1).reduce((a, b) => a + b, 0);
-  let s = `<svg viewBox="0 0 ${Wd} ${H}" class="stat" role="img" aria-label="Baholar taqsimoti">`;
-  s += `<line x1="${L}" x2="${Wd - R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line)"/>`;
-  for (let g = 1; g <= 10; g++) {
-    const v = dist[g], x0 = L + (g - 1) * bw + 2, w = bw - 4, col = gradeColor(g) || "var(--acc)", h = y(0) - y(v);
-    s += `<g class="pt"><rect x="${x0}" y="${T}" width="${w}" height="${H - T - B}" fill="transparent"/>${v ? `<path d="M${x0},${y(0)} v${-Math.max(0, h - 4)} q0,-4 4,-4 h${w - 8} q4,0 4,4 v${Math.max(0, h - 4)} z" fill="${col}"/>` : ""}
-      ${v ? `<text x="${x0 + w / 2}" y="${y(v) - 5}" text-anchor="middle" font-size="13" fill="var(--muted)">${v}</text>` : ""}
-      <text x="${x0 + w / 2}" y="${H - 8}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--text)">${g}</text><title>${g} baho: ${v} ta${tot ? ` (${Math.round(100 * v / tot)}%)` : ""}</title></g>`;
-  }
-  return s + `</svg>`;
-}
-function attOpts(W) {
-  const lo = Math.max(0, Math.floor(Math.min(...W.map((w) => w.att ?? 100)) / 10) * 10 - 10), step = 100 - lo > 40 ? 20 : 10;
-  return {min: lo, max: 100, ticks: Array.from({length: (100 - lo) / step + 1}, (_, i) => lo + i * step), fmtV: (v) => Math.round(v) + "%", label: "Haftalik davomat"};
-}
-function repStats(c, lo, hi, rows) {
-  const st = statsData(c, lo, hi), W = st.weeks;
-  const top = (arr, f, n = 5) => arr.slice().sort(f).slice(0, n);
-  const absent = top(rows.filter((r) => r.s + r.dq + r.k > 0), (a, b) => (b.s + b.dq + b.k) - (a.s + a.dq + a.k));
-  const graded = rows.filter((r) => r.avg !== null), low = top(graded, (a, b) => a.avg - b.avg), best = top(graded, (a, b) => b.avg - a.avg);
-  const li = (r, v) => `<li><button class="link nmlink" data-card="${esc(r.name)}">${esc(r.name)}</button> <span class="muted">— ${v}</span></li>`;
-  const avgs = W.filter((w) => w.avg !== null), first = avgs[0], last = avgs[avgs.length - 1];
-  const trend = first && last && avgs.length > 1 ? last.avg - first.avg : null;
-  return `<div class="tiles"><div class="tile"><div class="muted">Haftalar</div><div>${W.length}</div></div>
-      <div class="tile"><div class="muted">Qo'yilgan baholar</div><div>${st.dist.reduce((a, b) => a + b, 0)}</div></div>
-      <div class="tile"><div class="muted">O'rtacha o'zgarishi</div><div class="${trend === null ? "" : trend >= 0 ? "ok" : "warn"}">${trend === null ? "—" : (trend >= 0 ? "▲ +" : "▼ ") + trend.toFixed(2)}</div></div>
-      <div class="tile"><div class="muted">Dars kunlari</div><div>${st.lessons}</div></div></div>
-    <div class="sgrid">
-      <section class="vcol" style="gap:6px"><h3>Sinf o'rtacha bahosi (haftalar bo'yicha)</h3>${avgs.length ? lineSvg(W.map((w) => ({from: w.from, v: w.avg, note: `${w.n} ta baho`})), {min: 1, max: 10, ticks: [2, 4, 6, 8, 10], fmtV: (v) => (Math.round(v * 10) / 10).toString(), label: "Haftalik o'rtacha baho"}) : `<div class="muted">Bu davrda baho yo'q.</div>`}</section>
-      <section class="vcol" style="gap:6px"><h3>Davomat (haftalar bo'yicha, %)</h3>${W.length ? lineSvg(W.map((w) => ({from: w.from, v: w.att})), attOpts(W)) : `<div class="muted">Bu davrda dars yo'q.</div>`}</section>
-      <section class="vcol" style="gap:6px"><h3>Baholar taqsimoti</h3>${distSvg(st.dist)}</section>
-      <section class="vcol" style="gap:10px"><div class="lists">
-        <div><h3>Ko'p qoldirganlar</h3>${absent.length ? `<ol>${absent.map((r) => li(r, `${r.s + r.dq + r.k} dars (${[["S", r.s], ["DQ", r.dq], ["K", r.k]].filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(" · ")})`)).join("")}</ol>` : `<div class="muted">Qoldirish yo'q 👍</div>`}</div>
-        <div><h3>Eng past o'rtacha</h3>${low.length ? `<ol>${low.map((r) => li(r, r.avg.toFixed(2))).join("")}</ol>` : `<div class="muted">—</div>`}</div>
-        <div><h3>Eng yaxshi o'rtacha</h3>${best.length ? `<ol>${best.map((r) => li(r, r.avg.toFixed(2))).join("")}</ol>` : `<div class="muted">—</div>`}</div></div></section>
-    </div>`;
 }
 // Excel (.xlsx) — SheetJS internetdan bir marta yuklanadi; bo'lmasa CSV
 async function saveTable(name, aoa, cols) {
@@ -4506,41 +4377,6 @@ function qualityOf(rows) {
 const pctTxt = (v) => v === null ? "—" : v + "%";
 const gTable = (head, rows, foot) => `<div class="tblwrap"><table class="table r grep"><tr>${head.map((h) => `<th>${h}</th>`).join("")}</tr>${rows.join("")}${foot || ""}</table></div>`;
 const gTiles = (L) => `<div class="tiles">${L.map(([k, v, cls]) => `<div class="tile"><div>${k}</div><div class="${cls || ""}">${v}</div></div>`).join("")}</div>`;
-function repClass(c, lo, hi, rows, lessons, rq, perTxt) {
-  const gr = rows.filter((r) => r.avg !== null), avg = gr.length ? gr.reduce((a, r) => a + r.avg * r.n, 0) / gr.reduce((a, r) => a + r.n, 0) : null;
-  const atts = rows.filter((r) => r.att !== null), att = atts.length ? atts.reduce((a, r) => a + r.att, 0) / atts.length : null;
-  const nRisk = rows.filter((r) => r.risk).length, ql = rq ? qualityOf(rows) : null;
-  const bands = ranges().map((b, i, a) => ({b, n: gr.filter((r) => r.avg >= b.min && (i + 1 >= a.length || r.avg < a[i + 1].min)).length}));
-  const so = S.rsort || {}, filt = S.rfilt === "risk" ? "risk" : "all", rt = RISK_TYPES.some(([k]) => k === S.rtype) ? S.rtype : "";
-  const key = {name: (r) => r.name, avg: (r) => r.avg, n: (r) => r.n, att: (r) => r.att, s: (r) => r.s, dq: (r) => r.dq, k: (r) => r.k, kq: (r) => r.kq, qt: (r) => r.q ? r.q.total : null, why: (r) => r.why.length}[so.k];
-  let list = rows.map((r, i) => [r, i]);
-  if (filt === "risk") list = list.filter(([r]) => r.risk);
-  if (rt) list = list.filter(([r]) => r.kinds.includes(rt));
-  if (key) list.sort(([a], [b]) => { const x = key(a), y = key(b); if (x === null || x === undefined) return 1; if (y === null || y === undefined) return -1; return (typeof x === "string" ? x.localeCompare(y, "uz") : x - y) * so.dir; });
-  const th = (k, n) => `<th data-rs="${k}" data-h="${n}" class="srt" title="Saralash">${n}${so.k === k ? `<span class="sa"> ${so.dir > 0 ? "▲" : "▼"}</span>` : ""}</th>`;
-  const sorts = [["", "№ tartibida"], ["name|1", "Ism (A–Z)"], ["avg|-1", "O'rtacha: yuqoridan"], ["avg|1", "O'rtacha: pastdan"], ["att|1", "Davomat: pastdan"], ["s|-1", "Sababsiz: ko'pdan"], ["why|-1", "Muammolar: ko'pdan"]].concat(rq ? [["qt|-1", "Chorak balli: yuqoridan"]] : []);
-  const sv = so.k ? `${so.k}|${so.dir}` : "";
-  return `<h2>${esc(label(c))} · ${perTxt}</h2>
-    <div class="tiles"><div class="tile"><div class="muted">O'rtacha baho</div><div>${avg !== null ? avg.toFixed(2) : "—"}</div></div>
-      <div class="tile"><div class="muted">Davomat</div><div>${att !== null ? att.toFixed(1) + "%" : "—"}</div></div>
-      <div class="tile"><div class="muted">Dars kunlari</div><div>${lessons}</div></div>
-      <div class="tile"><div class="muted">Xavf ostida</div><div>${nRisk} / ${rows.length}</div></div>
-      ${ql ? `<div class="tile"><div class="muted">Sifat (4 va 5)</div><div>${ql.q.toFixed(0)}%</div></div>
-      <div class="tile"><div class="muted">O'zlashtirish (3–5)</div><div>${ql.u.toFixed(0)}%</div></div>
-      <div class="tile wide2"><div class="muted">Chorak baholari (${ql.n} o'quvchi)</div><div class="qby">${["5", "4", "3", "2"].map((k, i) => `<span><b>${k}</b> — ${ql.by[i]}</span>`).join("")}</div></div>` : ""}</div>
-    ${gr.length ? `<div class="bands" title="O'rtacha baho bo'yicha">${bands.map(({b, n}) => `<span class="bnd" style="background:${b.color};color:${contrast(b.color)}">${esc(b.name)}: <b>${n}</b></span>`).join("")}<span class="muted">o'quvchi (o'rtacha baho bo'yicha)</span></div>` : ""}
-    <div class="hrow noprint" style="gap:8px"><div class="seg"><button class="${filt === "all" ? "on" : ""}" data-rf="all">Hammasi (${rows.length})</button><button class="${filt === "risk" ? "on" : ""}" data-rf="risk">Xavf ostida (${nRisk})</button></div>
-      <label class="hrow" style="gap:6px;flex-wrap:nowrap"><span class="muted">Saralash</span><select id="rsort" style="width:auto">${sorts.map(([k, n]) => `<option value="${k}" ${k === sv ? "selected" : ""}>${n}</option>`).join("")}${sv && !sorts.some(([k]) => k === sv) ? `<option value="${sv}" selected>Ustun bo'yicha</option>` : ""}</select></label>
-      <label class="hrow" style="gap:6px;flex-wrap:nowrap;max-width:100%;min-width:0"><span class="muted">Xavf turi</span><select id="rtype" style="width:auto;min-width:0;max-width:100%;flex:1 1 auto"><option value="">Barchasi</option>${RISK_TYPES.map(([k, n]) => `<option value="${k}" ${k === rt ? "selected" : ""}>${esc(n[0])} (${rows.filter((r) => r.kinds.includes(k)).length})</option>`).join("")}</select></label></div>
-    <div style="overflow:auto"><table class="table r rcls"><tr><th>№</th>${th("name", "O'quvchi")}${th("avg", "O'rtacha")}${th("n", "Baholar")}${th("att", "Davomat")}${th("s", "S")}${th("dq", "DQ")}${th("k", "K")}${th("kq", "KQ")}${rq ? th("qt", "Chorak") : ""}${th("why", "Izoh")}</tr>
-    ${list.map(([r, i]) => { const col = r.avg !== null ? gradeColor(r.avg) : null; return `<tr><td>${i + 1}</td><td><button class="link nmlink" data-card="${esc(r.name)}">${esc(r.name)}</button></td>
-      <td>${r.avg !== null ? `<span class="pill" style="background:${col};color:${contrast(col)}">${r.avg.toFixed(2)}</span>` : "—"}</td><td class="n">${r.n}</td>
-      <td>${r.att !== null ? r.att.toFixed(1) + "%" : "—"}</td><td class="n">${r.s || ""}</td><td class="n">${r.dq || ""}</td><td class="n">${r.k || ""}</td><td class="n">${r.kq || ""}</td>
-      ${rq ? `<td class="n">${r.q ? `${pyFixed(r.q.total, 1)}${r.q.complete ? ` · <b>${r.q.grade}</b>` : ` <span class="muted" title="BSB/CHSB ballari to'liq emas">(to'liq emas)</span>`}` : "—"}</td>` : ""}
-      <td class="${r.risk ? "warn" : "muted"}" style="font-weight:600">${esc(r.why.join("; ")) || "—"}</td></tr>`; }).join("")}
-    ${rows.length ? (() => { const qs = rows.filter((r) => r.q), sm = (k) => rows.reduce((a, r) => a + r[k], 0); return `<tr class="tot"><td></td><td><b>Sinf bo'yicha</b></td><td>${avg !== null ? `<b>${avg.toFixed(2)}</b>` : "—"}</td><td class="n">${sm("n")}</td><td>${att !== null ? att.toFixed(1) + "%" : "—"}</td><td class="n">${sm("s") || ""}</td><td class="n">${sm("dq") || ""}</td><td class="n">${sm("k") || ""}</td><td class="n">${sm("kq") || ""}</td>${rq ? `<td class="n">${qs.length ? pyFixed(qs.reduce((a, r) => a + r.q.total, 0) / qs.length, 1) : "—"}</td>` : ""}<td class="muted">${nRisk ? `${nRisk} xavf ostida` : ""}</td></tr>`; })() : ""}</table></div>
-    ${list.length ? "" : `<div class="muted">${rt || filt === "risk" ? "Xavf ostida o'quvchi yo'q. 👍" : ""}</div>`}`;
-}
 // oylik davomat: o'quvchilar × dars kunlari; belgilar S/DQ/K/KQ, kelganlar bo'sh
 function attMonth(c, ym) {
   const t = todayIso(), months = [...new Set(c.dates.filter((d) => d <= t).map((d) => d.slice(0, 7)))].sort();
@@ -4559,55 +4395,7 @@ function attMonth(c, ym) {
   const dayAbs = dates.map((_, j) => rows.filter((r) => ["s", "dq", "k"].includes(r.cells[j])).length);
   return {ym, months, dates, rows, dayAbs, tot, att: own ? +pyFixed(100 * (own - abs) / own, 1) : null, title: `${MONTHS[+ym.slice(5) - 1]} ${ym.slice(0, 4)}`};
 }
-function repAtt(c) {
-  const A = attMonth(c, S.amon), col = D.settings.attendance, codes = {s: "S", dq: "DQ", k: "K", kq: "KQ", ch: "CH"};
-  const cell = (v) => v && codes[v] ? `<td class="ac" style="background:${col[v]};color:${contrast(col[v])}">${codes[v]}</td>` : `<td class="ac"></td>`;
-  return `<div class="hrow wrap"><h2 class="sp" style="flex:1 1 260px">${esc(label(c))} · davomat · ${A.title}</h2><span class="muted">${A.dates.length} dars · davomat ${A.att !== null ? A.att + "%" : "—"}</span></div>
-    ${A.dates.length ? `<div style="overflow:auto"><table class="attm"><tr><th>№</th><th class="an">O'quvchi</th>${A.dates.map((d) => `<th>${d.slice(8)}<br><small>${WD[pyWd(d)]}</small></th>`).join("")}<th>S</th><th>DQ</th><th>K</th><th>KQ</th><th>%</th></tr>
-      ${A.rows.map((r, i) => `<tr><td>${i + 1}</td><td class="an">${nmHtml(r.name)}</td>${r.cells.map(cell).join("")}<td class="n">${r.s || ""}</td><td class="n">${r.dq || ""}</td><td class="n">${r.k || ""}</td><td class="n">${r.kq || ""}</td><td class="n ${r.att !== null && r.att < D.settings.risk.att_below ? "warn" : ""}">${r.att ?? "—"}</td></tr>`).join("")}
-      <tr class="tot"><td></td><td class="an">Kelmaganlar</td>${A.dayAbs.map((n) => `<td class="n">${n || ""}</td>`).join("")}<td class="n">${A.tot.s}</td><td class="n">${A.tot.dq}</td><td class="n">${A.tot.k}</td><td class="n">${A.tot.kq}</td><td class="n">${A.att ?? "—"}</td></tr></table></div>
-      <div class="muted" style="font-size:13px">S — sababsiz, DQ — sababli, K — kasal, KQ — kech qoldi${A.rows.some((r) => r.cells.includes("ch")) ? ", CH — chet elda" : ""}. Bo'sh katak — darsda bo'lgan.</div>`
-    : `<div class="muted">Bu oyda o'tilgan dars kunlari yo'q.</div>`}`;
-}
 // ota-onalar majlisi: har o'quvchiga alohida varaq (A4 da ikkitadan), chop etib qo'lga beriladi
-function repPar(c, lo, hi, rows, rq) {
-  const filt = S.pfilt === "risk" ? "risk" : "all", list = rows.map((r, i) => [r, c.students[i]]).filter(([r]) => filt === "all" || r.risk);
-  const tch = ((D.web.bsb_hdr || {}).teacher || "").trim();
-  const sheet = ([r, s]) => {
-    const ds = c.dates.filter((d) => lo <= d && d <= hi && !isNoLesson(c, d) && gradesOf(s.marks[d] || "").length);
-    const ws = c.works.filter((w) => lo <= w.date && w.date <= hi).sort((a, b) => a.date < b.date ? -1 : 1);
-    const h = feat("hw") ? hwStat(s, lo, hi) : {n: 0}, debts = feat("debts") ? debtsOf(c, s, lo, hi).filter((d) => !d.done) : [];
-    const col = r.avg !== null ? gradeColor(r.avg) : null;
-    return `<article class="psheet"><div class="hrow"><div class="sp"><b class="pnm">${esc(s.name)}</b><div class="muted">${esc(label(c))} · ${fmt(lo)} – ${fmt(hi)}</div></div>
-        ${rq && r.q && r.q.complete ? `<div class="pq">${rq}-chorak bahosi<b>${r.q.grade}</b></div>` : ""}</div>
-      <div class="pst"><span>O'rtacha baho <b ${col ? `style="background:${col};color:${contrast(col)}"` : ""}>${r.avg !== null ? r.avg.toFixed(2) : "—"}</b></span><span>Baholar <b>${r.n}</b></span>
-        <span>Davomat <b>${r.att !== null ? r.att.toFixed(0) + "%" : "—"}</b></span><span>Qoldirgan <b>${r.absent}</b>${r.absent ? ` <small>(${[["s", "sababsiz"], ["dq", "sababli"], ["k", "kasal"]].filter(([k]) => r[k]).map(([k, n]) => `${n} ${r[k]}`).join(", ")})</small>` : ""}</span>${r.kq ? `<span>Kech qolgan <b>${r.kq}</b></span>` : ""}</div>
-      ${ds.length ? `<div><span class="muted">Baholar:</span> ${ds.map((d) => `<span class="pg">${gradesOf(s.marks[d]).join("/")}<small>${fmt(d).slice(0, 5)}</small></span>`).join("")}</div>` : ""}
-      ${ws.length ? `<div><span class="muted">BSB / CHSB:</span> ${ws.map((w) => { const v = (s.scores || {})[w.id]; return `${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)} — <b>${isNum(v) ? `${v} / ${w.max}` : "topshirilmagan"}</b>`; }).join("; ")}</div>` : ""}
-      ${h.n ? `<div><span class="muted">Uy vazifasi:</span> ${h.ok} / ${h.n} bajarilgan</div>` : ""}
-      ${debts.length ? `<div class="warn"><span class="muted">Qayta topshirish kerak:</span> ${esc(debts.map((d) => d.what).join("; "))}</div>` : ""}
-      ${r.why.length ? `<div class="warn"><span class="muted">E'tibor bering:</span> ${esc(r.why.join("; "))}</div>` : `<div class="ok">Ko'rsatkichlar me'yorda.</div>`}
-      <div class="psig"><span>O'qituvchi: ${tch ? esc(tch) : "________________"}</span><span>Ota-ona imzosi: ________________</span></div></article>`;
-  };
-  return `<style>@media print{@page{size:A4 portrait;margin:10mm}.psheet{break-inside:avoid;page-break-inside:avoid;min-height:132mm;margin:0 0 6mm}.psheet:nth-child(2n){margin-bottom:0}}</style>
-    <div class="hrow wrap noprint" style="gap:8px"><div class="seg"><button class="${filt === "all" ? "on" : ""}" data-pf="all">Hamma o'quvchi (${rows.length})</button><button class="${filt === "risk" ? "on" : ""}" data-pf="risk">Faqat xavf ostidagilar (${rows.filter((r) => r.risk).length})</button></div></div>
-    <p class="muted noprint" style="margin:0">Har o'quvchiga alohida varaq — bir A4 sahifaga ikkitadan chiqadi. Majlisda ota-onalarga qo'lga berish uchun.${tch ? "" : " O'qituvchi ismi «BSB tahlili» sahifasidagi sarlavhadan olinadi."}</p>
-    <div class="psheets">${list.map(sheet).join("") || `<div class="muted">Xavf ostida o'quvchi yo'q. 👍</div>`}</div>`;
-}
-function repCompare(lo, hi, rq) {
-  const rows = compareRows(lo, hi, rq), T = compareTotal(rows), f = (v, d = 1, s = "") => v === null || v === undefined ? "—" : v.toFixed(d) + s;
-  const pill = (v) => { const col = v !== null ? gradeColor(v) : null; return v !== null ? `<span class="pill" style="background:${col};color:${contrast(col)}">${v.toFixed(2)}</span>` : "—"; };
-  // eng yaxshi / eng past sinf (o'rtacha baho bo'yicha) — ko'zga tashlanishi uchun
-  const ranked = rows.filter((r) => r.avg !== null).sort((a, b) => b.avg - a.avg), top = ranked[0], low = ranked.length > 1 ? ranked[ranked.length - 1] : null;
-  const cells = (r) => `<td class="n">${r.n}</td><td class="n">${r.lessons}</td><td>${pill(r.avg)}</td><td>${f(r.att, 1, "%")}</td><td class="n ${r.risk ? "warn" : ""}">${r.risk}</td><td>${f(r.bsb, 0, "%")}</td><td>${f(r.chsb, 0, "%")}</td>${rq ? `<td>${f(r.qq, 0, "%")}</td><td>${f(r.qu, 0, "%")}</td>` : ""}`;
-  return `<h2>Sinflarni solishtirish · ${rq ? `${rq}-chorak · ` : ""}${fmt(lo)} – ${fmt(hi)}</h2>
-    ${gTiles([["Sinflar", rows.length], ["O'quvchilar", T.n], ["Umumiy o'rtacha", T.avg !== null ? T.avg.toFixed(2) : "—"], ["Umumiy davomat", f(T.att, 1, "%")]].concat(rq ? [["Sifat (4 va 5)", f(T.qq, 0, "%")], ["O'zlashtirish (3–5)", f(T.qu, 0, "%")]] : []))}
-    ${top && low ? `<div class="muted">Eng yuqori o'rtacha: <b>${esc(label(top.c))}</b> (${top.avg.toFixed(2)}) · eng past: <b>${esc(label(low.c))}</b> (${low.avg.toFixed(2)})</div>` : ""}
-    <div style="overflow:auto"><table class="table r rcmp"><tr><th>Sinf</th><th>O'quvchi</th><th>Darslar</th><th>O'rtacha</th><th>Davomat</th><th>Xavf ostida</th><th>BSB %</th><th>CHSB %</th>${rq ? "<th>Sifat</th><th>O'zl.</th>" : ""}</tr>
-    ${rows.map((r) => `<tr><td><button class="link nmlink" data-cmpc="${D.classes.indexOf(r.c)}" title="Sinf hisobotini ochish"><b>${esc(label(r.c))}</b></button></td>${cells(r)}</tr>`).join("")}
-    <tr class="tot"><td><b>Jami / o'rtacha</b></td>${cells(T)}</tr></table></div>
-    <p class="muted" style="margin:0">Jami qatori vaznli: o'rtacha baho — barcha baholar bo'yicha, davomat — o'quvchilar bo'yicha, BSB/CHSB — to'plangan ballar ÷ maksimal ballar.${rq ? " Sifat va o'zlashtirish — chorak bahosi to'liq chiqqan o'quvchilar orasida." : ""}</p>`;
-}
 /* BSB va CHSB natijalari: har ish bo'yicha statistika + o'quvchilar × ishlar jadvali va chorak yakuni */
 const PBANDS = [[86, "86–100%"], [66, "66–85%"], [30, "30–65%"], [0, "30% dan past"]];
 function sumData(c, q) {
@@ -4624,23 +4412,6 @@ function sumData(c, q) {
   });
 }
 const wTag = (w) => `${w.type === "bsb" ? "BSB" : "CHSB"} ${fmt(w.date).slice(0, 5)}`;
-function repSum(c, q) {
-  if (!qRange(q)) return `<div class="muted">${q}-chorak sanalari belgilanmagan (Sozlamalar → Dars kunlari va choraklar).</div>`;
-  const D0 = sumData(c, q), {W, rows, ql} = D0, f = (v, d = 1, s = "") => v === null || v === undefined ? "—" : (+v).toFixed(d) + s;
-  if (!W.length) return `<h2>${esc(label(c))} · ${q}-chorak · BSB va CHSB</h2><div class="muted">Bu chorakda BSB / CHSB ishi kiritilmagan. Ishlar jurnaldagi «📊 BSB / CHSB ballari» bo'limida qo'shiladi.</div>`;
-  const avgCol = (fn) => { const v = rows.map(fn).filter(isNum); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
-  return `<h2>${esc(label(c))} · ${q}-chorak · BSB va CHSB natijalari</h2>
-    ${gTiles([["Ishlar", `${W.filter((x) => x.w.type === "bsb").length} BSB · ${W.filter((x) => x.w.type !== "bsb").length} CHSB`], ["Topshirish", f(D0.sub, 0, "%")], ["O'rtacha natija", f(D0.pct, 0, "%")], ["Chorak bahosi chiqdi", `${D0.done} / ${D0.N}`]]
-      .concat(ql ? [["Sifat (4 va 5)", f(ql.q, 0, "%")], ["O'zlashtirish (3–5)", f(ql.u, 0, "%")]] : []))}
-    <h3 style="margin:4px 0 0">Ishlar bo'yicha</h3>
-    ${gTable(["Ish", "Maks.", "Topshirdi", "O'rtacha ball", "O'rtacha %", "Eng past – yuqori", ...PBANDS.map(([, n]) => n)], W.map((x) => `<tr><td><b>${wTag(x.w)}</b></td><td class="s">${x.mx}</td><td class="s ${x.n < D0.N ? "warn" : ""}">${x.n} / ${D0.N}</td><td class="s">${f(x.avg)}</td><td class="s">${f(x.pct, 0, "%")}</td><td class="s">${x.n ? `${fmtNum(x.lo)} – ${fmtNum(x.hi)}` : "—"}</td>${x.band.map((n) => `<td class="s">${n || ""}</td>`).join("")}</tr>`))}
-    <h3 style="margin:4px 0 0">O'quvchilar · chorak yakuni</h3>
-    <div class="tblwrap"><table class="table r grep rsum"><tr><th>№</th><th>O'quvchi</th>${W.map((x) => `<th title="maks. ${x.mx}">${wTag(x.w)}<small>/${x.mx}</small></th>`).join("")}<th>BSB<small>/50</small></th><th>CHSB<small>/40</small></th><th>FB<small>/10</small></th><th>Jami<small>/100</small></th><th>Baho</th></tr>
-      ${rows.map(({s, r}, i) => `<tr><td>${i + 1}</td><td><button class="link nmlink" data-card="${esc(s.name)}">${esc(s.name)}</button></td>${W.map((x) => { const v = (s.scores || {})[x.w.id]; return isNum(v) ? `<td class="s">${fmtNum(v)}</td>` : `<td class="s warn" title="topshirilmagan">—</td>`; }).join("")}
-        <td class="s">${fmtNum(r.bsb)}</td><td class="s">${fmtNum(r.chsb)}</td><td class="s">${r.fb}</td><td class="s"><b>${fmtNum(r.total)}</b></td><td class="s">${r.complete ? `<b>${r.grade}</b>` : `<span class="muted" title="ballar to'liq emas">…</span>`}</td></tr>`).join("")}
-      <tr class="tot"><th></th><th>O'rtacha</th>${W.map((x) => `<th class="s">${f(x.avg)}</th>`).join("")}<th class="s">${f(avgCol(({r}) => r.bsb))}</th><th class="s">${f(avgCol(({r}) => r.chsb))}</th><th class="s">${f(avgCol(({r}) => r.fb))}</th><th class="s">${f(avgCol(({r}) => r.total))}</th><th class="s">${f(avgCol(({r}) => r.complete ? r.grade : null), 2)}</th></tr></table></div>
-    <p class="muted" style="margin:0">Chorak bahosi: jami ≥ 86 — 5, ≥ 66 — 4, ≥ 30 — 3. FB — formativ baholar o'rtachasi (kamida ${fbMin()} ta baho bo'lsa); BSB/CHSB kunidagi baholar FBga kirmaydi. «—» — topshirilmagan.</p>`;
-}
 function sumAoa(c, q) {
   const {W, rows} = sumData(c, q), r1 = (v) => isNum(v) ? Math.round(v * 10) / 10 : null;
   return [[[`${label(c)} · ${q}-chorak · BSB va CHSB natijalari`], [], ["Ish", "Maks.", "Topshirdi", "O'rtacha ball", "O'rtacha %", ...PBANDS.map(([, n]) => n)],
@@ -4649,30 +4420,6 @@ function sumAoa(c, q) {
     ...rows.map(({s, r}, i) => [i + 1, s.name, ...W.map((x) => r1((s.scores || {})[x.w.id])), r1(r.bsb), r1(r.chsb), r.fb, r1(r.total), r.complete ? r.grade : null])],
     [5, 28, ...W.map(() => 12), 9, 9, 8, 10, 7]];
 }
-function repBlank(c) {
-  const mode = S.bmode || "week", a = pdate(V.anchor), t = todayIso();
-  let lo, hi;
-  if (mode === "day") { lo = hi = S.bday || t; }
-  else if (mode === "week") { const st = addDays(pdate(S.bday || t), -pyWd(S.bday || t)); lo = iso(st); hi = iso(addDays(st, 6)); }
-  else { const d = pdate(S.bday || t); lo = iso(new Date(d.getFullYear(), d.getMonth(), 1)); hi = iso(new Date(d.getFullYear(), d.getMonth() + 1, 0)); }
-  const dates = c.dates.filter((d) => lo <= d && d <= hi && !isNoLesson(c, d)), two = mode === "day";
-  const chunks = []; for (let i = 0; i < Math.max(1, dates.length); i += 31) chunks.push(dates.slice(i, i + 31));
-  // har bo'lak bitta varaqqa sig'sin: ustunlar kam bo'lsa — tik (A4), ko'p bo'lsa — yotiq; qator balandligi o'quvchilar soniga qarab (mm)
-  const ncol = Math.max(...chunks.map((ds) => ds.length)) * (two ? 2 : 1), wide = ncol > 8, nameW = ncol <= 4 ? 40 : ncol <= 8 ? 32 : ncol <= 16 ? 26 : 20;
-  const avail = (wide ? 190 : 277) - (two ? 30 : 26), rowH = Math.min(9, Math.max(4, avail / Math.max(1, c.students.length)));
-  const fs = rowH < 5 ? 7.5 : rowH < 6.5 ? 9 : 10.5;
-  const printCss = `<style>@media print{@page{size:A4 ${wide ? "landscape" : "portrait"};margin:10mm}
-    .blank{break-inside:avoid}.blank h2{font-size:14pt}.blank .hrow{margin-bottom:2mm}
-    table.bl{margin-top:0;font-size:${fs}pt;table-layout:fixed;width:100%}table.bl .bn{min-width:0;width:${nameW}%;overflow:hidden;white-space:nowrap}table.bl .nr{width:7mm}table.bl td{height:${rowH.toFixed(2)}mm;padding:0 1.5mm}table.bl th{height:auto;padding:1mm}}</style>`;
-  return `${printCss}<div class="hrow noprint" style="gap:8px"><div class="seg">${[["day", "Kun"], ["week", "Hafta"], ["month", "Oy"]].map(([k, n]) => `<button class="${mode === k ? "on" : ""}" data-bm="${k}">${n}</button>`).join("")}</div>
-      <input class="form-control" type="date" id="bday" value="${S.bday || t}" style="max-width:180px"><span class="muted">Faqat ismlar va dars kunlari — belgilar chiqmaydi.</span></div>
-    ${chunks.map((ds, n) => `<div class="blank ${n ? "pb" : ""}"><div class="hrow"><h2 class="sp">${esc(label(c))}</h2><span>${fmt(lo)} – ${fmt(hi)}</span></div>
-      <table class="bl"><tr><th ${two ? 'rowspan="2"' : ""} class="nr">№</th><th ${two ? 'rowspan="2"' : ""} class="bn">O'quvchi</th>${ds.map((d) => two ? `<th colspan="2">${fmt(d).slice(0, 5)} ${WD[pyWd(d)]}</th>` : `<th>${mode === "month" ? d.slice(8) : fmt(d).slice(0, 5)}<br><small>${WD[pyWd(d)]}</small></th>`).join("")}</tr>
-      ${two ? `<tr>${ds.map(() => "<th><small>Davomat</small></th><th><small>Ball</small></th>").join("")}</tr>` : ""}
-      ${c.students.map((s, i) => `<tr><td>${i + 1}</td><td class="bn">${esc(s.name)}</td>${"<td></td>".repeat(ds.length * (two ? 2 : 1))}</tr>`).join("")}</table></div>`).join("")}
-    ${dates.length ? "" : `<div class="muted">Bu davrda dars kunlari yo'q.</div>`}`;
-}
-
 /* ───────── yangi o'quv yiliga o'tish ───────── */
 function bumpName(n) { return String(n).replace(/^(\d+)/, (x) => String(+x + 1)); }
 function rollover() {

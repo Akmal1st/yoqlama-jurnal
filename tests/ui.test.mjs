@@ -33,7 +33,10 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       for (const t of ["grow", "notes", "msg", "sum"]) await page.click(`.modal [data-tab=${t}]`);
       await page.click(".modal [data-x]");
       await nav("reports");
-      for (const k of ["att", "stats", "ready", "cmp", "blank", "cls"]) await page.click(`[data-kind=${k}]`);
+      // hisobot turi: kompyuterda chap ro'yxatdan, telefonda «Almashtirish» oynasidan (hisobotlar.js)
+      for (const k of ["att", "stats", "ready", "cmp", "blank", "cls"]) {
+        if (name === "telefon") { await page.click("[data-hk=kind]"); await page.click(`.modal [data-kind=${k}]`); } else await page.click(`[data-kind=${k}]`);
+      }
       await nav("settings");
       for (let i = 0; i < 7; i++) await page.click(`[data-sec="${i}"]`);
       await nav("today");
@@ -897,12 +900,13 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
       await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
       await page.click(`${name === "telefon" ? ".tabbar" : ".side"} [data-go=reports]`);
-      await page.click("[data-kind=stats]");
+      if (name === "telefon") { await page.click("[data-hk=kind]"); await page.click(".modal [data-kind=stats]"); } else await page.click("[data-kind=stats]");
       assert.equal(await page.locator("svg.stat").count(), 3);
       const d = await page.evaluate(() => { const c = D.classes[0], [lo, hi] = periodNow(); return {dist: statsData(c, lo, hi).dist.reduce((a, b) => a + b, 0),
         all: c.students.reduce((a, s) => a + c.dates.filter((x) => lo <= x && x <= hi && x <= todayIso() && !isNoLesson(c, x)).reduce((n, x) => n + gradesOf(s.marks[x] || "").length, 0), 0)}; });
       assert.equal(d.dist, d.all, "taqsimotdagi baholar soni jurnaldagi bilan bir xil");
-      await page.click(".lists [data-card]"); await page.waitForSelector(".modal");
+      await page.click(".hb-top5 [data-card]"); await page.waitForSelector(".modal [data-k]");
+      await page.click(".modal [data-k]"); await page.waitForSelector(".modal");
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
       assert.deepEqual(errors, []);
@@ -1347,7 +1351,7 @@ test("Sinf hisoboti: saralash, xavf filtri, sifat/o'zlashtirish va Excel", async
     assert.equal(ql.n, 3); assert.equal(Math.round(ql.q), 33); assert.equal(Math.round(ql.u), 67);
     // kutubxona yuklanmasa — CSV
     await page.evaluate(() => { window.loadXlsx = () => Promise.reject(new Error("offline")); });
-    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-xlsx]")]);
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-xlsx]:visible")]);
     assert.ok(dl.suggestedFilename().endsWith(".csv"), dl.suggestedFilename());
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
@@ -1369,13 +1373,13 @@ test("Davomat varag'i: oy bo'yicha belgilar, jamilar va Excel", async () => {
       return {n: ds.length, s: ds.filter((d) => attPart(s0.marks[d] || "") === "s").length};
     });
     assert.equal(await page.$$eval("table.attm tr:first-child th", (x) => x.length), exp.n + 7);
-    const row1 = await page.$$eval("table.attm tr:nth-child(2) td", (x) => x.map((e) => e.textContent));
+    const row1 = await page.$$eval("table.attm tbody tr:first-child td", (x) => x.map((e) => e.textContent));
     assert.equal(row1[2], "S"); assert.equal(row1[3], "", "baho qo'yilgan kun — darsda");
     assert.equal(+row1[exp.n + 2], exp.s);
     // chop etishda yotiq varaq
     await page.evaluate(() => fitPrint()); assert.ok((await page.textContent("#pfit-css")).includes("landscape"));
     await page.evaluate(() => { window.loadXlsx = () => Promise.reject(new Error("offline")); });
-    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-axlsx]")]);
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-axlsx]:visible")]);
     assert.ok(dl.suggestedFilename().includes("davomat"), dl.suggestedFilename());
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
@@ -1420,7 +1424,7 @@ test("Chop etish: telefonda ham hisobot kompyuterdagidek o'lchamda (mayda emas)"
         S.rep = {ci: 0, per: "cur", kind: "cls"}; go("reports"); return fitPrint();
       });
       // o'lchashdan keyin telefon ko'rinishi joyiga qaytadi
-      if (n === "ph") assert.equal(await page.$eval("table.r tr:nth-child(2)", (e) => getComputedStyle(e).display), "flex");
+      if (n === "ph") { assert.equal(await page.$eval(".hb-con .hb-rows", (e) => getComputedStyle(e).display), "flex"); assert.equal(await page.$eval(".hb-con .hb-tw", (e) => getComputedStyle(e).display), "none"); }
       await page.close();
     }
     assert.ok(Math.abs(zs.pc - zs.ph) < 0.05, JSON.stringify(zs));
@@ -1437,21 +1441,26 @@ test("Hisobotlar: tur kartochkalari, telefonda saralash, solishtirishdan sinfga 
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     await page.click(".tabbar [data-go=reports]");
-    assert.equal(await page.$$eval(".rk", (x) => x.length), 8);
-    // telefonda ustun sarlavhasi yo'q — saralash ro'yxatdan
-    await page.selectOption("#rsort", "avg|1");
-    const avgs = await page.$$eval("table.rcls tr:not(.tot)", (tr) => tr.slice(1).map((r) => parseFloat(r.cells[2].textContent)).filter((x) => !isNaN(x)));
-    assert.deepEqual(avgs, avgs.slice().sort((a, b) => a - b));
-    await page.click("[data-kind=cmp]"); await page.click('[data-cmpc="1"]');
+    const kind = async (k) => { await page.click("[data-hk=kind]"); await page.click(`.modal [data-kind=${k}]`); };
+    // telefonda turlar «Almashtirish» oynasida: 8 ta, guruhlangan
+    await page.click("[data-hk=kind]");
+    assert.equal(await page.$$eval(".modal [data-kind]", (x) => x.length), 8);
+    await page.click(".modal [data-kind=cls]");
+    await page.evaluate(() => { S.rep.per = "all"; render(); });
+    // saralash — tanlov oynasidan; telefonda jadval o'rniga qatorlar
+    await page.click("[data-hk=sort]:visible"); await page.click('.modal [data-ho=sort][data-v="avg|1"]');
+    const avgs = await page.$$eval(".hb-rows .hb-li .hb-gp", (x) => x.map((e) => parseFloat(e.textContent)).filter((v) => !isNaN(v)));
+    assert.ok(avgs.length > 3); assert.deepEqual(avgs, avgs.slice().sort((a, b) => a - b));
+    await kind("cmp"); await page.click('[data-cmpc="1"]:visible');
     assert.deepEqual(await page.evaluate(() => [S.rep.kind, S.rep.ci]), ["cls", 1]);
-    await page.click("[data-kind=ready]"); await page.selectOption("#rq", "2");
+    await kind("ready"); await page.click("[data-hk=per]:visible"); await page.click('.modal [data-ho=q][data-v="2"]');
     assert.equal(await page.evaluate(() => S.rq), 2);
     assert.ok(await page.$("[data-rxlsx]"));
-    await page.click("[data-kind=att]"); await page.selectOption("#rp", { index: 0 }).catch(() => {});
+    await kind("att");
     await page.reload(); await page.waitForSelector(".tabbar");
     await page.click(".tabbar [data-go=reports]");
     assert.equal(await page.evaluate(() => S.rep.kind), "att");
-    assert.ok(await page.$("#amon"));
+    assert.ok((await page.textContent("[data-hk=per]:visible")).includes("Oy"));
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
@@ -2073,7 +2082,7 @@ test("Sozlamalar: hafta/oy/chorak rejimlarini o'chirib-yoqish, ixcham dizayn va 
   } finally { await browser.close(); }
 });
 
-test("Menyu tugmalari: Hisobotlar va Sozlamalarda bir xil o'lcham (telefon va kompyuter)", async () => {
+test("Menyu tugmalari: Hisobotlar turlari va Sozlamalar bo'limlari bir xil o'lchamda (telefon va kompyuter)", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     for (const [w, h] of [[390, 844], [1300, 800]]) {
@@ -2083,12 +2092,19 @@ test("Menyu tugmalari: Hisobotlar va Sozlamalarda bir xil o'lcham (telefon va ko
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
       await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
       const sizes = async (sel) => page.$$eval(sel, (x) => x.filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(), i = b.querySelector(".ic, .si").getBoundingClientRect(); return [Math.round(r.height), Math.round(i.width), parseFloat(getComputedStyle(b.querySelector("b, .sn")).fontSize)]; }));
-      await page.evaluate(() => { S.rep.band = "grp"; go("reports"); });
-      const rep = await sizes(".rk");
+      // Hisobotlar (hisobotlar.js): kompyuterda chap ro'yxat, telefonda «Almashtirish» oynasi — hammasi bir xil, yozuv bir qatorda
+      await page.evaluate(() => go("reports"));
+      if (w < 821) await page.click("[data-hk=kind]");
+      const rep = await page.$$eval(w < 821 ? ".modal .hb-kt" : ".hb-ri", (x) => x.filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(), i = b.querySelector(".hb-ic").getBoundingClientRect(), t = b.querySelector("b");
+        return [Math.round(r.height), Math.round(i.width), parseFloat(getComputedStyle(t).fontSize), t.getBoundingClientRect().height < parseFloat(getComputedStyle(t).fontSize) * 1.8]; }));
+      assert.equal(rep.length, 8);
+      for (const k of [0, 1, 2]) assert.equal(new Set(rep.map((x) => x[k])).size, 1, `${w}px: hisobot turlari bir xil emas ${JSON.stringify(rep)}`);
+      assert.ok(rep.every((x) => x[3]), `${w}px: hisobot nomi bir qatorga sig'masin`);
+      if (w < 821) await page.keyboard.press("Escape");
       await page.evaluate(() => { S.sec = 0; go("settings"); });
       const set = await sizes("nav.secs button");
-      assert.ok(rep.length >= 6 && set.length >= 6);
-      const all = [...rep, ...set];
+      assert.ok(set.length >= 6);
+      const all = set;
       assert.equal(new Set(all.map((x) => x[1])).size, 1, `${w}px: belgi o'lchami bir xil emas ${JSON.stringify(all.map((x) => x[1]))}`);
       assert.equal(new Set(all.map((x) => x[2])).size, 1, `${w}px: yozuv o'lchami bir xil emas`);
       if (w < 560) assert.equal(new Set(all.map((x) => x[0])).size, 1, `${w}px: tugma balandligi bir xil emas ${JSON.stringify(all.map((x) => x[0]))}`);
@@ -2369,13 +2385,13 @@ test("Hisobotda xavf turi bo'yicha saralash", async () => {
       c.students.forEach((s, k) => { s.marks = {}; ds.forEach((d, i) => s.marks[d] = k === 0 && i < 5 ? "s" : "9"); });
       S.rep.band = "cls"; S.rep.kind = "cls"; S.rep.ci = 0; S.rep.per = "all"; S.rtype = ""; save(); go("reports");
     });
-    assert.ok(await page.locator("#rtype").count(), "xavf turi tanlagichi bor");
     const all = await page.locator("table.rcls tr").count();
-    await page.selectOption("#rtype", "att");
+    // xavf turi — «Saralash» oynasida (hisobotlar.js)
+    await page.click("[data-hk=sort]:visible"); await page.click(".hb-popw [data-ho=type][data-v=att]");
     const n = await page.locator("table.rcls tr").count();
-    assert.ok(n < all && n >= 3, `davomat bo'yicha ${n} < ${all}`);
+    assert.ok(n < all && n >= 2, `davomat bo'yicha ${n} < ${all}`);   // sarlavha + kamida 1 o'quvchi (jami qatori yo'q)
     assert.ok((await page.locator("table.rcls td.warn").allTextContents()).every((t) => t.includes("davomat")));
-    await page.selectOption("#rtype", "drop");
+    await page.click("[data-hk=sort]:visible"); await page.click(".hb-popw [data-ho=type][data-v=drop]");
     assert.equal(await page.locator("table.rcls td.warn").count(), 0);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
