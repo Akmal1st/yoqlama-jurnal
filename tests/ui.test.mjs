@@ -2905,3 +2905,55 @@ test("Hisobotda xavf turi bo'yicha saralash", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Moliya: qoldirilgan darslar qoidasi, to'lov muddati, xarajat, grafik va top-reyting", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1280, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const ci = await page.evaluate(() => {
+      const c = normalize({web: {dv: 2}, classes: [{name: "Ingliz", subject: "Ingliz tili", kind: "paid", fee: {month: 0, day: 10000}, dates: ["2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08"],
+        students: [{name: "Ali Valiyev", plan: {t: "day", sum: 10000}, marks: {"2026-10-05": "ot", "2026-10-06": "ot"}, abs: {"2026-10-07": "sz", "2026-10-08": "sb"}, pays: [{id: "p1", no: 1, d: "2026-10-09", m: "2026-10", sum: 10000, how: "Naqd"}]}]}]}).classes[0];
+      D.classes.push(c); save(); return D.classes.length - 1;
+    });
+    const calc = (k) => page.evaluate(([i, k]) => { const c = D.classes[i], s = c.students[0]; k && (c.rule = k); EPOCH++; const L = ledgerOf(c, s, "2026-10-20"); return [L.charge["2026-10"], L.debt, absList(c, s, "2026-10-20").carry]; }, [ci, k]);
+    assert.deepEqual(await calc(null), [30000, 20000, 1], "sababsiz — puli olinadi, sababli — ko'chiriladi");
+    assert.deepEqual(await calc({sz: "free", sb: "carry"}), [20000, 10000, 1], "sababsiz bepul");
+    assert.deepEqual(await calc({sz: "charge", sb: "charge"}), [40000, 30000, 0], "sababli ham puli olinadi");
+    await page.evaluate((i) => { delete D.classes[i].rule; save(); }, ci);
+    // muddat: to'lov kuni 10, bugun 20-oktabr — muddati o'tgan
+    const due = await page.evaluate(() => FIN.due("2026-10-20").map((x) => [x.s.name, x.kind, x.debt, x.days]));
+    assert.deepEqual(due, [["Ali Valiyev", "late", 20000, 10]]);
+    assert.equal(await page.evaluate(() => { D.classes[D.classes.length - 1].dueDay = 23; return FIN.due("2026-10-20").map((x) => x.kind).join(); }), "soon", "23-kuni muddat — 3 kun qoldi");
+    await page.evaluate(() => { D.classes[D.classes.length - 1].dueDay = 10; });
+    // kelgan belgi qo'yilsa, qoldirish yozuvi o'chadi; teskarisi rad etiladi
+    assert.equal(await page.evaluate((i) => markAbs(D.classes[i], 0, "2026-10-05", "sz"), ci), false);
+    // xarajat va tahlil
+    await page.evaluate(() => { FIN.addExpense({d: "2026-10-12", cat: "Ijara", sum: 4000, note: "xona"}); FIN.addExpense({d: "2026-09-12", cat: "Reklama", sum: 1000}); save(); });
+    const sm = await page.evaluate(() => { const s = FIN.summary("2026-10", "2026-10-20"); return [s.inc, s.exp, s.profit, s.debt]; });
+    assert.deepEqual(sm, [10000, 4000, 6000, 20000]);
+    assert.deepEqual(await page.evaluate(() => FIN.top("2026-10").map((r) => [r.name.includes("Ingliz"), r.sum, r.share])), [[true, 10000, 1]]);
+    assert.equal(await page.evaluate(() => FIN.series("2026-10", 3).exp.join()), "0,1000,4000");
+    // sahifa: Guruhlar → Moliya
+    await page.evaluate(() => { S.gtab = "fin"; S.fm = "2026-10"; go("groups"); });
+    await page.waitForSelector("#fc1");
+    assert.ok(await page.locator(".fdue.late").count() >= 1, "muddati o'tgan o'quvchi ajratilgan");
+    assert.ok((await page.locator("main").textContent()).includes("Top-reyting"));
+    const painted = await page.evaluate(() => { const cv = document.querySelector("#fc1"), d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n++; return n; });
+    assert.ok(painted > 500, "grafik chizilgan");
+    // qo'l bilan xarajat qo'shish
+    await page.click("[data-fexp]"); await page.fill(".modal #xs", "2500"); await page.click(".modal [data-ok]");
+    assert.equal(await page.evaluate(() => D.fin.exp.filter((x) => x.sum === 2500).length), 1);
+    // telefonda sig'adi
+    await page.setViewportSize({width: 390, height: 800});
+    await page.evaluate(() => render());
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1, "gorizontal skroll yo'q");
+    // saqlash/yuklashdan o'tadi
+    assert.deepEqual(await page.evaluate(() => { const d = normalize(JSON.parse(JSON.stringify(D))); return [d.fin.exp.length, Object.values(d.classes.at(-1).students[0].abs).join()]; }), [3, "sz,sb"]);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});

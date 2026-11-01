@@ -816,3 +816,17 @@ nav.card.secs button.on{background:var(--acc-soft);border-color:var(--acc);box-s
 .rkrow input.rkn{width:84px;flex:none}.rkrow>div:first-child{flex:1 1 320px}.rkrow .sact{flex:none;flex-wrap:nowrap;gap:14px}
 .srow.tog.rkrow>div:first-child{flex:1 1 320px;min-width:0}
 @media(max-width:820px){.srow.tog.rkrow>div:first-child{flex:1 1 100%}.rkrow .sact{flex:1 1 100%;justify-content:space-between}}
+
+/* Moliya (repetitorlik hisoblagichi) */
+.gtabs{align-self:flex-start;margin-bottom:2px}
+.fcv{width:100%;display:block;color:var(--bs-body-color,inherit)}
+.fdue{gap:10px;padding:8px 10px;border:1px solid var(--bs-border-color,#ddd);border-radius:10px;flex-wrap:wrap}
+.fdue.late{border-color:rgba(198,40,40,.5);background:rgba(198,40,40,.06)}
+.fdue.soon{border-color:rgba(224,138,44,.55);background:rgba(224,138,44,.07)}
+.ftop{display:flex;gap:10px;align-items:center}
+.ftop .fn{width:24px;height:24px;border-radius:50%;background:rgba(128,128,128,.18);display:grid;place-items:center;font-weight:700;font-size:12px;flex:none}
+.fbar{height:8px;border-radius:4px;background:rgba(128,128,128,.18);overflow:hidden;margin-top:4px}
+.fbar i{display:block;height:100%;border-radius:4px}
+.fleg{display:inline-flex;align-items:center;gap:6px}
+.fleg i{width:10px;height:10px;border-radius:2px;display:inline-block}
+@media (max-width:820px){.fdue{align-items:flex-start}.fdue>.sp{flex:1 1 100%}}
