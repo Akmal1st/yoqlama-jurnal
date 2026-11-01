@@ -233,6 +233,7 @@ function cleanClass(c) {
   c.works = (Array.isArray(c.works) ? c.works : []).filter((w) => w && typeof w === "object" && SAFE_ID.test(String(w.id)) && (w.type === "bsb" || w.type === "chsb") && ISO_D.test(String(w.date)))
     .map((w) => Object.assign({}, w, {id: String(w.id), max: num0(w.max)}));
   for (const w of c.works) cleanTest(w);
+  c.wdel = (Array.isArray(c.wdel) ? c.wdel : []).filter((k) => /^(bsb|chsb)\|\d{4}-\d{2}-\d{2}$/.test(String(k))).map(String).slice(0, 500); if (!c.wdel.length) delete c.wdel;
   c.analyses = c.analyses.filter((a) => a && typeof a === "object" && SAFE_ID.test(String(a.id)) && ISO_D.test(String(a.date)));
   c.students.forEach(cleanStudent); c.students_off = c.students_off.filter((s) => s && typeof s === "object").map(cleanStudent);
 }
@@ -1026,12 +1027,18 @@ function reflowPlan(c, start) {
   planWorks(c, slots);
   return {assigned, left, free: free.length};
 }
+// o'chirilgan (yoki sanasi o'zgartirilgan) ish qayta paydo bo'lmasin: «tur|sana» c.wdel da eslab qolinadi (KTR rejasi va eMaktab importi shuni o'tkazib yuboradi)
+const workKey = (type, date) => `${type}|${date}`;
+const workGone = (c, type, date) => (c.wdel || []).includes(workKey(type, date));
+function forgetWork(c, type, date) { const k = workKey(type, date); c.wdel = c.wdel || []; if (!c.wdel.includes(k)) c.wdel.push(k); }
+function reviveWork(c, type, date) { if (!c.wdel) return; c.wdel = c.wdel.filter((k) => k !== workKey(type, date)); if (!c.wdel.length) delete c.wdel; }
+function removeWork(c, w) { forgetWork(c, w.type, w.date); c.works.splice(c.works.indexOf(w), 1); c.students.forEach((s) => { if (s.scores) delete s.scores[w.id]; }); }
 function planWorks(c, slots) {
   if (!ktrWorksOn()) return;
   const wanted = {};
   for (const [d, les] of Object.entries(c.lessons)) {
     if (!les.auto || !c.dates.includes(d) || les.si === undefined || les.si >= slots.length) continue;
-    const w = workOfTopic(slots[les.si].text); if (w) wanted[les.si] = [d, w[0], w[1] ?? (w[0] === "bsb" ? 25 : CHSB_TOTAL), slots[les.si].text];
+    const w = workOfTopic(slots[les.si].text); if (w && !workGone(c, w[0], d)) wanted[les.si] = [d, w[0], w[1] ?? (w[0] === "bsb" ? 25 : CHSB_TOTAL), slots[les.si].text];
   }
   const scored = (w) => c.students.some((s) => (s.scores || {})[w.id] !== undefined && (s.scores || {})[w.id] !== "");
   const mine = {}; for (const w of c.works) if (w.ktr !== undefined && w.ktr !== null) mine[w.ktr] = w;
@@ -1155,6 +1162,7 @@ function mergeImport(imp, overwrite) {
   const wmap = {};
   for (const w of imp.works || []) {
     let ex = c.works.find((x) => x.type === w.type && x.date === w.date);
+    if (!ex && workGone(c, w.type, w.date)) continue;   // foydalanuvchi o'chirgan ish qayta qo'shilmaydi
     if (!ex) { ex = {id: newWorkId(c), type: w.type, date: w.date, max: w.max, title: w.title || ""}; c.works.push(ex); rep.new_works++; }
     wmap[`${w.type}|${w.date}`] = ex;
   }
@@ -3812,15 +3820,15 @@ function workDialog(c, w) {
       const d = $("#wd", mm).value, mx = Math.round(parseFloat(String($("#wm", mm).value).replace(",", ".")) * 10) / 10;
       if (!d) { toast("Sanani tanlang"); return; } if (!(mx > 0)) { toast("Maksimal ball noto'g'ri"); return; }
       if (scored && c.students.some((s) => isNum((s.scores || {})[w.id]) && s.scores[w.id] > mx)) { toast("Ba'zi o'quvchilarning bali yangi maksimaldan katta"); return; }
-      if (isNew) c.works.push({id: newWorkId(c), type: typ, date: d, max: mx, title: $("#wn", mm).value.trim()});
-      else { Object.assign(w, {type: typ, date: d, max: mx, title: $("#wn", mm).value.trim()}); if (w.ktr !== undefined) delete w.ktr; }
+      if (isNew) { reviveWork(c, typ, d); c.works.push({id: newWorkId(c), type: typ, date: d, max: mx, title: $("#wn", mm).value.trim()}); }
+      else { if (w.ktr !== undefined && (w.type !== typ || w.date !== d)) forgetWork(c, w.type, w.date); Object.assign(w, {type: typ, date: d, max: mx, title: $("#wn", mm).value.trim()}); if (w.ktr !== undefined) delete w.ktr; reviveWork(c, typ, d); }
       const nq = quarterOf(d); if (nq) S.sq = nq;
       save(); close(); render();
     };
     const del = $("[data-del]", mm); if (del) del.onclick = async () => {
       if (scored && isLocked() && !await unlock()) return;
       if (!await confirmBox("Ishni o'chirish", `${w.type.toUpperCase()} (${fmt(w.date)}) o'chirilsinmi?${scored ? " Kiritilgan ballar ham o'chadi." : ""}`, "O'chirish")) return;
-      c.works.splice(c.works.indexOf(w), 1); c.students.forEach((s) => { if (s.scores) delete s.scores[w.id]; });
+      removeWork(c, w);
       save(); close(); render();
     };
   });
@@ -3867,7 +3875,7 @@ function chsbOptHtml(c, w) {
 }
 function pageChsbTest(m) {
   const c = D.classes[S.ci], ws = c.works.filter((w) => w.type === "chsb").sort((a, b) => a.date < b.date ? -1 : 1);
-  const newTest = () => { const nw = {id: newWorkId(c), type: "chsb", date: todayIso(), max: CHSB_TOTAL, title: ""}; c.works.push(nw); S.tw = nw.id; S.cttab = "tbl"; save(); render(); };
+  const newTest = () => { reviveWork(c, "chsb", todayIso()); const nw = {id: newWorkId(c), type: "chsb", date: todayIso(), max: CHSB_TOTAL, title: ""}; c.works.push(nw); S.tw = nw.id; S.cttab = "tbl"; save(); render(); };
   if (!ws.length) {
     m.innerHTML = `<div class="vcol" style="gap:12px">${classChips()}<div class="hrow">${jpSeg()}</div><div class="card muted">Hali CHSB testi yo'q. Test shaklidagi CHSB ni shu yerda yarating: to'g'ri javoblarni belgilab, o'quvchilarning variantlarini kiriting — ball o'zi hisoblanadi.</div><div><button class="btn btn-primary" data-newt>＋ Yangi CHSB testi</button></div></div>`;
     bindTop(m); $("[data-newt]", m).onclick = newTest; return;
@@ -3946,7 +3954,7 @@ function pageChsbTest(m) {
     const scored = c.students.some((s) => ((s.scores || {})[w.id] ?? "") !== "");
     if (scored && isLocked() && !await unlock()) return;
     if (!await confirmBox("CHSB testini o'chirish", `${esc(w.title || "Nomsiz")} (${fmt(w.date)}) o'chirilsinmi?${scored ? " Kiritilgan ballar ham o'chadi." : ""}`, "O'chirish")) return;
-    c.works.splice(c.works.indexOf(w), 1); c.students.forEach((s) => { if (s.scores) delete s.scores[w.id]; }); S.tw = null; save(); render();
+    removeWork(c, w); S.tw = null; save(); render();
   };
   if (tab !== "tbl") return;
   const cells = (sel) => [...m.querySelectorAll(sel)];
@@ -4668,7 +4676,7 @@ async function baTransfer(c, B) {
   let w = works.find((x) => x.id === wid);
   if (!w) {
     if (!quarterOf(B.date)) { toast(`${fmt(B.date)} biror chorakka kirmaydi — «Sozlamalar → Dars kunlari va choraklar»da choraklarni belgilang`); return; }
-    w = {id: newWorkId(c), type: "bsb", date: B.date, max: Math.round(tot * 10) / 10, title: B.title.trim()}; c.works.push(w); save();
+    reviveWork(c, "bsb", B.date); w = {id: newWorkId(c), type: "bsb", date: B.date, max: Math.round(tot * 10) / 10, title: B.title.trim()}; c.works.push(w); save();
   }
   const scale = Math.abs(w.max - tot) > 1e-9, batch = []; let done = 0, skipped = 0;
   for (const s of an.students) {
