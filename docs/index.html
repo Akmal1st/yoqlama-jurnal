@@ -1469,6 +1469,7 @@ function applyTheme() {
   if (t === "auto") delete document.documentElement.dataset.theme;
   // Chorak ko'rinishida kataklar kichik — butun chorak bitta ekranga sig'adi
   document.body.classList.toggle("dense", S.page === "journal" && S.jpage === "j" && V.mode === "quarter");
+  document.body.classList.remove("jonly");   // «Faqat jadval» — jurnal jadvali o'zi qo'yadi
   $("#app").classList.toggle("compact", sideMin());
 }
 // telefonda hisobot jadvali kartochka bo'lib chiqadi: har katakka ustun nomini yozib qo'yamiz
@@ -2174,11 +2175,12 @@ function pageJournal(m) {
     });
     body += `${grp ? "" : "<td></td>"}<td></td></tr>`;
   }
-  const tools = ds.length ? jTools(c) : "";
+  const tools = ds.length ? `${jTools(c)}<button class="btn jonlyb" data-jonly title="${S.jonly ? "Yon panel va kartalarni qaytarish (Esc)" : "Yon panel va kartalarni yashirib, jadvalga butun ekranni berish"}">${S.jonly ? "✕ Oddiy ko'rinish" : "⛶ Faqat jadval"}</button>` : "";
+  if (!grp) document.body.classList.toggle("jonly", !!S.jonly && ds.length > 0);
   m.innerHTML = `<div class="vcol" style="gap:12px">
     ${jHead(perNav(), "", tools)}
     ${ds.length ? `<div class="tblwrap" id="tw"><table class="j">${head}${body}</table></div>` : `<div class="card muted">Tanlangan davrda dars sanalari yo'q. «⋯ → Sana qo'shish (dars kunlari bo'yicha)» yoki «Sozlamalar → Dars kunlari va choraklar».</div>`}
-    ${ds.length ? `<p class="muted" style="margin:0">Katakni bossangiz o'sha kunning kunlik rejimi ochiladi: belgi va baho shu yerda qo'yiladi.</p>` : ""}
+    ${ds.length ? `<p class="muted jhint" style="margin:0">Katakni bossangiz o'sha kunning kunlik rejimi ochiladi: belgi va baho shu yerda qo'yiladi.</p>` : ""}
     ${grp ? "" : todayCard(c)}
 </div>`;
   bindJHead(m);
@@ -2187,6 +2189,7 @@ function pageJournal(m) {
   m.querySelectorAll("td.nm[data-st]").forEach((td) => td.onclick = () => studentCard(S.ci, c.students[+td.dataset.st].name));
   m.querySelectorAll("th[data-col]").forEach((th) => th.onclick = () => colMenu(S.ci, th.dataset.col));
   bindJTools(m);
+  { const jo = $("[data-jonly]", m); if (jo) jo.onclick = () => { S.jonly = !S.jonly; render(); }; }
   // katakni bosish: o'sha kunning kunlik rejimi ochiladi (belgi va baho shu yerda qo'yiladi)
   m.querySelectorAll("[data-c]").forEach((b) => b.onclick = () => { V.mode = "day"; V.anchor = b.dataset.c.split("|")[1]; render(); });
   if (!grp) { fitJournal(m); requestAnimationFrame(() => { if (document.body.contains(m)) fitJournal(m); }); }
@@ -2205,36 +2208,40 @@ function todayCard(c) {
 }
 // kompyuterda jurnal bitta ekranga sig'adi: qatorlar balandligi va ustunlar eni ekranga moslanadi (sahifa surilmaydi)
 let FITM = null;
+const FIT_MAX = 20, FIT_MAX_FULL = 30, FIT_MIN_ROW = 26;   // sig'dirishda qator balandligi FIT_MIN_ROW dan kichraymaydi
 function fitJournal(m) {
   FITM = m; const tw = $("#tw", m); if (!tw) return;
   tw.classList.remove("fit", "noft"); tw.style.height = tw.style.maxHeight = ""; { const tb0 = tw.querySelector("table.j"); if (tb0) tb0.style.width = ""; } tw.style.removeProperty("--rh"); tw.style.removeProperty("--cw");
   if (!matchMedia("(min-width:821px)").matches) return;
-  tw.classList.add("fit"); tw.style.maxHeight = "none";
   const body = [...tw.querySelectorAll("table.j tr")].filter((r) => r.querySelector("td.nm") && !r.classList.contains("ft")), n = body.length; if (!n) return;
+  // o'quvchi ko'p bo'lsa jadval juda kichrayib ketmasin: 20 tagacha (to'liq ekran rejimida 30 tagacha) sig'diriladi, undan ko'pida oddiy o'lcham
+  if (n > (S.jonly ? FIT_MAX_FULL : FIT_MAX)) return;
+  tw.classList.add("fit"); tw.style.maxHeight = "none";
   const sp = 2, kids = [...m.firstElementChild.children], card = $(".tdcard", m); if (card) card.style.display = "";
   const calc = () => {
     const fixed = tw.querySelector("table.j").offsetHeight - body.reduce((a, r) => a + r.offsetHeight + sp, 0) + (tw.offsetHeight - tw.clientHeight);
     const below = kids.slice(kids.indexOf(tw) + 1).reduce((a, e) => a + (getComputedStyle(e).position === "fixed" || e.style.display === "none" ? 0 : e.offsetHeight + 12), 0);
     const avail = innerHeight - (tw.getBoundingClientRect().top + scrollY) - below - 14;
-    return {avail, rh: Math.max(14, Math.min(40, Math.floor((avail - fixed - 2 * 6) / n)))};
+    return {avail, rh: Math.max(FIT_MIN_ROW, Math.min(40, Math.floor((avail - fixed - 2 * 6) / n)))};
   };
   let {avail, rh} = calc();
   // qatorlar juda kichik bo'lib ketsa — bugungi dars kartasi yashirinadi (jadval birinchi o'rinda)
-  if (rh < 20 && card) { card.style.display = "none"; ({avail, rh} = calc()); }
-  if (rh < 17) { tw.classList.add("noft"); ({avail, rh} = calc()); }
+  if (rh < 30 && card) { card.style.display = "none"; ({avail, rh} = calc()); }
+  if (rh <= FIT_MIN_ROW) { tw.classList.add("noft"); ({avail, rh} = calc()); }
   tw.style.setProperty("--rh", rh + "px");
   // ustun eni cho'zilmaydi: odatdagi o'lchamda qoladi, faqat joy yetmasa torayadi
   const nd = tw.querySelectorAll("th.d").length, tb = tw.querySelector("table.j"), free = tw.clientWidth - 12 - 190 - 2 * 54;
   const cw = nd ? Math.max(22, Math.min(Math.floor(free / nd) - 2, Math.max(40, Math.round(rh * 1.25)))) : 40;
   tw.style.setProperty("--cw", cw + "px"); tb.style.width = 190 + 2 * 54 + nd * (cw + 2) + "px";
   // sahifa baribir ekrandan oshsa (chekka, padding) — qatorlarni yana bir oz qisqartiramiz
-  for (let k = 0; k < 3; k++) { const over = document.documentElement.scrollHeight - innerHeight; if (over <= 0 || rh <= 14) break; rh = Math.max(14, rh - Math.ceil(over / n)); tw.style.setProperty("--rh", rh + "px"); }
+  for (let k = 0; k < 3; k++) { const over = document.documentElement.scrollHeight - innerHeight; if (over <= 0 || rh <= FIT_MIN_ROW) break; rh = Math.max(FIT_MIN_ROW, rh - Math.ceil(over / n)); tw.style.setProperty("--rh", rh + "px"); }
   // qolgan bo'sh joy bo'lsa — qatorlarni yana biroz balandlatamiz
   for (let k = 0; k < 8 && rh < 40 && !tw.style.height; k++) { tw.style.setProperty("--rh", rh + 1 + "px"); if (document.documentElement.scrollHeight - innerHeight > 0) { tw.style.setProperty("--rh", rh + "px"); break; } rh++; }
   // jami balandlik ekrandan oshsa — jadval ichida surish (juda ko'p o'quvchi bo'lsa)
   const need = tw.scrollHeight; tw.style.height = need > avail ? Math.max(120, avail) + "px" : "";
   const over = document.documentElement.scrollHeight - innerHeight; if (over > 0 && tw.style.height) tw.style.height = Math.max(120, parseFloat(tw.style.height) - over) + "px";
 }
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.jonly && document.body.classList.contains("jonly") && !document.querySelector(".modal")) { S.jonly = false; render(); } });
 window.addEventListener("resize", () => { clearTimeout(fitJournal.t); fitJournal.t = setTimeout(() => { if (FITM && document.body.contains(FITM) && $("#tw", FITM)) fitJournal(FITM); }, 120); });
 /* jurnal sarlavhasi: 1-qator sinf va amallar, 2-qator davr, 3-qator bo'limlar + qidiruv */
 function jHead(per, row2 = "", tools = "") {
