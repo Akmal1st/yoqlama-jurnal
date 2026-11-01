@@ -76,9 +76,9 @@ const DZN = (() => {
       --today-cell:${dk ? "color-mix(in srgb,#f5b454 18%," + v.base + ")" : "#fef3e2"};--r:${z.rad}px;--tpt-f:${fontCss(z)};
       ${dk ? "--sh:0 1px 2px rgba(0,0,0,.35);--sh-lg:0 16px 40px -10px rgba(0,0,0,.7);--ok:#4ade9b;--danger:#f87171;" : "--ok:#12805c;--danger:#d1393a;"}`;
     // Guruhlar bo'limi (guruhlar.css) ham shu ranglarda
-    const grp = `html.dz .tpt{--g-win:var(--win);--g-base:var(--base);--g-alt:var(--alt);--g-soft:var(--soft);--g-line:var(--line);--g-text:var(--text);--g-muted:var(--muted);
-      --g-acc:var(--acc);--g-acc-d:var(--acc-d);--g-acc-fg:var(--acc-fg);--g-acc-soft:var(--acc-soft);--g-f:var(--tpt-f);--g-r:var(--r)}
-      html.dz body.tpt-on #main{background:var(--win)}`;
+    const grp = `html.tpt-all.dz .tpt,html.tpt-all.dz[data-theme] .tpt{--g-win:var(--win);--g-base:var(--base);--g-alt:var(--alt);--g-soft:var(--soft);--g-line:var(--line);--g-text:var(--text);--g-muted:var(--muted);
+      --g-acc:var(--acc);--g-acc-d:var(--acc-d);--g-acc-fg:var(--acc-fg);--g-acc-soft:var(--acc-soft);--g-f:var(--tpt-f);--g-r:var(--r);--g-ok:var(--ok);--g-bad:var(--danger);--g-sh:var(--sh);--g-sh-lg:var(--sh-lg)}
+      html.tpt-all.dz body.tpt-on #main,html.tpt-all.dz[data-theme] body.tpt-on #main{background:var(--win)}`;
     let out = `html.tpt-all.dz,html.tpt-all.dz[data-theme]{${tok}}${grp}
       html.dz .btn{border-radius:${rs}px}html.dz :is(input[type=text],input[type=search],input[type=tel],input[type=date],input[type=password],input[type=number],select,textarea){border-radius:${rs}px}
       html.dz .cell{border-radius:${Math.max(2, rs - 3)}px}html.dz .tsc,html.dz .hu span{border-radius:50%}
