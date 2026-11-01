@@ -2109,11 +2109,11 @@ function pageCards(m) {
       acts = feat("ach") ? `<button class="btn btn-sm" data-cach="${si}">＋ Yutuq</button>` : "";
     }
     const tm = s.marks[t] || "", came = cameDates(c, s, t).filter((d) => d.startsWith(mo)), tg = tOk && !preJoin(c, s, t);
-    return `<article class="mcard"><div class="hrow" style="gap:10px;flex-wrap:nowrap"><span class="av">${esc(initials(s.name))}</span>
-        <div class="sp" style="min-width:0"><button class="link mname" data-st="${si}">${esc(s.name)}</button><div class="muted msub">${esc([s.cls, paid ? planTxt(c, s) : "", fmtPhone((s.par || {}).phone || "")].filter(Boolean).join(" · ") || "—")}</div></div>
-        ${tg ? `<button class="btn btn-sm mtog ${tm === "ot" ? "yes" : ""}" data-tog="${si}" title="Bugun keldi: bosing — yoziladi, qayta bosing — o'chadi">${tm === "ot" ? "✓ bugun keldi" : "＋ bugun keldi"}</button>` : ""}</div>
-      <div class="gdots" aria-label="${MONTHS[+mo.slice(5) - 1]} oyida kelgan kunlar"><b>${came.length} kun</b>${came.map((d) => `<span class="gpay" title="${fmt(d)}">${+d.slice(8)}</span>`).join("") || `<span class="muted">${MONTHS[+mo.slice(5) - 1]} oyida kelgan kun yozilmagan</span>`}</div>
-      <div class="hrow" style="gap:6px">${badge}<span class="sp"></span><button class="btn btn-sm" data-cdates="${si}" title="Kelgan kunlarni yozish" aria-label="Kelgan kunlarni yozish">📅 Kelgan kunlar</button>${acts}</div></article>`;
+    return `<article class="mcard"><span class="av">${esc(initials(s.name))}</span>
+      <div class="mmain"><button class="link mname" data-st="${si}">${esc(s.name)}</button><div class="muted msub">${esc([s.cls, paid ? planTxt(c, s) : "", fmtPhone((s.par || {}).phone || "")].filter(Boolean).join(" · ") || "—")}</div>
+        <div class="gdots" aria-label="${MONTHS[+mo.slice(5) - 1]} oyida kelgan kunlar"><b>${came.length} kun</b>${came.map((d) => `<span class="gpay" title="${fmt(d)}">${+d.slice(8)}</span>`).join("") || `<span class="muted">${MONTHS[+mo.slice(5) - 1]} oyida kelgan kun yozilmagan</span>`}</div></div>
+      <div class="mside">${badge}</div>
+      <div class="mact">${tg ? `<button class="btn btn-sm mtog ${tm === "ot" ? "yes" : ""}" data-tog="${si}" title="Bugun keldi: bosing — yoziladi, qayta bosing — o'chadi">${tm === "ot" ? "✓ bugun keldi" : "＋ bugun keldi"}</button>` : ""}<button class="btn btn-sm" data-cdates="${si}" title="Kelgan kunlarni yozish" aria-label="Kelgan kunlarni yozish">📅 Kelgan kunlar</button>${acts}</div></article>`;
   }).join("");
   m.innerHTML = `<div class="vcol" style="gap:14px">
     ${jHead(`<div class="pernav"><button class="btn btn-sm" data-pm="-1" aria-label="Oldingi oy">‹</button><span class="perbtn" style="cursor:default"><h2>${monthName(mo)}</h2></span><button class="btn btn-sm" data-pm="1" aria-label="Keyingi oy">›</button>${mo !== monthOf(t) ? `<button class="btn btn-sm today" data-pm="0">Shu oy</button>` : ""}</div>`, "", `<button class="btn" data-addm>＋ ${paid ? "O'quvchi" : "A'zo"}</button>`)}
