@@ -63,32 +63,3 @@ def test_sqlite_ishlar():
     got = [[{"id": r["id"], "n": r["n"], "avg": r["avg"], "pct": r["pct"], "lo": r["lo"], "hi": r["hi"], "band": [r["b5"], r["b4"], r["b3"], r["b2"]]}
             for r in rows if r["class_id"] == c] for c in cls]
     same(got, GOLD["works"], "works")
-
-
-def test_sqlite_guruhlar_tolishi():
-    con = db()
-    year = H.year_att(con)
-    got = [{"name": r["name"], "n": r["n"], "cap": r["cap"], "held": r["held"], "att": r["att"], "year": [y["pct"] for y in year if y["class_id"] == r["id"]]}
-           for r in H.fill(con, "2026-11")]
-    same(got, GOLD["fill"], "fill")
-
-
-def test_sqlite_hisob_daftari():
-    con = db()
-    L = H.ledger(con)
-    names = {r["id"]: r["name"] for r in con.execute("SELECT id, name FROM student")}
-    paid = [c["id"] for c in con.execute("SELECT id FROM class WHERE kind = 'paid' ORDER BY ord")]
-    got = [[{"name": names[sid], **{k: x[k] for k in ["held", "charge", "paid", "charged", "paidAll", "debt"]}}
-            for sid, x in sorted(L.items()) if x["class_id"] == c] for c in paid]
-    same(got, GOLD["ledger"], "ledger")
-
-
-def test_sqlite_moliya():
-    con = db()
-    rng = [("2026-09-01", GOLD["today"]), ("2026-10-01", "2026-10-31"), ("2026-11-01", "2026-11-30")]
-    per = [H.finance(con, lo, hi) for lo, hi in rng]
-    got = [[{k: per[j][i][k] for k in ["svc", "open", "charged", "got", "close", "how"]} for j in range(len(rng))] for i in range(len(per[0]))]
-    same(got, GOLD["fin"], "fin")
-    for rows in per:   # yakuniy = boshlang'ich + hisoblangan − tushum
-        for r in rows:
-            assert r["close"] == r["open"] + r["charged"] - r["got"]
