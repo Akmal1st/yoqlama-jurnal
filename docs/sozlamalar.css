@@ -1,0 +1,247 @@
+/* Sozlamalar bo'limi — tasdiqlangan dizayn (maket v1, 2026-11-01). Hamma qoidalar .sz ichida, sinflar «sz-» bilan.
+   Ranglar ilovaning umumiy belgilaridan (--base, --line, --acc …) — Sozlamalar → Dizayn ularni boshqaradi.
+   Bo'limlar ro'yxati orqasida fon yo'q (eski nav.card.secs oq foni olib tashlandi). */
+.sz{--sz-warn:#a15c07;--sz-warn-s:#fef3e2;--sz-warn-b:#eaa23a;--sz-ok-s:#e5f6ee;--sz-bad:var(--danger,#d1393a);display:flex;flex-direction:column;gap:16px;max-width:1180px}
+html[data-theme="dark"] .sz{--sz-warn:#f5b454;--sz-warn-s:#2e2414;--sz-warn-b:#d99a3c;--sz-ok-s:#0f2a1f}
+.sz *{min-width:0}
+.sz h1{margin:0}
+.sz h2{font-size:17px;font-weight:800;margin:0;letter-spacing:-.01em;line-height:1.25}
+.sz button{font:inherit;cursor:pointer}
+.sz .btn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.sz-ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sz-card{background:var(--base);border:1px solid var(--line);border-radius:var(--r,12px);box-shadow:var(--sh)}
+.sz-warn-t{color:var(--sz-warn);font-weight:600}
+.sz-ok-t{color:var(--ok);font-weight:600}
+
+/* sarlavha va qidiruv */
+.sz-hd{display:flex;align-items:center;gap:16px}
+.sz-hd h1{flex:1}
+.sz-srch{position:relative;width:320px;max-width:100%}
+.sz .sz-srch input[type=text]{width:100%;height:38px;border:1px solid var(--line);background:var(--base);border-radius:10px;padding:0 12px 0 34px;box-shadow:var(--sh);color:var(--text);font:inherit}
+.sz-srch input:focus{outline:2px solid var(--acc);outline-offset:0;border-color:var(--acc)}
+.sz-srch::before{content:"🔍";position:absolute;left:11px;top:9px;font-size:13px;opacity:.7}
+.sz-found{position:absolute;top:44px;right:0;width:360px;max-width:90vw;z-index:15;background:var(--base);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh-lg);padding:6px;display:flex;flex-direction:column;gap:2px;max-height:380px;overflow:auto}
+.sz-found:empty{display:none}
+.sz-none{padding:10px;color:var(--muted);font-size:13px}
+.sz-opt{display:flex;align-items:center;gap:10px;border:0;background:none;padding:8px 10px;border-radius:9px;text-align:left;width:100%;color:var(--text);min-height:40px}
+.sz-opt:hover,.sz-opt:focus-visible{background:var(--alt)}
+.sz-opt .sz-ic{width:30px;height:30px;border-radius:8px;background:var(--soft);display:grid;place-items:center;flex:none}
+.sz-opt span{display:flex;flex-direction:column;flex:1}
+.sz-opt b{font-weight:700}
+.sz-opt small{font-size:11.5px;color:var(--acc);font-weight:700}
+.sz-ibtn{flex:none;width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--base);box-shadow:var(--sh);display:grid;place-items:center;font-size:15px;color:var(--text)}
+.modal .sz-sinp{width:100%;height:42px;border:1px solid var(--acc);border-radius:10px;padding:0 12px;background:var(--base);color:var(--text);outline:none;box-shadow:0 0 0 3px var(--acc-soft);font:inherit}
+
+/* kompyuter: chapda bo'limlar ro'yxati (orqa fonsiz), o'ngda bo'lim */
+.sz-grid{display:grid;grid-template-columns:262px minmax(0,1fr);gap:20px;align-items:start}
+.sz-nav{display:flex;flex-direction:column;gap:2px;position:sticky;top:12px}
+.sz-ngt{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding:12px 10px 4px;margin:0}
+.sz-ngt:first-child{padding-top:2px}
+.sz-ni{display:flex;align-items:center;gap:10px;border:1px solid transparent;background:none;padding:7px 10px;border-radius:11px;text-align:left;width:100%;color:var(--text);position:relative;min-height:56px}
+.sz-ni:hover{background:color-mix(in srgb,var(--base) 60%,transparent)}
+.sz-ni.on{background:var(--base);border-color:var(--line);box-shadow:var(--sh)}
+.sz-ni.on::before{content:"";position:absolute;left:-1px;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--acc)}
+.sz-ni .sz-ic{width:32px;height:32px;border-radius:9px;background:var(--soft);display:grid;place-items:center;font-size:16px;flex:none}
+.sz-ni.on .sz-ic{background:var(--acc-soft)}
+.sz-ni .sz-tx{flex:1;display:flex;flex-direction:column;line-height:1.25}
+.sz-ni .sz-tx b{font-weight:700;font-size:13.5px}
+.sz-ni.on .sz-tx b{color:var(--acc)}
+.sz-ni .sz-tx small{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.sz-dotw{width:7px;height:7px;border-radius:50%;background:var(--sz-warn-b);flex:none}
+.sz-car{color:var(--muted);font-size:18px;line-height:1;flex:none}
+
+/* bo'lim paneli */
+.sz-pan{display:flex;flex-direction:column;gap:18px;min-width:0}
+.sz-ph{display:flex;align-items:center;gap:12px}
+.sz-ph .sz-pi{width:42px;height:42px;border-radius:12px;background:var(--acc-soft);display:grid;place-items:center;font-size:21px;flex:none}
+.sz-ph .sz-t{flex:1;display:flex;flex-direction:column}
+.sz-ph small{color:var(--muted);font-size:13px}
+.sz-ph .sz-pair .btn{flex:none}
+.sz-sg{display:flex;flex-direction:column;gap:7px}
+.sz-sgt{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0 2px}
+.sz-cnt{letter-spacing:0;text-transform:none;font-size:11.5px;font-weight:800;border-radius:999px;padding:0 7px;background:var(--soft);color:var(--muted)}
+.sz-sgt .sz-rt{margin-left:auto}
+.sz-hint{font-size:12.5px;color:var(--muted);margin:-2px 2px 2px;max-width:76ch}
+.sz-box{overflow:hidden}
+/* sozlama qatori */
+.sz-r{display:flex;align-items:center;gap:14px;padding:11px 16px;min-height:56px}
+.sz-box>*+.sz-r,.sz-box>.sz-r+*{border-top:1px solid var(--line)}
+.sz-r .sz-st{flex:1;display:flex;flex-direction:column;gap:1px}
+.sz-r .sz-st b{font-weight:700}
+.sz-r .sz-st small{font-size:12.5px;color:var(--muted)}
+.sz-r .sz-sc{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.sz-r.off .sz-st{opacity:.62}
+.sz-flash{animation:szfl 1.6s ease-out}
+@keyframes szfl{0%,35%{background:var(--acc-soft)}}
+@media (prefers-reduced-motion:reduce){.sz-flash{animation:none}}
+.sz-r.sz-click{cursor:pointer;width:100%;border:0;background:none;text-align:left;color:var(--text)}
+.sz-r.sz-click:hover{background:var(--alt)}
+.sz-av{width:38px;height:38px;border-radius:11px;background:var(--acc-soft);color:var(--acc);display:grid;place-items:center;font-weight:800;font-size:12.5px;flex:none;overflow:hidden}
+/* yoqish/o'chirish: dumaloq tugmachada belgi (Dizayn → belgilar) */
+.sz-tg{flex:none;width:48px;height:28px;border-radius:999px;border:0;background:var(--soft);box-shadow:inset 0 0 0 1px var(--line);position:relative;padding:0;transition:background .15s}
+.sz-tg i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--base);box-shadow:0 1px 3px rgba(0,0,0,.25);display:grid;place-items:center;font-style:normal;font-size:12.5px;line-height:1;transition:left .15s}
+.sz-tg.on{background:var(--acc);box-shadow:none}
+.sz-tg.on i{left:23px}
+@media (prefers-reduced-motion:reduce){.sz-tg,.sz-tg i{transition:none}}
+/* kichik boshqaruvlar */
+.sz .sz-sel{height:36px;border:1px solid var(--line);background:var(--base);border-radius:9px;padding:0 6px 0 10px;color:var(--text);font:inherit;width:auto}
+.sz .sz-inp{height:36px;border:1px solid var(--line);background:var(--base);border-radius:9px;padding:0 10px;color:var(--text);font:inherit;width:100%}
+.sz .sz-sel:focus,.sz .sz-inp:focus{outline:2px solid var(--acc);outline-offset:0;border-color:var(--acc)}
+.sz-stp{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:9px;background:var(--base);height:34px;overflow:hidden;flex:none}
+.sz-stp button{border:0;background:none;width:30px;height:100%;font-weight:800;font-size:15px;color:var(--text);padding:0}
+.sz-stp button:hover{background:var(--alt)}
+.sz .sz-stp input[type=number]{width:44px;height:100%;border:0;border-radius:0;box-shadow:none;background:none;min-height:0;text-align:center;font-weight:800;font-variant-numeric:tabular-nums;color:var(--text);font:inherit;font-weight:800;padding:0;-moz-appearance:textfield;appearance:textfield}
+.sz-stp input::-webkit-outer-spin-button,.sz-stp input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.sz .sz-stp input[type=number]:focus{outline:none;background:var(--acc-soft)}
+.sz-stp em{font-style:normal;font-size:12px;color:var(--muted);padding-right:6px;font-weight:600;white-space:nowrap}
+.sz-seg{display:inline-flex;background:var(--soft);border-radius:10px;padding:3px;gap:2px}
+.sz-seg button{border:0;background:none;border-radius:8px;height:30px;padding:0 10px;font-weight:700;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sz-seg button.on{background:var(--base);color:var(--text);box-shadow:var(--sh)}
+.sz-seg.full{display:flex}.sz-seg.full button{flex:1}
+.sz-pair{display:flex;gap:8px}
+.sz-pair .btn{flex:1}
+.sz-badge{display:inline-flex;align-items:center;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:800;letter-spacing:.05em;background:var(--acc);color:var(--acc-fg,#fff)}
+.sz-chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--sz-warn-s);color:var(--sz-warn);letter-spacing:0;text-transform:none}
+/* sinflar */
+.sz-sum{display:flex;gap:8px;flex-wrap:wrap}
+.sz-sum div{background:var(--base);border:1px solid var(--line);border-radius:11px;padding:7px 12px;box-shadow:var(--sh)}
+.sz-sum b{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;margin-right:4px}
+.sz-sum small{color:var(--muted);font-weight:600}
+/* haftalik jadval namunasi */
+.sz-wkm{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;max-width:300px;margin-top:6px}
+.sz-wkm span{background:var(--soft);border-radius:7px;text-align:center;padding:2px 0;font-size:11.5px;font-weight:700;color:var(--muted);line-height:1.2}
+.sz-wkm span b{display:block;font-size:14px;color:var(--text)}
+/* dars kunlari jadvali */
+.sz-mx{width:100%;border-collapse:collapse}
+.sz-mx th{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:8px 4px;text-align:center;background:var(--alt);border-bottom:1px solid var(--line)}
+.sz-mx th:first-child{text-align:left;padding-left:16px}
+.sz-mx td{padding:6px 4px;text-align:center;border-bottom:1px solid var(--line)}
+.sz-mx tr:last-child td{border-bottom:0}
+.sz-mx td:first-child{text-align:left;padding-left:16px;font-weight:700}
+.sz-mx td:first-child small{display:block;font-size:11.5px;font-weight:600}
+.sz-dk{width:34px;height:32px;border-radius:9px;border:1px solid var(--line);background:var(--base);font-weight:800;font-size:13px;color:var(--muted);padding:0}
+.sz-dk.on{background:var(--acc);border-color:var(--acc);color:var(--acc-fg,#fff)}
+/* choraklar */
+.sz-qr{display:grid;grid-template-columns:110px 1fr 1fr 90px;gap:10px;align-items:center;padding:9px 16px}
+.sz-qr+.sz-qr{border-top:1px solid var(--line)}
+.sz-qr b{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.sz-qr small{color:var(--muted);font-size:12px;text-align:right}
+.sz-qh{background:var(--alt);border-bottom:1px solid var(--line);font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:7px 16px}
+/* bayramlar */
+.sz-hols{display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px}
+.sz-hol{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 10px;font-weight:700;font-size:13px;background:var(--alt);color:var(--text)}
+.sz-hol small{color:var(--muted);font-weight:600}
+.sz-hol button{border:0;background:none;width:22px;height:22px;border-radius:50%;color:var(--muted);font-size:12px;padding:0}
+.sz-hol button:hover{background:var(--soft);color:var(--sz-bad)}
+.sz-hol.add{padding:2px 10px;border-style:dashed;color:var(--acc);background:none}
+/* baho ranglari */
+.sz-gprev{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;padding:12px 16px 4px}
+.sz-gprev span{height:30px;border-radius:8px;display:grid;place-items:center;font-weight:800;font-size:13px;background:var(--soft)}
+.sz-gr{display:grid;grid-template-columns:40px minmax(0,1fr) 150px;gap:10px;align-items:center;padding:8px 16px}
+.sz-gr .sz-rng{display:flex;align-items:center;gap:6px;font-weight:700;white-space:nowrap}
+.sz-gr .sz-rng .sz-sel{width:62px}
+.sz-colr{width:36px;height:36px;border-radius:50%;border:2px solid var(--base);box-shadow:0 0 0 1px var(--line);padding:0;overflow:hidden;position:relative;cursor:pointer;display:block}
+.sz-colr input{position:absolute;inset:-8px;width:60px;height:60px;border:0;padding:0;cursor:pointer;opacity:0}
+/* xavf turlari */
+.sz-rkp{padding:10px 16px;display:flex;align-items:center;gap:10px}
+.sz-rkp>span{font-size:12.5px;color:var(--muted);font-weight:600;white-space:nowrap}
+.sz-rkp .sz-seg{flex:1}
+.sz-rk{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 14px;align-items:center;padding:10px 16px;border-top:1px solid var(--line)}
+.sz-rk .sz-st{display:flex;flex-direction:column}
+.sz-rk .sz-st b{font-weight:700}
+.sz-rk .sz-st small{font-size:12.5px;color:var(--muted)}
+.sz-rk .sz-th{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.sz-rk .sz-th label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;margin:0}
+.sz-rk.off .sz-st{opacity:.62}
+.sz-rk.off .sz-th{display:none}
+/* himoya */
+.sz-hero{display:flex;align-items:center;gap:14px;padding:16px 18px;border-left:4px solid var(--line)}
+.sz-hero.on{border-left-color:var(--ok)}
+.sz-hero .sz-big{font-size:30px;flex:none}
+.sz-hero .sz-st{flex:1;display:flex;flex-direction:column;gap:2px}
+.sz-hero .sz-st b{font-size:16px;font-weight:800}
+.sz-hero .sz-st small{color:var(--muted);font-size:13px}
+details.sz-info{background:var(--base);border:1px solid var(--line);border-radius:var(--r,12px);padding:10px 14px;font-size:13px}
+details.sz-info summary{font-weight:700;cursor:pointer}
+details.sz-info p{margin:8px 0 0;color:var(--muted)}
+/* zaxira holati */
+.sz-bst{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sz-bt{background:var(--base);border:1px solid var(--line);border-radius:var(--r,12px);box-shadow:var(--sh);padding:10px 12px;display:flex;flex-direction:column;gap:2px;border-top:3px solid var(--ok)}
+.sz-bt.w{border-top-color:var(--sz-warn-b)}.sz-bt.n{border-top-color:var(--line)}
+.sz-bt small{font-size:12px;color:var(--muted);font-weight:700}
+.sz-bt b{font-weight:800;font-size:14.5px}
+details.sz-dz{border:1px solid color-mix(in srgb,var(--sz-bad) 40%,var(--line));border-radius:var(--r,12px);background:color-mix(in srgb,var(--sz-bad) 5%,var(--base))}
+details.sz-dz summary{padding:12px 16px;font-weight:800;color:var(--sz-bad);cursor:pointer}
+details.sz-dz .sz-r{border-top:1px solid color-mix(in srgb,var(--sz-bad) 25%,var(--line))}
+/* bo'lim tugmalari: tepada / oxirida / pastda qotgan */
+.sz-acts-end{padding:12px 14px;display:flex;align-items:center;gap:10px}
+.sz-acts-end>span{flex:1;font-weight:700}
+.sz-acts-end .sz-pair{flex:none}
+.sz-stick{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;gap:12px;padding:10px 16px;background:color-mix(in srgb,var(--base) 94%,transparent);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:var(--r,12px);box-shadow:var(--sh-lg)}
+.sz-stick>span{flex:1;font-weight:700}
+.sz-stick .sz-pair{width:420px;flex:none}
+/* telefon: bosh sahifa va bo'lim sahifasi */
+.sz-tb{position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:6px;padding:8px 6px;margin:-8px -12px 0;background:color-mix(in srgb,var(--win,var(--base)) 92%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.sz-tb .sz-back{border:0;background:none;color:var(--acc);font-weight:700;display:flex;align-items:center;gap:2px;padding:6px 4px;white-space:nowrap;flex:none}
+.sz-tb .sz-back i{font-style:normal;font-size:22px;line-height:.8}
+.sz-tb b{flex:1;text-align:center;font-weight:800;font-size:15px}
+.sz-tb .sz-ibtn{width:34px;height:34px;box-shadow:none}
+.sz-hl{display:flex;flex-direction:column}
+.sz-hl .sz-ni{border-radius:0;padding:10px 12px;border:0;min-height:56px}
+.sz-hl .sz-ni+.sz-ni{border-top:1px solid var(--line)}
+.sz-hl .sz-ni:hover{background:var(--alt)}
+.sz-rems{display:flex;flex-direction:column}
+.sz-rm{display:flex;align-items:center;gap:10px;padding:8px 12px;border-left:3px solid var(--sz-warn-b);font-size:13px}
+.sz-rm+.sz-rm{border-top:1px solid var(--line)}
+.sz-rm span{flex:1}
+.sz-rm .sz-ic{flex:none;font-size:16px}
+
+@media (max-width:820px){
+  .sz{gap:12px}
+  .sz-hd h1{font-size:24px}
+  .sz-grid{display:block}
+  .sz-ph{display:none}
+  .sz-pan{gap:14px}
+  .sz-r{padding:10px 12px;gap:10px;min-height:52px}
+  .sz-r.wide{flex-wrap:wrap}
+  .sz-r.wide .sz-sc{flex:1 1 100%;justify-content:stretch}
+  .sz-r.wide .sz-sc>.btn,.sz-r.wide .sz-sc>.sz-pair,.sz-r.wide .sz-sc>.sz-seg,.sz-r.wide .sz-sc>.sz-sel{flex:1}
+  .sz-r.wide .sz-sc .sz-pair .btn{min-width:0}
+  .sz-sum{display:grid;grid-template-columns:repeat(3,1fr)}
+  .sz-sum div{padding:6px 8px;text-align:center}
+  .sz-sum b{display:block;margin:0}
+  .sz-sum small{font-size:11.5px}
+  .sz-mx{table-layout:fixed}
+  .sz-mx th:first-child{width:31%}
+  .sz-mx th:last-child,.sz-mx td:last-child{padding-right:6px}
+  .sz-mx th{padding:8px 1px}.sz-mx td{padding:5px 1px}
+  .sz-mx th:first-child,.sz-mx td:first-child{padding-left:12px}
+  .sz-dk{width:30px;height:30px}
+  .sz-qr{grid-template-columns:1fr 1fr;padding:9px 12px;gap:6px 8px}
+  .sz-qr b{grid-column:1/-1}
+  .sz-qr small{display:none}
+  .sz-qr .sz-inp{padding:0 6px;font-size:13px}
+  .sz-qh{display:none}
+  .sz-hols{padding:10px 12px}
+  .sz-gprev{padding:10px 12px 2px;gap:3px}
+  .sz-gprev span{height:26px;font-size:12px}
+  .sz-gr{grid-template-columns:36px minmax(0,1fr) 118px;padding:7px 12px;gap:8px}
+  .sz-gr .sz-rng .sz-sel{width:54px}
+  .sz-rkp{padding:10px 12px;flex-direction:column;align-items:stretch;gap:6px}
+  .sz-rkp .sz-seg{display:grid;grid-template-columns:repeat(3,1fr)}
+  .sz-rkp .sz-seg button{padding:0 4px;font-size:12.5px}
+  .sz-rk{grid-template-columns:minmax(0,1fr) auto;padding:10px 12px}
+  .sz-rk .sz-th{grid-column:1;grid-row:2;justify-content:flex-start}
+  .sz-rk .sz-tg{grid-column:2;grid-row:1}
+  .sz-hero{padding:12px 14px;gap:10px}
+  .sz-hero .sz-big{font-size:24px}
+  .sz-bst{gap:6px}
+  .sz-bt{padding:8px;text-align:center}
+  .sz-bt small{font-size:11px}
+  .sz-bt b{font-size:12.5px}
+  .sz-acts-end{flex-direction:column;align-items:stretch}
+  .sz-acts-end .sz-pair{flex:1}
+  .sz-stick{bottom:calc(64px + env(safe-area-inset-bottom,0px));padding:8px 12px;margin:0 -12px;border-radius:0;border-left:0;border-right:0}
+  .sz-stick>span{display:none}
+  .sz-stick .sz-pair{width:auto;flex:1}
+}

@@ -38,7 +38,8 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
         if (name === "telefon") { await page.click("[data-hk=kind]"); await page.click(`.modal [data-kind=${k}]`); } else await page.click(`[data-kind=${k}]`);
       }
       await nav("settings");
-      for (let i = 0; i < 7; i++) await page.click(`[data-sec="${i}"]`);
+      // telefonda bo'lim o'z sahifasida ochiladi — «‹ Sozlamalar» bilan ro'yxatga qaytiladi (sozlamalar.js)
+      for (let i = 0; i < 7; i++) { if (await page.$("[data-szhome]")) await page.click("[data-szhome]"); await page.click(`[data-sec="${i}"]`); }
       await nav("today");
       const start = await page.$("[data-start]");
       if (start) { await start.click(); await page.click("[data-next]"); await page.click("[data-next]"); await page.click("[data-next]"); }
@@ -61,7 +62,8 @@ test("o'quvchini faolsizlantirish va qayta faollashtirish", async () => {
     const before = await names(), gone = [before[0], before[2]];
     const marks = await page.evaluate(() => JSON.stringify(D.classes[1].students[0].marks));
     await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="0"]');
-    await page.click('[data-a=rmst][data-i="1"]');
+    // telefonda sinf qatori menyu ochadi: «＋ O'quvchi qo'shish», «⏸ Faolsiz o'quvchilar», …
+    await page.click('[data-a=cmore][data-i="1"]'); await page.click('.modal [data-mi="1"]');
     await page.check('[data-rm="0"]'); await page.check('[data-rm="2"]');
     await page.click(".modal [data-ok]");
     assert.deepEqual(await names(), before.filter((n) => !gone.includes(n)), "jurnaldan yashirildi");
@@ -602,14 +604,14 @@ test("Sozlamalar → Baholash: baho ranglari oraliqlari aniq ko'rinadi", async (
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="2"]');
-    assert.deepEqual(await page.$$eval(".grng .grb span", (x) => x.map((e) => e.textContent)), ["– 4", "– 7", "– 10"]);
+    assert.deepEqual(await page.$$eval(".sz-gr .sz-rng > span", (x) => x.map((e) => e.textContent)), ["– 4", "– 7", "– 10"]);
     await page.selectOption('[data-rmin="1"]', "6");
-    assert.deepEqual(await page.$$eval(".grng .grb span", (x) => x.map((e) => e.textContent)), ["– 5", "– 7", "– 10"]);
+    assert.deepEqual(await page.$$eval(".sz-gr .sz-rng > span", (x) => x.map((e) => e.textContent)), ["– 5", "– 7", "– 10"]);
     assert.equal(await page.evaluate(() => gradeColor(5)), await page.evaluate(() => ranges()[0].color), "5 endi «Past» rangida");
     await page.selectOption('[data-rmin="1"]', "8");   // band bor — rad etiladi
     assert.deepEqual(await page.evaluate(() => ranges().map((r) => r.min)), [1, 6, 8]);
     // ustunlar bir-birining ustiga chiqmaydi
-    const ok = await page.evaluate(() => [...document.querySelectorAll(".grng .grb")].every((g) => { const s = g.querySelector("span").getBoundingClientRect(), c = g.nextElementSibling.getBoundingClientRect(); return s.right <= c.left; }));
+    const ok = await page.evaluate(() => [...document.querySelectorAll(".sz-gr .sz-rng")].every((g) => { const s = g.querySelector("span").getBoundingClientRect(), c = g.closest(".sz-gr").getBoundingClientRect(); return s.right <= c.right; }));
     assert.ok(ok, "oraliq yozuvi rang tugmasi ostida qolmasin");
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
@@ -1698,8 +1700,8 @@ test("Sozlamalar: bo'limlar guruhlangan, kalitlar holatni ko'rsatadi, telefonda 
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     for (let i = 0; i < 7; i++) {
       await page.evaluate((i) => { S.sec = i; go("settings"); }, i);
-      const r = await page.evaluate(() => ({g: document.querySelectorAll(".sbody .sgroup").length, over: document.documentElement.scrollWidth - innerWidth, cur: $(".secs [aria-current]").dataset.sec}));
-      assert.ok(r.g >= 1, `bo'lim ${i}: guruh yo'q`); assert.ok(r.over <= 0, `bo'lim ${i}: ${r.over}px yonga chiqdi`); assert.equal(r.cur, String(i));
+      const r = await page.evaluate(() => ({g: document.querySelectorAll(".sz-pan .sz-sg, .sz-pan .sgroup").length, over: document.documentElement.scrollWidth - innerWidth, cur: $(".sz-tb b").textContent}));
+      assert.ok(r.g >= 1, `bo'lim ${i}: guruh yo'q`); assert.ok(r.over <= 0, `bo'lim ${i}: ${r.over}px yonga chiqdi`); assert.equal(r.cur, await page.evaluate((i) => SZL.SECS[i][1], i));
     }
     // funksiya kaliti: bosilganda o'chadi, aria-checked o'zgaradi
     await page.evaluate(() => { S.sec = 6; go("settings"); });
@@ -1708,13 +1710,12 @@ test("Sozlamalar: bo'limlar guruhlangan, kalitlar holatni ko'rsatadi, telefonda 
     assert.equal(await page.getAttribute("[data-ft=call]", "aria-checked"), "false");
     assert.equal(await page.evaluate(() => feat("call")), false);
     // kalit sarlavha bilan bir qatorda
-    const same = await page.evaluate(() => { const row = $("[data-ft=bday]").closest(".srow"), a = row.firstElementChild.getBoundingClientRect(), b = $("[data-ft=bday]").getBoundingClientRect(); return b.top < a.bottom && b.left > a.left; });
+    const same = await page.evaluate(() => { const row = $("[data-ft=bday]").closest(".sz-r"), a = row.firstElementChild.getBoundingClientRect(), b = $("[data-ft=bday]").getBoundingClientRect(); return b.top < a.bottom && b.left > a.left; });
     assert.ok(same);
-    // sinf qatori: xavfli amal ko'rinmaydi, tugmalar bitta qatorga sig'adi; o'chirish «⋯» menyusida, alohida ajratilgan
+    // sinf qatori (telefon): qatorning o'zi menyu ochadi, xavfli amal qatorda ko'rinmaydi; o'chirish menyuda, alohida ajratilgan
     await page.evaluate(() => { S.sec = 0; go("settings"); });
-    assert.equal(await page.locator(".scls .sact .btn.btn-outline-danger").count(), 0, "o'chirish tugmasi qatorda turmasin");
-    const oneLine = await page.evaluate(() => { const bs = [...$(".scls").querySelectorAll(".sact .btn")]; return bs.length === 3 && new Set(bs.map((b) => Math.round(b.getBoundingClientRect().top))).size === 1; });
-    assert.ok(oneLine, "sinf qatoridagi tugmalar bitta qatorda bo'lsin");
+    assert.equal(await page.locator(".sz-cls .btn-outline-danger").count(), 0, "o'chirish tugmasi qatorda turmasin");
+    assert.equal(await page.locator('button.sz-cls[data-a=cmore][data-i="0"]').count(), 1);
     await page.click('[data-a=cmore][data-i="0"]');
     await page.waitForSelector(".modal .mdang");
     assert.equal(await page.locator(".modal .mgrid .btn.btn-outline-danger").count(), 0);
@@ -2074,11 +2075,11 @@ test("Sozlamalar: hafta/oy/chorak rejimlarini o'chirib-yoqish, ixcham dizayn va 
     // eski saqlangan qiymatlar tuzatiladi
     const mig = await page.evaluate(() => { const a = migrate(normalize({web: {ui26: 1, font: "times", density: "kompakt"}})).web, b = migrate(normalize({web: {ui26: 1, font: "lsans"}})).web; return [a.font, "density" in a, b.font]; });
     assert.deepEqual(mig, ["lserif", false, "system"]);
-    // bo'lim tugmalari alohida kartochkalar
-    const bs = await page.$$eval("nav.secs button", (x) => x.map((b) => { const cs = getComputedStyle(b); return [cs.borderTopWidth, cs.backgroundColor !== "rgba(0, 0, 0, 0)"]; }));
-    assert.ok(bs.length >= 6 && bs.every(([w, bg]) => w === "1px" && bg), JSON.stringify(bs));
-    const gaps = await page.$$eval("nav.secs button", (x) => x.slice(1).map((b, i) => Math.round(b.getBoundingClientRect().top - x[i].getBoundingClientRect().bottom)));
-    assert.ok(gaps.every((g) => g >= 4), "tugmalar orasida bo'sh joy: " + gaps);
+    // bo'limlar ro'yxati orqasida fon yo'q; faqat tanlangan bo'lim kartochka bo'lib ajraladi (sozlamalar.js)
+    const nb = await page.$eval(".sz-nav", (n) => [getComputedStyle(n).backgroundColor, getComputedStyle(n).boxShadow]);
+    assert.deepEqual(nb, ["rgba(0, 0, 0, 0)", "none"], "bo'lim tugmalari ortida fon bo'lmasin");
+    const bs = await page.$$eval(".sz-nav .sz-ni", (x) => x.map((b) => [b.classList.contains("on"), getComputedStyle(b).backgroundColor !== "rgba(0, 0, 0, 0)"]));
+    assert.ok(bs.length === 7 && bs.every(([on, bg]) => on === bg), JSON.stringify(bs));
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
@@ -2092,7 +2093,7 @@ test("Menyu tugmalari: Hisobotlar turlari va Sozlamalar bo'limlari bir xil o'lch
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
       await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
-      const sizes = async (sel) => page.$$eval(sel, (x) => x.filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(), i = b.querySelector(".ic, .si").getBoundingClientRect(); return [Math.round(r.height), Math.round(i.width), parseFloat(getComputedStyle(b.querySelector("b, .sn")).fontSize)]; }));
+      const sizes = async (sel) => page.$$eval(sel, (x) => x.filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(), i = b.querySelector(".ic, .si, .sz-ic").getBoundingClientRect(); return [Math.round(r.height), Math.round(i.width), parseFloat(getComputedStyle(b.querySelector("b, .sn")).fontSize)]; }));
       // Hisobotlar (hisobotlar.js): kompyuterda chap ro'yxat, telefonda «Almashtirish» oynasi — hammasi bir xil, yozuv bir qatorda
       await page.evaluate(() => go("reports"));
       if (w < 821) await page.click("[data-hk=kind]");
@@ -2102,8 +2103,8 @@ test("Menyu tugmalari: Hisobotlar turlari va Sozlamalar bo'limlari bir xil o'lch
       for (const k of [0, 1, 2]) assert.equal(new Set(rep.map((x) => x[k])).size, 1, `${w}px: hisobot turlari bir xil emas ${JSON.stringify(rep)}`);
       assert.ok(rep.every((x) => x[3]), `${w}px: hisobot nomi bir qatorga sig'masin`);
       if (w < 821) await page.keyboard.press("Escape");
-      await page.evaluate(() => { S.sec = 0; go("settings"); });
-      const set = await sizes("nav.secs button");
+      await page.evaluate((ph) => { S.sec = ph ? -1 : 0; go("settings"); }, w < 821);   // telefonda — bo'limlar ro'yxati
+      const set = await sizes(".sz-ni");
       assert.ok(set.length >= 6);
       const all = set;
       assert.equal(new Set(all.map((x) => x[1])).size, 1, `${w}px: belgi o'lchami bir xil emas ${JSON.stringify(all.map((x) => x[1]))}`);
@@ -2360,7 +2361,8 @@ test("Xavf turlarini tanlash: har tur alohida yoqiladi, chegarasi o'zgaradi, tay
     await page.click('[data-rkon="att"]'); await page.click('[data-rkon="s"]');
     assert.equal(await page.evaluate(() => D.settings.risk.on.att), false);
     const why2 = await setup(); assert.ok(!why2.some((x) => x.startsWith("davomat") || x.startsWith("sababsiz")), "o'chirilgan turlar xavf bermaydi");
-    // chegara
+    // chegara (o'chiq turning chegarasi ko'rinmaydi — avval yoqiladi)
+    if (await page.getAttribute('[data-rkon="consec"]', "aria-checked") !== "true") await page.click('[data-rkon="consec"]');
     await page.fill('[data-rk="consec_ge"]', "4"); await page.dispatchEvent('[data-rk="consec_ge"]', "change");
     assert.equal(await page.evaluate(() => D.settings.risk.consec_ge), 4);
     // tayyor to'plamlar
@@ -2535,7 +2537,7 @@ test("Sozlamalar → Dizayn: mavzular, tungi variant, rang, tugmalar joyi va qay
       assert.equal(await page.locator('[data-dz-eye="settings"]').count(), 0, "Sozlamalar yashirilmaydi");
       await page.click('[data-dz-emo="sun"]');
       await page.evaluate(() => { S.sec = 6; go("settings"); });
-      assert.match(await page.textContent(".swt.on"), /🌞/);
+      assert.match(await page.textContent(".sz-tg.on"), /🌞/);
       // menyu tepada (kompyuter)
       await page.evaluate(() => { D.web.dz.nav = "top"; save(); render(); });
       if (w > 820) { const r = await page.evaluate(() => { const s = $("#side").getBoundingClientRect(); return [Math.round(s.top), Math.round(s.width)]; }); assert.equal(r[0], 0); assert.ok(r[1] > 900, "yon panel tepada qator bo'ldi"); }
