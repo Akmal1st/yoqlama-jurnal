@@ -202,6 +202,7 @@ function cleanStudent(s) {
     if (p.name === undefined) delete p.name;
   } else delete s.par;
   if (s.plan && typeof s.plan === "object") s.plan = {t: s.plan.t === "day" ? "day" : "month", sum: num0(s.plan.sum)}; else delete s.plan;
+  if (s.pkg != null) s.pkg = SAFE_ID.test(String(s.pkg)) ? String(s.pkg) : (delete s.pkg, undefined);
   for (const k of ["pack", "pkBase"]) if (s[k] != null) { const n = Math.trunc(num0(s[k])); if (n > 0 && n < 10000) s[k] = n; else delete s[k]; }
   if (Array.isArray(s.pays)) s.pays = s.pays.filter((p) => p && typeof p === "object" && SAFE_ID.test(String(p.id))).map((p) => Object.assign({}, p, {
     id: String(p.id), no: Math.trunc(num0(p.no)) || "", d: ISO_D.test(String(p.d)) ? String(p.d) : "", m: ISO_M.test(String(p.m)) ? String(p.m) : "", sum: num0(p.sum), pk: Math.max(0, Math.trunc(num0(p.pk))) || undefined, how: p.how == null ? "" : String(p.how), note: p.note == null ? "" : String(p.note)}));
@@ -226,6 +227,8 @@ function cleanClass(c) {
   if (c.svc != null && c.svc !== "school" && c.svc !== "private") delete c.svc;
   c.dates = c.dates.filter((x) => ISO_D.test(x));
   { const n = Math.trunc(num0(c.pack)); if (n > 0 && n < 10000) c.pack = n; else delete c.pack; }
+  if (Array.isArray(c.packs)) { const seen = new Set(); c.packs = c.packs.filter((x) => x && typeof x === "object" && SAFE_ID.test(String(x.id)) && !seen.has(String(x.id)) && seen.add(String(x.id)))
+    .map((x) => ({id: String(x.id), name: String(x.name == null ? "" : x.name).slice(0, 60), n: Math.max(1, Math.min(9999, Math.trunc(num0(x.n)) || 1)), sum: num0(x.sum)})).slice(0, 30); if (!c.packs.length) delete c.packs; } else delete c.packs;
   c.rc = Math.trunc(num0(c.rc));
   c.works = (Array.isArray(c.works) ? c.works : []).filter((w) => w && typeof w === "object" && SAFE_ID.test(String(w.id)) && (w.type === "bsb" || w.type === "chsb") && ISO_D.test(String(w.date)))
     .map((w) => Object.assign({}, w, {id: String(w.id), max: num0(w.max)}));
@@ -1247,7 +1250,7 @@ function putMark(c, si, date, nw, quiet) {
   if (old && !isAdditive(old, nw) && isLocked()) { toast("🔒 Qo'yilgan baho himoyalangan. O'zgartirish uchun qulfni oching."); return false; }
   if (nw) s.marks[date] = nw; else delete s.marks[date];
   log(c, s, date, old, nw); if (!quiet || quiet === "batch") pushUndo([{kind: "mark", c, s, key: date, old, nw}]); touchLock(); save();
-  if (nw === "ot" && !quiet) { const pk = packOf(c, s); if (pk && pk.used === pk.n) toast(`🔔 ${s.name}: paket (${pk.n} dars) tugadi — to'lov vaqti`); }
+  if (nw === "ot" && !quiet) { const pk = packOf(c, s); if (pk && pk.hit) toast(`🔔 ${s.name}: paket (${pk.pkg ? pk.covered : pk.n} dars) tugadi — to'lov vaqti`); }
   return true;
 }
 
@@ -1706,8 +1709,11 @@ function grpTabs(c) {
   return t && t.filter(([k]) => k !== "ach" || feat("ach"));
 }
 // narx: har o'quvchi bilan kelishiladi — maktabda oylik, uyida kunlik (o'tilgan dars × narx)
-function planOf(c, s) { const p = s.plan || {}, t = p.t === "day" ? "day" : "month"; return {t, sum: +p.sum || +(c.fee || {})[t] || 0}; }
-const planTxt = (c, s) => { const p = planOf(c, s); return p.t === "day" ? `uyda · ${som(p.sum)} / dars` : `maktabda · ${som(p.sum)} / oy`; };
+// dars paketi (tarif): guruhdagi tayyor paket — darslar soni + summa; o'quvchi bittasini tanlaydi (s.pkg)
+const pkgOf = (c, s) => c && c.kind === "paid" && s && s.pkg ? (c.packs || []).find((x) => x.id === s.pkg) || null : null;
+function planOf(c, s) { const k = pkgOf(c, s); if (k) return {t: "pkg", sum: k.sum, n: k.n, name: k.name}; const p = s.plan || {}, t = p.t === "day" ? "day" : "month"; return {t, sum: +p.sum || +(c.fee || {})[t] || 0}; }
+const pkgTxt = (k) => `«${k.name || k.n + " dars"}» paketi · ${k.n} dars`;
+const planTxt = (c, s) => { const p = planOf(c, s); if (p.t === "pkg") return `${pkgTxt(p)} · ${som(p.sum)}`; return p.t === "day" ? `uyda · ${som(p.sum)} / dars` : `maktabda · ${som(p.sum)} / oy`; };
 const absentMark = (mk) => ["s", "dq", "k", "ox"].includes(attPart(mk || ""));
 // shu oy o'tilgan darslar: faqat «o'tildi» belgisi qo'yilganlari
 /* Hisob daftari (ledger): guruh sanalari bir marta oylarga ajratiladi, har o'quvchi uchun oylar bo'yicha
@@ -1725,9 +1731,10 @@ function ledgerOf(c, s, t = todayIso()) {
     const G = grpMonths(c, t), p = planOf(c, s), jm = s.joined ? monthOf(s.joined) : "", held = {}, charge = {}, paid = {};
     let ch = 0, pd = 0;
     for (const x of s.pays || []) { const v = +x.sum || 0; paid[x.m] = (paid[x.m] || 0) + v; pd += v; }
+    let idx = 0;   // paketda: har n-chi kelgan kun yangi paket ochadi (narx shu oyga yoziladi)
     for (const m of G.months) {
-      let h = 0; for (const d of G.held.get(m) || []) if (s.marks[d] === "ot" && !preJoin(c, s, d)) h++;
-      const v = jm > m ? 0 : p.t === "day" ? p.sum * h : G.lessonM.has(m) ? p.sum : 0;
+      let h = 0, np = 0; for (const d of G.held.get(m) || []) if (s.marks[d] === "ot" && !preJoin(c, s, d)) { if (p.t === "pkg" && idx % p.n === 0) np++; idx++; h++; }
+      const v = p.t === "pkg" ? p.sum * np : jm > m ? 0 : p.t === "day" ? p.sum * h : G.lessonM.has(m) ? p.sum : 0;
       held[m] = h; charge[m] = v; ch += v;
     }
     return {plan: p, held, charge, paid, charged: ch, paidAll: pd, debt: ch - pd};
@@ -1742,12 +1749,17 @@ function debtOf(c, s, t = todayIso()) { return ledgerOf(c, s, t).debt; }
 function unpaidNow(c, t = todayIso()) { const m = monthOf(t); return c.students.filter((s) => chargeOf(c, s, m, t) > paidIn(s, m)); }
 /* Dars paketi (pullik guruh): o'quvchi uchun belgilangan darslar soni (s.pack, bo'lmasa guruhniki c.pack).
    Kelgan kunlar (✓ o'tildi) sanaladi; to'lov bilan yopilgan darslar s.pkBase da. Sanalgan dars soni paketga yetsa — to'lov vaqti. */
-const packN = (c, s) => c.kind === "paid" ? Math.max(0, Math.trunc(+s.pack || +c.pack || 0)) : 0;
+const packN = (c, s) => c.kind === "paid" ? (pkgOf(c, s) ? 0 : Math.max(0, Math.trunc(+s.pack || +c.pack || 0))) : 0;
 const cameDates = (c, s, t = todayIso()) => Object.keys(s.marks).filter((d) => s.marks[d] === "ot" && d <= t && !preJoin(c, s, d)).sort();
 function packOf(c, s, t = todayIso()) {
+  const k = pkgOf(c, s);
+  if (k) {   // tanlangan paket: to'langan summa nechta paketga yetadi × darslar soni − haqiqatda kelgan kunlar
+    const all = cameDates(c, s, t), paid = (s.pays || []).reduce((a, x) => a + (+x.sum || 0), 0), covered = k.sum > 0 ? Math.floor(paid / k.sum) * k.n : 0, used = all.length;
+    return {n: k.n, used, left: covered - used, covered, due: used >= covered && (used > 0 || covered > 0), hit: covered > 0 && used === covered, dates: all.slice(Math.max(0, covered - k.n)), pkg: k};
+  }
   const n = packN(c, s); if (!n) return null;
   const all = cameDates(c, s, t), dates = all.slice(Math.min(s.pkBase || 0, all.length)), used = all.length - (s.pkBase || 0);
-  return {n, used, left: n - used, due: used >= n, dates};
+  return {n, used, left: n - used, due: used >= n, hit: used === n, dates};
 }
 const packDueList = (c, t = todayIso()) => c.kind === "paid" ? c.students.filter((s) => (packOf(c, s, t) || {}).due) : [];
 // to'lov summalari parol qo'yilgan bo'lsagina yopiladi (parolsiz himoyada — ochiq)
@@ -1765,15 +1777,16 @@ function pageMem(m) {
       <td><input class="form-control mi" type="text" data-mf="${si}|cls" value="${esc(s.cls || "")}" placeholder="7-B" aria-label="Sinfi"></td>
       <td><input class="form-control mi ph" type="tel" data-mf="${si}|phone" value="${esc((s.par || {}).phone || "")}" placeholder="+998 90 …" inputmode="tel" aria-label="Ota-ona telefoni"></td>
       <td><input class="form-control mi" type="date" data-mf="${si}|joined" value="${esc(s.joined || "")}" aria-label="Qo'shilgan sana"></td>
-      ${paid ? `<td><select class="mi" data-mf="${si}|pt" aria-label="Narx turi"><option value="month" ${p.t === "month" ? "selected" : ""}>Maktabda (oylik)</option><option value="day" ${p.t === "day" ? "selected" : ""}>Uyida (kunlik)</option></select></td>
-        <td>${lock ? `<span class="muted">🔒</span>` : `<input class="form-control mi sum" type="text" data-mf="${si}|ps" value="${p.sum || ""}" inputmode="numeric" aria-label="Narx, so'm">`}</td>
-        <td><input class="form-control mi sum" type="text" data-mf="${si}|pack" value="${s.pack || ""}" placeholder="${c.pack || "—"}" inputmode="numeric" aria-label="Kelishilgan dars soni"></td>`
+      ${paid && (c.packs || []).length ? `<td><select class="mi" data-mf="${si}|pkg" aria-label="Dars paketi"><option value="">— paket yo'q —</option>${c.packs.map((x) => `<option value="${esc(x.id)}" ${s.pkg === x.id ? "selected" : ""}>${esc(x.name || x.n + " dars")} · ${x.n} dars · ${som(x.sum)}</option>`).join("")}</select></td>` : ""}
+      ${paid ? `<td><select class="mi" data-mf="${si}|pt" ${pkgOf(c, s) ? "disabled" : ""} aria-label="Narx turi"><option value="month" ${p.t === "month" ? "selected" : ""}>Maktabda (oylik)</option><option value="day" ${p.t === "day" ? "selected" : ""}>Uyida (kunlik)</option></select></td>
+        <td>${lock ? `<span class="muted">🔒</span>` : `<input class="form-control mi sum" type="text" data-mf="${si}|ps" value="${p.sum || ""}" inputmode="numeric" aria-label="Narx, so'm" ${pkgOf(c, s) ? "disabled" : ""}>`}</td>
+        <td><input class="form-control mi sum" type="text" data-mf="${si}|pack" value="${pkgOf(c, s) ? pkgOf(c, s).n : s.pack || ""}" placeholder="${c.pack || "—"}" inputmode="numeric" aria-label="Kelishilgan dars soni" ${pkgOf(c, s) ? "disabled" : ""}></td>`
       : (feat("ach") ? `<td class="s">${(s.ach || []).length || "—"}</td>` : "")}
       <td class="s">${came || "—"}</td></tr>`;
   }).join("");
   m.innerHTML = `<div class="vcol" style="gap:12px">${jHead("", "", `<button class="btn" data-addm>＋ ${paid ? "O'quvchi" : "A'zo"} qo'shish</button>`)}
     ${c.students.length ? `<div class="tblwrap"><table class="table r mem"><tr><th>${paid ? "O'quvchi" : "A'zo"}</th><th>Sinfi</th><th>Ota-ona telefoni</th><th>Qo'shilgan</th>
-      ${paid ? `<th>Narx turi</th><th>Narx, so'm</th><th title="Oyiga nechta dars bo'lishi shu o'quvchi bilan kelishilgan; shuncha dars kelgach to'lov eslatiladi">Kelishilgan dars soni</th>` : (feat("ach") ? "<th>Yutuqlar</th>" : "")}<th>Kelgan kunlar · ${MONTHS[+mo.slice(5) - 1]}</th></tr>${rows}</table></div>`
+      ${paid && (c.packs || []).length ? "<th>Dars paketi</th>" : ""}${paid ? `<th>Narx turi</th><th>Narx, so'm</th><th title="Oyiga nechta dars bo'lishi shu o'quvchi bilan kelishilgan; shuncha dars kelgach to'lov eslatiladi">Kelishilgan dars soni</th>` : (feat("ach") ? "<th>Yutuqlar</th>" : "")}<th>Kelgan kunlar · ${MONTHS[+mo.slice(5) - 1]}</th></tr>${rows}</table></div>`
       : `<div class="card muted">Hali ${paid ? "o'quvchi" : "a'zo"} yo'q. «＋ ${paid ? "O'quvchi" : "A'zo"} qo'shish» tugmasini bosing.</div>`}
     <p class="muted" style="margin:0">${paid ? "Narx va oyiga dars soni har o'quvchi bilan alohida kelishiladi: maktabda — oylik, uyida — har kelgan kun uchun. Hisob kelgan kunlar bo'yicha yuritiladi." : "Yutuqlar «Yutuqlar» bo'limida."} O'zgarish o'zi saqlanadi.</p></div>`;
   bindJHead(m);
@@ -1781,12 +1794,13 @@ function pageMem(m) {
   m.querySelectorAll("[data-mf]").forEach((x) => x.onchange = () => {
     const [si, f] = x.dataset.mf.split("|"), s = c.students[+si], v = x.value.trim();
     if (f === "phone") { const p = v ? normPhone(v) : ""; if (p === null) { toast("Telefon raqami noto'g'ri"); return; } s.par = Object.assign({}, s.par, {phone: p}); if (!p) delete s.par.phone; x.value = p ? fmtPhone(p) : ""; }
+    else if (f === "pkg") { if (v) s.pkg = v; else delete s.pkg; }
     else if (f === "pt") s.plan = {t: v, sum: +((c.fee || {})[v]) || planOf(c, s).sum};
     else if (f === "ps") { const n = +v.replace(/\D/g, ""); s.plan = {t: planOf(c, s).t, sum: n}; }
     else if (f === "pack") { const n = +v.replace(/\D/g, ""); if (n) s.pack = n; else delete s.pack; }
     else if (f === "skill") { s.skill = s.skill || {}; if (v) s.skill[mo] = +v; else delete s.skill[mo]; }
     else if (v) s[f] = v; else delete s[f];
-    save(); if (f === "pt" || f === "joined" || f === "pack") render(); else toast("Saqlandi");
+    save(); if (f === "pt" || f === "joined" || f === "pack" || f === "pkg") render(); else toast("Saqlandi");
   });
   m.querySelectorAll(".mi.ph").forEach((x) => { if (x.value) x.value = fmtPhone(x.value); });
   $("[data-addm]", m).onclick = () => addMembers(S.ci);
@@ -1858,7 +1872,7 @@ function pagePay(m) {
       <div class="tile"><div>Shu oy qoldiq</div><div>${som(Math.max(0, R.reduce((a, r) => a + Math.max(0, r.rest), 0)))}</div></div><div class="tile"><div>Umumiy qarz</div><div>${som(debtors.reduce((a, r) => a + r.debt, 0))}</div></div></div>
     ${c.students.length ? `<div class="tblwrap"><table class="table r pay"><tr><th>O'quvchi</th><th>Narx</th><th title="Shu oy o'tilgan (qatnashgan) darslar">Darslar</th><th>Hisoblangan</th><th>To'langan</th><th>Qoldiq</th><th>Umumiy qarz</th><th></th></tr>
       ${R.map((r) => `<tr class="${st(r)}"><td class="nm"><button class="link" data-st="${r.si}">${esc(r.s.name)}</button>${r.s.cls ? ` <span class="muted">· ${esc(r.s.cls)}</span>` : ""}</td>
-        <td>${r.p.t === "day" ? `uyda · ${som(r.p.sum)}/dars` : `maktabda · ${som(r.p.sum)}/oy`}</td><td class="s">${r.n}</td><td class="s">${som(r.ch)}</td><td class="s">${som(r.pd)}</td>
+        <td>${r.p.t === "pkg" ? esc(pkgTxt(r.p)) + ` · ${som(r.p.sum)}` : r.p.t === "day" ? `uyda · ${som(r.p.sum)}/dars` : `maktabda · ${som(r.p.sum)}/oy`}</td><td class="s">${r.n}</td><td class="s">${som(r.ch)}</td><td class="s">${som(r.pd)}</td>
         <td class="s"><b>${r.rest > 0 ? som(r.rest) : r.ch || r.pd ? "✓" : "—"}</b></td><td class="s">${r.debt > 0 ? `<b class="warn">${som(r.debt)}</b>` : r.debt < 0 ? `<span class="ok" title="Oldindan to'langan">+${som(-r.debt)}</span>` : "—"}</td>
         <td class="act"><button class="btn btn-sm btn-primary" data-pay="${r.si}">＋ To'lov</button>${r.debt > 0 ? `<button class="btn btn-sm" data-prem="${r.si}" title="Ota-onaga eslatma">✉</button>` : ""}</td></tr>`).join("")}</table></div>`
       : `<div class="card muted">Hali o'quvchi yo'q. «O'quvchilar» bo'limida qo'shing.</div>`}
@@ -1882,6 +1896,7 @@ function payDialog(ci, si, mo) {
       <label class="f">Usul<select id="ph">${PAY_HOW.map((h) => `<option ${svcOf(c) === "school" && h === "Bank" ? "selected" : ""}>${h}</option>`).join("")}</select></label></div>
     ${svcOf(c) === "school" ? `<div class="muted" id="phw">Maktab xizmati (343-son nizom, 10-band): to'lov bank yoki bank kassasi orqali maktabning g'aznachilik hisobiga o'tkaziladi — naqd qabul qilinmaydi.</div>` : ""}
     <label class="f">Izoh<input class="form-control" type="text" id="pn" placeholder="ixtiyoriy"></label>
+    ${pkgOf(c, s) ? (() => { const q = packOf(c, s, t); return `<div class="muted">Paket: ${esc(pkgTxt(q.pkg))} · kelgan ${q.used} ta · to'langan ${q.covered} dars${q.left < 0 ? ` — <b class="warn">${-q.left} dars to'lanmagan (${som(Math.ceil(-q.left / q.pkg.n) * q.pkg.sum)})</b>` : q.left > 0 ? ` — oldindan to'langan ${q.left} dars` : ""}</div>`; })() : ""}
     ${packN(c, s) ? `<label class="hrow" style="gap:6px"><input type="checkbox" id="ppk" checked> To'lov kelishilgan ${packN(c, s)} dars uchun (${packOf(c, s).used}/${packN(c, s)} kelgan)</label>` : ""}
     <div class="hrow"><span class="sp"></span><button class="btn" data-x>Yopish</button><button class="btn btn-primary" data-ok>💾 Saqlash</button></div>
     ${(s.pays || []).length ? `<h3 style="margin:6px 0 0">To'lovlar tarixi</h3><div class="tblwrap"><table class="table r"><tr><th>№</th><th>Sana</th><th>Oy</th><th>Summa</th><th>Usul</th><th></th></tr>
@@ -1955,13 +1970,13 @@ function packDialog(ci, si) {
   const c = D.classes[ci], s = c.students[si], t = todayIso(), pk = packOf(c, s, t), mo = monthOf(t);
   const dates = pk ? pk.dates : cameDates(c, s, t).filter((d) => d.startsWith(mo));
   modal(`<h2>Kelgan kunlar — ${esc(s.name)}</h2>
-    <div class="muted">${esc(label(c))} · ${pk ? `kelishilgan ${pk.n} dars · hozir ${pk.used} ta${pk.due ? ` — <b class="warn">to'lov vaqti</b>` : `, yana ${pk.left} ta qoldi`}` : c.kind === "paid" ? "kelishilgan dars soni belgilanmagan («Ro'yxat» da yoki guruh sozlamalarida qo'ying)" : `${MONTHS[+mo.slice(5) - 1]} oyida ${dates.length} kun keldi`}</div>
+    <div class="muted">${esc(label(c))} · ${pk && pk.pkg ? `${esc(pkgTxt(pk.pkg))} · kelgan ${pk.used} ta · to'langan ${pk.covered} dars${pk.left < 0 ? ` — <b class="warn">${-pk.left} dars to'lanmagan</b>` : pk.due ? ` — <b class="warn">to'lov vaqti</b>` : `, yana ${pk.left} ta qoldi`}` : pk ? `kelishilgan ${pk.n} dars · hozir ${pk.used} ta${pk.due ? ` — <b class="warn">to'lov vaqti</b>` : `, yana ${pk.left} ta qoldi`}` : c.kind === "paid" ? "kelishilgan dars soni belgilanmagan («Ro'yxat» da yoki guruh sozlamalarida qo'ying)" : `${MONTHS[+mo.slice(5) - 1]} oyida ${dates.length} kun keldi`}</div>
     <div class="hrow wrap"><label class="f">Kelgan sana<input class="form-control" type="date" id="cd" value="${t}" max="${t}"></label><button class="btn btn-primary" data-add>＋ Yozish</button></div>
     ${dates.length ? `<div class="hrow wrap" style="gap:6px">${dates.map((d, k) => `<span class="gpay">${k + 1}. ${fmt(d).slice(0, 5)} <button class="link" data-del="${d}" title="O'chirish" aria-label="O'chirish">✕</button></span>`).join("")}</div>`
       : `<div class="muted">${pk ? "Joriy paketda" : "Bu oyda"} kelgan kun hali yo'q.</div>`}
     <div class="hrow"><span class="sp"></span>${pk && pk.due ? `<button class="btn btn-primary" data-pay>💰 To'lov yozish</button>` : ""}<button class="btn" data-x>Yopish</button></div>`, (mm, close) => {
     $("[data-x]", mm).onclick = () => close();
-    $("[data-add]", mm).onclick = () => { if (markCame(c, si, $("#cd", mm).value)) { close(); render(); const q = packOf(c, s); toast(q && q.used === q.n ? `🔔 ${s.name}: kelishilgan ${q.n} dars tugadi — to'lov vaqti` : "Yozildi"); packDialog(ci, si); } };
+    $("[data-add]", mm).onclick = () => { if (markCame(c, si, $("#cd", mm).value)) { close(); render(); const q = packOf(c, s); toast(q && q.hit ? `🔔 ${s.name}: kelishilgan ${q.pkg ? q.covered : q.n} dars tugadi — to'lov vaqti` : "Yozildi"); packDialog(ci, si); } };
     mm.querySelectorAll("[data-del]").forEach((b) => b.onclick = () => { unCame(c, si, b.dataset.del); close(); render(); packDialog(ci, si); });
     const pb = $("[data-pay]", mm); if (pb) pb.onclick = () => { close(); payDialog(ci, si, monthOf(t)); };
   });
@@ -2085,7 +2100,7 @@ function pageCards(m) {
     if (paid) {
       const ch = chargeOf(c, s, mo, t), pd = paidIn(s, mo), dbt = debtOf(c, s, t);
       const pk = packOf(c, s, t);
-      badge = (pk ? `<span class="gpay ${pk.due ? "no" : ""}" title="Kelgan kunlar / kelishilgan dars soni">${pk.due ? `⚠ To'lov vaqti (${pk.used}/${pk.n})` : `Dars: ${pk.used}/${pk.n} (kelishilgan)`}</span>` : "") + (lk ? `<span class="gpay">🔒</span>` : ch && pd >= ch ? `<span class="gpay ok">✓ ${MONTHS[+mo.slice(5) - 1]} to'langan</span>` : dbt > 0 ? `<span class="gpay no">Qarz: ${som(dbt)}</span>` : pd ? `<span class="gpay ok">✓ ${som(pd)} to'langan</span>` : `<span class="gpay">To'lov yo'q</span>`);
+      badge = (pk && pk.pkg ? `<span class="gpay ${pk.due ? "no" : ""}" title="${esc(pkgTxt(pk.pkg))}: kelgan ${pk.used}, to'langan ${pk.covered} dars">${pk.left < 0 ? `⚠ ${-pk.left} dars to'lanmagan` : pk.due ? "⚠ To'lov vaqti" : `Qolgan: ${pk.left} dars`}</span>` : pk ? `<span class="gpay ${pk.due ? "no" : ""}" title="Kelgan kunlar / kelishilgan dars soni">${pk.due ? `⚠ To'lov vaqti (${pk.used}/${pk.n})` : `Dars: ${pk.used}/${pk.n} (kelishilgan)`}</span>` : "") + (lk ? `<span class="gpay">🔒</span>` : ch && pd >= ch ? `<span class="gpay ok">✓ ${MONTHS[+mo.slice(5) - 1]} to'langan</span>` : dbt > 0 ? `<span class="gpay no">Qarz: ${som(dbt)}</span>` : pd ? `<span class="gpay ok">✓ ${som(pd)} to'langan</span>` : `<span class="gpay">To'lov yo'q</span>`);
       if (feat("ach") && (s.ach || []).length) badge += `<span class="gpay ok">🏆 ${(s.ach || []).length}</span>`;
       acts = `<button class="btn btn-sm" data-cpay="${si}">＋ To'lov</button>${!lk && dbt > 0 ? `<button class="btn btn-sm" data-crem="${si}" title="Ota-onaga eslatma" aria-label="Ota-onaga eslatma">✉</button>` : ""}`;
     } else {
@@ -3499,14 +3514,20 @@ function editClass(i) {
     ${paid ? `${svcSeg(c.svc)}<div class="hrow"><label class="f sp">Oylik narx, so'm<input class="form-control" type="text" id="cfm" inputmode="numeric" value="${fee.month || ""}"></label><label class="f sp">Bir dars narxi, so'm<input class="form-control" type="text" id="cfd" inputmode="numeric" value="${fee.day || ""}"></label></div>
       <div class="hrow"><label class="f sp">Oyiga dars soni (kelishilgan)<input class="form-control" type="text" id="cpk" inputmode="numeric" value="${c.pack || ""}" placeholder="masalan, 12"></label></div>
       <div class="muted">Shuncha kun kelgach «to'lov vaqti» deb ogohlantiriladi. Har o'quvchiga alohida son «Ro'yxat» bo'limida qo'yiladi.</div>
-      <div class="muted">Narx o'zgarsa, faqat o'z narxi yozilmagan o'quvchilarga ta'sir qiladi.</div>` : ""}
+      <div class="muted">Narx o'zgarsa, faqat o'z narxi yozilmagan o'quvchilarga ta'sir qiladi.</div>
+      <label class="f">Dars paketlari (tariflar): har qatorda <b>Nomi, darslar soni, summa</b>
+        <textarea class="form-control" id="cpkgs" rows="4" placeholder="Boshlang'ich, 8, 400000&#10;Standart, 12, 550000">${esc((c.packs || []).map((x) => `${x.name}, ${x.n}, ${x.sum}`).join("\n"))}</textarea></label>
+      <div class="muted">Paket tanlangan o'quvchiga har n-chi kelgan kunda yangi paket summasi hisoblanadi; to'lov bilan solishtirilib qarz yoki oldindan to'langan summa chiqadi. Paketni o'quvchiga «Ro'yxat» bo'limida biriktirasiz.</div>` : ""}
     <div class="hrow"><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn btn-primary" data-ok>Saqlash</button></div>`, (mm, close) => {
     const svc = paid ? bindSvc(mm, c.svc || "") : null;
     $("[data-x]", mm).onclick = () => close();
     $("[data-ok]", mm).onclick = () => {
       const n = $("#cn", mm).value.trim(); if (!n) return; c.name = n; c.subject = $("#cs", mm).value.trim();
       if (g) { const cap = +$("#ccap", mm).value.replace(/\D/g, ""), tm = $("#ctm", mm).value.trim(); if (cap) c.cap = cap; else delete c.cap; if (tm) c.time = tm; else delete c.time; }
-      if (paid) { if (svc()) c.svc = svc(); c.fee = {month: +$("#cfm", mm).value.replace(/\D/g, "") || 0, day: +$("#cfd", mm).value.replace(/\D/g, "") || 0}; const pk = +$("#cpk", mm).value.replace(/\D/g, ""); if (pk) c.pack = pk; else delete c.pack; }
+      if (paid) { if (svc()) c.svc = svc(); c.fee = {month: +$("#cfm", mm).value.replace(/\D/g, "") || 0, day: +$("#cfd", mm).value.replace(/\D/g, "") || 0}; const pk = +$("#cpk", mm).value.replace(/\D/g, ""); if (pk) c.pack = pk; else delete c.pack;
+        const old = c.packs || [], list = $("#cpkgs", mm).value.split(/\r?\n/).map((ln) => { const a = ln.split(/[,;\t]/).map((x) => x.trim()), sum = +String(a.pop() || "").replace(/\D/g, ""), n = +String(a.pop() || "").replace(/\D/g, ""); return n > 0 && sum > 0 ? {name: a.join(", ").slice(0, 60), n, sum} : null; }).filter(Boolean);
+        c.packs = list.map((x) => { const o = old.find((y) => y.name === x.name && y.n === x.n) || old.find((y) => y.name === x.name); return Object.assign({id: o ? o.id : newSid()}, x); }); if (!c.packs.length) delete c.packs;
+        c.students.forEach((s) => { if (s.pkg && !(c.packs || []).some((x) => x.id === s.pkg)) delete s.pkg; }); }
       save(); close(); render();
     };
   });

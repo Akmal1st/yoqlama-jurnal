@@ -2708,3 +2708,51 @@ test("Guruh hisobotlari faqat kelgan kunlar bo'yicha: kelgan / o'tilgan darslar 
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Pullik guruh: dars paketlari (tarif), o'quvchiga biriktirish va kelgan kunlar bo'yicha qarz / ortiqcha to'lov", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.click(".side [data-go=settings]"); await page.click('[data-sec="0"]'); await page.click("[data-a=addpaid]");
+    await page.fill(".modal #cn", "Ingliz tili kursi"); await page.fill(".modal #cl", "Aliyev Sardor, 7-B\nKarimova Madina, 8-A");
+    await page.click(".modal #cw [data-k='0']"); await page.click(".modal [data-ok]");
+    const ci = await page.evaluate(() => D.classes.length - 1);
+    // paketlar guruh sozlamalarida: «Nomi, darslar soni, summa»
+    await page.evaluate((i) => editClass(i), ci);
+    await page.fill(".modal #cpkgs", "Boshlang'ich, 8, 400000\nStandart, 12, 550000\nxato qator");
+    await page.click(".modal [data-ok]");
+    const packs = await page.evaluate((i) => D.classes[i].packs.map((x) => [x.name, x.n, x.sum]), ci);
+    assert.deepEqual(packs, [["Boshlang'ich", 8, 400000], ["Standart", 12, 550000]]);
+    // o'quvchiga paket biriktirish «Ro'yxat» da
+    await page.click("[data-jp=mem]");
+    const id0 = await page.evaluate((i) => D.classes[i].packs[0].id, ci);
+    await page.selectOption("[data-mf='0|pkg']", id0);
+    assert.equal(await page.evaluate((i) => D.classes[i].students[0].pkg, ci), id0);
+    // hisob: 9 kun keldi → 2 ta paket (har 8-dan keyin yangisi) = 800 000; 400 000 to'langan → 400 000 qarz, 1 dars to'lanmagan
+    const r = await page.evaluate((i) => {
+      const c = D.classes[i], s = c.students[0]; s.joined = "";
+      c.dates = ["2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04", "2026-09-07", "2026-09-08", "2026-09-09", "2026-09-10", "2026-10-01", "2026-10-02"];
+      s.marks = {}; c.dates.slice(0, 9).forEach((d) => s.marks[d] = "ot"); s.pays = [{id: "a1", no: 1, d: "2026-09-05", m: "2026-09", sum: 400000}];
+      const t = "2026-10-21", pk = packOf(c, s, t);   // hisob keshi sana bo'yicha: har chaqiruvga alohida sana
+      const out = {sep: chargeOf(c, s, "2026-09", t), oct: chargeOf(c, s, "2026-10", t), debt: debtOf(c, s, t), left: pk.left, due: pk.due, txt: planTxt(c, s)};
+      s.pays.push({id: "a2", no: 2, d: "2026-10-06", m: "2026-10", sum: 800000});   // jami 1 200 000 = 3 paket = 24 dars
+      const t2 = "2026-10-22", p2 = packOf(c, s, t2); out.debt2 = debtOf(c, s, t2); out.left2 = p2.left; out.due2 = p2.due;
+      return out;
+    }, ci);
+    assert.deepEqual([r.sep, r.oct, r.debt, r.left, r.due], [400000, 400000, 400000, -1, true]);
+    assert.match(r.txt, /Boshlang'ich.*8 dars.*400 000/);
+    assert.deepEqual([r.debt2, r.left2, r.due2], [-400000, 15, false], "ortiqcha to'lov manfiy qarz sifatida");
+    // paketsiz o'quvchi eskicha: oylik narx
+    assert.equal(await page.evaluate((i) => planOf(D.classes[i], D.classes[i].students[1]).t, ci), "month");
+    // sahifalar xatosiz chiziladi
+    for (const k of ["cards", "pay", "mem"]) { await page.evaluate((x) => { S.jpage = x; render(); }, k); }
+    await page.evaluate((i) => { S.pm = "2026-10"; S.jpage = "pay"; render(); }, ci);
+    assert.match(await page.textContent("main"), /Boshlang'ich/);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
