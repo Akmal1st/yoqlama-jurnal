@@ -330,7 +330,8 @@ test("Yangi dizayn: Ctrl+K buyruqlar oynasi, Alt+raqam, ? tezkor tugmalar, telef
     await page.keyboard.press("Enter");
     assert.deepEqual(await page.evaluate(() => [S.page, S.ci]), ["journal", 1]);
     // Alt+raqam — bo'limlar
-    await page.keyboard.press("Alt+3"); assert.equal(await page.evaluate(() => S.page), "reports");
+    await page.keyboard.press("Alt+3"); assert.equal(await page.evaluate(() => S.page), "groups");
+    await page.keyboard.press("Alt+4"); assert.equal(await page.evaluate(() => S.page), "reports");
     await page.keyboard.press("Alt+1"); assert.equal(await page.evaluate(() => S.page), "today");
     // ? — tezkor tugmalar ro'yxati
     await page.keyboard.press("Shift+Slash"); await page.waitForSelector(".modal .kbdl");
@@ -2463,7 +2464,7 @@ test("Hisobotda xavf turi bo'yicha saralash", async () => {
 });
 
 
-test("Guruhlar bo'limi olib tashlangan: interfeysda yo'q, lekin saqlangan guruh ma'lumoti (to'lov, davomat) yo'qolmaydi", async () => {
+test("Guruhlar faqat o'z bo'limida: boshqa sahifalarda ko'rinmaydi, saqlangan guruh ma'lumoti (to'lov, davomat) yo'qolmaydi", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     const page = await browser.newPage({viewport: {width: 1280, height: 900}});
@@ -2477,14 +2478,16 @@ test("Guruhlar bo'limi olib tashlangan: interfeysda yo'q, lekin saqlangan guruh 
       students: [{name: "Guruh Talabasi", plan: {t: "day", sum: 10000}, pkg: "pk1", marks: {"2026-10-05": "ot"}, abs: {"2026-10-06": "sz"}, pays: [{id: "p1", no: 1, d: "2026-10-09", m: "2026-10", sum: 10000, how: "Naqd"}]}]};
     const clubSrc = {name: "Shaxmat", kind: "club", dates: ["2026-10-05"], students: [{name: "A'zo Birinchi", marks: {"2026-10-05": "ot"}, ach: [{d: "2026-10-05", t: "Tuman musobaqasi", k: "Musobaqa", lvl: "Tuman", pl: "1-o'rin"}]}]};
     const before = await page.evaluate((g) => { D.classes.push(...normalize({classes: g}).classes); D.fin = cleanFin({exp: [{id: "x1", d: "2026-10-12", cat: "Ijara", sum: 5000, note: "xona"}]}); save(); return D.classes.length; }, [gsrc, clubSrc]);
-    // menyuda «Guruhlar» yo'q, hamma sahifalar xatosiz ochiladi va guruh nomi ko'rinmaydi
+    // boshqa sahifalar xatosiz ochiladi va guruh nomi ko'rinmaydi (guruhlar — faqat «Guruhlar» bo'limida, guruhlar.js)
     for (const pg of ["today", "journal", "reports", "settings"]) {
       await page.evaluate((p) => { S.ci = D.classes.length - 2; S.jpage = "cards"; go(p); }, pg);
       const txt = await page.evaluate(() => document.querySelector("main").textContent);
       assert.ok(!txt.includes("Ingliz kursi") && !txt.includes("Shaxmat"), `${pg}: guruh ko'rinib qolgan`);
     }
-    assert.equal(await page.locator('[data-go="groups"]').count(), 0, "menyuda «Guruhlar» yo'q");
-    assert.ok(!(await page.evaluate(() => document.querySelector("#side").textContent)).includes("Guruhlar"));
+    assert.equal(await page.locator('[data-go="groups"]').count(), 2, "menyuda (yon panel va pastki tablar) «Guruhlar» bor");
+    await page.evaluate(() => go("groups"));
+    const gtxt = await page.evaluate(() => document.querySelector("main").textContent);
+    assert.ok(gtxt.includes("Ingliz kursi") && gtxt.includes("Shaxmat"), "eski guruhlar «Guruhlar» bo'limida ko'rinadi");
     assert.equal(await page.evaluate(() => D.classes[S.ci].kind || "sinf"), "sinf", "jurnal faqat oddiy sinfni ochadi");
     // saqlash/yuklash va fayl orqali ma'lumot saqlanadi
     const kept = await page.evaluate(() => { const d = normalize(JSON.parse(JSON.stringify(D))), g = d.classes.find((c) => c.name === "Ingliz kursi"), k = d.classes.find((c) => c.name === "Shaxmat"), s = g.students[0];
@@ -2501,3 +2504,61 @@ test("Guruhlar bo'limi olib tashlangan: interfeysda yo'q, lekin saqlangan guruh 
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+// Guruhlar bo'limi (docs/guruhlar.js): yangi guruh, o'quvchi, to'lov, yo'qlama; eski oylik narxli guruh paketga o'tadi
+for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["telefon", {width: 390, height: 844}]]) {
+  test(`${name}: Guruhlar — guruh, o'quvchi, to'lov va yo'qlama`, async () => {
+    const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+    try {
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 10, 2, 10, 0));   // dushanba
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      // eski ma'lumot: oylik narxli o'quvchi, to'lovida dars soni yozilmagan
+      await page.evaluate(() => {
+        const marks = {}; for (const d of ["2026-10-26", "2026-10-28", "2026-10-30"]) marks[d] = "ot";
+        D.classes.push(normalize({classes: [{name: "Eski guruh", subject: "", kind: "paid", pack: 8, weekdays: [0, 2, 4], dates: Object.keys(marks),
+          students: [{id: "old1", name: "Eski O'quvchi", marks, plan: {t: "month", sum: 400000}, pays: [{id: "op1", d: "2026-10-01", m: "2026-10", sum: 400000}]}]}]}).classes[0]);
+        save();
+      });
+      await page.click(`${name === "telefon" ? ".tabbar" : ".side"} [data-go=groups]`);
+      await page.waitForSelector(".tpt .g-gcard");
+      // eski guruh: «Oylik» paketi (8 dars = 400 000) yaratiladi, 8 − 3 = 5 dars qoladi
+      await page.click(".g-gcard");
+      assert.equal(await page.evaluate(() => { const c = D.classes.find((x) => x.name === "Eski guruh"); return [c.packs[0].name, c.packs[0].n, TPT.acct(c, c.students[0]).left].join("|"); }), "Oylik|8|5");
+      assert.deepEqual(await page.evaluate(() => TPT.daysOf(D.classes.find((x) => x.name === "Eski guruh"))), [1, 3, 5]);
+      await page.click("[data-home]");
+      // yangi guruh
+      await page.click("[data-new]");
+      await page.fill("#g-n", "Ingliz tili A1");
+      await page.fill(".g-pk .pc", "8"); await page.fill(".g-pk .ps", "400000");
+      await page.click(".g-dlg [data-save]");
+      await page.waitForSelector("text=O'quvchi qo'shish");
+      // o'quvchi + birinchi to'lov
+      await page.click("[data-addst]"); await page.fill("#g-an", "Aziza Karimova"); await page.fill("#g-ap", "901234567");
+      await page.click(".g-dlg [data-save]");
+      await page.waitForSelector(".g-dlg [aria-label=\"To'lov qabul qilish\"], .g-dlg >> text=To'lov qabul qilish");
+      await page.click(".g-dlg [data-how=Click]"); await page.click(".g-dlg [data-save]");
+      const st = await page.evaluate(() => { const c = D.classes.find((x) => x.name === "Ingliz tili A1"), s = c.students[0]; return {kind: c.kind, days: c.gdays, phone: s.par.phone, pays: s.pays.map((p) => [p.sum, p.pk, p.how, p.d]), left: TPT.acct(c, s).left}; });
+      assert.deepEqual(st, {kind: "paid", days: [1, 3, 5], phone: "+998901234567", pays: [[400000, 8, "Click", "2026-11-02"]], left: 8});
+      // yo'qlama: bugun keldi → 7 dars qoladi; yana bosish — bekor
+      await page.click("[data-tab=att]");
+      await page.click("[data-came='0']");
+      assert.equal(await page.evaluate(() => { const c = D.classes.find((x) => x.name === "Ingliz tili A1"); return c.students[0].marks["2026-11-02"] + "|" + TPT.acct(c, c.students[0]).left; }), "ot|7");
+      await page.click("[data-came='0']");
+      assert.equal(await page.evaluate(() => TPT.acct(D.classes.find((x) => x.name === "Ingliz tili A1"), D.classes.find((x) => x.name === "Ingliz tili A1").students[0]).left), 8);
+      // o'quvchi oynasi va to'lovlar tarixi
+      await page.click("[data-tab=stu]"); await page.click("[data-open='0']"); await page.waitForSelector(".g-drawer");
+      await page.keyboard.press("Escape");
+      await page.click("[data-tab=pay]"); await page.waitForSelector(".g-tw table");
+      // saqlangan faylda qoladi
+      const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("yoqlama_jurnal")).classes.find((x) => x.name === "Ingliz tili A1").students[0].pays.length);
+      assert.equal(saved, 1);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
+      assert.deepEqual(errors, []);
+    } finally { await browser.close(); }
+  });
+}

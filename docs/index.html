@@ -13,6 +13,7 @@
 <title>Yo'qlama jurnali</title>
 <link rel="stylesheet" href="vendor/bootstrap-5.3.3.css">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="guruhlar.css">
 </head>
 <body>
 <div class="app" id="app">
@@ -21,6 +22,7 @@
   <nav class="tabbar" id="tabbar"></nav>
 </div>
 <input type="file" id="file" accept=".json,application/json" class="hide">
+<script src="guruhlar.js"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
@@ -248,6 +250,11 @@ function cleanClass(c) {
   { const r = c.rule && typeof c.rule === "object" ? c.rule : {}, o = {sz: ["charge", "free"].includes(r.sz) ? r.sz : "charge", sb: ["carry", "free", "charge"].includes(r.sb) ? r.sb : "carry"};
     if (o.sz === "charge" && o.sb === "carry") delete c.rule; else c.rule = o; }
   { const n = Math.trunc(num0(c.dueDay)); if (n >= 1 && n <= 28) c.dueDay = n; else delete c.dueDay; }
+  // Guruhlar bo'limi (guruhlar.js): dars kunlari (0 = yakshanba), vaqti, davomiyligi, arxiv belgisi
+  if (Array.isArray(c.gdays)) { c.gdays = [...new Set(c.gdays.map((x) => Math.trunc(num0(x))).filter((x) => x >= 0 && x <= 6))].sort(); if (!c.gdays.length) delete c.gdays; } else delete c.gdays;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(c.gtime || ""))) delete c.gtime;
+  { const n = Math.trunc(num0(c.gdur)); if (n >= 15 && n <= 600) c.gdur = n; else delete c.gdur; }
+  if (c.garch !== true) delete c.garch;
   c.works = (Array.isArray(c.works) ? c.works : []).filter((w) => w && typeof w === "object" && SAFE_ID.test(String(w.id)) && (w.type === "bsb" || w.type === "chsb") && ISO_D.test(String(w.date)))
     .map((w) => Object.assign({}, w, {id: String(w.id), max: num0(w.max)}));
   for (const w of c.works) cleanTest(w);
@@ -1339,8 +1346,9 @@ const ICONS = {
   reports: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11M10 20V5M16 20v-7M2 20h20"/></svg>',
   settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
 };
+ICONS.groups = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.6c2.6.3 4.5 2.2 4.5 5.4"/></svg>';
 ICONS.help = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></svg>';
-const NAV = [["today", "Bugun"], ["journal", "Jurnal"], ["reports", "Hisobotlar"], ["settings", "Sozlamalar"]];
+const NAV = [["today", "Bugun"], ["journal", "Jurnal"], ["groups", "Guruhlar"], ["reports", "Hisobotlar"], ["settings", "Sozlamalar"]];
 function go(p) { S.page = p; S.sel = null; render(); window.scrollTo(0, 0); }
 // jurnal davri: Kun / Hafta / Oy / Chorak — sarlavhadagi «📅» tugmasi oynasida
 const VIEW_MODES = [["day", "Kun"], ["week", "Hafta"], ["month", "Oy"], ["quarter", "Chorak"]];
@@ -1433,7 +1441,7 @@ document.addEventListener("keydown", (e) => {
   const typing = /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName);
   if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "k") { e.preventDefault(); if (!$(".modal")) cmdPalette(); return; }
   if (e.defaultPrevented || typing || $(".modal")) return;
-  if (e.altKey && !e.ctrlKey && !e.metaKey && /^Digit[1-4]$/.test(e.code)) { e.preventDefault(); const k = NAV[+e.code.slice(5) - 1][0]; if (k === "journal" && isGrp(D.classes[S.ci])) { const r = D.classes.findIndex((c) => !isGrp(c)); if (r >= 0) S.ci = r; } go(k); return; }
+  if (e.altKey && !e.ctrlKey && !e.metaKey && /^Digit[1-5]$/.test(e.code)) { e.preventDefault(); const k = NAV[+e.code.slice(5) - 1][0]; if (k === "journal" && isGrp(D.classes[S.ci])) { const r = D.classes.findIndex((c) => !isGrp(c)); if (r >= 0) S.ci = r; } go(k); return; }
   if (e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); keysDialog(); }
 });
 /* ───────── qo'llanma: har sahifa bo'yicha qisqa yordam ───────── */
@@ -1443,6 +1451,12 @@ const HELP = [
     ["E'tibor talab qiladi", "O'rtacha bahosi past, ko'p qoldirgan yoki baholari kam o'quvchilar. «Ko'rish» — o'quvchi kartochkasi (baholar o'sishi, izohlar, ota-onaga xabar)."],
     ["To'ldirilmagan darslar", "Oxirgi 2 haftada yo'qlama belgilanmagan yoki mavzu yozilmagan darslar. «To'ldirish» o'sha kunga olib boradi. Kechqurun eslatma: Sozlamalar → Dars kunlari → «Kechki eslatma»."],
     ["Qidiruv", "Yuqoridagi maydonga o'quvchi yoki sinf nomini yozing — kartochkasini ochish mumkin."],
+  ]],
+  ["groups", "👥 Guruhlar", [
+    ["Guruhlar", "To'garak va pullik ta'lim guruhlari. Tepada: bugun qaysi guruhda dars, kim to'lashi kerak va oy tushumi. Kartani bosing — guruh ochiladi."],
+    ["Yo'qlama", "Faqat kelganlar belgilanadi: ismni bir bosish — keldi, yana bosish — bekor. Tepadagi kataklar — oxirgi dars kunlari, «Boshqa» — kalendar."],
+    ["Paket va to'lov", "Narx paket bilan: masalan 8 dars = 400 000 so'm. To'lov qabul qilinganda nechta dars sotib olingani yoziladi. Qoldiq = sotib olingan darslar − kelgan kunlar: manfiy bo'lsa — qarz, musbat — oldindan to'langan."],
+    ["Sozlamalar", "«Guruh sozlamalari»: nomi, turi, dars kunlari va vaqti, paketlar. Keraksiz guruhni arxivlash mumkin — ma'lumoti saqlanadi."],
   ]],
   ["journal", "📒 Jurnal", [
     ["Baho qo'yish", "Katakni bosing, pastdagi tugmalardan baho yoki S/DQ/K/KQ ni tanlang. Klaviatura: 1–9, 0 (=10), S, D, K, Q; o'qlar bilan yuring. Xato bo'lsa — ↶ (Ctrl+Z)."],
@@ -1518,7 +1532,9 @@ function render() {
   if (isGrp(D.classes[S.ci])) { const r = D.classes.findIndex((c) => !isGrp(c)); if (r >= 0) S.ci = r; }
   EPOCH++; clearPrintDoc(); applyTheme(); renderNav(); document.querySelectorAll(".bpop").forEach((x) => x.remove());
   const m = $("#main");
-  ({today: pageToday, journal: pageJournal, lesson: pageLesson, reports: pageReports, settings: pageSettings})[S.page](m);
+  // Guruhlar (to'garak va pullik ta'lim) — alohida faylda: guruhlar.js / guruhlar.css
+  document.body.classList.toggle("tpt-on", S.page === "groups"); if (S.page !== "groups" && typeof TPT !== "undefined") TPT.leave();
+  ({today: pageToday, journal: pageJournal, groups: (x) => TPT.page(x), lesson: pageLesson, reports: pageReports, settings: pageSettings})[S.page](m);
   const pp = $(".perpop"); if (pp) pp.remove();
   labelTables(m); snapCols();
 }
@@ -1543,7 +1559,7 @@ function pageToday(m) {
   let sub = longDate(t); if (q) sub += ` · ${q}-chorak, ${Math.floor((pdate(t) - pdate(qRange(q)[0])) / 6048e5) + 1}-hafta`;
   if (!D.classes.some((c) => !isGrp(c))) { m.innerHTML = welcome(sub); bindWelcome(m); return; }
   const L = lessonsToday();
-  const nowd = D.classes.filter((c) => !c.weekdays || !c.weekdays.length).length;
+  const nowd = D.classes.filter((c) => !isGrp(c) && (!c.weekdays || !c.weekdays.length)).length;
   const risk = riskOverview().flatMap((r) => r.names.map((n) => ({ci: r.ci, ...n})));
   for (const h of hwOverview()) { const x = risk.find((r) => r.ci === h.ci && r.name === h.name); if (x) x.why = x.why.concat(h.why); else risk.push(h); }
   const ups = upcoming();
