@@ -3856,12 +3856,12 @@ function pageChsbTest(m) {
   const sel = `<select id="tws" title="Saqlangan CHSB testlari" style="width:auto;flex:0 1 280px;min-width:0">${ws.map((x) => `<option value="${esc(x.id)}" ${x.id === w.id ? "selected" : ""}>${esc(x.title || "Nomsiz")} · ${fmt(x.date)}</option>`).join("")}</select>`;
   let body;
   if (tab === "tbl") {
-    const head = `<tr><th title="Ishtirok etdi">✔</th><th class="nm">O'quvchi</th>${Array.from({length: t0.n}, (_, i) => `<th class="d">${i + 1}<small>savol</small></th>`).join("")}<th>To'g'ri</th><th>Ball</th><th>%</th><th>Baho</th></tr>
-      <tr class="mx"><td></td><td class="nm"><b>Savol bali</b></td>${P0.map((v, i) => `<td class="c"><input class="sc tp" data-tp="${i}" value="${gnum(Math.round(v * 100) / 100)}" inputmode="decimal" autocomplete="off" title="${i + 1}-savol: maksimal ball"></td>`).join("")}<td class="s"></td><td class="s" data-psum></td><td class="s">100</td><td></td></tr>
-      <tr class="mx"><td></td><td class="nm"><b>To'g'ri javob</b></td>${Array.from({length: t0.n}, (_, i) => `<td class="c"><input class="sc tk" data-tk="${i}" maxlength="1" value="${t0.key[i] === "." ? "" : t0.key[i]}" autocomplete="off" autocapitalize="characters" enterkeyhint="next" inputmode="${BA_COARSE ? "none" : "text"}" title="${i + 1}-savol: to'g'ri variant"></td>`).join("")}<td class="s" colspan="4"></td></tr>`;
+    const head = `<tr><th title="Ishtirok etdi">✔</th><th class="nm">O'quvchi</th>${Array.from({length: t0.n}, (_, i) => `<th class="d">${i + 1}<small>savol</small></th>`).join("")}<th>To'g'ri</th><th>Ball</th><th>%</th><th>Baho</th><th></th></tr>
+      <tr class="mx"><td></td><td class="nm"><b>Savol bali</b></td>${P0.map((v, i) => `<td class="c"><input class="sc tp" data-tp="${i}" value="${gnum(Math.round(v * 100) / 100)}" inputmode="decimal" autocomplete="off" title="${i + 1}-savol: maksimal ball"></td>`).join("")}<td class="s"></td><td class="s" data-psum></td><td class="s">100</td><td></td><td></td></tr>
+      <tr class="mx"><td></td><td class="nm"><b>To'g'ri javob</b></td>${Array.from({length: t0.n}, (_, i) => `<td class="c"><input class="sc tk" data-tk="${i}" maxlength="1" value="${t0.key[i] === "." ? "" : t0.key[i]}" autocomplete="off" autocapitalize="characters" enterkeyhint="next" inputmode="${BA_COARSE ? "none" : "text"}" title="${i + 1}-savol: to'g'ri variant"></td>`).join("")}<td class="s" colspan="5"></td></tr>`;
     const rows = c.students.map((s, si) => { const on = !out0.includes(s.id);
-      return `<tr class="${on ? "" : "off"}" data-row="${si}"><td class="c"><input type="checkbox" data-tin="${si}" ${on ? "checked" : ""}></td><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>${Array.from({length: t0.n}, (_, i) => `<td class="c"><input class="sc ta" data-ta="${si}|${i}" maxlength="1" value="${((t0.ans[s.id] || "")[i] || ".") === "." ? "" : t0.ans[s.id][i]}" autocomplete="off" autocapitalize="characters" enterkeyhint="next" inputmode="${BA_COARSE ? "none" : "text"}" ${on ? "" : "disabled"}></td>`).join("")}<td class="s" data-ok></td><td class="s" data-sc2></td><td class="s a" data-pct></td><td class="s" data-g></td></tr>`; }).join("");
-    body = `<div class="tblwrap"><table class="j bsa tst">${head}${rows}<tr class="mx"><td></td><td class="nm"><b>To'g'ri javob, %</b></td>${Array.from({length: t0.n}, (_, i) => `<td class="c" data-qp="${i}"></td>`).join("")}<td class="s"></td><td class="s" data-avg></td><td class="s a" data-avgp></td><td></td></tr></table></div>
+      return `<tr class="${on ? "" : "off"}" data-row="${si}"><td class="c"><input type="checkbox" data-tin="${si}" ${on ? "checked" : ""}></td><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>${Array.from({length: t0.n}, (_, i) => `<td class="c"><input class="sc ta" data-ta="${si}|${i}" maxlength="1" value="${((t0.ans[s.id] || "")[i] || ".") === "." ? "" : t0.ans[s.id][i]}" autocomplete="off" autocapitalize="characters" enterkeyhint="next" inputmode="${BA_COARSE ? "none" : "text"}" ${on ? "" : "disabled"}></td>`).join("")}<td class="s" data-ok></td><td class="s" data-sc2></td><td class="s a" data-pct></td><td class="s" data-g></td><td class="c"><button type="button" class="btn btn-sm" data-tmax="${si}" title="Yuqori ball olgan o'quvchi: barcha savollarga to'g'ri javob yozadi (to'liq ball)">max</button></td></tr>`; }).join("");
+    body = `<div class="tblwrap"><table class="j bsa tst">${head}${rows}<tr class="mx"><td></td><td class="nm"><b>To'g'ri javob, %</b></td>${Array.from({length: t0.n}, (_, i) => `<td class="c" data-qp="${i}"></td>`).join("")}<td class="s"></td><td class="s" data-avg></td><td class="s a" data-avgp></td><td></td><td></td></tr></table></div>
       <p class="muted" style="margin:0">Birinchi qatorda har savolning bali (o'zgartirish mumkin), keyingisida to'g'ri variant. Pastda har o'quvchining tanlagan varianti: ${L[0]}–${L.at(-1)} yoki 1–${t0.o}; katakni bosganda variantlar oynasi chiqadi, Excel'dan ko'p katakli nusxa joylash mumkin. Mos kelsa — savolning bali, aks holda 0; bo'sh katak — javob berilmagan. ✔ olib tashlansa, o'quvchi ishtirok etmagan hisoblanadi va balli o'chadi. Ball «BSB / CHSB» sahifasiga o'zi yoziladi. Baho: 86–100% → 5, 66–85% → 4, 30–65% → 3, qolgani → 2.</p>`;
   } else {
     const B = chsbB(c, w), an = baAnalysis(c, B), tiles = an.n ? gTiles([["Bilim sifati", pct0(an.quality)], ["O'zlashtirish", pct0(an.mastery)], ["O'rtacha ball", `${pyFixed(an.mean_total, 1)} / ${gnum(an.tot_max)}`], ["O'rtacha %", pct0(an.mean_pct)]]) : "";
@@ -3932,6 +3932,12 @@ function pageChsbTest(m) {
     const v = parseFloat(String(inp.value).replace(",", "."));
     if (!(v >= 0) || v > w.max) { toast(`Ball 0 dan ${gnum(w.max)} gacha bo'lishi kerak`); inp.value = gnum(Math.round(testPts(w, w.test || testBlank())[+inp.dataset.tp] * 100) / 100); return; }
     const t = ensure(), P = testPts(w, t).slice(); P[+inp.dataset.tp] = Math.round(v * 100) / 100; t.pts = P; save(); await rescoreAll(); refresh();
+  });
+  m.querySelectorAll("[data-tmax]").forEach((b) => b.onclick = async () => {   // hamma savolga to'g'ri javob = to'liq ball
+    const s = c.students[+b.dataset.tmax], t = ensure();
+    if (/\./.test(t.key)) { toast("Avval barcha savollarning to'g'ri javobini belgilang"); return; }
+    t.ans[s.id] = t.key; t.out = (t.out || []).filter((x) => x !== s.id); save(); await rescore(s);
+    const y = window.scrollY; render(); window.scrollTo(0, y);
   });
   m.querySelectorAll("[data-tin]").forEach((cb) => cb.onchange = async () => {
     const s = c.students[+cb.dataset.tin], t = ensure(), set = new Set(t.out || []);
@@ -4268,13 +4274,13 @@ function pageBsb(m) {
   const tot = sumOf(B.max);
   let body;
   if (tab === "tbl") {
-    const head = `<tr><th title="Ishtirok etdi">✔</th><th class="nm">O'quvchi</th>${B.max.map((_, i) => `<th class="d">${i + 1}<small>savol</small></th>`).join("")}<th>Jami</th><th>%</th><th>Baho</th></tr>
-      <tr class="mx"><td></td><td class="nm"><b>Maksimal ball</b></td>${B.max.map((v, i) => `<td class="c"><input class="sc" data-bx="${i}" value="${gnum(v)}" inputmode="decimal" autocomplete="off"></td>`).join("")}<td class="s">${gnum(tot)}</td><td class="s">100</td><td></td></tr>`;
+    const head = `<tr><th title="Ishtirok etdi">✔</th><th class="nm">O'quvchi</th>${B.max.map((_, i) => `<th class="d">${i + 1}<small>savol</small></th>`).join("")}<th>Jami</th><th>%</th><th>Baho</th><th></th></tr>
+      <tr class="mx"><td></td><td class="nm"><b>Maksimal ball</b></td>${B.max.map((v, i) => `<td class="c"><input class="sc" data-bx="${i}" value="${gnum(v)}" inputmode="decimal" autocomplete="off"></td>`).join("")}<td class="s">${gnum(tot)}</td><td class="s">100</td><td></td><td></td></tr>`;
     const rows = c.students.map((s, si) => {
       const r = baRow(B, s.name), on = r.in !== false;
       return `<tr class="${on ? "" : "off"}" data-row="${si}"><td class="c"><input type="checkbox" data-bin="${si}" ${on ? "checked" : ""}></td><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>
         ${B.max.map((mx, i) => { const v = r.pts[i]; return `<td class="c"><input class="sc ${v > mx ? "bad" : ""}" data-bp="${si}|${i}" value="${v === null || v === undefined ? "" : gnum(v)}" inputmode="${BA_COARSE && mx <= 30 ? "none" : "decimal"}" enterkeyhint="next" autocomplete="off" maxlength="6" placeholder="/${gnum(mx)}" title="0 – ${gnum(mx)}" ${on ? "" : "disabled"}></td>`; }).join("")}
-        <td class="s" data-tot></td><td class="s a" data-pct></td><td class="s" data-g></td></tr>`;
+        <td class="s" data-tot></td><td class="s a" data-pct></td><td class="s" data-g></td><td class="c"><button type="button" class="btn btn-sm" data-bmax="${si}" title="Yuqori ball olgan o'quvchi: barcha savollarga maksimal ball yozadi" ${on ? "" : "disabled"}>max</button></td></tr>`;
     }).join("");
     body = `<div class="tblwrap"><table class="j bsa">${head}${rows}</table></div>
       <p class="muted" style="margin:0">Birinchi qator — savollarning maksimal ballari (o'zgartirish mumkin). ✔ olib tashlansa, o'quvchi ishtirok etmagan hisoblanadi. Bo'sh katak — 0 ball. Ball maksimaldan oshmaydi (oshirib yozsangiz, maksimal ball qo'yiladi); maksimal ball yozilganda keyingi katakka o'zi o'tadi. Baho: 86–100% → 5, 66–85% → 4, 30–65% → 3, qolgani → 2.</p>`;
@@ -4338,6 +4344,10 @@ function pageBsb(m) {
   };
   c.students.forEach((_, si) => paint(si));
   const edit = (s) => B.rows[s.name] = B.rows[s.name] || {in: true, pts: []};
+  m.querySelectorAll("[data-bmax]").forEach((b) => b.onclick = () => {   // hamma savolga maksimal ball
+    const si = +b.dataset.bmax, r = edit(c.students[si]); r.in = true; r.pts = B.max.slice(); dirty();
+    const y = window.scrollY; render(); window.scrollTo(0, y); toast(`${c.students[si].name}: barcha savollarga maksimal ball (${gnum(tot)})`);
+  });
   m.querySelectorAll("[data-bin]").forEach((cb) => cb.onchange = () => {
     const si = +cb.dataset.bin, r = edit(c.students[si]); r.in = cb.checked; dirty();
     const tr = cb.closest("tr"); tr.classList.toggle("off", !r.in); tr.querySelectorAll("[data-bp]").forEach((x) => x.disabled = !r.in); paint(si);
