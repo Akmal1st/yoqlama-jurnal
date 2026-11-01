@@ -2281,7 +2281,7 @@ test("Jurnal kompyuterda bitta ekranga sig'adi: sahifa na pastga, na yonga suril
       await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
       await page.evaluate(() => {
         const t = todayIso(), c = D.classes[0]; if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); }
-        while (c.students.length < 26) c.students.push({id: "x" + c.students.length, name: "Test Oquvchi " + c.students.length, marks: {}});
+        while (c.students.length < 18) c.students.push({id: "x" + c.students.length, name: "Test Oquvchi " + c.students.length, marks: {}});
         S.ci = 0; S.page = "journal"; S.jpage = "j"; V.anchor = t; V.mode = "month"; render();
       });
       for (const mode of ["week", "month", "quarter"]) {
@@ -2291,10 +2291,43 @@ test("Jurnal kompyuterda bitta ekranga sig'adi: sahifa na pastga, na yonga suril
         if (!r.rows) continue;   // tanlangan davrda dars sanasi yo'q
         assert.ok(r.dy <= 1, `${w}x${h} ${mode}: sahifa pastga suriladi (${r.dy}px)`);
         assert.ok(r.dx <= 1 && r.twx <= 1, `${w}x${h} ${mode}: yonga suriladi (${r.dx}/${r.twx})`);
-        assert.ok(r.twy <= 1, `${w}x${h} ${mode}: jadval ichida suriladi (${r.twy}px)`);
+        // past ekranda qator balandligi 26 px dan kichraymaydi: sig'masa jadval ichida suriladi (sahifa surilmaydi)
+        if (h >= 800) assert.ok(r.twy <= 1, `${w}x${h} ${mode}: jadval ichida suriladi (${r.twy}px)`);
       }
       await page.close();
     }
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("Jurnal jadvali kichrayib ketmaydi: 20 tagacha sig'adi, ko'pida oddiy o'lcham, «Faqat jadval» rejimi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 760}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const info = (n) => page.evaluate((n) => {
+      const c = D.classes[0]; while (c.students.length < n) c.students.push({id: "x" + c.students.length, name: "Test Oquvchi " + c.students.length, marks: {}});
+      S.ci = 0; S.page = "journal"; S.jpage = "j"; V.mode = "week"; V.anchor = todayIso(); render();
+      const tw = document.querySelector("#tw"), r = tw.querySelector("td.nm").getBoundingClientRect();
+      return {fit: tw.classList.contains("fit"), row: Math.round(r.height), n: tw.querySelectorAll("td.nm").length, jonly: document.body.classList.contains("jonly")};
+    }, n);
+    let r = await info(18);
+    assert.ok(r.fit && r.row >= 24, "18 ta o'quvchi: sig'adi, qator " + JSON.stringify(r));
+    r = await info(26);
+    assert.ok(!r.fit && r.row >= 24, "26 ta o'quvchi: oddiy o'lcham " + JSON.stringify(r));
+    // «Faqat jadval»: yon panel yashiriladi, Esc bilan qaytadi, 26 ta o'quvchi ham sig'diriladi
+    assert.ok(await page.isVisible(".side"));
+    await page.click("[data-jonly]");
+    assert.ok(await page.evaluate(() => document.body.classList.contains("jonly")));
+    assert.ok(!(await page.isVisible(".side")), "yon panel yashirilishi kerak");
+    r = await page.evaluate(() => { const tw = document.querySelector("#tw"), q = tw.querySelector("td.nm").getBoundingClientRect(); return {fit: tw.classList.contains("fit"), row: Math.round(q.height)}; });
+    assert.ok(r.fit && r.row >= 24, "to'liq ekran rejimida 26 ta sig'adi " + JSON.stringify(r));
+    await page.keyboard.press("Escape");
+    assert.ok(await page.isVisible(".side"), "Esc yon panelni qaytaradi");
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
