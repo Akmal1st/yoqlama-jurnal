@@ -35,7 +35,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       await nav("reports");
       for (const k of ["att", "stats", "ready", "cmp", "blank", "cls"]) await page.click(`[data-kind=${k}]`);
       await nav("settings");
-      for (let i = 0; i < 7; i++) await page.click(`[data-sec="${i}"]`);
+      for (const i of [0, 1, 2, 4, 5, 6]) await page.click(`[data-sec="${i}"]`);
       await nav("today");
       const start = await page.$("[data-start]");
       if (start) { await start.click(); await page.click("[data-next]"); await page.click("[data-next]"); await page.click("[data-next]"); }
@@ -537,32 +537,6 @@ test("BSB «Header, jadval va footer»: uzun jadval ham 1 ta varaqqa sig'adi", a
     await page.pdf({path: "/tmp/bsb-fit.pdf", preferCSSPageSize: true});
     const pages = (await readFile("/tmp/bsb-fit.pdf")).toString("latin1").match(/\/Type\s*\/Page[^s]/g).length;
     assert.equal(pages, 1, "bitta varaq");
-    assert.deepEqual(errors, []);
-  } finally { await browser.close(); }
-});
-
-test("Sozlamalar → Dizayn: mavzu, yozuv turi, o'lcham va rang", async () => {
-  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
-  try {
-    const page = await browser.newPage({viewport: {width: 390, height: 844}});
-    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
-    await page.goto(APP);
-    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
-    await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="3"]');
-    await page.waitForSelector(".dprev");
-    await page.click("[data-th=dark]"); await page.click("[data-font=georgia]"); await page.click("[data-fs=l]"); await page.click("[data-accent=blue]"); await page.click("[data-rad=sharp]");
-    const st = await page.evaluate(() => ({theme: document.documentElement.dataset.theme, font: getComputedStyle(document.body).fontFamily, acc: getComputedStyle(document.documentElement).getPropertyValue("--acc").trim(),
-      zoom: getComputedStyle(document.querySelector("main")).zoom, web: [D.web.font, D.web.fsize, D.web.accent, D.web.radius], saved: JSON.parse(localStorage.getItem("yoqlama_jurnal")).web.font}));
-    assert.equal(st.theme, "dark"); assert.match(st.font, /Georgia/); assert.equal(st.acc, "#6aa7ef"); assert.equal(st.zoom, "1.08");
-    assert.deepEqual(st.web, ["georgia", "l", "blue", "sharp"]); assert.equal(st.saved, "georgia");
-    await page.click("[data-th=light]");
-    assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--acc").trim()), "#1f5fae");
-    await page.click("[data-a=dreset]");
-    assert.deepEqual(await page.evaluate(() => [D.web.font, D.web.fsize, D.web.accent, D.web.radius, D.web.style]), ["system", "m", "teal", "round", "dash"]);
-    assert.match(await page.evaluate(() => getComputedStyle(document.body).fontFamily), /system-ui/);
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
@@ -1711,7 +1685,7 @@ test("Sozlamalar: bo'limlar guruhlangan, kalitlar holatni ko'rsatadi, telefonda 
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
-    for (let i = 0; i < 7; i++) {
+    for (const i of [0, 1, 2, 4, 5, 6]) {
       await page.evaluate((i) => { S.sec = i; go("settings"); }, i);
       const r = await page.evaluate(() => ({g: document.querySelectorAll(".sbody .sgroup").length, over: document.documentElement.scrollWidth - innerWidth, cur: $(".secs [aria-current]").dataset.sec}));
       assert.ok(r.g >= 1, `bo'lim ${i}: guruh yo'q`); assert.ok(r.over <= 0, `bo'lim ${i}: ${r.over}px yonga chiqdi`); assert.equal(r.cur, String(i));
@@ -1754,51 +1728,6 @@ test("Bugun: keng ekranda ma'lumot kartochkalari ikki ustunda, telefonda bitta",
     await page.evaluate(() => render());
     assert.equal(await cols(), 1, "telefonda bitta ustun");
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "yonga chiqmasin");
-    assert.deepEqual(errors, []);
-  } finally { await browser.close(); }
-});
-
-test("Dizayn: uslublar va kompyuterdagi shriftlar", async () => {
-  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
-  try {
-    const page = await browser.newPage({viewport: {width: 390, height: 844}});
-    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
-    await page.goto(APP);
-    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
-    await page.evaluate(() => { S.sec = 3; go("settings"); });
-    assert.equal(await page.locator(".stys [data-sty]").count(), 3);
-    // uch dizayn: Klassik dashboard (standart), Qulay, Ixcham; eski uslub nomlari standartga qaytadi
-    assert.equal(await page.evaluate(() => D.web.style), "dash");
-    const win = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--win").trim());
-    const before = await win();
-    for (const st of ["qulay", "zich"]) {
-      await page.click(`[data-sty="${st}"]`);
-      assert.equal(await page.evaluate(() => D.web.style), st);
-      assert.notEqual(await win(), before, `${st}: fon o'zgarishi kerak`);
-      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1, `${st}: ekrandan chiqmasin`);
-    }
-    // yon paneldagi tezkor almashtirgich: zich → dash → qulay
-    await page.evaluate(() => $("[data-dsw]").click());
-    assert.equal(await page.evaluate(() => D.web.style), "dash");
-    await page.evaluate(() => $("[data-dsw]").click());
-    assert.equal(await page.evaluate(() => D.web.style), "qulay");
-    await page.click('[data-a="dreset"]');
-    assert.equal(await page.evaluate(() => D.web.style), "dash");
-    // shriftlar: ro'yxatdan tanlash, qo'lda yozish, mavjud bo'lmagani rad etiladi
-    await page.click('[data-a="sysfont"]');
-    const first = await page.getAttribute(".flist [data-fn]", "data-fn");
-    assert.ok(first, "qurilmada kamida bitta mashhur shrift topilishi kerak");
-    await page.fill("#fsq", "Yo'q Bunday Shrift 123"); await page.click(".modal [data-use]");
-    await page.waitForSelector("text=bu qurilmada topilmadi");
-    assert.notEqual(await page.evaluate(() => D.web.font), "custom");
-    await page.fill("#fsq", ""); await page.click(`.flist [data-fn="${first}"]`);
-    assert.deepEqual(await page.evaluate(() => [D.web.font, D.web.cfont]), ["custom", first]);
-    assert.ok((await page.evaluate(() => getComputedStyle(document.body).fontFamily)).includes(first));
-    assert.ok(await page.isVisible('.fonts [data-font="custom"].on'));
-    // xavfli belgilar CSS ga tushmaydi
-    await page.evaluate(() => { D.web.cfont = 'X";}body{display:none}'; applyTheme(); });
-    assert.equal(await page.evaluate(() => getComputedStyle(document.body).display), "block");
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
@@ -2128,24 +2057,15 @@ test("Sozlamalar: hafta/oy/chorak rejimlarini o'chirib-yoqish, ixcham dizayn va 
     await page.evaluate(() => { S.sec = 6; go("settings"); });
     await page.click('[data-ft="vweek"]'); await page.click('[data-ft="vmonth"]');
     assert.equal(await page.evaluate(() => viewModes().length), 4);
-    // ixcham dizayn va o'xshash shriftlar yo'q
+    // «Dizayn» bo'limi menyuda yo'q (vaqtincha TPT ko'rinishi), eski raqam bilan ochilsa birinchi bo'lim chiqadi
     await page.evaluate(() => { S.sec = 3; go("settings"); });
-    assert.equal(await page.locator("[data-den]").count(), 0);
-    assert.deepEqual(await page.$$eval("[data-font]", (x) => x.map((e) => e.dataset.font).filter((k) => k !== "custom")), ["lserif", "georgia", "verdana", "system"]);
+    assert.equal(await page.locator('[data-sec="3"]').count(), 0);
+    assert.equal(await page.evaluate(() => S.sec), 0);
+    assert.equal(await page.locator("[data-deco], [data-sty], [data-font], [data-dsw]").count(), 0);
+    assert.ok(await page.evaluate(() => document.documentElement.classList.contains("tpt-all") && /Manrope/.test(getComputedStyle(document.body).fontFamily)));
     // eski saqlangan qiymatlar tuzatiladi
     const mig = await page.evaluate(() => { const a = migrate(normalize({web: {ui26: 1, font: "times", density: "kompakt"}})).web, b = migrate(normalize({web: {ui26: 1, font: "lsans"}})).web; return [a.font, "density" in a, b.font]; });
     assert.deepEqual(mig, ["lserif", false, "system"]);
-    // bezak: 3 ta katakcha, tanlansa kartochka qirrasi o'zgaradi, qayta bossa dizaynning o'zi qaytadi
-    assert.equal(await page.locator("[data-deco]").count(), 3);
-    assert.equal(await page.locator(".deco.on").count(), 0);
-    const edge = () => page.evaluate(() => { const cs = getComputedStyle(document.querySelector(".card.sbody")); return [cs.borderTopWidth, cs.boxShadow === "none"]; });
-    const base = await edge();
-    await page.click('[data-deco="line"]'); assert.deepEqual(await edge(), ["2px", true]);
-    assert.equal(await page.getAttribute('[data-deco="line"]', "aria-checked"), "true");
-    await page.click('[data-deco="soft"]'); assert.deepEqual(await edge(), ["1px", false]); assert.equal(await page.locator(".deco.on").count(), 1);
-    await page.click('[data-deco="flat"]'); assert.deepEqual(await edge(), ["1px", true]);
-    await page.click('[data-deco="flat"]'); assert.deepEqual(await edge(), base);
-    assert.equal(await page.evaluate(() => D.web.deco), "");
     // bo'lim tugmalari alohida kartochkalar
     const bs = await page.$$eval("nav.secs button", (x) => x.map((b) => { const cs = getComputedStyle(b); return [cs.borderTopWidth, cs.backgroundColor !== "rgba(0, 0, 0, 0)"]; }));
     assert.ok(bs.length >= 6 && bs.every(([w, bg]) => w === "1px" && bg), JSON.stringify(bs));

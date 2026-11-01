@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="uz">
+<html lang="uz" class="tpt-all">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="vendor/bootstrap-5.3.3.css">
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="guruhlar.css">
+<link rel="stylesheet" href="tpt-tema.css">
 </head>
 <body>
 <div class="app" id="app">
@@ -181,7 +182,11 @@ const ccOf = (i) => `--cc:${CLS_COLORS[i % CLS_COLORS.length]}`;
 const cleanFont = (n) => String(n || "").replace(/["'\\;{}<>()]/g, "").replace(/\s+/g, " ").trim().slice(0, 80);
 const sideMin = () => !!D.web.sidemin;
 const curStyle = () => (STYLES[D.web.style] ? D.web.style : DESIGN_DEF.style);
+// VAQTINCHA (Akmal, 2026-11-01): TPT Guruhlar ko'rinishi butun dasturga (tpt-tema.css). Yangi «Dizayn» menyusi tasdiqlanguncha
+// saqlangan shrift/rang/uslub/bezak tanlovlari qo'llanmaydi, lekin D.web da o'chirilmaydi. Mavzu (kunduzgi/tungi/avto) ishlayveradi.
+const TPT_ALL = true;
 function designCss(w) {
+  if (TPT_ALL) return `@media screen{${ZAMONAVIY_CSS}}`;
   const cf = cleanFont(w.cfont), f = w.font === "custom" && cf ? `"${cf}",system-ui,sans-serif` : (FONTS.find((x) => x[0] === w.font) || FONTS.find((x) => x[0] === DESIGN_DEF.font))[2], z = (FSIZES.find((x) => x[0] === w.fsize) || FSIZES[1])[2], a = ACCENTS[w.accent] || ACCENTS.teal;
   const st = STYLES[w.style] || STYLES[DESIGN_DEF.style];
   // foydalanuvchi «Asosiy rang»ni o'zi tanlagan bo'lsa, uslubning o'z rangi (--acc*) uni bosib ketmasin
@@ -1373,7 +1378,6 @@ function renderNav() {
   const hb = `<button class="nav hlp" data-help title="Shu sahifa bo'yicha qo'llanma">${ICONS.help}<span class="lbl">Yordam</span></button>`;
   $("#side").innerHTML = `<div class="logo"><b>Y</b><span>Yo'qlama jurnali<small>web</small></span></div><button class="btn btn-sm cmdb" data-cmdk title="Qidirish va buyruqlar (Ctrl+K)">🔍<span class="lbl">Qidirish</span><kbd>Ctrl K</kbd></button>${btns}${hb}${sideView()}<div class="grow"></div>
     <div class="sbot"><button class="btn btn-sm sidet" data-sidet title="${sideMin() ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}" aria-label="${sideMin() ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}">${sideMin() ? "»" : "« Yig'ish"}</button>
-    <button class="btn btn-sm" data-dsw title="Dizaynni almashtirish: ${esc(STYLES[curStyle()][0])} (keyingisi uchun bosing)" aria-label="Dizaynni almashtirish">🎨${sideMin() ? "" : " Dizayn"}</button>
     <button class="btn btn-sm" data-lock title="Qo'yilgan baholar himoyasi: ${lockTxt.slice(2)}">${sideMin() ? lockTxt.slice(0, 2) : lockTxt}</button></div>`;
   $("#tabbar").innerHTML = btns + hb;
   document.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => {
@@ -1384,7 +1388,6 @@ function renderNav() {
   document.querySelectorAll("[data-help]").forEach((b) => b.onclick = () => helpDialog());
   document.querySelectorAll("[data-cmdk]").forEach((b) => b.onclick = () => cmdPalette());
   const lb = $("[data-lock]"); if (lb) lb.onclick = toggleLock;
-  const dsw = $("[data-dsw]"); if (dsw) dsw.onclick = () => { const ks = Object.keys(STYLES); D.web.style = ks[(ks.indexOf(curStyle()) + 1) % ks.length]; save(); render(); toast("Dizayn: " + STYLES[D.web.style][0]); };
   $("[data-sidet]").onclick = () => { D.web.sidemin = !D.web.sidemin; save(); render(); };
   $("#side").querySelectorAll("[data-ci]").forEach((b) => b.onclick = () => pickClass(+b.dataset.ci));
   const q = $("#side .csq"); if (q) q.oninput = () => { const v = normName(q.value); $("#side").querySelectorAll(".cg").forEach((g) => g.hidden = !!v && !g.dataset.cg.includes(v)); };
@@ -1507,6 +1510,7 @@ async function toggleLock() {
 function applyTheme() {
   let dc = document.getElementById("design-css"); if (!dc) { dc = document.createElement("style"); dc.id = "design-css"; document.head.append(dc); }
   const css = designCss(D.web); if (dc.textContent !== css) dc.textContent = css;
+  document.documentElement.classList.toggle("tpt-all", TPT_ALL);
   const t = D.web.theme; document.documentElement.dataset.theme = t === "auto" ? "" : t;
   if (t === "auto") delete document.documentElement.dataset.theme;
   // Chorak ko'rinishida kataklar kichik — butun chorak bitta ekranga sig'adi
@@ -2467,6 +2471,8 @@ function pageReports(m) {
 // [belgi, nomi, qisqa izoh]
 const SECS = [["👥", "Sinflar va o'quvchilar", "Sinf qo'shish, ro'yxatlar"], ["📅", "Dars kunlari va choraklar", "Jadval, eslatmalar, choraklar"], ["🎯", "Baholash", "Baho ranglari, xavf mezonlari"],
   ["🎨", "Dizayn", "Mavzu, shrift, ranglar"], ["🔒", "Himoya", "Baholarni qulflash, parol"], ["💾", "Ma'lumotlar", "Zaxira, import, o'quv yili"], ["🧩", "Funksiyalar", "Keraksizlarini yashirish"]];
+// «Dizayn» bo'limi (3) olib tashlandi (Akmal, 2026-11-01) — yangisi alohida faylda bo'ladi. Raqamlar o'zgarmasin deb joyi saqlanadi, menyuda ko'rinmaydi.
+const SEC_OFF = new Set([3]);
 function srow(t, d, btn) { return `<div class="srow${String(btn).startsWith('<button class="swt') ? " tog" : ""}"><div><b>${t}</b>${d ? `<div class="muted">${d}</div>` : ""}</div>${btn ? `<div class="hrow sact">${btn}</div>` : ""}</div>`; }
 // sozlamalar guruhi: kichik sarlavha va ramkali qatorlar
 const sgroup = (title, html, cls = "") => html ? `<div class="sgroup ${cls}">${title ? `<h3 class="sgt">${title}</h3>` : ""}<div class="sgbox">${html}</div></div>` : "";
@@ -2474,6 +2480,7 @@ const sgroup = (title, html, cls = "") => html ? `<div class="sgroup ${cls}">${t
 const swt = (attrs, on) => `<button class="swt ${on ? "on" : ""}" role="switch" aria-checked="${on}" ${attrs}><i></i><span>${on ? "Yoqilgan" : "O'chiq"}</span></button>`;
 function pageSettings(m) {
   const st = D.settings; let body = "";
+  if (SEC_OFF.has(S.sec) || !SECS[S.sec]) S.sec = 0;
   if (S.sec === 0) {
     body = sgroup("", srow("Yangi sinf", "Sinf nomi, fani va o'quvchilar ro'yxati — ro'yxatni Excel yoki Word'dan nusxalab qo'yish mumkin", `<button class="btn btn-primary" data-a="addc">＋ Sinf qo'shish</button>`)) +
       sgroup(`Sinflaringiz · ${D.classes.filter((c) => !isGrp(c)).length}`, D.classes.map((c, i) => isGrp(c) ? "" : `<div class="srow scls"><div class="av">${esc(c.name.slice(0, 3))}</div><div class="sp" style="min-width:0"><b>${esc(label(c))}</b>
@@ -2517,24 +2524,6 @@ function pageSettings(m) {
         srow("KTRdagi BSB/CHSB mavzulari", "Rejadagi «BSB …» va «CHSB …» mavzulari uchun summativ ish o'zi qo'shilsin", swt('data-a="ktrw"', ktrWorksOn()))) +
       sgroup("Jurnal", srow("O'tgan darslarga belgi qo'yish", "Darsda ulgurmagan yoki keyin to'ldiriladigan baho va yo'qlamalar uchun. Kelgusi kunlarga belgi qo'yilmaydi; har bir o'zgarish tarixga yoziladi.",
         `<div class="seg wrap">${PAST.map(([k, n]) => `<button class="${(D.web.past || "today") === k ? "on" : ""}" data-past="${k}">${n}</button>`).join("")}</div>`));
-  } else if (S.sec === 3) {
-    const w = D.web, seg = (attr, list, cur) => `<div class="seg wrap">${list.map(([k, n]) => `<button class="${cur === k ? "on" : ""}" data-${attr}="${k}">${n}</button>`).join("")}</div>`;
-    body = `<div class="dprev"><div class="dside"><b>Y</b><span>Jurnal</span></div><div class="dmain"><div class="dtitle">Namuna: 7-B · Matematika</div>
-        <div class="hrow" style="gap:6px"><span class="cell" style="width:38px;display:grid;place-items:center;background:${gradeColor(9)};color:${contrast(gradeColor(9))}">9</span><span class="cell" style="width:38px;display:grid;place-items:center;background:${D.settings.attendance.s};color:#fff">S</span><span class="cell t" style="width:38px;display:grid;place-items:center">—</span><button class="btn btn-primary btn-sm">▶ Darsni boshlash</button></div>
-        <div class="muted">Aa Bb Oʻoʻ Gʻgʻ 0123456789 — «Yozuv namunasi»</div></div></div>` +
-      sgroup("Ko'rinish", srow("Mavzu", "Kunduzgi — och fon; Tungi — qorong'i fon, kechqurun ko'zni charchatmaydi; Avto — telefon/kompyuter sozlamasiga qarab", seg("th", [["light", "☀ Kunduzgi"], ["dark", "🌙 Tungi"], ["auto", "Avto"]], w.theme)) +
-      `<div class="srow"><div><b>Uslub</b><div class="muted">Ilovaning umumiy ko'rinishi. Rang, shrift va mavzu (kunduzgi/tungi) har bir uslubda ishlaydi</div></div>
-        <div class="stys">${Object.entries(STYLES).map(([k, [n, d]]) => `<button class="sty ${(STYLES[w.style] ? w.style : DESIGN_DEF.style) === k ? "on" : ""}" data-sty="${k}"><i class="sw sw-${k}"><b></b><u></u><u></u></i><b>${n}</b><span>${d}</span></button>`).join("")}</div></div>` +
-      `<div class="srow"><div><b>Yozuv turi</b><div class="muted">Butun ilova, hisobotlar va chop etiladigan hujjatlar shu shriftda chiqadi</div></div>
-        <div class="fonts">${FONTS.map(([k, n, ff]) => `<button class="fopt ${w.font === k ? "on" : ""}" data-font="${k}" style="font-family:${esc(ff)}"><b>${n}</b><span>Aa Oʻoʻ 123</span></button>`).join("")}${cleanFont(w.cfont) ? `<button class="fopt ${w.font === "custom" ? "on" : ""}" data-font="custom" style="font-family:&quot;${esc(cleanFont(w.cfont))}&quot;,system-ui"><b>${esc(cleanFont(w.cfont))}</b><span>Aa Oʻoʻ 123</span></button>` : ""}
-        <button class="fopt fsys" data-a="sysfont"><b>🖥 Kompyuterdagi shriftlar…</b><span style="font-size:13px">Tizimga o'rnatilgan istalgan shrift</span></button></div></div>` +
-      srow("Yozuv o'lchami", "Ekrandagi yozuv va kataklar kattaligi", seg("fs", FSIZES.map(([k, n]) => [k, n]), w.fsize)) +
-      `<div class="srow"><div><b>Asosiy rang</b><div class="muted">Tugmalar, yon panel va ajratilgan elementlar rangi</div></div>
-        <div class="accs">${Object.entries(ACCENTS).map(([k, a]) => `<button class="acc ${w.accent === k ? "on" : ""}" data-accent="${k}" title="${a[0]}"><i style="background:linear-gradient(135deg,${a[1]} 50%,${a[6]} 50%)"></i>${a[0]}</button>`).join("")}</div></div>` +
-      `<div class="srow"><div><b>Bezak</b><div class="muted">Kartochka, jadval va bo'lim tugmalari qirrasi. Belgini olib tashlasangiz, dizaynning o'z ko'rinishi qaytadi</div></div>
-        <div class="decos">${DECOS.map(([k, n, d]) => `<button class="deco ${w.deco === k ? "on" : ""}" role="checkbox" aria-checked="${w.deco === k}" data-deco="${k}"><i class="dchk">${w.deco === k ? "✓" : ""}</i><b>${n}</b><span>${d}</span></button>`).join("")}</div></div>` +
-      srow("Burchaklar", "Kartochka va jadvallar burchagi", seg("rad", [["round", "Yumaloq"], ["sharp", "To'g'ri"]], w.radius)) +
-      srow("Standart dizayn", "Uslub, shrift, rang, o'lcham va burchaklarni boshlang'ich holatga qaytaradi", `<button class="btn" data-a="dreset">↺ Qaytarish</button>`));
   } else if (S.sec === 4) {
     const p = st.protect;
     body = sgroup("", srow("Qo'yilgan baholarni himoyalash", "Mavjud bahoni o'zgartirishdan oldin qulfni ochish kerak (bo'sh katakka baho qo'yish erkin)", swt('data-a="prot"', p.enabled)) +
@@ -2568,7 +2557,7 @@ function pageSettings(m) {
   }
   const [ic, nm, ds] = SECS[S.sec];
   m.innerHTML = `<div class="vcol" style="gap:18px"><h1>Sozlamalar</h1><div class="set">
-    <nav class="card secs" aria-label="Sozlamalar bo'limlari">${SECS.map(([i0, n, d], i) => `<button class="${i === S.sec ? "on" : ""}" data-sec="${i}" ${i === S.sec ? 'aria-current="page"' : ""}><span class="si">${i0}</span><span class="sn">${n}<small>${d}</small></span></button>`).join("")}</nav>
+    <nav class="card secs" aria-label="Sozlamalar bo'limlari">${SECS.map(([i0, n, d], i) => SEC_OFF.has(i) ? "" : `<button class="${i === S.sec ? "on" : ""}" data-sec="${i}" ${i === S.sec ? 'aria-current="page"' : ""}><span class="si">${i0}</span><span class="sn">${n}<small>${d}</small></span></button>`).join("")}</nav>
     <section class="card sbody"><div class="shead"><span class="si big">${ic}</span><div><h2>${nm}</h2><div class="muted">${ds}</div></div></div>${body}</section></div></div>`;
   m.querySelectorAll("[data-sec]").forEach((b) => b.onclick = () => { S.sec = +b.dataset.sec; render(); });
   m.querySelectorAll("[data-deco]").forEach((b) => b.onclick = () => { D.web.deco = D.web.deco === b.dataset.deco ? "" : b.dataset.deco; save(); applyTheme(); render(); });
