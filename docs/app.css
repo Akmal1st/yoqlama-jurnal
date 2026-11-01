@@ -810,3 +810,9 @@ nav.card.secs button.on{background:var(--acc-soft);border-color:var(--acc);box-s
 /* «Faqat jadval»: yon panel va qo'shimcha kartalar yashirinadi, jadval butun ekranni oladi */
 @media(min-width:821px){body.jonly .side,body.jonly .tdcard,body.jonly .jhint{display:none!important}body.jonly main{padding-top:14px;padding-bottom:14px;max-width:none}}
 @media(max-width:820px){.jonlyb{display:none}}
+
+.rkn{width:84px}.rkrow .hrow{align-items:center}.rkrow>div:first-child{flex:1 1 220px}
+.srow.tog.rkrow{flex-wrap:wrap}
+.rkrow input.rkn{width:84px;flex:none}.rkrow>div:first-child{flex:1 1 320px}.rkrow .sact{flex:none;flex-wrap:nowrap;gap:14px}
+.srow.tog.rkrow>div:first-child{flex:1 1 320px;min-width:0}
+@media(max-width:820px){.srow.tog.rkrow>div:first-child{flex:1 1 100%}.rkrow .sact{flex:1 1 100%;justify-content:space-between}}

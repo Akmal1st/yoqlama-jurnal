@@ -2846,3 +2846,36 @@ test("O'chirilgan BSB/CHSB qayta paydo bo'lmaydi: KTR rejasi va eMaktab importi 
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Xavf turlarini tanlash: har tur alohida yoqiladi, chegarasi o'zgaradi, tayyor to'plamlar", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => { S.sec = 2; go("settings"); });
+    assert.equal(await page.locator("[data-rkon]").count(), 9, "9 ta xavf turi");
+    // sinf o'quvchisi uchun sun'iy holat: davomati past, baholari yaxshi
+    const setup = () => page.evaluate(() => {
+      const c = D.classes[0], s = c.students[0], ds = c.dates.filter((d) => d <= todayIso() && !isNoLesson(c, d)).slice(-10); s.marks = {};
+      ds.forEach((d, i) => s.marks[d] = i < 5 ? "s" : "9");
+      const [lo, hi, q] = periodNow(); const row = reportRows(c, "2000-01-01", todayIso(), q).rows[0]; return row.why;
+    });
+    const why1 = await setup(); assert.ok(why1.some((x) => x.startsWith("davomat")), "davomat xavfi yoqilgan");
+    await page.click('[data-rkon="att"]'); await page.click('[data-rkon="s"]');
+    assert.equal(await page.evaluate(() => D.settings.risk.on.att), false);
+    const why2 = await setup(); assert.ok(!why2.some((x) => x.startsWith("davomat") || x.startsWith("sababsiz")), "o'chirilgan turlar xavf bermaydi");
+    // chegara
+    await page.fill('[data-rk="consec_ge"]', "4"); await page.dispatchEvent('[data-rk="consec_ge"]', "change");
+    assert.equal(await page.evaluate(() => D.settings.risk.consec_ge), 4);
+    // tayyor to'plamlar
+    await page.click('[data-rkpre="all"]'); assert.equal(await page.evaluate(() => Object.values(D.settings.risk.on).filter(Boolean).length), 9);
+    await page.click('[data-rkpre="none"]'); assert.equal(await page.evaluate(() => Object.values(D.settings.risk.on).filter(Boolean).length), 0);
+    await page.click('[data-rkpre="att"]'); assert.deepEqual(await page.evaluate(() => Object.entries(D.settings.risk.on).filter(([, v]) => v).map(([k]) => k).sort()), ["att", "consec", "s"]);
+    await page.click('[data-rkpre="default"]'); assert.equal(await page.evaluate(() => D.settings.risk.on.att && !D.settings.risk.on.consec), true);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
