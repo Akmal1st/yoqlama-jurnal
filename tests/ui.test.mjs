@@ -2756,3 +2756,29 @@ test("Pullik guruh: dars paketlari (tarif), o'quvchiga biriktirish va kelgan kun
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Guruh o'quvchi kartochkalari: kartochkalar tagma-tag, ichidagi elementlar yonma-yon", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.click(".side [data-go=settings]"); await page.click('[data-sec="0"]'); await page.click("[data-a=addpaid]");
+    await page.fill(".modal #cn", "Ingliz tili kursi"); await page.fill(".modal #cl", "Aliyev Sardor, 7-B\nKarimova Madina, 8-A\nToshmatov Ali, 9-C");
+    await page.click(".modal #cw [data-k='0']"); await page.click(".modal [data-ok]");
+    await page.waitForSelector(".mcard");
+    const r = await page.evaluate(() => {
+      const B = [...document.querySelectorAll(".mcard")].map((e) => e.getBoundingClientRect()), c = document.querySelector(".mcard"), q = (s) => c.querySelector(s).getBoundingClientRect();
+      return {left: B.map((b) => Math.round(b.left)), tops: B.map((b) => b.top), bottoms: B.map((b) => b.bottom), avTop: q(".av").top, nameTop: q(".mname").top, nameLeft: q(".mname").left, avRight: q(".av").right, actLeft: q(".mact").left, nameRight: q(".mmain").right};
+    });
+    assert.equal(new Set(r.left).size, 1, "kartochkalar bitta ustunda");
+    assert.ok(r.tops[1] > r.bottoms[0] && r.tops[2] > r.bottoms[1], "kartochkalar pastga qarab, bir-birining ustiga chiqmasdan");
+    assert.ok(r.tops[1] - r.bottoms[0] >= 8, "kartochkalar orasida bo'shliq bor");
+    assert.ok(r.nameLeft > r.avRight && Math.abs(r.nameTop - r.avTop) < 40, "avatar va ism yonma-yon");
+    assert.ok(r.actLeft >= r.nameRight, "tugmalar ism ustiga chiqmaydi");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
