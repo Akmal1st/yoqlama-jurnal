@@ -4073,7 +4073,7 @@
     },
     "empty_cells": 2,
     "quality": 50,
-    "mastery": 75
+    "mastery": 50.9375
    },
    "rec": {
     "good": [
@@ -4194,7 +4194,7 @@
     },
     "empty_cells": 1,
     "quality": 66.666667,
-    "mastery": 100
+    "mastery": 77.5
    },
    "rec": {
     "good": [
@@ -4563,7 +4563,7 @@
     },
     "empty_cells": 0,
     "quality": 0,
-    "mastery": 100
+    "mastery": 52.857143
    },
    "rec": {
     "good": [
