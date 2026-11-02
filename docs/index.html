@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="tpt-tema.css">
 <link rel="stylesheet" href="dizayn.css">
 <link rel="stylesheet" href="hisobotlar.css">
+<link rel="stylesheet" href="bsb-eksport.css">
 <link rel="stylesheet" href="bugun.css">
 <link rel="stylesheet" href="sozlamalar.css">
 </head>
@@ -30,6 +31,7 @@
 <script src="guruhlar.js"></script>
 <script src="dizayn.js"></script>
 <script src="hisobotlar.js"></script>
+<script src="bsb-eksport.js"></script>
 <script src="bugun.js"></script>
 <script src="sozlamalar.js"></script>
 <script>
@@ -3548,43 +3550,6 @@ function bsbReportHtml(meta, an, rec, pdf) {
     <p class="small">Baho foiz bo'yicha qo'yilgan: 86–100% — 5, 66–85% — 4, 30–65% — 3, 30% dan past — 2. Bo'sh kataklar 0 ball deb olingan.</p>`;
   return o;
 }
-/* «Header, jadval va footer» sozlamalari (D.web.bsb_hdr): title, note (sarlavha ostidagi qator), fnote (footer izohi), hide {kalit:1}, sign (har qatorda «Lavozim | F.I.Sh.») */
-const BF_INFO = [["sinf", "Sinf"], ["fan", "Fan"], ["sana", "Sana"], ["mavzu", "Bo'lim / mavzu"], ["savol", "Savollar / maks. ball"], ["teacher", "Fan o'qituvchisi"]];
-const BF_BLOCKS = [["sum", "Jadval tagida savollar bo'yicha o'rtacha qatorlari"], ["dist", "Baholar taqsimoti"], ["kpi", "Ko'rsatkich kartochkalari"]];
-function bsbFormCfg(meta, an, H) {
-  const hide = H.hide || {}, nq = an.qmax.length;
-  const val = {sinf: meta.cls, fan: meta.subject, sana: meta.date, mavzu: meta.title, savol: `${nq} ta / ${gnum(an.tot_max)}`, teacher: H.teacher};
-  const info = BF_INFO.filter(([k]) => !hide[k]).map(([k, l]) => [l, val[k], k === "mavzu" || k === "teacher"]);
-  const lines = String(H.sign || "").split("\n").map((x) => x.trim()).filter(Boolean);
-  const sign = (lines.length ? lines : ["Fan o'qituvchisi | " + (H.teacher || ""), "Metod birlashma rahbari | " + (H.deputy || "")]).map((l) => { const i = l.indexOf("|"); return i < 0 ? [l.trim(), ""] : [l.slice(0, i).trim(), l.slice(i + 1).trim()]; });
-  return {title: (H.title || "").trim() || `Bo'lim bo'yicha summativ baholash (${meta.kind || "BSB"}) natijalari`, note: (H.note || "").trim(), fnote: (H.fnote || "").trim(), info, sign, sum: !hide.sum, dist: !hide.dist, kpi: !hide.kpi};
-}
-function bsbFormHtml(meta, an, c, B, H) {
-  const by = Object.fromEntries(an.students.map((s) => [s.name, s])), g = an.grades, nq = an.qmax.length, total = c.students.length, ok = an.n && an.questions.length, qs = an.questions, names = meta.names || [];
-  const cell = (k, v, wide) => `<div class="ic${wide ? " w" : ""}"><span>${k}</span><b>${v ? esc(v) : "&nbsp;"}</b></div>`;
-  const F = bsbFormCfg(meta, an, H);
-  const hdr = `<div class="hdr2">${H.school ? `<div class="sch">${esc(H.school)}</div>` : ""}<h1>${esc(F.title)}</h1>${F.note ? `<div class="hnote">${esc(F.note).replace(/\n/g, "<br>")}</div>` : ""}
-    ${F.info.length ? `<div class="info">${F.info.map(([k, v, w]) => cell(k, v, w)).join("")}</div>` : ""}</div>`;
-  const hasN = names.some(Boolean);
-  const lvl = (q) => bg(LV_COL[q.level]);
-  const tbl = `<table class="stu f2"><tr><th rowspan="${hasN ? 2 : 1}">№</th><th rowspan="${hasN ? 2 : 1}" class="l">O'quvchining familiyasi, ismi</th>${an.qmax.map((_, i) => `<th>${i + 1}-s.</th>`).join("")}<th rowspan="${hasN ? 2 : 1}">Jami</th><th rowspan="${hasN ? 2 : 1}">%</th><th rowspan="${hasN ? 2 : 1}">Baho</th></tr>
-    ${hasN ? `<tr class="qn">${an.qmax.map((_, i) => `<th>${esc(names[i] || "")}</th>`).join("")}</tr>` : ""}
-    <tr class="mxr"><td></td><td class="l"><b>Maksimal ball</b></td>${an.qmax.map((v) => `<td>${gnum(v)}</td>`).join("")}<td><b>${gnum(an.tot_max)}</b></td><td>100</td><td></td></tr>
-    ${c.students.map((st, i) => { const s = by[st.name];
-      return s ? `<tr><td>${i + 1}</td><td class="l">${esc(st.name)}</td>${s.pts.map((v) => `<td>${gnum(v)}</td>`).join("")}<td><b>${gnum(s.total)}</b></td><td>${pct0(s.pct)}</td><td${bg(BA_COL[s.grade])}><b>${s.grade}</b></td></tr>`
-        : `<tr class="abs"><td>${i + 1}</td><td class="l">${esc(st.name)}</td><td colspan="${nq + 3}">qatnashmadi</td></tr>`; }).join("")}
-    ${ok && F.sum ? `<tr class="sm"><td></td><td class="l"><b>O'rtacha ball</b></td>${qs.map((q) => `<td>${pyFixed(q.mean, 1)}</td>`).join("")}<td><b>${pyFixed(an.mean_total, 1)}</b></td><td><b>${pct0(an.mean_pct)}</b></td><td></td></tr>
-    <tr class="sm"><td></td><td class="l"><b>O'zlashtirish, %</b></td>${qs.map((q) => `<td${lvl(q)}><b>${pyFixed(q.pct, 0)}</b></td>`).join("")}<td colspan="3"></td></tr>
-    <tr class="sm"><td></td><td class="l"><b>To'liq yechganlar</b></td>${qs.map((q) => `<td>${q.full}</td>`).join("")}<td colspan="3"></td></tr>
-    <tr class="sm"><td></td><td class="l"><b>0 ball olganlar</b></td>${qs.map((q) => `<td>${q.zero}</td>`).join("")}<td colspan="3"></td></tr>` : ""}</table>`;
-  const bar = (k) => { const pc = an.n ? 100 * g[k] / an.n : 0; return `<tr><td${bg(BA_COL[k])}><b>${k}</b></td><td>${g[k]}</td><td>${pyFixed(pc, 0)}%</td><td class="l"><span class="gb" style="width:${Math.round(pc)}%;background:${BA_COL[k]}"></span></td></tr>`; };
-  const kp = (k, v) => `<div class="kp"><span>${k}</span><b>${v}</b></div>`;
-  const ftr = (F.dist || F.kpi ? `<div class="ftr2 ${F.dist && F.kpi ? "" : "one"}">${F.dist ? `<div class="dist"><table><tr><th>Baho</th><th>Soni</th><th>%</th><th class="l">Taqsimot</th></tr>${[5, 4, 3, 2].map(bar).join("")}</table></div>` : ""}
-    ${F.kpi ? `<div class="kps">${kp("Sinfda", total)}${kp("Qatnashdi", an.n)}${kp("Qatnashmadi", an.absent.length)}${kp("O'rtacha ball", ok ? pyFixed(an.mean_total, 1) + " / " + gnum(an.tot_max) : "—")}${kp("O'zlashtirish", ok ? pct0(an.mastery) : "—")}${kp("Bilim sifati", ok ? pct0(an.quality) : "—")}</div>` : ""}</div>` : "")
-    + (F.fnote ? `<div class="fnote">${esc(F.fnote).replace(/\n/g, "<br>")}</div>` : "")
-    + `<div class="sign">${F.sign.map(([l, n]) => `<div><span class="ln"></span><span class="sl">${esc(l)}</span><span class="sn">${esc(n)}</span></div>`).join("")}</div>`;
-  return `<div class="form2">${hdr}${tbl}${ftr}</div>`;
-}
 /* eksport fayl nomi: «sinf-nomi_fan_sana_IshTuri», masalan 6-A_Matematika_2026-10-31_CHSB */
 function baFileBase(c, B) {
   const part = (x, d) => String(x || d).trim().replace(/[^\p{L}\p{N}-]+/gu, "-").replace(/^-+|-+$/g, "") || d;
@@ -3618,72 +3583,8 @@ function printDoc(html, land, fit, fname) {
 }
 function clearPrintDoc() { document.body.classList.remove("pdoc"); const st = document.getElementById("pdoc-css"); if (st) st.remove(); }
 
-async function baExcel(variant, c, B, an, rec, H) {
-  const X = await loadXlsx(), wb = X.utils.book_new(), meta = baMeta(c, B), nq = an.qmax.length, r1 = (v) => Math.round(v * 10) / 10;
-  const add = (name, aoa, cols, merges) => { const ws = X.utils.aoa_to_sheet(aoa); ws["!cols"] = cols.map((w) => ({wch: w})); if (merges) ws["!merges"] = merges; X.utils.book_append_sheet(wb, ws, name); };
-  const qh = an.qmax.map((_, i) => `${i + 1}-savol`), maxRow = ["", "Maksimal ball", ...an.qmax, an.tot_max, 100, ""];
-  if (variant === 1) {
-    const st = an.students.slice().sort((a, b) => b.total - a.total);
-    add("Natijalar", [[`${meta.kind || "BSB"} — ${meta.label}`], [`Bo'lim / mavzu: ${meta.title || "—"}      Sana: ${meta.date}`], [], ["№", "O'quvchi", ...qh, "Jami", "%", "Baho"], maxRow,
-      ...st.map((s, i) => [i + 1, s.name, ...s.pts, s.total, Math.round(s.pct), s.grade]), [], ...(an.absent.length ? [["", "Ishtirok etmaganlar: " + an.absent.join(", ")]] : [])],
-      [5, 30, ...Array(nq).fill(9), 8, 7, 7]);
-    if (an.n) {
-      add("Savollar tahlili", [["Savol", "Mezon", "Maks. ball", "O'rtacha ball", "O'zlashtirish %", "To'liq yechgan", "0 ball olgan", "Ajratish indeksi", "Qiyinlik"],
-        ...an.questions.map((q) => [q.i, meta.names[q.i - 1] || "", q.max, Math.round(q.mean * 100) / 100, r1(q.pct), q.full, q.zero, q.d === null ? "" : Math.round(q.d * 100) / 100, q.level])], [8, 28, ...Array(7).fill(16)]);
-      add("Xatolar kesimi", [["O'rin", "Savol / mezon", "Maks. ball", "Xato %", "0 ball olgan", "50% dan past", "Yo'qotilgan ball ulushi %", "50% dan past olganlar"],
-        ...bsbErrors(an, meta.names).sort((a, b) => a.rank - b.rank).map((r) => [r.rank, r.name, r.max, r1(r.err), r.zero, r.fail, r1(r.share), r.failNames.join(", ")])], [8, 30, 12, 10, 12, 12, 16, 50]);
-      add("Xulosa", [[`${meta.kind || "BSB"} tahlili — ${meta.label}`], [`Bo'lim / mavzu: ${meta.title || "—"}      Sana: ${meta.date}`], [],
-        ["Ishtirok etdi", an.n], ["Ishtirok etmadi", an.absent.length], ["Maksimal ball", an.tot_max], ["O'rtacha ball", Math.round(an.mean_total * 100) / 100], ["O'rtacha %", r1(an.mean_pct)],
-        ["Mediana %", r1(an.median_pct)], ["Eng yuqori ball", an.best.total], ["Eng past ball", an.worst.total], ["Bilim sifati, % («4» va «5»)", r1(an.quality)], ["O'zlashtirish, % (o'rtacha natija)", r1(an.mastery)], [],
-        ["Baho", "O'quvchilar soni"], ...[5, 4, 3, 2].map((k) => [k, an.grades[k]]), [],
-        ...[["Yutuqlar", "good"], ["Kamchiliklar", "bad"], ["Tavsiyalar", "tips"]].flatMap(([t, k]) => [[t], ...rec[k].map((x) => ["• " + x]), []])], [40, 16]);
-    }
-  } else {
-    const by = Object.fromEntries(an.students.map((s) => [s.name, s])), W = nq + 5, g = an.grades, ok = an.n && an.questions.length, hasN = meta.names.some(Boolean);
-    const sm = (t, f, tail) => ["", t, ...an.questions.map(f), ...(tail || ["", "", ""])];
-    const F = bsbFormCfg(meta, an, H), head = [[H.school || ""], [F.title], ...(F.note ? F.note.split("\n").map((x) => [x]) : []), ...F.info.map(([k, v]) => [`${k}: ${v || "—"}`])];
-    const aoa = [...head, [],
-      ["№", "O'quvchining familiyasi, ismi", ...an.qmax.map((_, i) => `${i + 1}-s.`), "Jami", "%", "Baho"],
-      ...(hasN ? [["", "Savol / mezon", ...an.qmax.map((_, i) => meta.names[i] || ""), "", "", ""]] : []), maxRow,
-      ...c.students.map((st, i) => { const s = by[st.name]; return s ? [i + 1, st.name, ...s.pts, s.total, Math.round(s.pct), s.grade] : [i + 1, st.name, "qatnashmadi"]; }),
-      ...(ok && F.sum ? [sm("O'rtacha ball", (q) => Math.round(q.mean * 10) / 10, [Math.round(an.mean_total * 10) / 10, Math.round(an.mean_pct), ""]), sm("O'zlashtirish, %", (q) => Math.round(q.pct)), sm("To'liq yechganlar", (q) => q.full), sm("0 ball olganlar", (q) => q.zero)] : []), [],
-      ...(F.dist ? [["Baho", "Soni", "%"], ...[5, 4, 3, 2].map((k) => [k, g[k], an.n ? Math.round(100 * g[k] / an.n) : 0]), []] : []),
-      ...(F.kpi ? [["Sinfdagi o'quvchilar", "", "Qatnashdi", "Qatnashmadi", "O'rtacha ball", "O'zlashtirish %", "Bilim sifati %"],
-      [c.students.length, "", an.n, an.absent.length, an.n ? Math.round(an.mean_total * 10) / 10 : "", an.n ? Math.round(an.mastery) : "", an.n ? Math.round(an.quality) : ""], []] : []),
-      ...(F.fnote ? F.fnote.split("\n").map((x) => [x]).concat([[]]) : []),
-      F.sign.length ? ["", ...F.sign.flatMap(([l, n], i) => [`${l}: ____________ ${n}`, ...Array(Math.max(0, Math.floor((W - 1) / F.sign.length) - 1)).fill("")]).slice(0, W - 1)] : []];
-    add(meta.kind || "BSB", aoa, [5, 32, ...Array(Math.max(nq, 9)).fill(8), 8, 7, 7], head.map((_, r) => ({s: {r, c: 0}, e: {r, c: W - 1}})));
-  }
-  X.writeFile(wb, `${baFileBase(c, B)}.xlsx`);
-}
-function baExportDialog(c, B) {
-  const H = D.web.bsb_hdr = Object.assign({school: "", teacher: "", deputy: ""}, D.web.bsb_hdr || {});
-  let v = S.bavar || 1;
-  modal(`<h2>${B.kind || "BSB"} tahlilini eksport qilish</h2>
-    <button class="opt" data-v="1"><b>1. Ballar tahlili va jadval</b>Ko'rsatkichlar, savollar bo'yicha diagramma va tahlil, yutuqlar, kamchiliklar, tavsiyalar hamda o'quvchilar ballari jadvali.</button>
-    <button class="opt" data-v="2"><b>2. Header, jadval va footer</b>Rasmiy shakl: yuqorida maktab, sinf, fan, mavzu va sana; o'rtada ballar jadvali; pastda yakuniy ko'rsatkichlar va imzolar.</button>
-    <div class="vcol" id="hdrf" style="gap:8px"><label class="f">Maktab nomi<input class="form-control" type="text" id="hs" value="${esc(H.school)}" placeholder="Masalan: 12-umumta'lim maktabi"></label>
-      <label class="f">Sarlavha<input class="form-control" type="text" id="hti" value="${esc(H.title || "")}" placeholder="Bo'lim bo'yicha summativ baholash (BSB) natijalari"></label>
-      <label class="f">Sarlavha ostidagi qo'shimcha qator<textarea id="hn" rows="2" placeholder="Masalan: 2026-2027 o'quv yili, 1-chorak">${esc(H.note || "")}</textarea></label>
-      <div class="hrow" style="gap:8px"><label class="f sp">Fan o'qituvchisi<input class="form-control" type="text" id="ht" value="${esc(H.teacher)}" placeholder="F.I.Sh."></label><label class="f sp">Metod birlashma rahbari<input class="form-control" type="text" id="hd" value="${esc(H.deputy)}" placeholder="F.I.Sh."></label></div>
-      <details class="hfopt"><summary><b>⚙ Header va footerni o'zgartirish</b></summary><div class="vcol" style="gap:8px;margin-top:8px">
-        <div class="muted">Sarlavhada ko'rinadigan maydonlar:</div><div class="hrow wrap" style="gap:4px 14px">${BF_INFO.map(([k, l]) => `<label class="hrow" style="gap:5px"><input type="checkbox" data-hf="${k}" ${(H.hide || {})[k] ? "" : "checked"}>${l}</label>`).join("")}</div>
-        <div class="muted">Jadval va footer bloklari:</div><div class="vcol" style="gap:4px">${BF_BLOCKS.map(([k, l]) => `<label class="hrow" style="gap:5px"><input type="checkbox" data-hf="${k}" ${(H.hide || {})[k] ? "" : "checked"}>${l}</label>`).join("")}</div>
-        <label class="f">Imzo qatorlari (har qatorda «Lavozim | F.I.Sh.»)<textarea id="hsg" rows="3" placeholder="Fan o'qituvchisi | ${esc(H.teacher || "F.I.Sh.")}&#10;Metod birlashma rahbari | ${esc(H.deputy || "F.I.Sh.")}">${esc(H.sign || "")}</textarea></label>
-        <label class="f">Footer izohi<textarea id="hfn" rows="2" placeholder="Masalan: Natijalar metodbirlashma yig'ilishida muhokama qilindi.">${esc(H.fnote || "")}</textarea></label>
-        <div class="hrow"><button class="btn btn-sm" data-hreset>↺ Asl holiga qaytarish</button></div></div></details></div>
-    <div class="hrow"><span class="sp"></span><button class="btn" data-x>Yopish</button><button class="btn" data-xl>📗 Excel</button><button class="btn btn-primary" data-pdf>📄 Chop etish / PDF</button></div>`, (mm, close) => {
-    const sync = () => { mm.querySelectorAll("[data-v]").forEach((b) => b.classList.toggle("on", +b.dataset.v === v)); $("#hdrf", mm).style.display = v === 2 ? "" : "none"; };
-    mm.querySelectorAll("[data-v]").forEach((b) => b.onclick = () => { v = S.bavar = +b.dataset.v; sync(); }); sync();
-    $("[data-hreset]", mm).onclick = () => { ["#hti", "#hn", "#hsg", "#hfn"].forEach((q) => { $(q, mm).value = ""; }); mm.querySelectorAll("[data-hf]").forEach((x) => { x.checked = true; }); toast("Asl holiga qaytarildi"); };
-    const run = (fn) => { H.title = $("#hti", mm).value.trim(); H.note = $("#hn", mm).value.trim(); H.sign = $("#hsg", mm).value.trim(); H.fnote = $("#hfn", mm).value.trim(); H.hide = {}; mm.querySelectorAll("[data-hf]").forEach((x) => { if (!x.checked) H.hide[x.dataset.hf] = 1; });
-      H.school = $("#hs", mm).value.trim(); H.teacher = $("#ht", mm).value.trim(); H.deputy = $("#hd", mm).value.trim(); save();
-      const an = baAnalysis(c, B), rec = bsbRecs(an); close(); fn(an, rec); };
-    $("[data-x]", mm).onclick = () => close();
-    $("[data-pdf]", mm).onclick = () => run((an, rec) => printDoc(v === 1 ? bsbReportHtml(baMeta(c, B), an, rec, true) : bsbFormHtml(baMeta(c, B), an, c, B, H), v === 2 && an.qmax.length > 12, v === 2, baFileBase(c, B)));
-    $("[data-xl]", mm).onclick = () => run((an, rec) => baExcel(v, c, B, an, rec, H).catch((e) => toast(e.message)));
-  });
-}
+/* eksport oynasi, PDF va Excel — alohida faylda: bsb-eksport.js / bsb-eksport.css (tasdiqlangan dizayn, 2026-11-02) */
+function baExportDialog(c, B) { return BXP.dialog(c, B); }
 async function baTransfer(c, B) {
   if (!B.max.every((v) => v > 0)) { toast("Hamma savol uchun maksimal ball (0 dan katta) kiriting"); return; }
   const an = baAnalysis(c, B);
