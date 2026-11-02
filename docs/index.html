@@ -1561,6 +1561,27 @@ function render() {
   const pp = $(".perpop"); if (pp) pp.remove();
   labelTables(m); snapCols();
 }
+// sahifani yangi holatda chizib, eskisidan faqat o'zgargan qismlarini almashtiradi — butun sahifa «yangilangandek» bo'lmaydi,
+// aylantirish va bosilmagan tugmalar joyida qoladi (o'zgargan qismlar yangi tugmalari bilan keladi)
+function morphKids(a, b) {
+  const an = [...a.childNodes], bn = [...b.childNodes];
+  if (an.length !== bn.length) { a.replaceChildren(...bn); return; }
+  an.forEach((x, i) => morphNode(x, bn[i]));
+}
+function morphNode(a, b) {
+  if (a.nodeType !== b.nodeType || a.nodeName !== b.nodeName) { a.replaceWith(b); return; }
+  if (a.nodeType !== 1) { if (a.nodeValue !== b.nodeValue) a.nodeValue = b.nodeValue; return; }
+  if (a.isEqualNode(b)) return;
+  const sameAttrs = a.attributes.length === b.attributes.length && [...a.attributes].every((x) => b.getAttribute(x.name) === x.value);
+  if (!sameAttrs || !a.children.length || /^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(a.nodeName)) { a.replaceWith(b); return; }
+  morphKids(a, b);
+}
+function softRender() {
+  const m = $("#main"), y = window.scrollY, tmp = document.createElement("div");
+  EPOCH++; document.querySelectorAll(".bpop").forEach((x) => x.remove());
+  ({today: pageToday, journal: pageJournal, groups: (x) => TPT.page(x), lesson: pageLesson, reports: pageReports, settings: pageSettings})[S.page](tmp);
+  morphKids(m, tmp); labelTables(m); window.scrollTo(0, y);
+}
 
 /* ───────── 1. Bugun ───────── */
 // «Bugun» sahifasining ko'rinishi — alohida faylda: bugun.js / bugun.css (tasdiqlangan dizayn, 2026-11-01)
@@ -2191,7 +2212,7 @@ function pageLesson(m) {
     ${!grp && (feat("call") || feat("groups")) ? `<div class="hrow wrap" style="gap:8px">${feat("call") ? `<button class="btn btn-sm" data-call>🎲 Doskaga chaqirish</button>` : ""}${feat("groups") ? `<button class="btn btn-sm" data-grp>👥 Guruhlarga bo'lish</button>` : ""}</div>` : ""}${body}
     <div class="foot"><span class="muted sp">${grp ? `O'tildi: ${c.students.filter((x) => x.marks[t] === "ot").length} · o'tilmadi: ${absent}` : `Kelmagan: ${absent} · kech qolgan: ${late} · baho qo'yilgan: ${graded}${noGr ? "" : ` (${gradedShare(c, t).pct}% ${gradedShare(c, t).ok ? "✓" : "⚠"})`}`}${(() => { const no = c.students.filter((x) => x.hwd && x.hwd[t] === 0).length; return no ? ` · UV bajarmagan: ${no}` : ""; })()}</span>
       ${S.step ? `<button class="btn" data-back>‹ Orqaga</button>` : ""}<button class="btn btn-primary" data-next>${[grp ? "Saqlash va mavzuga o'tish ›" : "Saqlash va baholarga o'tish ›", "Keyingi: mavzu ›", "✓ Darsni yakunlash"][S.step]}</button></div></div>`;
-  const keepY = () => { const y = window.scrollY; render(); window.scrollTo(0, y); };
+  const keepY = softRender;   // belgi/baho bosilganda faqat o'zgargan qatorlar almashtiriladi
   m.querySelectorAll("[data-step]").forEach((b) => b.onclick = () => { saveTopic(); S.step = +b.dataset.step; render(); });
   m.querySelectorAll("[data-att]").forEach((b) => b.onclick = () => {
     const [si, v] = b.dataset.att.split("|"); const old = c.students[+si].marks[t] || "", gs = gradesOf(old);
@@ -2960,12 +2981,13 @@ function pageChsbTest(m) {
     const s = c.students[+b.dataset.tmax], t = ensure();
     if (/\./.test(t.key)) { toast("Avval barcha savollarning to'g'ri javobini belgilang"); return; }
     t.ans[s.id] = t.key; t.out = (t.out || []).filter((x) => x !== s.id); save(); await rescore(s);
-    const y = window.scrollY; render(); window.scrollTo(0, y);
+    refresh();   // butun sahifa emas — faqat qatorlar va hisoblar yangilanadi
   });
   m.querySelectorAll("[data-tin]").forEach((cb) => cb.onchange = async () => {
     const s = c.students[+cb.dataset.tin], t = ensure(), set = new Set(t.out || []);
     if (cb.checked) set.delete(s.id); else set.add(s.id);
-    t.out = [...set]; save(); await rescore(s); render();
+    t.out = [...set]; save(); await rescore(s);
+    const tr = cb.closest("tr"); tr.classList.toggle("off", !cb.checked); tr.querySelectorAll(".ta").forEach((x) => x.disabled = !cb.checked); refresh();
   });
   function refresh() {
     const t = w.test || testBlank(), out = t.out || []; let sum = 0, cnt = 0; const right = Array(t.n).fill(0), given = Array(t.n).fill(0), P = testPts(w, t);
@@ -3381,7 +3403,8 @@ function pageBsb(m) {
   const edit = (s) => B.rows[s.name] = B.rows[s.name] || {in: true, pts: []};
   m.querySelectorAll("[data-bmax]").forEach((b) => b.onclick = () => {   // hamma savolga maksimal ball
     const si = +b.dataset.bmax, r = edit(c.students[si]); r.in = true; r.pts = B.max.slice(); dirty();
-    const y = window.scrollY; render(); window.scrollTo(0, y); toast(`${c.students[si].name}: barcha savollarga maksimal ball (${gnum(tot)})`);
+    // butun sahifa qayta chizilmaydi: faqat shu qator kataklari va jami
+    m.querySelectorAll(`[data-bp^="${si}|"]`).forEach((x) => { const i = +x.dataset.bp.split("|")[1]; x.value = gnum(B.max[i]); x.classList.remove("bad"); }); paint(si); toast(`${c.students[si].name}: barcha savollarga maksimal ball (${gnum(tot)})`);
   });
   m.querySelectorAll("[data-bin]").forEach((cb) => cb.onchange = () => {
     const si = +cb.dataset.bin, r = edit(c.students[si]); r.in = cb.checked; dirty();
