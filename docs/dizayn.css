@@ -10,10 +10,10 @@
 .dz-sec button,.dz-sec .btn{white-space:nowrap}
 .dzsaved{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent);padding:4px 10px;border-radius:999px;white-space:nowrap}
 /* namuna: tepada qotib turadi */
-.dz-sec .dzprev{position:sticky;top:0;z-index:5;background:var(--base);padding:8px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.dz-sec .dzprev{position:sticky;top:0;z-index:5;background:var(--base);padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;gap:6px}
 .dz-sec .dzpc{display:flex;align-items:center;gap:8px;background:var(--win);border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;flex-wrap:nowrap;min-width:0}
 .dz-sec .dzpc b{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.dz-sec .dzlab{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.dz-sec .dzlab{flex:none;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .dz-sec .dzc{width:28px;height:28px;flex:none;border-radius:6px;display:grid;place-items:center;font-weight:700;font-size:12.5px}
 .dz-sec .dzc.g9{background:#86d39a;color:#0d3b1c}.dz-sec .dzc.g7{background:#fbef8f;color:#4a3d00}.dz-sec .dzc.s{background:#d6403f;color:#fff}
 .dz-sec .dzpc .sp{flex:1}
@@ -121,8 +121,9 @@
   .dz-sec .dzo small{display:none}
   .dz-sec .ib,.dz-sec .vis{width:40px;height:40px}
   .dz-sec .hu span{width:36px;height:36px}.dz-sec .hu.pick input{width:36px;height:36px}
-  .dz-sec .dzprev{top:0}
-  .dz-sec .dzpc .dzc.s{display:none}
+  .dz-sec .dzprev{top:0;padding:8px}
+  .dz-sec .dzpc{gap:6px;padding:8px}.dz-sec .dzpc .dzfoot{flex:none}
+  .dz-sec .dzpc .dzc.s,.dz-sec .dzpc .dzc.g7{display:none}
 }
 @media (prefers-reduced-motion:reduce){.dz-sec *{transition:none!important}}
 .swt .swe{font-style:normal}
