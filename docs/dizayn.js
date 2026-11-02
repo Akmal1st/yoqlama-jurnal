@@ -29,12 +29,12 @@ const DZN = (() => {
   // [nomi, izoh, tugma balandligi, kartochka ichki chekkasi, katak balandligi]
   const DENS = [["Keng", "telefon", 44, 20, 40], ["Oddiy", "standart", 0, 0, 0], ["Ixcham", "jadval", 30, 11, 28]];
   // yoqish/o'chirish kalitlari: [yoqilgan, o'chiq, nomi]
-  const EMO = {monkey: ["🐵", "🙈", "Maymun"], eye: ["👁️", "🚫", "Ko'z"], sun: ["🌞", "🌚", "Quyosh"], bell: ["🔔", "🔕", "Qo'ng'iroq"],
-    bulb: ["💡", "🌑", "Chiroq"], check: ["✅", "⬜", "Belgi"], dot: ["🟢", "⚪", "Chiroqcha"], sound: ["🔊", "🔇", "Ovoz"]};
+  // (Akmal, 2026-11-02: faqat «Belgi» va «Chiroqcha» qolsin; eski tanlovlar standartga o'tadi)
+  const EMO = {check: ["✅", "⬜", "Belgi"], dot: ["🟢", "⚪", "Chiroqcha"]};
   const NAVK = ["today", "journal", "groups", "reports", "settings", "help"];
   const NAVN = {today: "Bugun", journal: "Jurnal", groups: "Guruhlar", reports: "Hisobotlar", settings: "Sozlamalar", help: "Yordam"};
   const LOOK = {theme: "tpt", night: "off", hue: "", font: "manrope", size: 100, dens: 1, rad: 14};
-  const BTNS = {nav: "left", lab: "both", ord: NAVK.slice(), hid: [], emo: "monkey", act: "end", pri: "right"};
+  const BTNS = {nav: "left", lab: "both", ord: NAVK.slice(), hid: [], emo: "check", act: "end", pri: "right"};
   const DEF = () => Object.assign({}, LOOK, JSON.parse(JSON.stringify(BTNS)), {force: false});
   const pick = (v, list, d) => (list.includes(v) ? v : d);
   const num = (v, lo, hi, d) => (Number.isFinite(+v) ? Math.min(hi, Math.max(lo, Math.round(+v))) : d);
@@ -53,7 +53,7 @@ const DZN = (() => {
       font: pick(o.font, [...Object.keys(FONTS), "custom"], d.font), size: num(o.size, 90, 120, 100), dens: num(o.dens, 0, 2, 1), rad: num(o.rad, 0, 20, 14),
       nav: pick(o.nav, ["left", "top", "bottom"], "left"), lab: pick(o.lab, ["both", "icon", "text"], "both"),
       ord: [...ord, ...NAVK.filter((k) => !ord.includes(k))], hid: Array.isArray(o.hid) ? o.hid.filter((k) => NAVK.includes(k) && k !== "settings") : [],
-      emo: pick(o.emo, Object.keys(EMO), "monkey"), act: pick(o.act, ["top", "end", "bot"], "end"), pri: pick(o.pri, ["left", "right"], "right"), force: !!o.force};
+      emo: pick(o.emo, Object.keys(EMO), BTNS.emo), act: pick(o.act, ["top", "end", "bot"], "end"), pri: pick(o.pri, ["left", "right"], "right"), force: !!o.force};
   }
   const cfg = () => (D.web.dz = D.web.dz && D.web.dz.ord ? D.web.dz : clean(D.web.dz, D.web));
 
@@ -91,7 +91,7 @@ const DZN = (() => {
     if (z.nav === "top") out += `@media (min-width:821px){html.dz .app{flex-direction:column}
       html.dz .side{width:auto!important;height:auto;flex-direction:row;align-items:center;gap:4px;padding:8px 16px;border-right:0;border-bottom:1px solid var(--line);z-index:30;overflow-x:auto}
       html.dz .side .logo{padding:0 10px 0 0;margin:0;border:0}html.dz .side .nav{width:auto;white-space:nowrap;padding:8px 12px}html.dz .side .sbot{display:flex;gap:6px;flex-direction:row}
-      html.dz .side .sidet,html.dz .side .grow{display:none}html.dz .side .cmdb{width:auto}html.dz .jpick{display:grid;place-items:center}}
+      html.dz .side .sidet,html.dz .side .grow{display:none}html.dz .side .cmdb{width:auto;margin:0;min-height:38px}html.dz .jpick{display:grid;place-items:center}}
       @media (max-width:820px){html.dz .tabbar{top:0;bottom:auto;border-top:0;border-bottom:1px solid var(--line);padding-top:calc(6px + env(safe-area-inset-top))}html.dz main{padding-top:84px;padding-bottom:24px}}`;
     if (z.nav === "bottom") out += `@media (min-width:821px){html.dz .side{display:none}html.dz .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--base);border-top:1px solid var(--line);padding:6px max(6px,calc(50vw - 360px))}
       html.dz .tabbar .nav{flex-direction:column;gap:2px;padding:6px 0;font-size:12.5px;justify-content:center;align-items:center}html.dz main{padding-bottom:96px}html.dz .jpick{display:grid;place-items:center}}`;
@@ -157,7 +157,7 @@ const DZN = (() => {
           return `<div class="orow ${off ? "off" : ""}">${ICO(k)}<span class="n">${NAVN[k]}</span>
             <button class="ib" data-dz-mv="${k}|-1" ${i ? "" : "disabled"} aria-label="${NAVN[k]} — yuqoriga">↑</button><button class="ib" data-dz-mv="${k}|1" ${i < z.ord.length - 1 ? "" : "disabled"} aria-label="${NAVN[k]} — pastga">↓</button>
             ${lock ? `<span class="vis lock" title="Sozlamalar doim ko'rinadi, aks holda unga qaytib bo'lmaydi">🔒</span>` : `<button class="vis ${off ? "" : "on"}" data-dz-eye="${k}" role="switch" aria-checked="${!off}" title="${off ? "Yashirin — ko'rsatish uchun bosing" : "Ko'rinadi — yashirish uchun bosing"}" aria-label="${NAVN[k]} menyuda ko'rinsin">${E[off ? 1 : 0]}</button>`}</div>`; }).join("")}</div>`) +
-        grp("Yoqish/o'chirish belgilari", "Hamma kalitlarda: yoqilgan → o'chiq", `<div class="dzgrid g4">${Object.entries(EMO).map(([k, [a, b, n]]) => opt("emo", k, z.emo === k, `<span class="ep">${a}<i>→</i>${b}</span><b>${n}</b>`, k === BTNS.emo)).join("")}</div>`) +
+        grp("Yoqish/o'chirish belgilari", "Hamma kalitlarda: yoqilgan → o'chiq", `<div class="dzgrid g2">${Object.entries(EMO).map(([k, [a, b, n]]) => opt("emo", k, z.emo === k, `<span class="ep">${a}<i>→</i>${b}</span><b>${n}</b>`, k === BTNS.emo)).join("")}</div>`) +
         grp("Oyna tugmalari joyi", "«Bekor qilish / OK» kabi tugmalar", `<div class="dzgrid g3">${[["top", "Tepada", "Sarlavha ostida"], ["end", "Oxirida", "Oyna tagida"], ["bot", "Qotgan", "Doim pastda"]].map(([k, n, s]) => opt("act", k, z.act === k, `<span class="lay a-${k}"><u style="top:30%"></u><u style="top:48%"></u><i></i></span><b>${n}</b><small>${s}</small>`, k === BTNS.act)).join("")}</div>`) +
         grp("Asosiy tugma tomoni", "Rangli tugma qaysi tomonda", `<div class="dzgrid g2">${[["left", "Chapda"], ["right", "O'ngda"]].map(([k, n]) => opt("pri", k, z.pri === k, `<span class="pairs">${k === "left" ? '<s class="p"></s><s></s>' : '<s></s><s class="p"></s>'}</span><b>${n}</b>`, k === BTNS.pri)).join("")}</div>`);
     }

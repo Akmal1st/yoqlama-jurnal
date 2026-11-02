@@ -403,13 +403,14 @@ table.r tr:hover td{background:var(--alt)}
 .secs button.on{background:var(--acc-soft);color:var(--acc);font-weight:700}
 .steps button.on{box-shadow:0 6px 14px -8px var(--acc)}
 .foot{background:var(--win);box-shadow:0 -10px 16px -12px rgba(60,45,20,.25)}
+/* pastki menyu (telefonda va «Dizayn → menyu pastda» bo'lsa kompyuterda ham): tanlangan tugma — rangli yozuv, belgi ostida och fon */
+.tabbar .nav{color:var(--muted);border-radius:14px;opacity:1}
+.tabbar .nav.on{background:transparent;color:var(--acc)}
+.tabbar .nav svg{border-radius:99px;padding:3px 10px;width:44px;height:28px;box-sizing:border-box;transition:background .15s}
+.tabbar .nav.on svg{background:var(--acc-soft)}
 @media (max-width:820px){
   main{padding:18px 16px 104px}
   .tabbar{background:color-mix(in srgb,var(--base) 86%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);box-shadow:0 -8px 24px -18px rgba(0,0,0,.35)}
-  .tabbar .nav{color:var(--muted);border-radius:14px;opacity:1}
-  .tabbar .nav.on{background:transparent;color:var(--acc)}
-  .tabbar .nav svg{border-radius:99px;padding:3px 10px;width:44px;height:28px;box-sizing:border-box;transition:background .15s}
-  .tabbar .nav.on svg{background:var(--acc-soft)}
   .card{padding:18px}
 }
 /* telefon: yonga surish yo'q — hammasi qatorlarga o'raladi, yozuvlar to'liq (chop etishga ta'sir qilmaydi) */
@@ -564,7 +565,9 @@ body.pmeas .noprint{display:none!important}
 /* yon panelni yig'ish */
 .sbot{display:flex;flex-direction:column;gap:6px}.sbot .btn{width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis}.sbot .sidet{opacity:.85}
 .sidet{padding:0 10px!important;font-size:13px}.compact .sidet{font-size:18px}
-.compact .logo{justify-content:center;padding:0 0 18px}
+.compact .logo{justify-content:center;padding-left:0;padding-right:0;gap:0}.compact .logo span{display:flex!important;width:0;overflow:hidden;white-space:nowrap}
+/* yig'ilganda tugmalar balandligi o'zgarmasin: yozuv joyi saqlanadi (eni 0) */
+.compact .side .nav{gap:0}.compact .side .nav .lbl{display:block!important;width:0;overflow:hidden;white-space:nowrap}
 @media screen and (min-width:821px){.compact .jpick{display:grid;place-items:center}}
 /* «Kun» ko'rinishi: sana tasmasi, o'quvchilar ro'yxati, dars kartasi */
 .dstrip{display:flex;gap:6px;align-items:stretch;flex:1 1 420px;min-width:0}

@@ -2535,9 +2535,10 @@ test("Sozlamalar → Dizayn: mavzular, tungi variant, rang, tugmalar joyi va qay
       const order = await page.$$eval(w > 820 ? "#side [data-go]" : "#tabbar [data-go]", (x) => x.map((b) => b.dataset.go));
       assert.deepEqual(order, ["today", "journal", "reports", "groups", "settings"]);
       assert.equal(await page.locator('[data-dz-eye="settings"]').count(), 0, "Sozlamalar yashirilmaydi");
-      await page.click('[data-dz-emo="sun"]');
+      assert.equal(await page.locator("[data-dz-emo]").count(), 2, "faqat Belgi va Chiroqcha");
+      await page.click('[data-dz-emo="dot"]');
       await page.evaluate(() => { S.sec = 6; go("settings"); });
-      assert.match(await page.textContent(".sz-tg.on"), /🌞/);
+      assert.match(await page.textContent(".sz-tg.on"), /🟢/);
       // menyu tepada (kompyuter)
       await page.evaluate(() => { D.web.dz.nav = "top"; save(); render(); });
       if (w > 820) { const r = await page.evaluate(() => { const s = $("#side").getBoundingClientRect(); return [Math.round(s.top), Math.round(s.width)]; }); assert.equal(r[0], 0); assert.ok(r[1] > 900, "yon panel tepada qator bo'ldi"); }
