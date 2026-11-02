@@ -5546,7 +5546,7 @@ def bsb_stats(qmax, rows):
         out["grades"][s["grade"]] += 1
     g = out["grades"]
     out["quality"] = 100.0 * (g[5] + g[4]) / n          # bilim sifati: «4» va «5» olganlar ulushi
-    out["mastery"] = 100.0 * (n - g[2]) / n             # o'zlashtirish: «2» dan yuqori olganlar ulushi
+    out["mastery"] = out["mean_pct"]                    # o'zlashtirish: sinf to'plagan jami ball / mumkin bo'lgan jami ball (o'rtacha foiz)
     ranked = sorted(stu, key=lambda s: -s["total"])
     k = max(1, round(0.27 * n))
     for i in range(nq):
@@ -5581,7 +5581,7 @@ def bsb_recommendations(an):
     if easy:
         good.append("Yaxshi o'zlashtirilgan savollar: " + ", ".join(f"{q['i']}-savol ({q['pct']:.0f}%)" for q in easy) +
                     " — bu mavzular bo'yicha bilim mustahkam.")
-    if an["mastery"] == 100:
+    if not g[2]:
         good.append("Ishtirok etgan barcha o'quvchi «3» dan past bo'lmagan baho olgan.")
     if an["mean_pct"] >= 66 and not good:
         good.append(f"O'rtacha natija yaxshi: {an['mean_pct']:.0f}%.")
@@ -5794,7 +5794,7 @@ def bsb_html(meta, an, rec, wide=False, style="klassik", pdf=False, cw=None, pdf
                     td("—" if q["d"] is None else f"{q['d']:.2f}", z) + td(q["level"], lv[q["level"]]) + "</tr>")
     parts.append("".join(rows) + "</table>")
     parts.append("<p><small>Bor — ishtirok etganlar, Yo'q — ishtirok etmaganlar; sifat — «4» va «5» olganlar ulushi; "
-                 "o'zlash. — «3» va undan yuqori olganlar ulushi. Qiyinlik: &lt;40% — qiyin, 40–70% — o'rtacha, &gt;70% — "
+                 "o'zlash. — sinf to'plagan jami ballning mumkin bo'lgan jami balga nisbati (o'rtacha foiz). Qiyinlik: &lt;40% — qiyin, 40–70% — o'rtacha, &gt;70% — "
                  "oson. Ajratish indeksi (kuchli va kuchsiz 27% o'quvchi farqi): 0,4 dan yuqori — a'lo, 0,2–0,4 — yaxshi, "
                  "0,2 dan past — kuchsiz (6 tadan kam o'quvchida hisoblanmaydi).</small></p>")
     for title, key, col in (("Yutuqlar", "good", "#2e7d32"), ("Kamchiliklar", "bad", "#c62828"),
@@ -5932,7 +5932,7 @@ def bsb_export_xlsx(path, meta, an, rec, rows):
                ("O'rtacha %", round(an["mean_pct"], 1)), ("Mediana %", round(an["median_pct"], 1)),
                ("Eng yuqori ball", an["best"]["total"]), ("Eng past ball", an["worst"]["total"]),
                ("Bilim sifati, % («4» va «5»)", round(an["quality"], 1)),
-               ("O'zlashtirish, % («3» va undan yuqori)", round(an["mastery"], 1))]
+               ("O'zlashtirish, % (o'rtacha natija)", round(an["mastery"], 1))]
     for k, (a, b) in enumerate(summary, 4):
         wx.cell(k, 1, a).border = box
         wx.cell(k, 2, b).border = box

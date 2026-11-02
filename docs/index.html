@@ -3206,7 +3206,7 @@ function bsbStats(qmax, rows, ceilTotal) {   // ceilTotal: CHSB testi — umumiy
   for (const s of stu) out.grades[s.grade]++;
   const g = out.grades;
   out.quality = 100 * (g[5] + g[4]) / n;          // bilim sifati: «4» va «5» olganlar ulushi
-  out.mastery = 100 * (n - g[2]) / n;             // o'zlashtirish: «2» dan yuqori olganlar ulushi
+  out.mastery = out.mean_pct;                     // o'zlashtirish: sinf to'plagan jami ball / mumkin bo'lgan jami ball (Akmal, 2026-11-02)
   const ranked = stu.slice().sort((a, b) => b.total - a.total), k = Math.max(1, +pyFixed(0.27 * n, 0));
   for (let i = 0; i < nq; i++) {
     const mx = +qmax[i] || 1, vals = stu.map((s) => s.pts[i]), mean = sumOf(vals) / n, pct = 100 * mean / mx;
@@ -3230,7 +3230,7 @@ function bsbRecs(an) {
   if (g[5]) good.push(`«5» baho olganlar: ${g[5]} ta (${bsbNames(stu.filter((s) => s.grade === 5).map((s) => s.name))}).`);
   const easy = qs.filter((q) => q.pct >= 75);
   if (easy.length) good.push("Yaxshi o'zlashtirilgan savollar: " + easy.map(qp).join(", ") + " — bu mavzular bo'yicha bilim mustahkam.");
-  if (an.mastery === 100) good.push("Ishtirok etgan barcha o'quvchi «3» dan past bo'lmagan baho olgan.");
+  if (!g[2]) good.push("Ishtirok etgan barcha o'quvchi «3» dan past bo'lmagan baho olgan.");
   if (an.mean_pct >= 66 && !good.length) good.push(`O'rtacha natija yaxshi: ${f0(an.mean_pct)}%.`);
   if (!good.length) good.push("Sezilarli yutuqlar aniqlanmadi — quyidagi tavsiyalarga e'tibor bering.");
   // — kamchiliklar —
@@ -3536,7 +3536,7 @@ function bsbReportHtml(meta, an, rec, pdf) {
     ${[5, 4, 3, 2].map((k) => `<td${bg(BA_COL[k])}><b>${g[k]}</b></td>`).join("")}<td><b>${pct0(an.quality)}</b></td><td><b>${pct0(an.mastery)}</b></td></tr></table>`;
   o += `<h3>Savollar tahlili</h3>${bsbChart(qs)}<table><tr>${["Savol", "Mezon", "Maks.", "O'rtacha ball", "O'zlashtirish %", "To'liq yechgan", "0 ball olgan", "Ajratish indeksi", "Qiyinlik"].map((x) => `<th>${x}</th>`).join("")}</tr>
     ${qs.map((q) => `<tr><td><b>${q.i}</b></td><td class="l">${esc((meta.names || [])[q.i - 1] || "—")}</td><td>${gnum(q.max)}</td><td>${pyFixed(q.mean, 2)}</td><td${bg(LV_COL[q.level])}><b>${pct0(q.pct)}</b></td><td>${q.full}</td><td>${q.zero}</td><td>${q.d === null ? "—" : pyFixed(q.d, 2)}</td><td${bg(LV_COL[q.level])}>${q.level}</td></tr>`).join("")}</table>
-    <p class="small">Bor — ishtirok etganlar, Yo'q — ishtirok etmaganlar; sifat — «4» va «5» olganlar ulushi; o'zlash. — «3» va undan yuqori olganlar ulushi. Qiyinlik: &lt;40% — qiyin, 40–70% — o'rtacha, &gt;70% — oson. Ajratish indeksi (kuchli va kuchsiz 27% o'quvchi farqi): 0,4 dan yuqori — a'lo, 0,2–0,4 — yaxshi, 0,2 dan past — kuchsiz (6 tadan kam o'quvchida hisoblanmaydi).</p>`;
+    <p class="small">Bor — ishtirok etganlar, Yo'q — ishtirok etmaganlar; sifat — «4» va «5» olganlar ulushi; o'zlash. — sinf to'plagan jami ballning mumkin bo'lgan jami balga nisbati (o'rtacha foiz). Qiyinlik: &lt;40% — qiyin, 40–70% — o'rtacha, &gt;70% — oson. Ajratish indeksi (kuchli va kuchsiz 27% o'quvchi farqi): 0,4 dan yuqori — a'lo, 0,2–0,4 — yaxshi, 0,2 dan past — kuchsiz (6 tadan kam o'quvchida hisoblanmaydi).</p>`;
   o += bsbErrHtml(an, meta.names);
   for (const [t, k, col] of [["Yutuqlar", "good", "#2e7d32"], ["Kamchiliklar", "bad", "#c62828"], ["Tavsiyalar", "tips", "#1565c0"]])
     o += `<h3 style="color:${col}">${t}</h3><ul>${rec[k].map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
@@ -3634,7 +3634,7 @@ async function baExcel(variant, c, B, an, rec, H) {
         ...bsbErrors(an, meta.names).sort((a, b) => a.rank - b.rank).map((r) => [r.rank, r.name, r.max, r1(r.err), r.zero, r.fail, r1(r.share), r.failNames.join(", ")])], [8, 30, 12, 10, 12, 12, 16, 50]);
       add("Xulosa", [[`${meta.kind || "BSB"} tahlili — ${meta.label}`], [`Bo'lim / mavzu: ${meta.title || "—"}      Sana: ${meta.date}`], [],
         ["Ishtirok etdi", an.n], ["Ishtirok etmadi", an.absent.length], ["Maksimal ball", an.tot_max], ["O'rtacha ball", Math.round(an.mean_total * 100) / 100], ["O'rtacha %", r1(an.mean_pct)],
-        ["Mediana %", r1(an.median_pct)], ["Eng yuqori ball", an.best.total], ["Eng past ball", an.worst.total], ["Bilim sifati, % («4» va «5»)", r1(an.quality)], ["O'zlashtirish, % («3» va undan yuqori)", r1(an.mastery)], [],
+        ["Mediana %", r1(an.median_pct)], ["Eng yuqori ball", an.best.total], ["Eng past ball", an.worst.total], ["Bilim sifati, % («4» va «5»)", r1(an.quality)], ["O'zlashtirish, % (o'rtacha natija)", r1(an.mastery)], [],
         ["Baho", "O'quvchilar soni"], ...[5, 4, 3, 2].map((k) => [k, an.grades[k]]), [],
         ...[["Yutuqlar", "good"], ["Kamchiliklar", "bad"], ["Tavsiyalar", "tips"]].flatMap(([t, k]) => [[t], ...rec[k].map((x) => ["• " + x]), []])], [40, 16]);
     }
