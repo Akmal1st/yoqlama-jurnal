@@ -348,7 +348,7 @@ const HSB = (() => {
     const per = pl ? `<button class="hb-pk" data-hk="per" aria-haspopup="true"><span class="hb-v"><small>${n === "q" ? "Chorak" : n === "mon" ? "Oy" : "Davr"}</small><b class="hb-ell">${pl[0]}${n !== "mon" ? `<span class="hb-mut hb-pc" style="font-weight:600;display:inline"> · ${pl[1]}</span>` : ""}</b></span><span class="hb-car">▼</span></button>` : "";
     return cls + per;
   }
-  const actions = (k) => `<button class="btn btn-primary" data-print>🖨 Chop etish</button>${XLS[k] ? `<button class="btn" ${XLS[k]}>📊 Excel</button>` : ""}`;
+  const actions = (k) => `<button class="btn btn-primary" data-print>🖨 Chop etish</button><button class="btn" data-tgpdf title="Hisobotni PDF qilib Telegram botingizga yuborish">✈️ Telegram</button>${XLS[k] ? `<button class="btn" ${XLS[k]}>📊 Excel</button>` : ""}`;
 
   function page(m) {
     closePop();
@@ -386,6 +386,10 @@ const HSB = (() => {
     m.querySelectorAll("[data-cmpc]").forEach((b) => b.onclick = () => { R.ci = +b.dataset.cmpc; R.kind = "cls"; keep(); render(); window.scrollTo(0, 0); });
     m.querySelectorAll("[data-hgo]").forEach((b) => b.onclick = () => { S.ci = R.ci; S.jpage = b.dataset.hgo; go("journal"); });
     m.querySelectorAll("[data-print]").forEach((b) => b.onclick = () => { fitPrint(); window.print(); });
+    // PDF → Telegram (pdf-tg.js)
+    m.querySelectorAll("[data-tgpdf]").forEach((b) => b.onclick = () => { const K = KIND[R.kind], pl = perLabel(X), who = R.kind === "cmp" ? "Barcha sinflar" : label(c);
+      const per = (pl ? `${pl[0]}${NEED[R.kind] !== "mon" && pl[1] ? ` · ${pl[1]}` : ""}` : "").replace(/<[^>]+>/g, "").replace(/&[a-z]+;/g, " ");
+      PTG.run(() => PTG.reportPdf(), `${K[2]} ${who} ${per}`, `📄 ${K[2]}\n${who}${per ? "\n" + per : ""}`, b); });
     // Excel: hisob-kitob va ustunlar avvalgidek
     const on = (sel, fn) => m.querySelectorAll(sel).forEach((b) => b.onclick = fn);
     on("[data-xlsx]", () => {

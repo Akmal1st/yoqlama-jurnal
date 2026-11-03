@@ -277,3 +277,12 @@ body.pmeas .hb .pronly{display:block!important}body.pmeas .hb .hb-con{padding:0;
 body.pmeas .hb .hb-kpis{grid-template-columns:repeat(4,1fr)}body.pmeas .hb .hb-two{grid-template-columns:1fr 1fr}body.pmeas .hb .hb-three{grid-template-columns:repeat(3,1fr)}
 body.pmeas .hb .hb-kpi{padding:4px 8px}body.pmeas .hb .hb-kpi b{font-size:15pt}
 body.pmeas .hb .hb-t th,body.pmeas .hb .hb-t td{padding:2px 6px}body.pmeas .hb table.hb-t{font-size:11pt}
+
+/* PDF → Telegram (pdf-tg.js): panel chop etish ko'rinishida rasmga olinadi — tugmalarsiz, jadvallar, doim oq fonda */
+.hb .hb-panel.pdfx{--text:#111;--muted:#555;--base:#fff;--win:#fff;--alt:#f6f7f9;--soft:#eef1f6;--line:#cfd4dc;color:#111;background:#fff!important;border:0;box-shadow:none;padding:16px 18px}
+.hb .pdfx .hb-hd,.hb .pdfx .hb-stick,.hb .pdfx .hb-src,.hb .pdfx .hb-tools,.hb .pdfx .noprint,.hb .pdfx .hb-tel{display:none!important}
+.hb .pdfx .pronly{display:block!important}
+.hb .pdfx .hb-con div.hb-pc{display:block!important}
+.hb .pdfx .hb-paper{background:none;padding:0}.hb .pdfx .hb-paper>div{box-shadow:none;padding:0;max-width:none}
+.hb .pdfx .psheets{display:block}.hb .pdfx .psheet{border:1px solid #999;box-shadow:none;margin:0 0 12px}
+.ptg-box{position:fixed;left:-20000px;top:0;pointer-events:none}

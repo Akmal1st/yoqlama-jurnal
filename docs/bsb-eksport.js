@@ -290,7 +290,7 @@ const BXP = (() => {
           </div></details>
           <div><div class="bx-lbl">Fayl nomi</div><div class="bx-fname"><b>${esc(X.file)}</b>.pdf · .xlsx</div></div>
         </div>
-        <div class="bx-side-f"><button type="button" class="btn" data-x>Yopish</button><button type="button" class="btn" data-xl>📗 Excel</button><button type="button" class="btn btn-primary" data-pdf>📄 PDF / Chop</button></div>
+        <div class="bx-side-f"><button type="button" class="btn" data-x>Yopish</button><button type="button" class="btn" data-xl>📗 Excel</button><button type="button" class="btn" data-tgpdf title="PDF qilib Telegram botingizga yuborish">✈️ Telegram</button><button type="button" class="btn btn-primary" data-pdf>📄 PDF / Chop</button></div>
       </div>
       <div class="bx-prev"><div class="bx-prev-h">${seg("pv", [["pdf", "📄 Varaq"], ["xl", "📗 Excel"]], "pdf")}<span class="bx-pinfo" data-pinfo></span>${seg("zm", [["fit", "↔ Sig'dirish"], ["100", "🔍 100%"]], "fit")}</div><div class="bx-pages" data-pages></div></div>
     </div>`, (mm, close) => {
@@ -331,6 +331,8 @@ const BXP = (() => {
         else if (t.hasAttribute("data-sadd")) { if (sg.length >= 4) { toast("Ko'pi bilan 4 ta imzo"); return; } sg.push(["", ""]); store(); side(); const ins = mm.querySelectorAll("[data-sl]"); ins[ins.length - 1].focus(); }
         else if (t.hasAttribute("data-x")) { clearTimeout(saveT); save(); close(); }
         else if (t.hasAttribute("data-pdf")) { clearTimeout(saveT); save(); close(); print(X, H, H.bx.form); }
+        else if (t.hasAttribute("data-tgpdf")) { clearTimeout(saveT); save(); const R = pagesHtml(X, H, H.bx.form);
+          PTG.run(() => PTG.pagesPdf(R.pages, R.land), X.file, `📄 ${X.file}`, t); }
         else if (t.hasAttribute("data-xl")) { clearTimeout(saveT); save(); close(); excel(X, H, H.bx.form).catch((er) => toast(er.message)); }
       });
       let it = 0;

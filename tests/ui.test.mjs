@@ -918,6 +918,53 @@ test("Kunlik hisobot: darslar tugagach har sinf rasmi Telegram'ga va ota-onalar 
   } finally { await browser.close(); }
 });
 
+test("Hisobotlar va BSB/CHSB tahlili: PDF hisobot Telegram'ga (soxta bot API)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    const docs = [];
+    await page.route("https://api.telegram.org/**", async (route) => {
+      const m = route.request().url().split("/").pop(), buf = route.request().postDataBuffer() || Buffer.alloc(0);
+      if (m === "sendDocument") { const t = buf.toString("latin1"), i = t.indexOf("%PDF"), j = t.lastIndexOf("%%EOF");
+        docs.push({name: (t.match(/filename="([^"]+)"/) || [])[1], cap: Buffer.from((t.match(/name="caption"\r\n\r\n([^]*?)\r\n--/) || [])[1] || "", "latin1").toString("utf8"),
+          pdf: i >= 0 && j > i ? buf.subarray(i, j + 5) : null}); }
+      return route.fulfill({status: 200, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: JSON.stringify({ok: true, result: {message_id: 1}})});
+    });
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    // ulanmagan: Sozlamalarga yo'naltiradi, hech narsa yuborilmaydi
+    await page.click(".tabbar [data-go=reports]"); await page.click("[data-tgpdf]:visible");
+    await page.waitForSelector(".modal >> text=Telegram ulanmagan"); await page.click(".modal [data-x]").catch(() => {});
+    await page.evaluate(() => { document.querySelectorAll(".modal").forEach((m) => m.remove()); tgSet({token: "123456789:AAHabcdefghijklmnopqrstuvwxyz", chat: 777, bot: "sinf_test_bot"}); });
+    const pdfPages = (b) => (b.toString("latin1").match(/\/Type \/Page /g) || []).length;
+    for (const kind of ["cls", "att", "sum", "par"]) {
+      await page.evaluate((k) => { S.rep = Object.assign(S.rep || {}, {kind: k}); render(); }, kind);
+      const n = docs.length; await page.click("[data-tgpdf]:visible");
+      await page.waitForFunction(() => document.querySelector(".toast")?.textContent.includes("PDF hisobot Telegram'ga yuborildi"));
+      await page.waitForFunction(() => !document.querySelector("[data-tgpdf]:disabled"));
+      assert.equal(docs.length, n + 1, kind); const d = docs[n];
+      assert.ok(d.pdf && d.pdf.subarray(0, 5).toString() === "%PDF-" && pdfPages(d.pdf) >= 1, `${kind}: PDF`);
+      assert.ok(d.name.endsWith(".pdf") && d.cap.startsWith("📄"), `${kind}: ${d.name} ${d.cap}`);
+      // panel o'z holiga qaytadi
+      assert.equal(await page.evaluate(() => document.body.classList.contains("pmeas") || !!document.querySelector(".pdfx")), false);
+    }
+    // ota-onalar majlisi: har o'quvchiga varaq — bir necha bet
+    assert.ok(pdfPages(docs[3].pdf) >= 2, "par: bir necha bet");
+    // BSB/CHSB tahlili eksport oynasi: tayyor varaqlar PDF bo'lib ketadi
+    const n = await page.evaluate(async () => { const c = D.classes[0], B = baBlank(); B.q = 4; B.max = [2, 2, 3, 3]; B.title = "Kasrlar";
+      c.students.forEach((s, i) => { B.rows[s.name] = {in: true, pts: B.max.map((m, k) => (i + k) % (m + 1))}; }); baExportDialog(c, B); return 0; });
+    await page.waitForSelector(".modal [data-tgpdf]", {state: "attached"});
+    await page.evaluate(() => document.querySelector(".modal [data-tgpdf]").click());
+    await page.waitForFunction((k) => document.querySelector(".toast")?.textContent.includes("PDF hisobot Telegram'ga yuborildi") && true, n);
+    await page.waitForFunction(() => !document.querySelector(".ptg-box"));
+    const b = docs[docs.length - 1]; assert.equal(docs.length, 5);
+    assert.ok(b.pdf && pdfPages(b.pdf) >= 1 && b.cap.startsWith("📄"), b.cap);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
 test("Dars jadvali: Excel'dan yuklash, saqlash va dars kunlari", async () => {
   const {readFile, writeFile, mkdtemp} = await import("node:fs/promises");
   const {tmpdir} = await import("node:os"); const {join} = await import("node:path");
