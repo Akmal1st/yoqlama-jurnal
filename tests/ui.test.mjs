@@ -2607,8 +2607,15 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
       await page.keyboard.press("Escape");
       // «Boshqa» kun: sana tanlansa yo'qlama o'sha kunga o'tadi
       await page.click("[data-tab=att]");
-      await page.locator("#g-dp").fill("2026-10-28"); await page.locator("#g-dp").dispatchEvent("change");
+      await page.click("#g-dp"); await page.waitForSelector(".g-dlg .g-cal");
+      assert.equal(await page.locator(".g-dlg [data-day='2026-11-03']").count(), 0);   // kelajak kun bosilmaydi
+      await page.click(".g-dlg [data-m='2026-10']"); await page.click(".g-dlg [data-day='2026-10-28']");
       await page.waitForSelector(".g-dchip.on[data-pick='2026-10-28']");
+      // to'lov oynasida «Boshqa kun» ham shu kalendar: tanlansa to'lov oynasiga qaytadi
+      await page.click("[data-tab=pay]"); await page.click("[data-payfor='-1']"); await page.click("#g-pd");
+      await page.click(".g-dlg [data-day='2026-11-01']"); await page.waitForSelector("#g-pd.on >> text=1 noyabr");
+      await page.click("#g-pd"); await page.click(".g-dlg [data-back]"); await page.waitForSelector("#g-pd.on");
+      await page.keyboard.press("Escape");
       await page.click("[data-tab=stu]");
       await page.click("[data-tab=pay]"); await page.waitForSelector(".g-tw table");
       // saqlangan faylda qoladi

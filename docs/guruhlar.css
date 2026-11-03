@@ -161,6 +161,10 @@ body.tpt-on #main{background:#f3f5f9}
 .tpt .g-cal span,.tpt .g-cal button{border-radius:50%;aspect-ratio:1;display:grid;place-items:center;padding:0}
 .tpt .g-cal button{border:0;margin:0;background:none;color:inherit;font:inherit;font-size:12px;line-height:1;cursor:pointer;min-width:0}
 .tpt .g-cal button:hover{box-shadow:inset 0 0 0 1.5px var(--g-acc)}
+.tpt .g-cal .s{background:var(--g-acc);color:var(--g-acc-fg);font-weight:700}
+.tpt .g-cal .g-fut{color:var(--g-muted);opacity:.45}
+.tpt .g-dlg .g-cal{font-size:14px}
+.tpt .g-dlg .g-cal button{font-size:14px}
 .tpt .g-cal .l{background:var(--g-soft)}
 .tpt .g-cal .c{background:var(--g-ok);color:var(--g-base);font-weight:700}
 .tpt .g-mnav{display:flex;align-items:center;gap:6px}
