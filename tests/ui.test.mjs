@@ -353,6 +353,71 @@ test("Yangi dizayn: Ctrl+K buyruqlar oynasi, Alt+raqam, ? tezkor tugmalar, telef
   } finally { await browser.close(); }
 });
 
+test("jurnal: mezon bo'yicha baho (darsdagi ish + uy vazifasi), izoh, «Qolganlarga», toq/juft qatorlar", async () => {
+  for (const viewport of [{width: 1440, height: 900}, {width: 390, height: 844}]) {
+    const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+    try {
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      const t = await page.evaluate(() => { const c = D.classes[0], t = todayIso(); D.settings.method_weekday = null; c.extra_x = [];
+        if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } D.settings.protect.enabled = false;
+        for (const s of c.students) delete s.marks[t]; S.ci = 0; V.mode = "day"; V.anchor = t; S.view = "journal"; save(); return t; });
+      await page.click(`${viewport.width < 600 ? ".tabbar" : ".side"} [data-go=journal]`);
+      await page.waitForSelector(".dlist.mz");
+      const st = (i) => page.evaluate(([d, i]) => { const s = D.classes[0].students[i]; return [s.marks[d] || "", JSON.stringify((s.fp || {})[d] || null), (s.fc || {})[d] || ""]; }, [t, i]);
+      // ikki qism: 5 + 3 = 8; bittasi — chala (baho yo'q)
+      await page.click("[data-mzp='0|0|5']");
+      assert.deepEqual(await st(0), ["", "[5,null]", ""]);
+      assert.ok((await page.textContent('.drow[data-dr="0"] .mz-tot')).includes("uy vazifasi?"));
+      await page.click("[data-mzp='0|1|3']");
+      assert.deepEqual(await st(0), ["8", "[5,3]", ""]);
+      assert.ok((await page.textContent('.drow[data-dr="0"] .mz-tot')).includes("5 + 3"));
+      assert.ok((await page.textContent('.drow[data-dr="0"] .mz-hint')).includes("Darsda 5"));
+      // kech qolgan: baho bilan birga
+      await page.click("[data-a='0|kq']"); assert.equal((await st(0))[0], "8kq");
+      await page.click("[data-mzp='0|0|6']"); assert.deepEqual(await st(0), ["9kq", "[6,3]", ""]);
+      // izoh va tafsilot
+      await page.click("[data-mzb='0']"); await page.fill("#mz-cm", "Guruh ishida faol"); await page.click(".modal [data-ok]");
+      assert.equal((await st(0))[2], "Guruh ishida faol");
+      assert.ok((await page.textContent('.drow[data-dr="0"]')).includes("izoh"));
+      // kelmagan — baho qo'yilmaydi
+      await page.click("[data-a='1|s']");
+      assert.equal(await page.locator('.drow[data-dr="1"] [data-mzp]').count(), 0);
+      // «Qolganlarga 4 ✓» — uy vazifasi hammaga (kelmagan va bahosi borlarga tegmaydi)
+      await page.click(`${viewport.width < 600 ? ".mz-top" : ".mz-head"} [data-mzfill="1"]`);
+      assert.deepEqual(await st(2), ["", "[null,4]", ""]);
+      assert.equal((await st(1))[0], "s");
+      assert.deepEqual(await st(0), ["9kq", "[6,3]", "Guruh ishida faol"]);
+      // bahoni o'chirish
+      await page.click("[data-mzb='0']"); await page.click(".modal [data-clr]");
+      assert.deepEqual((await st(0)).slice(0, 2), ["kq", "null"]);
+      // jurnal saqlanib qayta yuklanganda qismlar qoladi
+      await page.click("[data-mzp='3|0|4']");   // uy vazifasi «Qolganlarga» bilan 4 bo'lgan
+      await page.reload(); await page.waitForSelector("text=Xayrli");
+      await page.click(`${viewport.width < 600 ? ".tabbar" : ".side"} [data-go=journal]`);
+      await page.evaluate((d) => { S.ci = 0; V.mode = "day"; V.anchor = d; render(); }, t); await page.waitForSelector(".dlist.mz");
+      assert.deepEqual(await st(3), ["8", "[4,4]", ""]);
+      // mezonlar jadvali
+      await page.click("[data-mzrub]"); assert.ok((await page.textContent(".modal")).includes("barcha bosqichlarida faol")); await page.click(".modal [data-x]");
+      // toq/juft qatorlar: 2-qator rangli, 1-qator — yo'q
+      const bg = (i) => page.evaluate((i) => getComputedStyle(document.querySelector(`.drow[data-dr="${i}"]`)).backgroundColor, i);
+      const rk = await page.evaluate(() => [...document.querySelectorAll(".dlist .drow")].map((r) => r.classList.contains("risk")));
+      if (!rk[0] && !rk[1]) assert.notEqual(await bg(0), await bg(1), "juft qator boshqa rangda");
+      // oddiy rejim — eski 1–10 tugmalar
+      await page.click("[data-mzmode=plain]"); await page.waitForSelector("[data-g='4|7']");
+      assert.equal(await page.locator(".dlist.mz").count(), 0);
+      await page.click("[data-mzmode=crit]"); await page.waitForSelector(".dlist.mz");
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
+      assert.deepEqual(errors, []);
+    } finally { await browser.close(); }
+  }
+});
+
 test("jurnal: Kun ko'rinishi, katak yonidagi belgi oynasi, sinf tanlash", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
@@ -362,7 +427,7 @@ test("jurnal: Kun ko'rinishi, katak yonidagi belgi oynasi, sinf tanlash", async 
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
     const t = await page.evaluate(() => { const c = D.classes[0], t = todayIso(); D.settings.method_weekday = null; c.extra_x = [];
-      if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } D.settings.protect.enabled = false; c.students[0].marks[t] = ""; delete c.students[0].marks[t]; save(); return t; });
+      if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } D.settings.protect.enabled = false; c.students[0].marks[t] = ""; delete c.students[0].marks[t]; D.web.fmode = "plain"; save(); return t; });
     await page.click(".side [data-go=journal]"); await page.click("[data-per]"); await page.click(".perpop [data-mode=day]");
     assert.equal(await page.locator("table.j").count(), 0, "Kun — jadval emas, ro'yxat");
     assert.equal(await page.locator(`.dday.on[data-dd="${t}"]`).count(), 1);
