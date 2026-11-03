@@ -184,6 +184,10 @@ const TPT = (() => {
   let layer = null;
   function closeLayer() { if (layer) { layer.remove(); layer = null; } document.removeEventListener("keydown", onEsc, true); }
   function onEsc(ev) { if (ev.key === "Escape" && layer) { ev.preventDefault(); ev.stopPropagation(); closeLayer(); } }
+  // input[type=date] ustiga bosilganda kalendar ochilsin (kompyuterda faqat kichik belgini bosish kerak edi)
+  function pickerOn(root) {
+    qa("input.g-overlay[type=date]", root).forEach((inp) => inp.addEventListener("click", () => { try { inp.showPicker(); } catch (err) { /* eski brauzer yoki allaqachon ochiq */ } }));
+  }
   function openLayer(html, mid, bind) {
     closeLayer();
     const wrap = document.createElement("div");
@@ -192,7 +196,7 @@ const TPT = (() => {
     document.body.append(wrap); layer = wrap;
     document.addEventListener("keydown", onEsc, true);
     qa("[data-x]", wrap).forEach((b) => b.onclick = closeLayer);
-    bind && bind(wrap);
+    bind && bind(wrap); pickerOn(wrap);
     const f = q("[autofocus]", wrap); if (f) f.focus();
   }
   const hdr = (t) => `<div class="g-row" style="flex-wrap:nowrap"><h2 style="flex:1">${t}</h2><button class="g-btn sm ghost" type="button" data-x aria-label="Yopish">✕</button></div>`;
@@ -209,7 +213,9 @@ const TPT = (() => {
     const mo = month || t.slice(0, 7), first = pd(mo + "-01"), off = (first.getDay() + 6) % 7, dim = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
     let cal = ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"].map((x) => `<span class="h">${x}</span>`).join("");
     for (let i = 0; i < off; i++) cal += "<span></span>";
-    for (let i = 1; i <= dim; i++) { const d = `${mo}-${String(i).padStart(2, "0")}`, cls = (s.marks || {})[d] === "ot" ? "c" : isLesson(c, d) && d <= t ? "l" : ""; cal += `<span class="${cls} g-num">${i}</span>`; }
+    for (let i = 1; i <= dim; i++) { const d = `${mo}-${String(i).padStart(2, "0")}`, on = (s.marks || {})[d] === "ot", cls = on ? "c" : isLesson(c, d) && d <= t ? "l" : "";
+      // o'tgan kunlar — bosiladi: keldi / bekor (tezkor yo'qlama)
+      cal += d <= t ? `<button type="button" class="${cls} g-num" data-cd="${d}" aria-pressed="${on}" aria-label="${dm(d)}${on ? " — keldi" : ""}">${i}</button>` : `<span class="${cls} g-num">${i}</span>`; }
     let big = "";
     if (paid) {
       if (!a.k) big = `<span class="g-pill p-mut">Paket tanlanmagan</span><span class="g-muted">«Ma'lumotni tahrirlash» orqali paket tanlang</span>`;
@@ -230,12 +236,13 @@ const TPT = (() => {
       <div class="g-card" style="display:flex;flex-direction:column;gap:10px"><div class="g-row" style="flex-wrap:nowrap"><h3 style="flex:1">${MN[+mo.slice(5) - 1]}: kelgan kunlar</h3>
         <span class="g-mnav"><button class="g-btn sm ghost" type="button" data-m="${prevM}" aria-label="Oldingi oy">‹</button><span class="g-pill p-ok g-num">${came(s).filter((d) => d.startsWith(mo)).length} kun</span><button class="g-btn sm ghost" type="button" data-m="${nextM}" aria-label="Keyingi oy" ${nextM > t.slice(0, 7) ? "disabled" : ""}>›</button></span></div>
         <div class="g-cal">${cal}</div>
-        <div class="g-legend"><span><i style="background:var(--g-ok)"></i>keldi</span><span><i style="background:var(--g-soft)"></i>dars bo'lgan, kelmagan</span></div></div>
+        <div class="g-legend"><span><i style="background:var(--g-ok)"></i>keldi</span><span><i style="background:var(--g-soft)"></i>dars bo'lgan, kelmagan</span><span>kunni bosing — keldi / bekor</span></div></div>
       ${paid ? `<div class="g-card" style="display:flex;flex-direction:column;gap:8px"><h3>To'lovlar</h3>${(s.pays || []).length ? s.pays.slice().sort((x, y) => String(y.d).localeCompare(String(x.d))).map((p) => `<div class="g-kv g-num"><span>${p.d ? dm(p.d) : "—"}${p.how ? " · " + e(p.how) : ""}</span><span>${payLessons(c, s, p)} dars · <b>${som(p.sum)}</b> <button class="g-btn sm ghost" type="button" data-pdel="${e(p.id)}" aria-label="To'lovni o'chirish" title="O'chirish">✕</button></span></div>`).join("") : `<span class="g-muted">Hali to'lov yo'q</span>`}</div>` : ""}
       <div class="g-row"><button class="g-btn sm" type="button" data-edit>Ma'lumotni tahrirlash</button><span class="g-sp"></span><button class="g-btn sm dang" type="button" data-off>Guruhdan chiqarish</button></div>
     </aside>`, false, (w) => {
       const pb = q("[data-pay]", w); if (pb) pb.onclick = () => payDialog(si);
       qa("[data-m]", w).forEach((b) => b.onclick = () => studentCard(si, b.dataset.m));
+      qa("[data-cd]", w).forEach((b) => b.onclick = () => { const d = b.dataset.cd; mark(c, s, d, (s.marks || {})[d] !== "ot"); save(); draw(); studentCard(si, mo); });
       const rm = q("[data-remind]", w); if (rm) rm.onclick = () => remind(c, s);
       q("[data-edit]", w).onclick = () => studentDialog(si);
       q("[data-off]", w).onclick = () => confirmG("Guruhdan chiqarish", `${s.name} guruhdan chiqariladi. Kelgan kunlari va to'lovlari saqlanib qoladi.`, "Chiqarish", () => {
@@ -418,6 +425,7 @@ const TPT = (() => {
     qa("[data-open]", m).forEach((b) => b.onclick = () => studentCard(+b.dataset.open));
     qa("[data-payfor]", m).forEach((b) => b.onclick = () => payDialog(+b.dataset.payfor));
     qa("[data-pick]", m).forEach((b) => b.onclick = () => { T.day = b.dataset.pick; draw(); });
+    pickerOn(m);
     const dp = q("#g-dp", m); if (dp) dp.onchange = () => { if (dp.value && dp.value <= today()) { T.day = dp.value; draw(); } };
     qa("[data-came]", m).forEach((b) => b.onclick = () => { const c = G(), s = c.students[+b.dataset.came]; mark(c, s, T.day, s.marks[T.day] !== "ot"); save(); draw(); });
     const al = q("[data-all]", m); if (al) al.onclick = () => { const c = G(); c.students.forEach((s) => mark(c, s, T.day, true)); save(); draw(); toast("Hammasi keldi deb belgilandi"); };
