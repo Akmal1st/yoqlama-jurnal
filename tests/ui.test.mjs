@@ -2674,12 +2674,24 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
       await page.click(".g-drawer [data-cd='2026-10-30']"); await page.click(".g-drawer [data-m='2026-11']"); await page.click(".g-drawer [data-cd='2026-11-02']");
       assert.equal(await page.evaluate(() => Object.keys(D.classes.find((x) => x.name === "Ingliz tili A1").students[0].marks).length), 0);
       await page.keyboard.press("Escape");
-      // «Boshqa» kun: sana tanlansa yo'qlama o'sha kunga o'tadi
-      await page.click("[data-tab=att]");
-      await page.click("#g-dp"); await page.waitForSelector(".g-dlg .g-cal");
-      assert.equal(await page.locator(".g-dlg [data-day='2026-11-03']").count(), 0);   // kelajak kun bosilmaydi
-      await page.click(".g-dlg [data-m='2026-10']"); await page.click(".g-dlg [data-day='2026-10-28']");
-      await page.waitForSelector(".g-dchip.on[data-pick='2026-10-28']");
+      // Yo'qlama → Kun: oylik kalendar doim ko'rinadi; kelajak kun bosilmaydi; oldingi oyga o'tib kun tanlanadi
+      await page.click("[data-tab=att]"); await page.waitForSelector(".g-mcal");
+      assert.ok(await page.locator(".g-mcal [data-pick='2026-11-03']").isDisabled());
+      await page.click("[data-mo='-1']"); await page.click(".g-mcal [data-pick='2026-10-28']");
+      await page.waitForSelector(".g-dc.sel[data-pick='2026-10-28']");
+      await page.click("[data-came='0']");
+      assert.equal(await page.evaluate(() => D.classes.find((x) => x.name === "Ingliz tili A1").students[0].marks["2026-10-28"]), "ot");
+      await page.waitForSelector(".g-dc.sel[data-pick='2026-10-28'] >> text=1/1");
+      // Oy jadvali: katak bosilsa keldi / bekor; jadvaldan tashqari kun (shanba) ham bosilgan bo'lsa ustun bo'lib chiqadi
+      await page.click("[data-av=grid]"); await page.waitForSelector(".g-mtab");
+      assert.equal(await page.getAttribute("[data-cell='0|2026-10-28']", "aria-pressed"), "true");
+      await page.click("[data-cell='0|2026-10-28']"); await page.click("[data-cell='0|2026-10-30']");
+      assert.equal(await page.evaluate(() => Object.keys(D.classes.find((x) => x.name === "Ingliz tili A1").students[0].marks).join(",")), "2026-10-30");
+      assert.equal(await page.locator("[data-cell='0|2026-10-31']").count(), 0);
+      await page.click("[data-cell='0|2026-10-30']");
+      const ov = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(ov <= 1, `oy jadvali sahifani ${ov}px kengaytirdi`);
+      await page.click("[data-av=day]");
       // to'lov oynasida «Boshqa kun» ham shu kalendar: tanlansa to'lov oynasiga qaytadi
       await page.click("[data-tab=pay]"); await page.click("[data-payfor='-1']"); await page.click("#g-pd");
       await page.click(".g-dlg [data-day='2026-11-01']"); await page.waitForSelector("#g-pd.on >> text=1 noyabr");

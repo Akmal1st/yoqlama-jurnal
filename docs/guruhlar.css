@@ -96,17 +96,43 @@ body.tpt-on #main{background:#f3f5f9}
 .tpt .g-back{align-self:flex-start;border:0;background:transparent;color:var(--g-acc);font-weight:600;padding:0;font-size:13.5px}
 
 /* yo'qlama: oxirgi dars kunlari */
-.tpt .g-strip{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
-.tpt .g-dchip{display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 2px;border:1px solid var(--g-line);border-radius:calc(12px*var(--rk,1));background:var(--g-base);box-shadow:var(--g-sh);color:var(--g-text);min-width:0;position:relative;cursor:pointer;margin:0}
-.tpt .g-dchip small{font-size:11.5px;color:var(--g-muted);font-weight:600;line-height:1.2}
-.tpt .g-dchip b{font-size:20px;line-height:1.15;font-weight:800}
-.tpt .g-dchip i{font-style:normal;font-size:11px;font-weight:700;color:var(--g-ok);margin-top:3px}
-.tpt .g-dchip.on{background:var(--g-acc);border-color:var(--g-acc);color:var(--g-acc-fg)}
-.tpt .g-dchip.on small,.tpt .g-dchip.on i{color:var(--g-acc-fg);opacity:.9}
-.tpt .g-dchip:hover:not(.on){border-color:var(--g-acc)}
-.tpt .g-calbtn{justify-content:center;gap:4px;color:var(--g-acc)}
-.tpt .g-calbtn svg{width:22px;height:22px}
-.tpt .g-overlay{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;border:0;padding:0;margin:0}
+/* Yo'qlama: Kun (oylik kalendar + ro'yxat) va Oy jadvali */
+.tpt .g-dayv{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:16px;align-items:start}
+.tpt .g-dlist{display:flex;flex-direction:column;gap:12px}
+.tpt .g-mh{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.tpt .g-mh h2{flex:1;min-width:0}
+.tpt .g-mcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.tpt .g-mcal .h{font-size:11.5px;color:var(--g-muted);text-align:center;font-weight:600;padding:2px 0 4px}
+.tpt .g-mcal .h.ls{color:var(--g-acc)}
+.tpt .g-dc{position:relative;border:1px solid transparent;background:none;border-radius:calc(10px*var(--rk,1));min-height:48px;padding:5px 0 4px;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;color:var(--g-text);min-width:0}
+.tpt .g-dc b{font-size:15px;font-weight:700;line-height:1.2}
+.tpt .g-dc i{font-style:normal;font-size:10.5px;font-weight:700;color:var(--g-ok);line-height:1.1;min-height:12px}
+.tpt .g-dc.les{background:var(--g-soft)}
+.tpt .g-dc.today{border-color:var(--g-acc)}
+.tpt .g-dc.fut{opacity:.4;cursor:default}
+.tpt .g-dc.sel{background:var(--g-acc);color:var(--g-acc-fg);border-color:var(--g-acc)}
+.tpt .g-dc.sel i{color:var(--g-acc-fg)}
+.tpt .g-dc.done:not(.sel)::after,.tpt .g-dc.miss:not(.sel)::after{content:"";position:absolute;top:5px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--g-ok)}
+.tpt .g-dc.miss:not(.sel)::after{background:var(--g-warn)}
+.tpt .g-dc:not(.fut):not(.sel):hover{border-color:var(--g-line)}
+.tpt .g-note.warn{border-left-color:var(--g-warn);background:var(--g-warn-soft);box-shadow:none}
+.tpt .g-dlist .g-att{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.tpt .g-tw table.g-mtab{width:auto;min-width:100%;border-collapse:separate;border-spacing:0}
+.tpt .g-tw .g-mtab th,.tpt .g-tw .g-mtab td{padding:0;text-align:center}
+.tpt .g-tw .g-mtab thead th{font-size:11.5px;padding:6px 2px;line-height:1.3}
+.tpt .g-tw .g-mtab thead th b{display:block;font-size:14px;color:var(--g-text)}
+.tpt .g-tw .g-mtab thead th.ex b{color:var(--g-warn)}
+.tpt .g-tw .g-mtab thead th.td b{color:var(--g-acc)}
+.tpt .g-tw .g-mtab .r{padding:0 12px;text-align:right}
+.tpt .g-tw .g-mtab .nm{position:sticky;left:0;z-index:1;background:var(--g-base);text-align:left;padding:8px 12px;font-weight:600;min-width:150px;max-width:180px;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--g-line)}
+.tpt .g-tw .g-mtab thead .nm,.tpt .g-tw .g-mtab tfoot .nm{background:var(--g-alt)}
+.tpt .g-tw .g-mtab tfoot td{font-size:12px;font-weight:600;color:var(--g-muted);padding:6px 2px}
+.tpt .g-cell{width:40px;height:40px;border:0;background:none;display:grid;place-items:center;margin:0 auto;padding:0}
+.tpt .g-cell span{width:26px;height:26px;border-radius:calc(8px*var(--rk,1));border:1.5px solid var(--g-line);display:grid;place-items:center;font-weight:800;font-size:13px;color:transparent}
+.tpt .g-cell.on span{background:var(--g-ok);border-color:var(--g-ok);color:var(--g-base)}
+.tpt .g-cell:hover span{border-color:var(--g-acc)}
+@media (max-width:860px){.tpt .g-dayv{grid-template-columns:1fr}}
+@media (max-width:520px){.tpt .g-dlist .g-att{grid-template-columns:1fr}}
 .tpt .g-daybar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tpt .g-daybar .g-d{font-weight:700;font-size:16px;flex:1;min-width:0}
 .tpt .g-att{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
