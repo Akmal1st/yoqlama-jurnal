@@ -902,7 +902,14 @@ test("Kunlik hisobot: darslar tugagach har sinf rasmi Telegram'ga va ota-onalar 
     await page.click('[data-krt="dark"]'); assert.equal(await page.evaluate(() => KUN.cfg().th), "dark");
     await page.click('[data-kra="view"]'); await page.waitForSelector(".modal .kr-prev img");
     const sz = await page.evaluate(() => { const i = document.querySelector(".kr-prev img"); return [i.naturalWidth, i.naturalHeight]; });
-    assert.ok(sz[0] === 1360 && sz[1] > 1000, sz.join("x"));
+    assert.ok(sz[0] === 1640 && sz[1] > 1000, sz.join("x"));
+    await page.click(".modal [data-x]");
+    // jadval ko'rinishi va shrift: internetdan shrift kelmasa ham rasm chiziladi (Manrope / tizim shrifti)
+    await page.route("https://fonts.googleapis.com/**", (rt) => rt.abort("failed"));
+    await page.click('[data-kry="block"]'); assert.equal(await page.evaluate(() => KUN.cfg().sty), "block");
+    await page.selectOption("#krf", "PT Sans"); assert.equal(await page.evaluate(() => KUN.cfg().font), "PT Sans");
+    await page.click('[data-kra="view"]'); await page.waitForSelector(".modal .kr-prev img");
+    assert.equal(await page.evaluate(() => KRJ.style()), "block");
     await page.click(".modal [data-x]");
     // «Yuborish» qo'lda — qayta yuboradi
     await page.click('[data-kra="send"]'); await page.waitForFunction((n) => document.querySelector(".toast")?.textContent.includes("1 ta sinf hisoboti"), 0);
