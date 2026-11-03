@@ -141,7 +141,7 @@ const TPT = (() => {
     return `<div class="g-strip" role="group" aria-label="Dars kuni">${stripDays(c, d).map((x) => {
       const k = c.students.filter((s) => (s.marks || {})[x] === "ot").length;
       return `<button type="button" class="g-dchip ${x === d ? "on" : ""}" data-pick="${x}" aria-pressed="${x === d}"><small>${x === t ? "Bugun" : WDL[wdOf(x)]}</small><b class="g-num">${+x.slice(8, 10)}</b><small>${MS[+x.slice(5, 7) - 1]}</small><i class="g-num">${k ? k + "/" + c.students.length : "—"}</i></button>`;
-    }).join("")}<label class="g-dchip g-calbtn" title="Boshqa kun"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><small>Boshqa</small><input type="date" class="g-overlay" id="g-dp" max="${t}" value="${d}" aria-label="Boshqa kunni tanlash"></label></div>
+    }).join("")}<button type="button" class="g-dchip g-calbtn" id="g-dp" title="Boshqa kun" aria-label="Boshqa kunni tanlash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><small>Boshqa</small></button></div>
     <div class="g-daybar"><span class="g-d">${d === t ? "Bugun" : WDL[wdOf(d)] + ","} ${dm(d)}</span>
       <span class="g-pill ${n ? "p-ok" : "p-mut"} g-num">Keldi: ${n} / ${c.students.length}</span>
       <button class="g-btn sm" type="button" data-all>Hammasi keldi</button></div>
@@ -184,10 +184,6 @@ const TPT = (() => {
   let layer = null;
   function closeLayer() { if (layer) { layer.remove(); layer = null; } document.removeEventListener("keydown", onEsc, true); }
   function onEsc(ev) { if (ev.key === "Escape" && layer) { ev.preventDefault(); ev.stopPropagation(); closeLayer(); } }
-  // input[type=date] ustiga bosilganda kalendar ochilsin (kompyuterda faqat kichik belgini bosish kerak edi)
-  function pickerOn(root) {
-    qa("input.g-overlay[type=date]", root).forEach((inp) => inp.addEventListener("click", () => { try { inp.showPicker(); } catch (err) { /* eski brauzer yoki allaqachon ochiq */ } }));
-  }
   function openLayer(html, mid, bind) {
     closeLayer();
     const wrap = document.createElement("div");
@@ -196,7 +192,7 @@ const TPT = (() => {
     document.body.append(wrap); layer = wrap;
     document.addEventListener("keydown", onEsc, true);
     qa("[data-x]", wrap).forEach((b) => b.onclick = closeLayer);
-    bind && bind(wrap); pickerOn(wrap);
+    bind && bind(wrap);
     const f = q("[autofocus]", wrap); if (f) f.focus();
   }
   const hdr = (t) => `<div class="g-row" style="flex-wrap:nowrap"><h2 style="flex:1">${t}</h2><button class="g-btn sm ghost" type="button" data-x aria-label="Yopish">✕</button></div>`;
@@ -204,6 +200,32 @@ const TPT = (() => {
     openLayer(`<div class="g-dlg" role="dialog" aria-modal="true">${hdr(e(title))}<div>${e(text)}</div>
       <div class="g-foot2"><button class="g-btn" type="button" data-x>Bekor qilish</button><button class="g-btn pri" type="button" data-yes>${e(yes)}</button></div></div>`, true,
       (w) => { q("[data-yes]", w).onclick = () => { closeLayer(); fn(); }; });
+  }
+
+  // kun tanlash — o'z kalendarimiz (brauzerning sana oynasiga bog'liq emas): o'tgan kunlar bosiladi, kelajak — yo'q
+  // o = {title, cur, mo, c (dars kunlari va kelganlar soni uchun), pick(d), back()}
+  function dayPicker(o) {
+    const t = today(), mo = o.mo || (o.cur || t).slice(0, 7), first = pd(mo + "-01"), off = (first.getDay() + 6) % 7, dim = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+    const prevM = iso(new Date(first.getFullYear(), first.getMonth() - 1, 1)).slice(0, 7), nextM = iso(new Date(first.getFullYear(), first.getMonth() + 1, 1)).slice(0, 7);
+    const c = o.c;
+    let cal = ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"].map((x) => `<span class="h">${x}</span>`).join("");
+    for (let i = 0; i < off; i++) cal += "<span></span>";
+    for (let i = 1; i <= dim; i++) {
+      const d = `${mo}-${String(i).padStart(2, "0")}`, k = c ? c.students.filter((s) => (s.marks || {})[d] === "ot").length : 0;
+      const cls = d === o.cur ? "s" : k ? "c" : c && isLesson(c, d) && d <= t ? "l" : "";
+      cal += d <= t ? `<button type="button" class="${cls} g-num" data-day="${d}" aria-label="${dm(d)}${k ? `, ${k} kishi kelgan` : ""}">${i}</button>` : `<span class="g-num g-fut">${i}</span>`;
+    }
+    const back = () => { if (o.back) o.back(); else closeLayer(); };
+    openLayer(`<div class="g-dlg" role="dialog" aria-modal="true" aria-label="${e(o.title)}">${hdr(e(o.title))}
+      <div class="g-row" style="flex-wrap:nowrap"><h3 style="flex:1">${MN[+mo.slice(5) - 1]} ${mo.slice(0, 4)}</h3>
+        <span class="g-mnav"><button class="g-btn sm ghost" type="button" data-m="${prevM}" aria-label="Oldingi oy">‹</button><button class="g-btn sm ghost" type="button" data-m="${nextM}" aria-label="Keyingi oy" ${nextM > t.slice(0, 7) ? "disabled" : ""}>›</button></span></div>
+      <div class="g-cal">${cal}</div>
+      ${c ? `<div class="g-legend"><span><i style="background:var(--g-ok)"></i>kimdir kelgan</span><span><i style="background:var(--g-soft)"></i>dars kuni</span></div>` : ""}
+      <div class="g-foot2"><button class="g-btn" type="button" data-back>Bekor qilish</button><button class="g-btn" type="button" data-day="${t}">Bugun</button></div></div>`, true, (w) => {
+      qa("[data-x],[data-back]", w).forEach((b) => b.onclick = back);
+      qa("[data-m]", w).forEach((b) => b.onclick = () => dayPicker(Object.assign({}, o, {mo: b.dataset.m})));
+      qa("[data-day]", w).forEach((b) => b.onclick = () => { closeLayer(); o.pick(b.dataset.day); });
+    });
   }
 
   // o'quvchi oynasi
@@ -284,7 +306,7 @@ const TPT = (() => {
         <div class="g-fld"><span class="g-lbl">Sana</span><div class="g-chips eq3">
           <button type="button" class="g-chip ${P.dmode === "t" ? "on" : ""}" data-dm="t">Bugun<small>${dm(t)}</small></button>
           <button type="button" class="g-chip ${P.dmode === "y" ? "on" : ""}" data-dm="y">Kecha<small>${dm(y)}</small></button>
-          <label class="g-chip ${P.dmode === "o" ? "on" : ""}">${P.dmode === "o" && P.dd ? dm(P.dd) : "Boshqa kun"}<small>kalendardan</small><input type="date" id="g-pd" class="g-overlay" max="${t}" value="${P.dd}" aria-label="Boshqa kun"></label></div></div>
+          <button type="button" class="g-chip ${P.dmode === "o" ? "on" : ""}" id="g-pd">${P.dmode === "o" && P.dd ? dm(P.dd) : "Boshqa kun"}<small>kalendardan</small></button></div></div>
         <div class="g-fld"><span class="g-lbl">Usul</span><div class="g-chips eq4">${HOW.map((h) => `<button type="button" class="g-chip ${P.how === h ? "on" : ""}" data-how="${h}">${h}</button>`).join("")}</div></div>
         <div class="g-after">${a.k || s.pkg !== k.id ? `Hozir: <b>${a.left < 0 ? "qarz " + (-a.left) + " dars" : a.left + " dars qoldi"}</b> → to'lovdan keyin: <b style="color:${after < 0 ? "var(--g-bad)" : "var(--g-ok)"}">${after < 0 ? "qarz " + (-after) + " dars" : after + " dars qoladi"}</b><br>` : ""}
           <span class="g-muted">${som(P.sum)} = ${lessons} dars${one > 0 && P.sum - lessons * one > 0.5 ? ` (${som(P.sum - lessons * one)} darsga yetmaydi)` : ""}</span></div>
@@ -293,7 +315,7 @@ const TPT = (() => {
         qa("[data-pk]", w).forEach((b) => b.onclick = () => { const kk = c.packs.find((x) => x.id === b.dataset.pk); P.pk = kk.id; P.sum = kk.sum; draw2(); });
         qa("[data-how]", w).forEach((b) => b.onclick = () => { P.how = b.dataset.how; draw2(); });
         qa("[data-dm]", w).forEach((b) => b.onclick = () => { P.dmode = b.dataset.dm; draw2(); });
-        q("#g-pd", w).onchange = (ev) => { if (ev.target.value && ev.target.value <= t) { P.dmode = "o"; P.dd = ev.target.value; draw2(); } };
+        q("#g-pd", w).onclick = () => { const pm0 = q("#g-pm", w); P.sum = +pm0.value.replace(/\D/g, "") || 0; dayPicker({title: "To'lov sanasi", cur: P.dd || t, pick: (x) => { P.dmode = "o"; P.dd = x; draw2(); }, back: draw2}); };
         const pm = q("#g-pm", w); pm.onchange = () => { P.sum = +pm.value.replace(/\D/g, "") || 0; draw2(); };
         pm.oninput = () => { const v = pm.value.replace(/\D/g, ""); pm.value = v ? sp3(+v) : ""; };
         q("[data-save]", w).onclick = () => {
@@ -425,8 +447,7 @@ const TPT = (() => {
     qa("[data-open]", m).forEach((b) => b.onclick = () => studentCard(+b.dataset.open));
     qa("[data-payfor]", m).forEach((b) => b.onclick = () => payDialog(+b.dataset.payfor));
     qa("[data-pick]", m).forEach((b) => b.onclick = () => { T.day = b.dataset.pick; draw(); });
-    pickerOn(m);
-    const dp = q("#g-dp", m); if (dp) dp.onchange = () => { if (dp.value && dp.value <= today()) { T.day = dp.value; draw(); } };
+    const dp = q("#g-dp", m); if (dp) dp.onclick = () => dayPicker({title: "Kunni tanlang", cur: T.day, c: G(), pick: (x) => { T.day = x; draw(); }});
     qa("[data-came]", m).forEach((b) => b.onclick = () => { const c = G(), s = c.students[+b.dataset.came]; mark(c, s, T.day, s.marks[T.day] !== "ot"); save(); draw(); });
     const al = q("[data-all]", m); if (al) al.onclick = () => { const c = G(); c.students.forEach((s) => mark(c, s, T.day, true)); save(); draw(); toast("Hammasi keldi deb belgilandi"); };
   }
