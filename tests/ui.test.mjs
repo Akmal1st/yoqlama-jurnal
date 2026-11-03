@@ -2595,7 +2595,21 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
       assert.equal(await page.evaluate(() => TPT.acct(D.classes.find((x) => x.name === "Ingliz tili A1"), D.classes.find((x) => x.name === "Ingliz tili A1").students[0]).left), 8);
       // o'quvchi oynasi va to'lovlar tarixi
       await page.click("[data-tab=stu]"); await page.click("[data-open='0']"); await page.waitForSelector(".g-drawer");
+      // o'quvchi kalendari: o'tgan kunni bosish — keldi, yana bosish — bekor; kelajak kunlar bosilmaydi
+      await page.click(".g-drawer [data-cd='2026-11-02']");
+      assert.equal(await page.evaluate(() => { const c = D.classes.find((x) => x.name === "Ingliz tili A1"); return c.students[0].marks["2026-11-02"] + "|" + TPT.acct(c, c.students[0]).left; }), "ot|7");
+      assert.equal(await page.getAttribute(".g-drawer [data-cd='2026-11-02']", "aria-pressed"), "true");
+      assert.equal(await page.locator(".g-drawer [data-cd='2026-11-03']").count(), 0);
+      await page.click(".g-drawer [data-m='2026-10']"); await page.click(".g-drawer [data-cd='2026-10-30']");
+      assert.equal(await page.evaluate(() => Object.keys(D.classes.find((x) => x.name === "Ingliz tili A1").students[0].marks).sort().join(",")), "2026-10-30,2026-11-02");
+      await page.click(".g-drawer [data-cd='2026-10-30']"); await page.click(".g-drawer [data-m='2026-11']"); await page.click(".g-drawer [data-cd='2026-11-02']");
+      assert.equal(await page.evaluate(() => Object.keys(D.classes.find((x) => x.name === "Ingliz tili A1").students[0].marks).length), 0);
       await page.keyboard.press("Escape");
+      // «Boshqa» kun: sana tanlansa yo'qlama o'sha kunga o'tadi
+      await page.click("[data-tab=att]");
+      await page.locator("#g-dp").fill("2026-10-28"); await page.locator("#g-dp").dispatchEvent("change");
+      await page.waitForSelector(".g-dchip.on[data-pick='2026-10-28']");
+      await page.click("[data-tab=stu]");
       await page.click("[data-tab=pay]"); await page.waitForSelector(".g-tw table");
       // saqlangan faylda qoladi
       const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("yoqlama_jurnal")).classes.find((x) => x.name === "Ingliz tili A1").students[0].pays.length);
