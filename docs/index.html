@@ -21,6 +21,7 @@
 <link rel="stylesheet" href="bugun.css">
 <link rel="stylesheet" href="sozlamalar.css">
 <link rel="stylesheet" href="mezon.css">
+<link rel="stylesheet" href="kunlik.css">
 </head>
 <body>
 <div class="app" id="app">
@@ -36,6 +37,7 @@
 <script src="bugun.js"></script>
 <script src="sozlamalar.js"></script>
 <script src="mezon.js"></script>
+<script src="kunlik.js"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
@@ -5003,7 +5005,9 @@ const isStandalone = () => matchMedia("(display-mode: standalone)").matches || n
 /* ───────── ishga tushirish ───────── */
 if (document.getElementById("app")) {
   D = load(); autoDates(); if (D.classes.some((c) => c.plan && c.plan.on)) { reflowAll(); save(); }
-  render(); emkReady(); idbBoot().then(() => { tgAuto(); remSchedule(); });
+  render(); emkReady(); idbBoot().then(() => { tgAuto().then(() => KUN.tick()); remSchedule(); });
+  setInterval(() => KUN.tick(), 60000);   // kunlik hisobot: darslar tugagach Telegram'ga (kunlik.js)
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") KUN.tick(); });
   setInterval(() => { if (S.page === "journal" && isLocked() !== $("[data-lock]")?.textContent.includes("🔒")) renderNav(); }, 30000);
 }
 </script>
