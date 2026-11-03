@@ -1432,9 +1432,9 @@ test("Sinf hisoboti: saralash, xavf filtri, sifat/o'zlashtirish va Excel", async
     const nRisk = await page.evaluate(() => { const [lo, hi] = repRange("cur"); return reportRows(D.classes[0], lo, hi).rows.filter((r) => r.risk).length; });
     await page.click('[data-rf="risk"]');
     assert.equal(await page.$$eval("table.rcls tr:not(.tot)", (tr) => tr.length - 1), nRisk);
-    // sifat va o'zlashtirish: chorak bahosi 4–5 va 3–5 ulushi
-    const ql = await page.evaluate(() => qualityOf([{q: {complete: true, grade: 5}}, {q: {complete: true, grade: 3}}, {q: {complete: true, grade: 2}}, {q: {complete: false}}]));
-    assert.equal(ql.n, 3); assert.equal(Math.round(ql.q), 33); assert.equal(Math.round(ql.u), 67);
+    // sifat — chorak bahosi 4–5 ulushi; o'zlashtirish — o'rtacha jami ball (100 dan), faqat to'liq chiqqanlar
+    const ql = await page.evaluate(() => qualityOf([{q: {complete: true, grade: 5, total: 90}}, {q: {complete: true, grade: 3, total: 45}}, {q: {complete: true, grade: 2, total: 21}}, {q: {complete: false, total: 99}}]));
+    assert.equal(ql.n, 3); assert.equal(Math.round(ql.q), 33); assert.equal(ql.u, 52);
     // kutubxona yuklanmasa — CSV
     await page.evaluate(() => { window.loadXlsx = () => Promise.reject(new Error("offline")); });
     const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-xlsx]:visible")]);
