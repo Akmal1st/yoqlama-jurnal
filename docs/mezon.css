@@ -5,7 +5,7 @@
 /* ── jadvallarda toq/juft qatorlar (Akmal: surganda qatorlar bir xil ko'rinib, chalkashmasin) ── */
 .dlist{padding:0;overflow:hidden}
 .dlist>.drow{padding:7px 14px}
-.dlist>.drow:nth-child(even of .drow):not(.risk){background:var(--zebra)}
+.dlist>.drow:nth-child(even of .drow){background:var(--zebra)}
 .dlist>.drow:nth-child(even of .drow) :is(.da:not(.on),.mz-pts button:not(.on)){background:var(--base)}
 table.j tr:nth-child(even of tr[data-q]):not(.risk)>td{background:var(--zebra);box-shadow:0 0 0 2px var(--zebra)}
 table.j tr:nth-child(even of tr[data-q]):not(.risk)>td.nm{box-shadow:-8px 0 0 var(--zebra),0 0 0 2px var(--zebra)}
