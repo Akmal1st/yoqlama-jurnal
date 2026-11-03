@@ -2491,6 +2491,31 @@ test("O'chirilgan BSB/CHSB qayta paydo bo'lmaydi: KTR rejasi va eMaktab importi 
   } finally { await browser.close(); }
 });
 
+test("eMaktab importi kundalik baholarni to'liq almashtiradi, BSB/CHSB ballariga tegmaydi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1300, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const r = await page.evaluate(() => {
+      const c = D.classes[0], s = c.students[0], [d1, d2, d3, d4] = c.dates.filter((x) => !isNoLesson(c, x)).slice(0, 4);
+      const w = {id: newWorkId(c), type: "bsb", date: d4, max: 25, title: ""}; c.works.push(w);
+      s.marks = {[d1]: "5", [d2]: "7", [d3]: "9", [d4]: "6"}; s.fp = {[d1]: [3, 2], [d2]: [4, 3]}; s.scores = {[w.id]: 20};
+      const rep = mergeImport({name: c.name, subject: c.subject, dates: [d2, d3], skipped: {},
+        students: [{name: s.name, marks: {[d2]: "8"}, scores: {[`bsb|${d4}`]: 11}}], works: [{type: "bsb", date: d4, max: 25, title: ""}]}, true);
+      return {marks: {...s.marks}, fp: {...s.fp}, score: s.scores[w.id], removed: rep.removed, replaced: rep.replaced, d: [d1, d2, d3, d4]};
+    });
+    const [d1, d2, d3, d4] = r.d;
+    assert.deepEqual(r.marks, {[d1]: "5", [d2]: "8", [d4]: "6"}, "oraliqdagi baho almashtirildi/o'chirildi, oraliqdan tashqarisi qoldi");
+    assert.deepEqual(r.fp, {[d1]: [3, 2]}, "almashtirilgan bahoning mezon qismlari tozalandi");
+    assert.equal(r.score, 20, "BSB balli o'zgarmadi"); assert.equal(r.removed, 1); assert.equal(r.replaced, 1);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
 test("Xavf turlarini tanlash: har tur alohida yoqiladi, chegarasi o'zgaradi, tayyor to'plamlar", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
@@ -2639,7 +2664,28 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
       assert.equal(await page.evaluate(() => TPT.acct(D.classes.find((x) => x.name === "Ingliz tili A1"), D.classes.find((x) => x.name === "Ingliz tili A1").students[0]).left), 8);
       // o'quvchi oynasi va to'lovlar tarixi
       await page.click("[data-tab=stu]"); await page.click("[data-open='0']"); await page.waitForSelector(".g-drawer");
+      // o'quvchi kalendari: o'tgan kunni bosish — keldi, yana bosish — bekor; kelajak kunlar bosilmaydi
+      await page.click(".g-drawer [data-cd='2026-11-02']");
+      assert.equal(await page.evaluate(() => { const c = D.classes.find((x) => x.name === "Ingliz tili A1"); return c.students[0].marks["2026-11-02"] + "|" + TPT.acct(c, c.students[0]).left; }), "ot|7");
+      assert.equal(await page.getAttribute(".g-drawer [data-cd='2026-11-02']", "aria-pressed"), "true");
+      assert.equal(await page.locator(".g-drawer [data-cd='2026-11-03']").count(), 0);
+      await page.click(".g-drawer [data-m='2026-10']"); await page.click(".g-drawer [data-cd='2026-10-30']");
+      assert.equal(await page.evaluate(() => Object.keys(D.classes.find((x) => x.name === "Ingliz tili A1").students[0].marks).sort().join(",")), "2026-10-30,2026-11-02");
+      await page.click(".g-drawer [data-cd='2026-10-30']"); await page.click(".g-drawer [data-m='2026-11']"); await page.click(".g-drawer [data-cd='2026-11-02']");
+      assert.equal(await page.evaluate(() => Object.keys(D.classes.find((x) => x.name === "Ingliz tili A1").students[0].marks).length), 0);
       await page.keyboard.press("Escape");
+      // «Boshqa» kun: sana tanlansa yo'qlama o'sha kunga o'tadi
+      await page.click("[data-tab=att]");
+      await page.click("#g-dp"); await page.waitForSelector(".g-dlg .g-cal");
+      assert.equal(await page.locator(".g-dlg [data-day='2026-11-03']").count(), 0);   // kelajak kun bosilmaydi
+      await page.click(".g-dlg [data-m='2026-10']"); await page.click(".g-dlg [data-day='2026-10-28']");
+      await page.waitForSelector(".g-dchip.on[data-pick='2026-10-28']");
+      // to'lov oynasida «Boshqa kun» ham shu kalendar: tanlansa to'lov oynasiga qaytadi
+      await page.click("[data-tab=pay]"); await page.click("[data-payfor='-1']"); await page.click("#g-pd");
+      await page.click(".g-dlg [data-day='2026-11-01']"); await page.waitForSelector("#g-pd.on >> text=1 noyabr");
+      await page.click("#g-pd"); await page.click(".g-dlg [data-back]"); await page.waitForSelector("#g-pd.on");
+      await page.keyboard.press("Escape");
+      await page.click("[data-tab=stu]");
       await page.click("[data-tab=pay]"); await page.waitForSelector(".g-tw table");
       // saqlangan faylda qoladi
       const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("yoqlama_jurnal")).classes.find((x) => x.name === "Ingliz tili A1").students[0].pays.length);
