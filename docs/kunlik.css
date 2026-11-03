@@ -1,0 +1,6 @@
+/* Kunlik hisobot (kunlik.js): ko'rish oynasi va ota-onalar guruhlari ro'yxati */
+.kr-prev{display:flex;flex-direction:column;gap:12px;max-height:65vh;overflow:auto;border-radius:10px}
+.kr-prev img{display:block;width:100%;max-width:680px;margin:0 auto;border:1px solid var(--line);border-radius:8px}
+.kr-gr{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.kr-gr b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kr-gr select{max-width:55%}
