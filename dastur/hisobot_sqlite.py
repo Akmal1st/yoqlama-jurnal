@@ -129,7 +129,7 @@ SELECT id, class_id, bsb, chsb, fb, bsb + chsb + fb total, complete,
 FROM r
 """
 
-# Sinflarni solishtirish (web: compareRows): vaznli o'rtacha, davomat, BSB/CHSB %, sifat va o'zlashtirish
+# Sinflarni solishtirish (web: compareRows): vaznli o'rtacha, davomat, BSB/CHSB %, sifat va o'zlashtirish (o'rtacha jami ball, 100 dan)
 Q_COMPARE = """
 WITH sr AS ({students}),
      q AS ({quarter}),
@@ -137,7 +137,7 @@ WITH sr AS ({students}),
                    SUM(CASE WHEN w.type <> 'bsb' THEN sc.v END) cg, SUM(CASE WHEN w.type <> 'bsb' THEN w.max END) cm
             FROM work w JOIN score sc ON sc.work_id = w.id JOIN student s ON s.id = sc.student_id AND s.active = 1
             WHERE w.d BETWEEN :lo AND :hi GROUP BY w.class_id),
-     ql AS (SELECT class_id, SUM(complete) qn, SUM(complete AND grade >= 4) q45, SUM(complete AND grade >= 3) q35 FROM q GROUP BY class_id)
+     ql AS (SELECT class_id, SUM(complete) qn, SUM(complete AND grade >= 4) q45, SUM(CASE WHEN complete THEN total ELSE 0 END) qt FROM q GROUP BY class_id)
 SELECT c.id, c.name || CASE WHEN c.subject <> '' THEN ' · ' || c.subject ELSE '' END cls,
        COUNT(sr.id) n, MAX(sr.lessons) lessons,
        SUM(CASE WHEN sr.avg IS NOT NULL THEN sr.n ELSE 0 END) nGr,
@@ -145,8 +145,8 @@ SELECT c.id, c.name || CASE WHEN c.subject <> '' THEN ' · ' || c.subject ELSE '
        SUM(sr.avg * sr.n) / NULLIF(SUM(CASE WHEN sr.avg IS NOT NULL THEN sr.n ELSE 0 END), 0) avg,
        COUNT(sr.att) nAt, SUM(sr.att) sAt, AVG(sr.att) att,
        wk.bg, wk.bm, wk.cg, wk.cm, 100.0 * wk.bg / wk.bm bsb, 100.0 * wk.cg / wk.cm chsb,
-       COALESCE(ql.qn, 0) qn, COALESCE(ql.q45, 0) q45, COALESCE(ql.q35, 0) q35,
-       100.0 * ql.q45 / NULLIF(ql.qn, 0) qq, 100.0 * ql.q35 / NULLIF(ql.qn, 0) qu
+       COALESCE(ql.qn, 0) qn, COALESCE(ql.q45, 0) q45, COALESCE(ql.qt, 0) qt,
+       100.0 * ql.q45 / NULLIF(ql.qn, 0) qq, 1.0 * ql.qt / NULLIF(ql.qn, 0) qu
 FROM class c LEFT JOIN sr ON sr.class_id = c.id LEFT JOIN wk ON wk.class_id = c.id LEFT JOIN ql ON ql.class_id = c.id
 WHERE c.kind IS NULL GROUP BY c.id ORDER BY c.ord
 """
@@ -339,7 +339,7 @@ def compare_total(rows):
     pp = lambda g, m: 100 * s(g) / s(m) if s(m) else None
     return {"n": s("n"), "lessons": s("lessons"), "avg": s("sGr") / s("nGr") if s("nGr") else None, "att": s("sAt") / s("nAt") if s("nAt") else None,
             "bsb": pp("bg", "bm"), "chsb": pp("cg", "cm"), "qq": 100 * s("q45") / s("qn") if s("qn") else None,
-            "qu": 100 * s("q35") / s("qn") if s("qn") else None}
+            "qu": s("qt") / s("qn") if s("qn") else None}
 
 
 def works(con, q):
