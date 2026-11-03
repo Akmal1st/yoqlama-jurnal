@@ -1193,11 +1193,16 @@ function findClass(name, subject) {
   if (same.length === 1) return [same[0], false];
   return [same.find((c) => !c.subject) || null, false];
 }
-function mergeImport(imp, overwrite) {
+// replace=true — eMaktab fayli asosiy manba (Akmal, 2026-11-03): fayldagi o'quvchilarning fayl qamrab olgan sanalar oralig'idagi
+// kundalik belgilari (baho + yo'qlama) fayldagisi bilan to'liq almashtiriladi, faylda yo'q belgilar o'chiriladi, o'chgan/o'zgargan
+// bahoning mezon qismlari (s.fp) ham tozalanadi. BSB/CHSB ballari hech qachon almashtirilmaydi/o'chirilmaydi — faqat bo'sh kataklar to'ldiriladi.
+function mergeImport(imp, replace) {
   let [c, adopt] = findClass(imp.name, imp.subject); const created = !c;
   if (created) c = normalize({classes: [{name: imp.name, subject: imp.subject || ""}]}).classes[0];
   if (adopt) { const old = label(c); c.subject = imp.subject; (D.changelog || []).forEach((e) => { if (e.cls === old) e.cls = label(c); }); }
-  const rep = {name: label(c), created, new_dates: imp.dates.filter((d) => !c.dates.includes(d)), new_students: [], matched: 0, filled: 0, replaced: 0, kept: 0, same: 0, new_works: 0, s_filled: 0, s_replaced: 0, s_kept: 0, skipped: imp.skipped};
+  const rep = {name: label(c), created, new_dates: imp.dates.filter((d) => !c.dates.includes(d)), new_students: [], matched: 0, filled: 0, replaced: 0, removed: 0, kept: 0, same: 0, new_works: 0, s_filled: 0, s_kept: 0, skipped: imp.skipped};
+  const lo = imp.dates[0], hi = imp.dates[imp.dates.length - 1];
+  const dropFp = (cs, d) => { if (cs.fp && cs.fp[d]) delete cs.fp[d]; };
   c.dates = [...new Set([...c.dates, ...imp.dates])].sort();
   const idx = {}; c.students.forEach((s) => idx[normName(s.name)] = s); c.students_off.forEach((s) => idx[normName(s.name)] = idx[normName(s.name)] || s);
   let prev = null; const touched = new Set(), pairs = [], inFile = new Set();
@@ -1207,11 +1212,15 @@ function mergeImport(imp, overwrite) {
     else if (c.students_off.includes(cs)) (rep.inactive = rep.inactive || []).push(cs.name);
     else rep.matched++;
     if (c.students.includes(cs)) prev = cs; pairs.push([st, cs]);
+    if (replace && lo) for (const d of Object.keys(cs.marks)) {
+      if (d < lo || d > hi || st.marks[d] !== undefined) continue;
+      log(c, cs, d, cs.marks[d], ""); delete cs.marks[d]; dropFp(cs, d); rep.removed++;
+    }
     for (const [d, m] of Object.entries(st.marks)) {
       const cur = cs.marks[d];
       if (cur === m) rep.same++;
-      else if (cur === undefined) { cs.marks[d] = m; rep.filled++; touched.add(d); }
-      else if (overwrite) { log(c, cs, d, cur, m); cs.marks[d] = m; rep.replaced++; touched.add(d); }
+      else if (cur === undefined) { cs.marks[d] = m; dropFp(cs, d); rep.filled++; touched.add(d); }
+      else if (replace) { log(c, cs, d, cur, m); cs.marks[d] = m; dropFp(cs, d); rep.replaced++; touched.add(d); }
       else rep.kept++;
     }
   }
@@ -1227,7 +1236,7 @@ function mergeImport(imp, overwrite) {
     for (const [k, v] of Object.entries(st.scores || {})) {
       const ex = wmap[k]; if (!ex || (isNum(v) && v > ex.max)) continue;
       const cur = sc[ex.id] ?? "";
-      if (cur === v) continue; if (cur === "") { sc[ex.id] = v; rep.s_filled++; } else if (overwrite) { sc[ex.id] = v; rep.s_replaced++; } else rep.s_kept++;
+      if (cur === v) continue; if (cur === "") { sc[ex.id] = v; rep.s_filled++; } else rep.s_kept++;   // BSB/CHSB: jurnaldagi ball saqlanadi
     }
   }
   const qd = imp.quarter; if (qd && !D.settings.quarters[qd.q - 1]) { D.settings.quarters[qd.q - 1] = [qd.start, qd.end]; rep.quarter_new = qd.q; }
@@ -3667,19 +3676,19 @@ async function importEmaktabFiles(files) {
       ${found.map((x, i) => { const [ex] = findClass(x.name, x.subject); return `<label class="hrow" style="gap:8px"><input type="checkbox" data-i="${i}" checked style="width:20px;height:20px">
         <span class="sp"><b>${esc(x.name)}${x.subject ? " · " + esc(x.subject) : ""}</b> — ${x.students.length} o'quvchi, ${x.dates.length} kun${x.works.length ? `, ${x.works.length} summativ ish` : ""}${x.quarter ? `, ${x.quarter.q}-chorak` : ""}
         <span class="muted">${ex ? "→ mavjud jurnalga qo'shiladi" : "→ yangi sinf"}</span></span></label>`; }).join("")}
-      <label class="hrow" style="gap:8px"><input type="checkbox" id="ow" style="width:20px;height:20px"> Jurnalda boshqa baho turgan kataklarni fayldagisi bilan almashtirish</label>
+      <div class="muted">Mavjud jurnalda fayl qamrab olgan sanalardagi kundalik baholar va yo'qlama fayldagisi bilan <b>to'liq almashtiriladi</b>: faylda yo'q belgilar o'chiriladi. BSB/CHSB ballari o'zgarmaydi (faqat bo'sh kataklar to'ldiriladi).</div>
       <div class="hrow"><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn btn-primary" data-ok>Import qilish</button></div>`, (mm, close) => {
       $("[data-x]", mm).onclick = () => close(null);
-      $("[data-ok]", mm).onclick = () => close({pick: [...mm.querySelectorAll("[data-i]")].filter((x) => x.checked).map((x) => +x.dataset.i), ow: $("#ow", mm).checked});
+      $("[data-ok]", mm).onclick = () => close({pick: [...mm.querySelectorAll("[data-i]")].filter((x) => x.checked).map((x) => +x.dataset.i)});
     });
     if (!ok || !ok.pick.length) return;
-    if (ok.ow && isLocked() && !await unlock()) return;
-    const reps = ok.pick.map((i) => mergeImport(found[i], ok.ow)); autoDates(); save();
+    if (ok.pick.some((i) => findClass(found[i].name, found[i].subject)[0]) && isLocked() && !await unlock()) return;
+    const reps = ok.pick.map((i) => mergeImport(found[i], true)); autoDates(); save();
     S.ci = Math.max(0, D.classes.findIndex((c) => label(c) === reps[0].name));
     modal(`<h2>Import yakunlandi</h2>${reps.map((r) => `<div class="card vcol" style="gap:4px;padding:12px 14px"><b>${esc(r.name)}${r.created ? " (yangi sinf)" : ""}</b>
       <div>Yangi kunlar: ${r.new_dates.length} · yangi o'quvchilar: ${r.new_students.length} · topilgan: ${r.matched}</div>
-      <div>Qo'yilgan belgilar: ${r.filled}${r.replaced ? ` · almashtirildi: ${r.replaced}` : ""}${r.kept ? ` · jurnaldagisi qoldirildi: ${r.kept}` : ""}${r.same ? ` · bir xil: ${r.same}` : ""}</div>
-      ${r.new_works || r.s_filled ? `<div>Summativ ishlar: +${r.new_works} · ballar: ${r.s_filled}${r.s_replaced ? ` (almashtirildi ${r.s_replaced})` : ""}</div>` : ""}
+      <div>Qo'yilgan belgilar: ${r.filled}${r.replaced ? ` · almashtirildi: ${r.replaced}` : ""}${r.removed ? ` · o'chirildi: ${r.removed}` : ""}${r.kept ? ` · jurnaldagisi qoldirildi: ${r.kept}` : ""}${r.same ? ` · bir xil: ${r.same}` : ""}</div>
+      ${r.new_works || r.s_filled ? `<div>Summativ ishlar: +${r.new_works} · ballar: ${r.s_filled}</div>` : ""}
       ${r.inactive ? `<div class="muted">Faylda bor, lekin faolsiz: ${esc(r.inactive.join(", "))} — baholari saqlandi, jurnalda ko'rinmaydi</div>` : ""}
       ${r.quarter_new ? `<div>${r.quarter_new}-chorak sanalari fayldan olindi</div>` : ""}
       ${r.absent.length ? `<div class="muted">Faylda yo'q o'quvchilar: ${esc(r.absent.slice(0, 8).join(", "))}${r.absent.length > 8 ? "…" : ""}</div>
