@@ -28,7 +28,7 @@ html.tpt-all body{-webkit-font-smoothing:antialiased;letter-spacing:normal}
   html.tpt-all .side{background:var(--side-bg);border-right:1px solid var(--line)}
   html.tpt-all .side .nav{font-weight:600}
   html.tpt-all .side .nav.on{background:var(--acc-soft);color:var(--acc)}
-  html.tpt-all .logo b{background:var(--acc);color:var(--acc-fg);border-radius:10px}
+  html.tpt-all .logo b{background:var(--acc);color:var(--acc-fg);border-radius:calc(10px*var(--rk,1))}
 
   /* kartochkalar: oq, yumshoq soya, 14px burchak */
   html.tpt-all :is(.card,.tblwrap,.gcard,.mcard,.keys,.rk){background:var(--base);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh)}
@@ -39,7 +39,7 @@ html.tpt-all body{-webkit-font-smoothing:antialiased;letter-spacing:normal}
   html.tpt-all .tile div:last-child{font-weight:800}
 
   /* tugmalar */
-  html.tpt-all .btn{border-radius:10px;font-weight:600;border:1px solid var(--line);background:var(--base);color:var(--text);box-shadow:var(--sh)}
+  html.tpt-all .btn{border-radius:calc(10px*var(--rk,1));font-weight:600;border:1px solid var(--line);background:var(--base);color:var(--text);box-shadow:var(--sh)}
   html.tpt-all .btn:hover{background:var(--alt)}
   html.tpt-all .btn.btn-primary{background:var(--acc);border-color:var(--acc);color:var(--acc-fg);font-weight:700;box-shadow:0 1px 2px rgba(16,24,40,.08),inset 0 -1px 0 rgba(0,0,0,.08)}
   html.tpt-all .btn.btn-primary:hover{background:var(--acc-d);border-color:var(--acc-d)}
@@ -47,31 +47,31 @@ html.tpt-all body{-webkit-font-smoothing:antialiased;letter-spacing:normal}
   html.tpt-all .side .btn{box-shadow:none}
 
   /* segment va chiplar — TPT tablari kabi */
-  html.tpt-all .seg{background:var(--soft);border-radius:10px;padding:3px}
-  html.tpt-all .seg button{border-radius:8px;font-weight:600;color:var(--muted)}
+  html.tpt-all .seg{background:var(--soft);border-radius:calc(10px*var(--rk,1));padding:3px}
+  html.tpt-all .seg button{border-radius:calc(8px*var(--rk,1));font-weight:600;color:var(--muted)}
   html.tpt-all .seg button.on{background:var(--base);color:var(--text);box-shadow:var(--sh)}
   html.tpt-all .chip{border-radius:999px;font-weight:600;box-shadow:var(--sh)}
   html.tpt-all .chip.on{background:var(--acc);border-color:var(--acc);color:var(--acc-fg)}
 
   /* kiritish maydonlari */
-  html.tpt-all :is(input[type=text],input[type=search],input[type=tel],input[type=date],input[type=password],input[type=number],select,textarea){border:1px solid var(--line);border-radius:10px;background:var(--base);box-shadow:var(--sh)}
+  html.tpt-all :is(input[type=text],input[type=search],input[type=tel],input[type=date],input[type=password],input[type=number],select,textarea){border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--base);box-shadow:var(--sh)}
   html.tpt-all :is(input,select,textarea):focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
 
   /* sozlamalar bo'limlari va hisobot turlari */
   html.tpt-all .secs button.on,html.tpt-all .rk.on{background:var(--acc-soft);color:var(--acc);border-color:var(--acc)}
-  html.tpt-all .sgbox{border-radius:12px}
+  html.tpt-all .sgbox{border-radius:calc(12px*var(--rk,1))}
 
   /* jadval sarlavhasi */
   html.tpt-all table.r th{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--muted)}
 
   /* oynalar va xabarlar */
   html.tpt-all .modal{background:rgba(15,23,42,.42)}
-  html.tpt-all .modal .card{border-radius:18px;box-shadow:var(--sh-lg)}
-  html.tpt-all .toast{border-radius:12px;font-weight:600}
+  html.tpt-all .modal .card{border-radius:calc(18px*var(--rk,1));box-shadow:var(--sh-lg)}
+  html.tpt-all .toast{border-radius:calc(12px*var(--rk,1));font-weight:600}
 
   /* telefon: pastki menyu oq, faol tugma firuza */
   html.tpt-all .tabbar{background:var(--base);border-top:1px solid var(--line)}
   html.tpt-all .tabbar .nav{font-weight:600;color:var(--muted)}
   html.tpt-all .tabbar .nav.on{color:var(--acc)}
-  @media (max-width:820px){html.tpt-all .modal .card{border-radius:20px 20px 0 0}html.tpt-all h1{font-size:22px}}
+  @media (max-width:820px){html.tpt-all .modal .card{border-radius:calc(20px*var(--rk,1)) calc(20px*var(--rk,1)) 0 0}html.tpt-all h1{font-size:22px}}
 }

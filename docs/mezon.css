@@ -14,8 +14,8 @@ table.j tr:nth-child(even of tr[data-q]):not(.risk) .cell:not([style*="backgroun
 
 /* ── asboblar paneli ── */
 .mz-tools{background:var(--base);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
-.mz-seg{display:inline-flex;background:var(--soft,var(--alt));border-radius:10px;padding:3px;gap:2px}
-.mz-seg button{border:0;background:transparent;padding:7px 12px;border-radius:8px;font-weight:700;font-size:13px;color:var(--muted)}
+.mz-seg{display:inline-flex;background:var(--soft,var(--alt));border-radius:calc(10px*var(--rk,1));padding:3px;gap:2px}
+.mz-seg button{border:0;background:transparent;padding:7px 12px;border-radius:calc(8px*var(--rk,1));font-weight:700;font-size:13px;color:var(--muted)}
 .mz-seg button.on{background:var(--base);color:var(--text);box-shadow:var(--sh)}
 .mz-lbl{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
 .mz-sp{flex:1}
@@ -51,7 +51,7 @@ table.j tr:nth-child(even of tr[data-q]):not(.risk) .cell:not([style*="backgroun
 .dlist.ro .mz-pts button{opacity:.55;cursor:not-allowed}
 .mz-off{color:var(--muted);font-size:13px;font-style:italic}
 .mz-tot{justify-self:end;display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:transparent;padding:0;color:var(--text)}
-.mz-tot b{min-width:44px;height:44px;padding:0 4px;border-radius:12px;display:grid;place-items:center;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
+.mz-tot b{min-width:44px;height:44px;padding:0 4px;border-radius:calc(12px*var(--rk,1));display:grid;place-items:center;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
 .mz-tot b.none{border:2px dashed var(--line);color:var(--muted);font-size:15px;background:transparent}
 .mz-tot b.part{border:2px dashed var(--acc);color:var(--acc);background:transparent;font-size:14px}
 .mz-tot small{font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -69,7 +69,7 @@ table.j tr:nth-child(even of tr[data-q]):not(.risk) .cell:not([style*="backgroun
 .mz-fb li span:last-child,.mz-warn{color:var(--today,#b7791f);font-weight:700;white-space:nowrap}
 .mz-okk{color:var(--ok);font-weight:700;font-size:13px}
 .mz-f4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}
-.mz-f4 div{background:var(--alt);border-radius:10px;padding:8px 4px;display:flex;flex-direction:column;gap:2px}
+.mz-f4 div{background:var(--alt);border-radius:calc(10px*var(--rk,1));padding:8px 4px;display:flex;flex-direction:column;gap:2px}
 .mz-f4 b{font-size:17px;font-weight:800}
 .mz-f4 small{font-size:11px;color:var(--muted);font-weight:700}
 .mz-f4 div.me{background:var(--acc-soft)}.mz-f4 div.me b{color:var(--acc)}
@@ -80,12 +80,12 @@ table.j tr:nth-child(even of tr[data-q]):not(.risk) .cell:not([style*="backgroun
 .mz-dlg h2{margin:0}
 .mz-body{display:flex;flex-direction:column;gap:10px;max-height:62vh;overflow:auto}
 .mz-rub{display:flex;flex-direction:column;gap:6px}
-.mz-rub div{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:start;padding:8px 10px;background:var(--alt);border-radius:10px;font-size:13px;line-height:1.45}
+.mz-rub div{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:start;padding:8px 10px;background:var(--alt);border-radius:calc(10px*var(--rk,1));font-size:13px;line-height:1.45}
 .mz-rub div b{width:30px;height:30px;border-radius:50%;background:var(--acc);color:var(--acc-fg);display:grid;place-items:center;font-weight:800}
 .mz-colors{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.mz-colors div{border-radius:10px;padding:8px;text-align:center;font-weight:800;color:#12303a}
+.mz-colors div{border-radius:calc(10px*var(--rk,1));padding:8px;text-align:center;font-weight:800;color:#12303a}
 .mz-bd{display:flex;flex-direction:column;gap:8px}
-.mz-bd div{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--alt);border-radius:10px}
+.mz-bd div{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--alt);border-radius:calc(10px*var(--rk,1))}
 .mz-bd div b{white-space:nowrap}
 .mz-bd div.t{background:var(--acc-soft);font-weight:800}
 .mz-lab{display:flex;flex-direction:column;gap:6px}
@@ -111,7 +111,7 @@ table.j tr:nth-child(even of tr[data-q]):not(.risk) .cell:not([style*="backgroun
   .mz-crit small{display:block}
   .mz-crit small span{display:block}
   .mz-pts{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:4px}
-  .mz-pts button{width:auto;height:36px;border-radius:10px}
+  .mz-pts button{width:auto;height:36px;border-radius:calc(10px*var(--rk,1))}
 }
 @media screen and (max-width:820px){
   .mz-tools{padding:10px;gap:10px}

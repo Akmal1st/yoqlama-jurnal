@@ -73,7 +73,7 @@ const DZN = (() => {
     const dn = DENS[z.dens], rs = Math.round(z.rad * 0.7);
     const tok = `--win:${v.win};--base:${v.base};--alt:${v.alt};--soft:${v.soft};--line:${v.line};--text:${v.text};--muted:${v.muted};--acc:${acc};--acc-fg:${fg};--acc-t:${accT};
       --acc-d:color-mix(in srgb,${acc} 82%,${dk ? "white" : "black"});--acc-soft:color-mix(in srgb,${acc} ${dk ? 18 : 12}%,${v.base});--side-bg:${v.base};--side-fg:${v.text};--side-mut:${v.muted};
-      --today-cell:${dk ? "color-mix(in srgb,#f5b454 18%," + v.base + ")" : "#fef3e2"};--r:${z.rad}px;--tpt-f:${fontCss(z)};
+      --today-cell:${dk ? "color-mix(in srgb,#f5b454 18%," + v.base + ")" : "#fef3e2"};--r:${z.rad}px;--rk:${+(z.rad / 14).toFixed(3)};--bs-border-radius:calc(.375rem*var(--rk));--bs-border-radius-sm:calc(.25rem*var(--rk));--bs-border-radius-lg:calc(.5rem*var(--rk));--bs-border-radius-xl:calc(1rem*var(--rk));--bs-border-radius-xxl:calc(2rem*var(--rk));--tpt-f:${fontCss(z)};
       ${dk ? "--sh:0 1px 2px rgba(0,0,0,.35);--sh-lg:0 16px 40px -10px rgba(0,0,0,.7);--ok:#4ade9b;--danger:#f87171;" : "--ok:#12805c;--danger:#d1393a;"}`;
     // Guruhlar bo'limi (guruhlar.css) ham shu ranglarda
     const grp = `html.tpt-all.dz .tpt,html.tpt-all.dz[data-theme] .tpt{--g-win:var(--win);--g-base:var(--base);--g-alt:var(--alt);--g-soft:var(--soft);--g-line:var(--line);--g-text:var(--text);--g-muted:var(--muted);
