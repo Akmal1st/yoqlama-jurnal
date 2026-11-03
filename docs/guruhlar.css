@@ -131,6 +131,8 @@ body.tpt-on #main{background:#f3f5f9}
 .tpt .g-cell span{width:26px;height:26px;border-radius:calc(8px*var(--rk,1));border:1.5px solid var(--g-line);display:grid;place-items:center;font-weight:800;font-size:13px;color:transparent}
 .tpt .g-cell.on span{background:var(--g-ok);border-color:var(--g-ok);color:var(--g-base)}
 .tpt .g-cell:hover span{border-color:var(--g-acc)}
+.tpt .g-pre{display:grid;place-items:center;width:40px;height:40px;margin:0 auto;color:var(--g-muted);opacity:.6}
+.tpt .g-jn{text-align:left;cursor:pointer}
 @media (max-width:860px){.tpt .g-dayv{grid-template-columns:1fr}}
 @media (max-width:520px){.tpt .g-dlist .g-att{grid-template-columns:1fr}}
 .tpt .g-daybar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}

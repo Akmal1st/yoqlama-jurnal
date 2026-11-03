@@ -2651,11 +2651,15 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
       await page.waitForSelector("text=O'quvchi qo'shish");
       // o'quvchi + birinchi to'lov
       await page.click("[data-addst]"); await page.fill("#g-an", "Aziza Karimova"); await page.fill("#g-ap", "901234567");
+      // qo'shilgan sana — o'z kalendarimizdan; ism va telefon saqlanib qoladi
+      await page.click("#g-aj"); await page.click(".g-dlg [data-m='2026-10']"); await page.click(".g-dlg [data-day='2026-10-26']");
+      await page.waitForSelector("#g-aj >> text=26 oktabr");
+      assert.equal(await page.inputValue("#g-an"), "Aziza Karimova");
       await page.click(".g-dlg [data-save]");
       await page.waitForSelector(".g-dlg [aria-label=\"To'lov qabul qilish\"], .g-dlg >> text=To'lov qabul qilish");
       await page.click(".g-dlg [data-how=Click]"); await page.click(".g-dlg [data-save]");
-      const st = await page.evaluate(() => { const c = D.classes.find((x) => x.name === "Ingliz tili A1"), s = c.students[0]; return {kind: c.kind, days: c.gdays, phone: s.par.phone, pays: s.pays.map((p) => [p.sum, p.pk, p.how, p.d]), left: TPT.acct(c, s).left}; });
-      assert.deepEqual(st, {kind: "paid", days: [1, 3, 5], phone: "+998901234567", pays: [[400000, 8, "Click", "2026-11-02"]], left: 8});
+      const st = await page.evaluate(() => { const c = D.classes.find((x) => x.name === "Ingliz tili A1"), s = c.students[0]; return {kind: c.kind, days: c.gdays, phone: s.par.phone, joined: s.joined, pays: s.pays.map((p) => [p.sum, p.pk, p.how, p.d]), left: TPT.acct(c, s).left}; });
+      assert.deepEqual(st, {kind: "paid", days: [1, 3, 5], phone: "+998901234567", joined: "2026-10-26", pays: [[400000, 8, "Click", "2026-11-02"]], left: 8});
       // yo'qlama: bugun keldi → 7 dars qoladi; yana bosish — bekor
       await page.click("[data-tab=att]");
       await page.click("[data-came='0']");
@@ -2689,6 +2693,12 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
       assert.equal(await page.evaluate(() => Object.keys(D.classes.find((x) => x.name === "Ingliz tili A1").students[0].marks).join(",")), "2026-10-30");
       assert.equal(await page.locator("[data-cell='0|2026-10-31']").count(), 0);
       await page.click("[data-cell='0|2026-10-30']");
+      // qo'shilishdan oldingi kunlar: jadvalda katak yo'q, kun ro'yxatida o'quvchi ko'rinmaydi
+      assert.equal(await page.locator("[data-cell='0|2026-10-23']").count(), 0);
+      await page.click("[data-av=day]"); await page.click(".g-mcal [data-pick='2026-10-23']");
+      assert.equal(await page.locator("[data-came='0']").count(), 0);
+      await page.click(".g-mcal [data-pick='2026-10-26']"); await page.waitForSelector("[data-came='0']");
+      await page.click("[data-av=grid]");
       const ov = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       assert.ok(ov <= 1, `oy jadvali sahifani ${ov}px kengaytirdi`);
       await page.click("[data-av=day]");
