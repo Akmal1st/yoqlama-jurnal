@@ -842,6 +842,75 @@ test("Telegram: ulash, avtomatik zaxira va boshqa qurilmadan yuklash (soxta bot 
   } finally { await browser.close(); }
 });
 
+test("Kunlik hisobot: darslar tugagach har sinf rasmi Telegram'ga va ota-onalar guruhiga (soxta bot API)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    const photos = [];
+    await page.route("https://api.telegram.org/**", async (route) => {
+      const m = route.request().url().split("/").pop(), body = route.request().postDataBuffer() || Buffer.alloc(0), txt = body.toString("latin1");
+      let result = true;
+      if (m === "sendPhoto") {
+        const ct = route.request().headers()["content-type"] || "", form = ct.includes("multipart");
+        const chat = form ? (txt.match(/name="chat_id"\r\n\r\n([^\r]+)/) || [])[1] : new URLSearchParams(txt).get("chat_id");
+        const cap = form ? Buffer.from((txt.match(/name="caption"\r\n\r\n([^]*?)\r\n--/) || [])[1] || "", "latin1").toString("utf8") : new URLSearchParams(body.toString("utf8")).get("caption");
+        photos.push({chat, cap, png: form && txt.includes("\x89PNG"), fid: form ? null : new URLSearchParams(txt).get("photo")});
+        result = {message_id: 50 + photos.length, photo: [{file_id: "small"}, {file_id: "PH" + photos.length}]};
+      } else if (m === "getUpdates") result = [{update_id: 5, my_chat_member: {chat: {id: -100500, type: "supergroup", title: "6-A ota-onalar"}}}];
+      else if (m === "getChat") result = {id: 777};
+      else if (m === "sendDocument" || m === "sendMessage") result = {message_id: 1};
+      return route.fulfill({status: 200, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: JSON.stringify({ok: true, result})});
+    });
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    // bugun 6-A da dars: jadval vaqti o'tib ketgan, yo'qlama va baholar qo'yilgan
+    await page.evaluate(() => {
+      const t = todayIso(), c = D.classes[0]; D.settings.method_weekday = null; c.extra_x = [];
+      for (const x of D.classes) x.dates = x.dates.filter((d) => d !== t);
+      c.dates.push(t); c.dates.sort(); c.lessons[t] = {topic: "Kasrlarni qo'shish", hw: "12-mashq"};
+      c.students.forEach((s, i) => { s.marks[t] = i === 0 ? "s" : i === 1 ? "8kq" : i === 2 ? "" : String(5 + (i % 5)); });
+      c.students[3].fp = {[t]: [5, 3]}; c.students[3].marks[t] = "8"; c.students[3].fc = {[t]: "Doskada faol"};
+      const wd = (new Date().getDay() + 6) % 7, days = Array.from({length: 6}, () => [""]);
+      if (wd < 6) days[wd] = [ckey(c)];
+      D.web.schedule = {bells: [["00:00", "00:01"]], days}; save();
+      tgSet({token: "123456789:AAHabcdefghijklmnopqrstuvwxyz", chat: 777, bot: "sinf_test_bot"});
+    });
+    // rasm ma'lumoti jurnaldan to'g'ri olinadi
+    const r = await page.evaluate(() => { const x = lessonsToday()[0]; return KUN.build(x.c, todayIso(), x.slots); });
+    assert.equal(r.rows[0].st, "s"); assert.equal(r.rows[1].st, "kq"); assert.equal(r.rows[1].g, 8);
+    assert.equal(r.rows[3].p, "5+3"); assert.equal(r.rows[3].c, "Doskada faol"); assert.equal(r.topic, "Kasrlarni qo'shish");
+    // o'chiq bo'lsa — hech narsa yuborilmaydi
+    await page.evaluate(() => KUN.tick()); assert.equal(photos.length, 0);
+    // Sozlamalar → Ma'lumotlar: yoqish, tungi rejim, guruh biriktirish
+    await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="5"]');
+    await page.waitForSelector("#sz-kr");
+    await page.click('[data-kra="grp"]'); await page.click(".modal [data-f]");
+    await page.waitForSelector(".modal option:has-text('6-A ota-onalar')", {state: "attached"});
+    await page.selectOption('.modal [data-krg="0"]', "-100500"); await page.click(".modal [data-x]");
+    await page.waitForSelector("text=1 ta sinfga guruh biriktirilgan");
+    await page.click('[data-kra="on"]');
+    await page.waitForFunction(() => KUN.cfg().day === todayIso() && KUN.cfg().sent.length === 1);
+    assert.equal(photos.length, 2, JSON.stringify(photos));
+    assert.equal(photos[0].chat, "777"); assert.ok(photos[0].png, "o'qituvchiga PNG rasm");
+    assert.ok(photos[0].cap.includes("6-A") && photos[0].cap.includes("Kelmadi"), photos[0].cap);
+    assert.equal(photos[1].chat, "-100500"); assert.equal(photos[1].fid, "PH1", "guruhga qayta yuklamasdan, tayyor rasm");
+    // bir kunda bir marta: qayta tekshirilganda takror yuborilmaydi
+    await page.evaluate(() => KUN.tick()); assert.equal(photos.length, 2);
+    // rejim va ko'rish oynasi
+    await page.click('[data-krt="dark"]'); assert.equal(await page.evaluate(() => KUN.cfg().th), "dark");
+    await page.click('[data-kra="view"]'); await page.waitForSelector(".modal .kr-prev img");
+    const sz = await page.evaluate(() => { const i = document.querySelector(".kr-prev img"); return [i.naturalWidth, i.naturalHeight]; });
+    assert.ok(sz[0] === 1360 && sz[1] > 1000, sz.join("x"));
+    await page.click(".modal [data-x]");
+    // «Yuborish» qo'lda — qayta yuboradi
+    await page.click('[data-kra="send"]'); await page.waitForFunction((n) => document.querySelector(".toast")?.textContent.includes("1 ta sinf hisoboti"), 0);
+    assert.equal(photos.length, 4);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
 test("Dars jadvali: Excel'dan yuklash, saqlash va dars kunlari", async () => {
   const {readFile, writeFile, mkdtemp} = await import("node:fs/promises");
   const {tmpdir} = await import("node:os"); const {join} = await import("node:path");

@@ -142,7 +142,7 @@ const SZL = (() => {
     const app = installEvt ? row("inst", "📲 Ilovani o'rnatish", "Telefon yoki kompyuter ekraniga ilova sifatida qo'shiladi va internetsiz ochiladi.", `<button class="btn btn-sm btn-primary" data-a="inst">O'rnatish</button>`)
       : isStandalone() ? "" : row("inst", "📲 Telefonga o'rnatish", /iPhone|iPad/.test(navigator.userAgent) ? "Safari'da «Ulashish» → «Bosh ekranga qo'shish» (Add to Home Screen)" : "Brauzer menyusi (⋮) → «Ilovani o'rnatish» yoki «Bosh ekranga qo'shish»", "");
     const dzr = `<details class="sz-dz" ${flash === "wipe" ? "open" : ""}><summary>⚠ Xavfli amallar</summary>${row("wipe", "Hammasini o'chirish", "Shu brauzerdagi barcha sinflar, baholar va sozlamalar o'chadi. Oldin faylga saqlab qo'ying.", `<button class="btn btn-sm btn-outline-danger" data-a="wipe">O'chirish</button>`)}</details>`;
-    return {body: `<section class="sz-sg"><h3 class="sz-sgt">Zaxira holati</h3>${bst}</section>` + grp("Zaxira", z) + grp("Yuklash va import", imp) + grp("O'quv yili", yr) + grp("Ilova", app) + dzr,
+    return {body: `<section class="sz-sg"><h3 class="sz-sgt">Zaxira holati</h3>${bst}</section>` + grp("Zaxira", z) + grp("Kunlik hisobot", KUN.rows(row, tog)) + grp("Yuklash va import", imp) + grp("O'quv yili", yr) + grp("Ilova", app) + dzr,
       acts: [["📂 Fayldan", 'data-a="imp"', 0], ["💾 Zaxira olish", 'data-a="exp"', 1]], what: "Zaxira"};
   }
   function sec6() {
@@ -161,7 +161,7 @@ const SZL = (() => {
     [1, "hol", "Dam olish kunlari (bayramlar)", "bayram ta'til dam"], [1, "rem", "Dars eslatmasi", "bildirishnoma eslatma"], [1, "eve", "Kechki eslatma", "kechqurun eslatma"],
     [2, "rng", "Baho ranglari", "rang baho guruh"], [2, "rkavg", "Xavf turlari", "xavf risk o'rtacha davomat"], [2, "fb", "Formativ baho (FB) uchun kamida", "fb chorak bahosi"], [2, "ktrw", "KTRdagi BSB/CHSB mavzulari", "ktr bsb chsb summativ"], [2, "past", "O'tgan darslarga belgi qo'yish", "o'tgan kun belgi"],
     [3, "", "Mavzu, rang, yozuv, tugmalar joyi", "dizayn mavzu rang shrift tun tungi kechqurun menyu tugma belgi"], [4, "prot", "Baholarni himoyalash", "himoya qulf"], [4, "pin", "Parol", "parol pin"], [4, "alm", "Avtomatik qulflash", "qulf daqiqa"],
-    [5, "tg", "Telegram'ga zaxira", "telegram bot zaxira shifrlash"], [5, "exp", "Faylga saqlash", "zaxira fayl json yuklab"], [5, "snaps", "Kunlik nusxalar", "nusxa qaytarish tiklash"], [5, "imp", "Fayldan yuklash", "import fayl"],
+    [5, "tg", "Telegram'ga zaxira", "telegram bot zaxira shifrlash"], [5, "kr", "Kunlik hisobot rasmi", "telegram kunlik hisobot rasm ota-ona guruh"], [5, "exp", "Faylga saqlash", "zaxira fayl json yuklab"], [5, "snaps", "Kunlik nusxalar", "nusxa qaytarish tiklash"], [5, "imp", "Fayldan yuklash", "import fayl"],
     [5, "emk", "emaktab'dan import", "emaktab excel"], [5, "roll", "Yangi o'quv yili", "o'quv yili arxiv"], [5, "hist", "O'zgarishlar tarixi", "tarix qaytarish"], [5, "inst", "Ilovani o'rnatish", "o'rnatish ilova"], [5, "wipe", "Hammasini o'chirish", "o'chirish tozalash"],
     ...FEATS.map(([k, n, d]) => [6, "ft" + k, n, d.toLowerCase()])];
   function found() {
@@ -238,6 +238,7 @@ const SZL = (() => {
     m.querySelectorAll("[data-sec]").forEach((b) => b.onclick = () => { S.sec = +b.dataset.sec; flash = null; render(); window.scrollTo(0, 0); });
     m.querySelectorAll("[data-szhome]").forEach((b) => b.onclick = () => { S.sec = -1; render(); window.scrollTo(0, 0); });
     m.querySelectorAll("[data-szfind]").forEach((b) => b.onclick = findDialog);
+    KUN.bind(m);   // kunlik hisobot (kunlik.js)
     m.querySelectorAll("[data-szgo]").forEach((b) => b.onclick = () => { const [i, id] = b.dataset.szgo.split("|"); goTo(+i, id); });
     const sq = $("#szq", m);
     if (sq) {
