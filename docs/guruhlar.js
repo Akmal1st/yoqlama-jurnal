@@ -12,8 +12,7 @@
      > 1 — yashil, 0…1 — to'lov vaqti, < 0 — qarz = |qoldiq| × (paket narxi ÷ darslar soni) */
 const TPT = (() => {
   const WDS = ["Ya", "Du", "Se", "Ch", "Pa", "Ju", "Sh"];
-  const WDL = ["Yak", "Dush", "Sesh", "Chor", "Pay", "Jum", "Shan"];
-  const MS = ["yan", "fev", "mar", "apr", "may", "iyun", "iyul", "avg", "sen", "okt", "noy", "dek"];
+  const WL = ["yakshanba", "dushanba", "seshanba", "chorshanba", "payshanba", "juma", "shanba"];
   const MG = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"];
   const MN = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
   const HOW = ["Naqd", "Karta", "Click", "Payme"];
@@ -67,7 +66,7 @@ const TPT = (() => {
   }
 
   /* ── holat ── */
-  const T = {scr: "home", gi: -1, tab: "att", day: "", flt: "all", arch: false};
+  const T = {scr: "home", gi: -1, tab: "att", day: "", mo: "", av: "day", flt: "all", arch: false};
   const G = () => D.classes[T.gi];
 
   function statusPill(c, s) {
@@ -125,33 +124,64 @@ const TPT = (() => {
       <div class="g-row" style="gap:6px">${paid ? `<span class="g-pill p-acc">Pullik</span>` : `<span class="g-pill p-club">To'garak</span>`}${c.garch ? `<span class="g-pill p-warn">Arxivda</span>` : ""}<span class="g-pill p-mut">${e(sched(c))}</span><span class="g-pill p-mut">${c.students.length} o'quvchi</span>
       ${paid ? (c.packs || []).map((p) => `<span class="g-pill p-mut">${e(p.name)} — ${som(p.sum)}</span>`).join("") : ""}</div></div>
       <button class="g-btn" type="button" data-set>Guruh sozlamalari</button></div>
-    <div class="g-tabs" role="tablist">${tabs.map(([k, t]) => `<button type="button" role="tab" aria-selected="${T.tab === k}" data-tab="${k}" class="${T.tab === k ? "on" : ""}">${t}</button>`).join("")}</div>
+    <div class="g-row"><div class="g-tabs" role="tablist">${tabs.map(([k, t]) => `<button type="button" role="tab" aria-selected="${T.tab === k}" data-tab="${k}" class="${T.tab === k ? "on" : ""}">${t}</button>`).join("")}</div>
+      ${T.tab === "att" && c.students.length ? `<span class="g-sp"></span><div class="g-seg" role="group" aria-label="Ko'rinish"><button type="button" data-av="day" class="${T.av !== "grid" ? "on" : ""}">Kun</button><button type="button" data-av="grid" class="${T.av === "grid" ? "on" : ""}">Oy jadvali</button></div>` : ""}</div>
     ${T.tab === "att" ? attHtml(c) : T.tab === "stu" ? stuHtml(c) : payHtml(c)}`;
   }
-  // oxirgi 5 ta dars kuni (bugun bilan); tanlangan kun ulardan tashqarida bo'lsa — u ham ko'rinadi
-  function stripDays(c, d) {
-    const o = [], t = today(), ds = daysOf(c); let x = pd(t);
-    for (let i = 0; i < 60 && o.length < 5; i++) { const k = iso(x); if (!ds.length || ds.includes(x.getDay()) || k === t) o.unshift(k); x.setDate(x.getDate() - 1); }
-    if (!o.includes(d)) { o.shift(); o.push(d); o.sort(); }
-    return o;
-  }
+  // kun bo'yicha nechta o'quvchi kelgan
+  const cntOn = (c, d) => c.students.filter((s) => (s.marks || {})[d] === "ot").length;
+  const monthDays = (mo) => { const f = pd(mo + "-01"), n = new Date(f.getFullYear(), f.getMonth() + 1, 0).getDate(); return Array.from({length: n}, (_, i) => `${mo}-${String(i + 1).padStart(2, "0")}`); };
+  const shiftM = (mo, k) => { const f = pd(mo + "-01"); return iso(new Date(f.getFullYear(), f.getMonth() + k, 1)).slice(0, 7); };
+  // oxirgi n ta dars kuni (bugun ham, dars kuni bo'lsa)
+  function lastLessons(c, n) { const o = [], ds = daysOf(c); if (!ds.length) return o; const x = pd(today()); for (let i = 0; i < 120 && o.length < n; i++) { if (ds.includes(x.getDay())) o.push(iso(x)); x.setDate(x.getDate() - 1); } return o; }
+  // guruh ochilganda: bugun dars kuni bo'lmasa — oxirgi dars kuni
+  const startDay = (c) => { const t = today(); return !daysOf(c).length || isLesson(c, t) ? t : lastLessons(c, 1)[0] || t; };
+  const mnav = (mo) => `<button class="g-btn sm ghost" type="button" data-mo="-1" aria-label="Oldingi oy">‹</button><button class="g-btn sm ghost" type="button" data-mo="1" aria-label="Keyingi oy" ${shiftM(mo, 1) > today().slice(0, 7) ? "disabled" : ""}>›</button>`;
   function attHtml(c) {
-    const d = T.day, t = today(), n = c.students.filter((s) => (s.marks || {})[d] === "ot").length;
     if (!c.students.length) return `<div class="g-card g-empty"><h2>Guruhda hali o'quvchi yo'q</h2><button class="g-btn pri" type="button" data-addst>＋ O'quvchi qo'shish</button></div>`;
-    return `<div class="g-strip" role="group" aria-label="Dars kuni">${stripDays(c, d).map((x) => {
-      const k = c.students.filter((s) => (s.marks || {})[x] === "ot").length;
-      return `<button type="button" class="g-dchip ${x === d ? "on" : ""}" data-pick="${x}" aria-pressed="${x === d}"><small>${x === t ? "Bugun" : WDL[wdOf(x)]}</small><b class="g-num">${+x.slice(8, 10)}</b><small>${MS[+x.slice(5, 7) - 1]}</small><i class="g-num">${k ? k + "/" + c.students.length : "—"}</i></button>`;
-    }).join("")}<button type="button" class="g-dchip g-calbtn" id="g-dp" title="Boshqa kun" aria-label="Boshqa kunni tanlash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><small>Boshqa</small></button></div>
-    <div class="g-daybar"><span class="g-d">${d === t ? "Bugun" : WDL[wdOf(d)] + ","} ${dm(d)}</span>
-      <span class="g-pill ${n ? "p-ok" : "p-mut"} g-num">Keldi: ${n} / ${c.students.length}</span>
-      <button class="g-btn sm" type="button" data-all>Hammasi keldi</button></div>
-    ${isLesson(c, d) || !daysOf(c).length ? "" : `<div class="g-note"><b>Bu kun jadvalda dars yo'q.</b> Baribir belgilasangiz — qo'shimcha dars sifatida hisoblanadi.</div>`}
-    <div class="g-att">${c.students.map((s, si) => {
-      const on = (s.marks || {})[d] === "ot";
-      return `<button class="g-who ${on ? "on" : ""}" type="button" data-came="${si}" aria-pressed="${on}"><span class="g-box">✓</span>
-        <span class="g-nm"><b>${e(s.name)}</b><span>${c.kind === "paid" ? subTxt(c, s) : came(s).length + " marta kelgan"}</span></span></button>`;
-    }).join("")}</div>
-    <div class="g-note"><b>Faqat kelganlar belgilanadi.</b> Ismni bir bosish — keldi, yana bosish — bekor. Darhol saqlanadi.${c.kind === "paid" ? " Ism ostida — qancha dars qolgani." : ""}</div>`;
+    if (!T.mo) T.mo = T.day.slice(0, 7);
+    return T.av === "grid" ? gridHtml(c) : dayHtml(c);
+  }
+  // Kun: oylik kalendar + tanlangan kun ro'yxati
+  function dayHtml(c) {
+    const d = T.day, t = today(), n = cntOn(c, d), mo = T.mo, ds = daysOf(c), f = pd(mo + "-01"), off = (f.getDay() + 6) % 7;
+    let cal = [1, 2, 3, 4, 5, 6, 0].map((w) => `<span class="h ${ds.includes(w) ? "ls" : ""}">${WDS[w]}</span>`).join("");
+    for (let i = 0; i < off; i++) cal += "<span></span>";
+    for (const x of monthDays(mo)) {
+      const k = cntOn(c, x), fut = x > t, l = isLesson(c, x);
+      const cls = ["g-dc", l ? "les" : "", x === t ? "today" : "", fut ? "fut" : "", x === d ? "sel" : "", !fut && l && k ? "done" : "", !fut && l && !k && x !== t ? "miss" : ""].join(" ");
+      cal += `<button type="button" class="${cls}" ${fut ? "disabled" : ""} data-pick="${x}" aria-pressed="${x === d}" aria-label="${dm(x)}${k ? `, ${k} kishi keldi` : ""}"><b class="g-num">${+x.slice(8, 10)}</b><i class="g-num">${k ? k + "/" + c.students.length : ""}</i></button>`;
+    }
+    const miss = lastLessons(c, 4).filter((x) => x !== t && !cntOn(c, x));
+    return `<div class="g-dayv">
+      <div class="g-card"><div class="g-mh"><h2>${MN[+mo.slice(5) - 1]} ${mo.slice(0, 4)}</h2>${mnav(mo)}</div>
+        <div class="g-mcal">${cal}</div>
+        <div class="g-legend" style="margin-top:10px"><span><i style="background:var(--g-soft)"></i>dars kuni</span><span><i style="background:var(--g-ok);border-radius:50%;width:8px;height:8px"></i>yo'qlama qilingan</span><span><i style="background:var(--g-warn);border-radius:50%;width:8px;height:8px"></i>dars bo'lgan, belgilanmagan</span></div></div>
+      <div class="g-card g-dlist"><div class="g-daybar"><span class="g-d">${d === t ? "Bugun, " : ""}${dm(d)}, ${WL[wdOf(d)]}</span>
+        <span class="g-pill ${n ? "p-ok" : "p-mut"} g-num">Keldi: ${n} / ${c.students.length}</span>
+        <button class="g-btn sm" type="button" data-all>Hammasi keldi</button></div>
+        ${isLesson(c, d) || !ds.length ? "" : `<div class="g-note warn"><b>Bu kun jadvalda dars yo'q.</b> Belgilasangiz — qo'shimcha dars sifatida hisoblanadi.</div>`}
+        <div class="g-att">${c.students.map((s, si) => {
+          const on = (s.marks || {})[d] === "ot";
+          return `<button class="g-who ${on ? "on" : ""}" type="button" data-came="${si}" aria-pressed="${on}"><span class="g-box">✓</span>
+            <span class="g-nm"><b>${e(s.name)}</b><span>${c.kind === "paid" ? subTxt(c, s) : came(s).length + " marta kelgan"}</span></span></button>`;
+        }).join("")}</div>
+        ${miss.length ? `<div class="g-row" style="gap:6px"><span class="g-muted" style="font-size:12.5px">Belgilanmagan darslar:</span>${miss.map((x) => `<button class="g-btn sm" type="button" data-pick="${x}">${dm(x)}</button>`).join("")}</div>` : ""}</div></div>`;
+  }
+  // Oy jadvali: o'quvchilar × dars kunlari (+ kimdir kelgan qo'shimcha kunlar)
+  function gridHtml(c) {
+    const t = today(), mo = T.mo, paid = c.kind === "paid";
+    const days = monthDays(mo).filter((x) => x <= t && (isLesson(c, x) || cntOn(c, x) || !daysOf(c).length));
+    return `<div class="g-card" style="padding:12px 16px;display:flex;flex-direction:column;gap:4px"><div class="g-mh" style="margin:0"><h2>${MN[+mo.slice(5) - 1]} ${mo.slice(0, 4)} — oylik jadval</h2>${mnav(mo)}</div>
+      <span class="g-muted" style="font-size:13px;line-height:1.4">Har bir katak — bitta dars kuni. Bosish: keldi, yana bosish: bekor. Sariq sarlavha — jadvaldan tashqari qo'shimcha dars.</span></div>
+    ${days.length ? `<div class="g-tw"><table class="g-mtab"><thead><tr><th class="nm">O'quvchi</th>${days.map((x) => `<th class="${isLesson(c, x) ? "" : "ex"} ${x === t ? "td" : ""}">${WDS[wdOf(x)]}<b class="g-num">${+x.slice(8, 10)}</b></th>`).join("")}<th class="r">Oyda</th>${paid ? `<th class="r">Qoldiq</th>` : ""}</tr></thead>
+      <tbody>${c.students.map((s, si) => {
+        const a = paid ? acct(c, s) : null;
+        return `<tr><td class="nm">${e(s.name)}</td>${days.map((x) => { const on = (s.marks || {})[x] === "ot"; return `<td><button type="button" class="g-cell ${on ? "on" : ""}" data-cell="${si}|${x}" aria-pressed="${on}" aria-label="${e(s.name)}, ${dm(x)}"><span>✓</span></button></td>`; }).join("")}
+          <td class="r g-num"><b>${days.filter((x) => (s.marks || {})[x] === "ot").length}</b></td>${paid ? `<td class="r g-num"><b style="color:${!a.k ? "var(--g-muted)" : a.left < 0 ? "var(--g-bad)" : a.left <= 1 ? "var(--g-warn)" : "var(--g-ok)"}">${a.k ? (a.left > 0 ? "+" : "") + a.left : "—"}</b></td>` : ""}</tr>`;
+      }).join("")}</tbody>
+      <tfoot><tr><td class="nm">Keldi</td>${days.map((x) => `<td class="g-num">${cntOn(c, x)}</td>`).join("")}<td></td>${paid ? "<td></td>" : ""}</tr></tfoot></table></div>` : `<div class="g-card g-muted">Bu oyda hali dars kuni yo'q.</div>`}
+    <div><button class="g-btn sm" type="button" data-av="day">＋ Qo'shimcha dars kuni (kalendardan)</button></div>`;
   }
   function stuHtml(c) {
     const paid = c.kind === "paid", mo = today().slice(0, 7);
@@ -373,7 +403,7 @@ const TPT = (() => {
         c.name = name; c.kind = F.kind; c.gdays = [...new Set(F.days)].sort(); c.gtime = F.time; c.gdur = F.dur;
         if (F.kind === "paid") c.packs = packs;
         save(); closeLayer();
-        if (isNew) { T.gi = D.classes.indexOf(c); T.scr = "grp"; T.tab = "stu"; T.day = today(); }
+        if (isNew) { T.gi = D.classes.indexOf(c); T.scr = "grp"; T.tab = "stu"; T.day = startDay(c); T.mo = T.day.slice(0, 7); }
         draw(); toast(isNew ? `«${name}» guruhi qo'shildi — endi o'quvchilarni qo'shing` : "Saqlandi");
       };
     });
@@ -426,7 +456,7 @@ const TPT = (() => {
 
   /* ── chizish va bog'lash ── */
   let root = null;
-  function openGroup(ci, tab) { T.gi = ci; T.scr = "grp"; T.tab = tab || "att"; T.flt = "all"; T.day = today(); if (prep(G())) save(); draw(); window.scrollTo(0, 0); }
+  function openGroup(ci, tab) { T.gi = ci; T.scr = "grp"; T.tab = tab || "att"; T.flt = "all"; T.day = startDay(D.classes[ci]); T.mo = T.day.slice(0, 7); if (prep(G())) save(); draw(); window.scrollTo(0, 0); }
   function draw() { if (root && root.isConnected) paint(root); }
   function paint(m) {
     if (T.scr === "grp" && !isG(G())) T.scr = "home";
@@ -446,8 +476,10 @@ const TPT = (() => {
     qa("[data-addst]", m).forEach((b) => b.onclick = () => studentDialog(null));
     qa("[data-open]", m).forEach((b) => b.onclick = () => studentCard(+b.dataset.open));
     qa("[data-payfor]", m).forEach((b) => b.onclick = () => payDialog(+b.dataset.payfor));
-    qa("[data-pick]", m).forEach((b) => b.onclick = () => { T.day = b.dataset.pick; draw(); });
-    const dp = q("#g-dp", m); if (dp) dp.onclick = () => dayPicker({title: "Kunni tanlang", cur: T.day, c: G(), pick: (x) => { T.day = x; draw(); }});
+    qa("[data-pick]", m).forEach((b) => b.onclick = () => { T.day = b.dataset.pick; T.mo = T.day.slice(0, 7); draw(); });
+    qa("[data-mo]", m).forEach((b) => b.onclick = () => { const x = shiftM(T.mo || today().slice(0, 7), +b.dataset.mo); if (x <= today().slice(0, 7)) { T.mo = x; draw(); } });
+    qa("[data-av]", m).forEach((b) => b.onclick = () => { T.av = b.dataset.av; draw(); });
+    qa("[data-cell]", m).forEach((b) => b.onclick = () => { const [si, d] = b.dataset.cell.split("|"), c = G(), s = c.students[+si]; if (!s) return; mark(c, s, d, (s.marks || {})[d] !== "ot"); save(); draw(); });
     qa("[data-came]", m).forEach((b) => b.onclick = () => { const c = G(), s = c.students[+b.dataset.came]; mark(c, s, T.day, s.marks[T.day] !== "ot"); save(); draw(); });
     const al = q("[data-all]", m); if (al) al.onclick = () => { const c = G(); c.students.forEach((s) => mark(c, s, T.day, true)); save(); draw(); toast("Hammasi keldi deb belgilandi"); };
   }
@@ -459,10 +491,11 @@ const TPT = (() => {
     root = m;
     if (T.scr === "grp" && !isG(G())) T.scr = "home";
     if (!T.day) T.day = today();
+    if (!T.mo) T.mo = T.day.slice(0, 7);
     paint(m);
   }
   // sahifadan chiqilganda ochiq oyna yopiladi
   function leave() { closeLayer(); }
 
-  return {page, leave, acct, came, prep, payLessons, daysOf, stripDays, groups, _state: T};
+  return {page, leave, acct, came, prep, payLessons, daysOf, groups, _state: T};
 })();
