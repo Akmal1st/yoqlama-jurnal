@@ -1,0 +1,100 @@
+/* Chorak arxivi — tasdiqlangan maket v1 (Akmal, 2026-11-04). Hamma sinflar «ax-» bilan; ranglar ilovaning umumiy belgilaridan. */
+:root{--ax-arc:#5b6478;--ax-arc-s:#eceff4;--ax-warn:#a15c07;--ax-warn-s:#fef3e2;--ax-warn-b:#eaa23a;--ax-ok-s:#e5f6ee}
+html[data-theme="dark"]{--ax-arc:#a3acbd;--ax-arc-s:#1c2331;--ax-warn:#f5b454;--ax-warn-s:#2e2414;--ax-warn-b:#d99a3c;--ax-ok-s:#0f2a1f}
+
+/* banner (jurnal, BSB/CHSB, arxiv sahifasi, «Bugun») */
+.ax-ban{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;border:1px solid var(--line);background:var(--ax-arc-s);border-radius:var(--r,14px);padding:12px 14px}
+.ax-ban.ax-o,.ax-ban.ax-w{background:var(--ax-warn-s);border-color:var(--ax-warn-b)}
+.ax-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:17px;flex:none;background:var(--base)}
+.ax-tx{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.ax-tx b{font-size:14.5px;font-weight:800;line-height:1.3}
+.ax-tx small{font-size:13px;color:var(--muted);line-height:1.45}
+.ax-acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ax-tx .ax-acts{margin-top:7px}
+.ax-cd{display:flex;align-items:baseline;gap:5px;flex:none}
+.ax-cd b{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.ax-cd small{color:var(--muted);font-weight:600}
+.ax-note{margin:0}
+.ax-sm{font-size:12.5px;line-height:1.45;margin:0}
+
+/* chiplar */
+.ax-chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:700;white-space:nowrap;align-self:flex-start}
+.ax-chip.arc{background:var(--ax-arc-s);color:var(--ax-arc)}
+.ax-chip.ok{background:var(--ax-ok-s);color:var(--ok)}
+.ax-chip.warn{background:var(--ax-warn-s);color:var(--ax-warn)}
+.ax-chip.acc{background:var(--acc-soft);color:var(--acc)}
+.ax-chip.mut{background:var(--soft);color:var(--muted)}
+.sz-badge.ax-sb{background:var(--ax-arc-s);color:var(--ax-arc)}
+
+/* jurnal: arxivdagi kataklar */
+.cell.axl{filter:saturate(.3);opacity:.78}
+
+/* «Bugun» kartasi */
+.ax-today{overflow:hidden;padding:0}
+.ax-today>.ax-ban{border:0;border-radius:0;border-bottom:1px solid var(--ax-warn-b)}
+.ax-chk{padding:10px 16px 6px}
+.ax-chh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:4px}
+.ax-chh b{flex:1;font-size:14.5px}
+.ax-ci{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}
+.ax-ct{flex:1;min-width:0;line-height:1.4}
+.ax-d{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;flex:none}
+.ax-d.ok{background:var(--ax-ok-s);color:var(--ok)}
+.ax-d.w{background:var(--ax-warn-s);color:var(--ax-warn)}
+
+/* vaqtincha ochish oynasi */
+.ax-dlg{display:flex;flex-direction:column;gap:14px}
+.ax-dlg h2{margin:0}
+.ax-dlg p{margin:0}
+.ax-fld{display:flex;flex-direction:column;gap:6px}
+.ax-fld>b{font-size:12.5px;color:var(--muted)}
+.ax-opts{display:flex;gap:6px;flex-wrap:wrap}
+.ax-opts button{border:1px solid var(--line);background:var(--base);color:var(--text);border-radius:10px;padding:8px 11px;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
+.ax-opts button.on{border-color:var(--acc);background:var(--acc-soft);color:var(--acc)}
+
+/* «Choraklar arxivi» sahifasi */
+.ax{display:flex;flex-direction:column;gap:16px;max-width:1180px}
+.ax *{min-width:0}
+.ax-hd{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ax-hdt{flex:1;display:flex;flex-direction:column;gap:2px}
+.ax-hd h1{margin:0}
+.ax-h2,.ax-log h2{font-size:15px;font-weight:800;margin:0}
+.ax-qline{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.ax-qb{border:1px solid var(--line);background:var(--base);color:var(--text);border-radius:12px;padding:10px;text-align:left;display:flex;flex-direction:column;gap:5px;box-shadow:var(--sh);font:inherit;cursor:pointer}
+.ax-qb b{font-size:14px;font-weight:800}
+.ax-qb small{font-size:11.5px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+.ax-qb.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc-soft)}
+.ax-qb .ax-chip{white-space:normal}
+.ax-bar{height:4px;border-radius:4px;background:var(--soft);overflow:hidden}
+.ax-bar i{display:block;height:100%;background:var(--acc)}
+.ax-qb.done .ax-bar i{background:var(--ax-arc)}
+.ax-pad{padding:14px 16px}
+.ax-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
+.ax-col{display:flex;flex-direction:column;gap:12px}
+.ax-row{display:flex;gap:8px;flex-wrap:wrap}
+.ax-tw{overflow-x:auto}
+.ax-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.ax-tbl th{font-size:11.5px;color:var(--muted);font-weight:700;text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.ax-tbl td{padding:10px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ax-tbl th:first-child,.ax-tbl td:first-child{text-align:left}
+.ax-tbl tr:last-child td{border-bottom:0}
+.ax-list{overflow:hidden}
+.ax-crow{display:flex;flex-direction:column;gap:3px;padding:11px 14px;border-top:1px solid var(--line)}
+.ax-crow:first-child{border-top:0}
+.ax-ct2{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
+.ax-m{display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ax-m b{color:var(--text)}
+.ax-ll{display:flex;flex-direction:column;margin-top:6px}
+.ax-ll div{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13px;line-height:1.4}
+.ax-ll div:first-child{border-top:0}
+.ax-ll time{color:var(--muted);font-weight:600;font-size:12px;width:84px;flex:none;font-variant-numeric:tabular-nums}
+.ax-ll span{flex:1;overflow-wrap:anywhere}
+.ax-unarc{padding-left:0;margin-top:6px;font-size:13px}
+@media (max-width:820px){
+  .ax-grid{grid-template-columns:1fr}
+  .ax-qline{gap:6px}
+  .ax-qb{padding:8px 7px}
+  .ax-qb b{font-size:13px}
+  .ax-qb .ax-chip{padding:2px 6px;font-size:11px}
+  .ax-ban .ax-acts .btn{flex:1 1 auto}
+}
+.ax .btn.ax-unarc{border:0;background:none;box-shadow:none;color:var(--acc);text-decoration:underline;padding:4px 0}

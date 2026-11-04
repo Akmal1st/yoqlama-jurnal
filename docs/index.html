@@ -22,6 +22,7 @@
 <link rel="stylesheet" href="sozlamalar.css">
 <link rel="stylesheet" href="mezon.css">
 <link rel="stylesheet" href="kunlik.css">
+<link rel="stylesheet" href="arxiv.css">
 </head>
 <body>
 <div class="app" id="app">
@@ -39,6 +40,7 @@
 <script src="mezon.js"></script>
 <script src="kunlik.js"></script>
 <script src="pdf-tg.js"></script>
+<script src="arxiv.js"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
@@ -1217,10 +1219,12 @@ function mergeImport(imp, replace) {
     if (c.students.includes(cs)) prev = cs; pairs.push([st, cs]);
     if (replace && lo) for (const d of Object.keys(cs.marks)) {
       if (d < lo || d > hi || st.marks[d] !== undefined) continue;
+      if (ARX.dateLocked(d, c)) { rep.arx = (rep.arx || 0) + 1; continue; }   // arxivdagi chorak o'zgarmaydi (arxiv.js)
       log(c, cs, d, cs.marks[d], ""); delete cs.marks[d]; dropFp(cs, d); rep.removed++;
     }
     for (const [d, m] of Object.entries(st.marks)) {
       const cur = cs.marks[d];
+      if (cur !== m && ARX.dateLocked(d, c)) { rep.arx = (rep.arx || 0) + 1; continue; }
       if (cur === m) rep.same++;
       else if (cur === undefined) { cs.marks[d] = m; dropFp(cs, d); rep.filled++; touched.add(d); }
       else if (replace) { log(c, cs, d, cur, m); cs.marks[d] = m; dropFp(cs, d); rep.replaced++; touched.add(d); }
@@ -1239,6 +1243,7 @@ function mergeImport(imp, replace) {
     for (const [k, v] of Object.entries(st.scores || {})) {
       const ex = wmap[k]; if (!ex || (isNum(v) && v > ex.max)) continue;
       const cur = sc[ex.id] ?? "";
+      if (cur !== v && cur === "" && ARX.dateLocked(ex.date, c)) { rep.arx = (rep.arx || 0) + 1; continue; }
       if (cur === v) continue; if (cur === "") { sc[ex.id] = v; rep.s_filled++; } else rep.s_kept++;   // BSB/CHSB: jurnaldagi ball saqlanadi
     }
   }
@@ -1312,11 +1317,13 @@ function isAdditive(old, nw) {
 /* o'tgan darslarga belgi qo'yish: D.web.past = "today" (faqat bugun, standart) | "week" (oxirgi 7 kun) | "all"; kelajakka hech qachon */
 const PAST = [["today", "Faqat bugun"], ["week", "Oxirgi 7 kun"], ["all", "Istalgan o'tgan kun"]];
 function canEdit(d) {
+  if (ARX.dateLocked(d)) return false;   // arxivdagi chorak (arxiv.js)
   const t = todayIso(), p = D.web.past || "today";
   if (d === t) return true; if (d > t || p === "today") return false;
   return p === "all" || (pdate(t) - pdate(d)) / 864e5 <= 7;
 }
 function putMark(c, si, date, nw, quiet) {
+  if (ARX.dateLocked(date, c)) { if (!quiet || quiet === "batch") ARX.deny(quarterOf(date)); return false; }
   if (!canEdit(date)) { if (!quiet) toast(date > todayIso() ? "Kelgusi kunga belgi qo'yib bo'lmaydi" : (D.web.past || "today") === "today" ? "Faqat bugungi kunga belgi qo'yish mumkin. O'tgan darslar: Sozlamalar → Baholash → «O'tgan darslarga belgi qo'yish»" : "Bu kun 7 kundan oldin — Sozlamalar → Baholash da «Istalgan o'tgan kun»ni tanlang"); return false; }
   if (isNoLesson(c, date)) { if (!quiet) toast("Bu kunda dars yo'q (X)"); return false; }
   const s = c.students[si], old = s.marks[date] || "";
@@ -1326,7 +1333,7 @@ function putMark(c, si, date, nw, quiet) {
   if (sw && gradesOf(nw).length && gradesOf(nw).join("/") !== gradesOf(old).join("/")) { if (!quiet || quiet === "batch") toast(`${fmt(date).slice(0, 5)} — ${sumTag(sw)} kuni: oddiy dars bahosi qo'yilmaydi, faqat yo'qlama. Ballni «BSB / CHSB» sahifasiga kiriting.`); return false; }
   if (old && !isAdditive(old, nw) && isLocked()) { toast("🔒 Qo'yilgan baho himoyalangan. O'zgartirish uchun qulfni oching."); return false; }
   if (nw) s.marks[date] = nw; else delete s.marks[date];
-  log(c, s, date, old, nw); if (!quiet || quiet === "batch") pushUndo([{kind: "mark", c, s, key: date, old, nw}]); touchLock(); save();
+  log(c, s, date, old, nw); ARX.note(c, s, date, old, nw); if (!quiet || quiet === "batch") pushUndo([{kind: "mark", c, s, key: date, old, nw}]); touchLock(); save();
   return true;
 }
 
@@ -1570,11 +1577,11 @@ function labelTables(root) {
 function render() {
   // eski guruh jurnallari ma'lumotda saqlanadi, lekin hech qayerda ochilmaydi
   if (isGrp(D.classes[S.ci])) { const r = D.classes.findIndex((c) => !isGrp(c)); if (r >= 0) S.ci = r; }
-  EPOCH++; clearPrintDoc(); applyTheme(); renderNav(); document.querySelectorAll(".bpop").forEach((x) => x.remove());
+  EPOCH++; clearPrintDoc(); applyTheme(); ARX.tick(); renderNav(); document.querySelectorAll(".bpop").forEach((x) => x.remove());
   const m = $("#main");
   // Guruhlar (to'garak va pullik ta'lim) — alohida faylda: guruhlar.js / guruhlar.css
   document.body.classList.toggle("tpt-on", S.page === "groups"); if (S.page !== "groups" && typeof TPT !== "undefined") TPT.leave(); if (typeof HSB !== "undefined") HSB.leave();
-  ({today: pageToday, journal: pageJournal, groups: (x) => TPT.page(x), lesson: pageLesson, reports: pageReports, settings: pageSettings})[S.page](m);
+  ({today: pageToday, journal: pageJournal, groups: (x) => TPT.page(x), lesson: pageLesson, reports: pageReports, settings: pageSettings, archive: (x) => ARX.page(x)})[S.page](m);
   const pp = $(".perpop"); if (pp) pp.remove();
   labelTables(m); snapCols();
 }
@@ -1596,7 +1603,7 @@ function morphNode(a, b) {
 function softRender() {
   const m = $("#main"), y = window.scrollY, tmp = document.createElement("div");
   EPOCH++; document.querySelectorAll(".bpop").forEach((x) => x.remove());
-  ({today: pageToday, journal: pageJournal, groups: (x) => TPT.page(x), lesson: pageLesson, reports: pageReports, settings: pageSettings})[S.page](tmp);
+  ({today: pageToday, journal: pageJournal, groups: (x) => TPT.page(x), lesson: pageLesson, reports: pageReports, settings: pageSettings, archive: (x) => ARX.page(x)})[S.page](tmp);
   morphKids(m, tmp); labelTables(m); window.scrollTo(0, y);
 }
 
@@ -1662,6 +1669,7 @@ function colMenu(ci, d) {
     $("[data-x2]", mm).onclick = () => { close(); toggleX(c, d); };
     const sv = $("[data-sv]", mm); if (sv) sv.onclick = () => {
       const tp = $("#cmt", mm).value.trim(), hw = $("#cmh", mm).value.trim(), nl = Object.assign({}, c.lessons[d] || {}, {topic: tp, hw});
+      if (ARX.dateLocked(d, c)) { close(); ARX.deny(quarterOf(d)); return; }
       if (tp !== (l.topic || "")) delete nl.auto;
       if (tp || hw) c.lessons[d] = nl; else delete c.lessons[d];
       close(); save(); render(); toast("Saqlandi");
@@ -1701,10 +1709,10 @@ function pageJournal(m) {
   S.ci = Math.min(S.ci, D.classes.length - 1);
   if (isGrp(D.classes[S.ci])) S.ci = D.classes.findIndex((c) => !isGrp(c));
   if (!JPAGES.includes(S.jpage)) S.jpage = "j";
-  if (S.jpage === "sum") return pageSum(m);
-  if (S.jpage === "year") return pageYear(m);
+  if (S.jpage === "sum") { pageSum(m); return ARX.decorate(m, D.classes[S.ci]); }
+  if (S.jpage === "year") { pageYear(m); return ARX.decorate(m, D.classes[S.ci]); }
   if (S.jpage === "bsb") return pageBsb(m);
-  if (S.jpage === "chsbt") return pageChsbTest(m);
+  if (S.jpage === "chsbt") { pageChsbTest(m); return ARX.decorate(m, D.classes[S.ci]); }
   if (!viewModes().some(([k]) => k === V.mode)) V.mode = "day";
   if (V.mode === "day") return pageDay(m);
   const c = D.classes[S.ci], t = todayIso(), grp = isGrp(c);
@@ -1733,7 +1741,7 @@ function pageJournal(m) {
       const mk = isNoLesson(c, d) ? "x" : (s.marks[d] || ""); const col = markColors(mk);
       const st = col ? `background:${col[0]};color:${col[1]}` : "";
       const sel = S.sel && S.sel[0] === si && S.sel[1] === d;
-      body += `<td class="c"><button class="cell ${d === t ? "t" : ""} ${sel ? "sel" : ""} ${canEdit(d) && !isNoLesson(c, d) ? "" : "ro"}" style="${st}" data-c="${si}|${d}">${displayMark(mk)}</button></td>`;
+      body += `<td class="c"><button class="cell ${d === t ? "t" : ""} ${sel ? "sel" : ""} ${canEdit(d) && !isNoLesson(c, d) ? "" : "ro"} ${ARX.dateLocked(d, c) ? "axl" : ""}" style="${st}" data-c="${si}|${d}">${displayMark(mk)}</button></td>`;
     });
     const avgCol = r.avg !== null ? gradeColor(r.avg) : null;
     body += `${grp ? "" : `<td class="s">${r.avg !== null ? `<span class="pill" style="background:${avgCol};color:${contrast(avgCol)}">${r.avg.toFixed(1)}</span>` : "—"}</td>`}<td class="s a">${r.att !== null ? Math.round(r.att) + "%" : "—"}</td></tr>`;
@@ -1750,7 +1758,7 @@ function pageJournal(m) {
   const tools = ds.length ? `${jTools(c)}<button class="btn jonlyb" data-jonly title="${S.jonly ? "Yon panel va kartalarni qaytarish (Esc)" : "Yon panel va kartalarni yashirib, jadvalga butun ekranni berish"}">${S.jonly ? "✕ Oddiy ko'rinish" : "⛶ Faqat jadval"}</button>` : "";
   if (!grp) document.body.classList.toggle("jonly", !!S.jonly && ds.length > 0);
   m.innerHTML = `<div class="vcol" style="gap:12px">
-    ${jHead(perNav(), "", tools)}
+    ${jHead(perNav(), "", tools)}${ARX.banner(c, ds)}
     ${ds.length ? `<div class="tblwrap" id="tw"><table class="j">${head}${body}</table></div>` : `<div class="card muted">Tanlangan davrda dars sanalari yo'q. «⋯ → Sana qo'shish (dars kunlari bo'yicha)» yoki «Sozlamalar → Dars kunlari va choraklar».</div>`}
     ${ds.length ? `<p class="muted jhint" style="margin:0">Katakni bossangiz o'sha kunning kunlik rejimi ochiladi: belgi va baho shu yerda qo'yiladi.</p>` : ""}
     ${grp ? "" : todayCard(c)}
@@ -1935,15 +1943,15 @@ function pageDay(m) {
           ${ed && !grp && !sw && !mz ? `<button class="btn ${S.second ? "btn-primary" : ""}" data-two2 title="Keyingi bosilgan baho ikkinchi baho bo'ladi (masalan 8/9)">＋2 baho</button>` : ""}
           <button class="btn" data-colm>⋯ Dars menyusi</button>`; };
   m.innerHTML = `<div class="vcol" style="gap:12px">
-    ${jHead(perNav(), `<div class="dstrip">${strip}</div>`, jTools(c))}
+    ${jHead(perNav(), `<div class="dstrip">${strip}</div>`, jTools(c))}${ARX.banner(c, [d])}
     ${!grp && !sw && !x ? MZN.tools() : ""}${mz ? MZN.top(c, d, ed) : ""}
     <div class="dview">
       <div class="dlist ${ed ? "" : "ro"} ${mz ? "mz" : ""}">${sw && !x ? `<div class="warn" style="padding:10px 14px">📝 ${sumTag(sw)} kuni${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars o'tilmaydi — faqat yo'qlama. Ballar «BSB / CHSB» sahifasida.</div>` : ""}${x ? `<div class="muted" style="padding:14px">${fmt(d)} — dars yo'q (X). «Dars menyusi»dan dars kuni qilishingiz mumkin.</div>` : rows}</div>
       <aside class="dinfo" aria-label="Dars">
         <div class="card vcol"><b>${WD_FULL[pyWd(d)]}, ${fmt(d)}${d === t ? " · bugun" : ""}</b>
-          ${x ? `<span class="muted">Dars yo'q (X)</span>` : `<label class="vcol"><span class="muted">Mavzu</span><input class="form-control" type="text" id="dmt" value="${esc(l.topic || "")}" placeholder="Dars mavzusi"></label>
-          <label class="vcol"><span class="muted">Uy vazifasi</span><input class="form-control" type="text" id="dmh" value="${esc(l.hw || "")}" placeholder="Uy vazifasi"></label>`}
-          ${ed || x ? "" : `<span class="muted">${d > t ? "Kelgusi dars — belgi qo'yib bo'lmaydi" : "Faqat ko'rish: o'tgan darslarga belgi qo'yish Sozlamalar → Baholash da yoqiladi"}</span>`}</div>
+          ${x ? `<span class="muted">Dars yo'q (X)</span>` : `<label class="vcol"><span class="muted">Mavzu</span><input class="form-control" type="text" id="dmt" value="${esc(l.topic || "")}" placeholder="Dars mavzusi" ${ARX.dateLocked(d, c) ? "readonly" : ""}></label>
+          <label class="vcol"><span class="muted">Uy vazifasi</span><input class="form-control" type="text" id="dmh" value="${esc(l.hw || "")}" placeholder="Uy vazifasi" ${ARX.dateLocked(d, c) ? "readonly" : ""}></label>`}
+          ${ed || x ? "" : `<span class="muted">${ARX.dateLocked(d, c) ? `🔒 ${quarterOf(d)}-chorak arxivda — faqat ko'rish` : d > t ? "Kelgusi dars — belgi qo'yib bo'lmaydi" : "Faqat ko'rish: o'tgan darslarga belgi qo'yish Sozlamalar → Baholash da yoqiladi"}</span>`}</div>
         ${x ? "" : `<div class="card dstats">${statsHtml()}</div>`}
         ${mz ? MZN.side(c, d, ed) : ""}
         <div class="hrow wrap dacts" style="gap:8px">${actsHtml()}</div>
@@ -1995,6 +2003,7 @@ function pageDay(m) {
   const save2 = () => {
     const tp = $("#dmt", m).value.trim(), hw = $("#dmh", m).value.trim(), nl = Object.assign({}, c.lessons[d] || {}, {topic: tp, hw});
     if (tp === (l.topic || "") && hw === (l.hw || "")) return;
+    if (ARX.dateLocked(d, c)) return ARX.deny(quarterOf(d));
     if (tp !== (l.topic || "")) delete nl.auto;
     if (tp || hw) c.lessons[d] = nl; else delete c.lessons[d];
     save(); toast("Saqlandi");
@@ -2140,6 +2149,7 @@ async function moreMenu() {
 // qidiruv uchun: kichik harf, oʻ/gʻ tutuq belgilari bir xil
 function normQ(x) { return String(x).toLowerCase().replace(/[ʻʼ‘’`´]/g, "'").replace(/\s+/g, " ").trim(); }
 function toggleX(c, d) {
+  if (ARX.dateLocked(d, c)) return ARX.deny(quarterOf(d));
   if (isNoLesson(c, d)) {
     c.extra_x = c.extra_x.filter((x) => x !== d);
     const mw = D.settings.method_weekday; if (mw !== null && mw >= 0 && pyWd(d) === mw && !c.held.includes(d)) c.held.push(d);
@@ -2709,6 +2719,8 @@ async function undoLast() {
   const live = batch.filter((u) => D.classes.includes(u.c) && u.c.students.includes(u.s) &&
     ((u.kind === "mark" ? u.s.marks[u.key] : (u.s.scores || {})[u.key]) ?? "") === u.nw);
   if (!live.length) { toast("Bu o'zgarish keyin yana o'zgargan — bekor qilinmadi"); return; }
+  const arq = live.find((u) => u.kind === "mark" ? ARX.dateLocked(u.key, u.c) : ARX.scoreLocked(u.c, u.key));
+  if (arq) { UNDO.push(batch); ARX.deny(arq.kind === "mark" ? quarterOf(arq.key) : ARX.scoreQ(arq.c, arq.key)); return; }
   const prot = live.some((u) => { if (u.old === "") return false; if (u.kind !== "mark") return true; return !isAdditive(u.old, u.nw); });
   if (prot && isLocked() && !await unlock()) { UNDO.push(batch); return; }
   for (const u of live) {
@@ -2730,9 +2742,10 @@ function logScore(c, s, key, old, nw) {
 async function putScore(c, s, key, nv, batch) {
   const sc = s.scores = s.scores || {}, old = sc[key] ?? "";
   if (old === nv) return true;
+  if (ARX.scoreLocked(c, key)) { ARX.deny(ARX.scoreQ(c, key)); return false; }
   if (old !== "" && isLocked() && !await unlock()) return false;
   if (nv === "") delete sc[key]; else sc[key] = nv;
-  logScore(c, s, key, old, nv); (batch || []).push({kind: "score", c, s, key, old, nw: nv}); if (!batch) pushUndo([{kind: "score", c, s, key, old, nw: nv}]);
+  logScore(c, s, key, old, nv); ARX.noteScore(c, s, key, old, nv); (batch || []).push({kind: "score", c, s, key, old, nw: nv}); if (!batch) pushUndo([{kind: "score", c, s, key, old, nw: nv}]);
   touchLock(); save(); return true;
 }
 async function revertEntry(e) {
@@ -2744,6 +2757,7 @@ async function revertEntry(e) {
   if (wid && !wid.startsWith("final:") && wid !== "exam" && !c.works.some((w) => w.id === wid)) { toast("Bu summativ ish endi mavjud emas"); return false; }
   const b = wid ? (s.scores = s.scores || {}) : s.marks, key = wid || e.date, cur = b[key] ?? "";
   if (cur !== (e.new ?? "")) { toast("Katakdagi qiymat keyin yana o'zgargan — qaytarib bo'lmaydi"); return false; }
+  if (wid ? ARX.scoreLocked(c, wid) : ARX.dateLocked(e.date, c)) return ARX.deny(wid ? ARX.scoreQ(c, wid) : quarterOf(e.date));
   if (isLocked() && !await unlock()) return false;
   if (e.old !== "") b[key] = e.old; else delete b[key];
   (D.changelog = D.changelog || []).push({t: new Date().toISOString().slice(0, 19), cls: label(c), student: s.name, sid: s.id, date: e.date, old: cur, new: e.old, kind: "revert", ...(wid ? {work: wid, wt: e.wt} : {})});
@@ -2805,6 +2819,7 @@ function pageSum(m) {
   m.querySelectorAll("[data-we]").forEach((b) => b.onclick = () => workDialog(c, c.works.find((w) => w.id === b.dataset.we)));
   const ud = $("[data-undo]", m); if (ud) ud.onclick = undoLast;
   const ap = $("[data-apq]", m); if (ap) ap.onclick = () => {
+    if (ARX.lockedQ(q)) return ARX.deny(q);
     const works = worksInQuarter(c, q), batch = []; let n = 0;
     for (const s of c.students) { const r = quarterResult(c, s, q, works), sc = s.scores = s.scores || {};
       if (r.complete && (sc[`final:q${q}`] ?? "") === "") { sc[`final:q${q}`] = r.grade; batch.push({kind: "score", c, s, key: `final:q${q}`, old: "", nw: r.grade}); n++; } }
@@ -2868,6 +2883,7 @@ function workDialog(c, w) {
     $("[data-ok]", mm).onclick = () => {
       const d = $("#wd", mm).value, mx = Math.round(parseFloat(String($("#wm", mm).value).replace(",", ".")) * 10) / 10;
       if (!d) { toast("Sanani tanlang"); return; } if (!(mx > 0)) { toast("Maksimal ball noto'g'ri"); return; }
+      if (!isGrp(c) && (ARX.dateLocked(d) || (w && ARX.dateLocked(w.date)))) { ARX.deny(quarterOf(ARX.dateLocked(d) ? d : w.date)); return; }
       if (scored && c.students.some((s) => isNum((s.scores || {})[w.id]) && s.scores[w.id] > mx)) { toast("Ba'zi o'quvchilarning bali yangi maksimaldan katta"); return; }
       if (isNew) { reviveWork(c, typ, d); c.works.push({id: newWorkId(c), type: typ, date: d, max: mx, title: $("#wn", mm).value.trim()}); }
       else { if (w.ktr !== undefined && (w.type !== typ || w.date !== d)) forgetWork(c, w.type, w.date); Object.assign(w, {type: typ, date: d, max: mx, title: $("#wn", mm).value.trim()}); if (w.ktr !== undefined) delete w.ktr; reviveWork(c, typ, d); }
@@ -2875,6 +2891,7 @@ function workDialog(c, w) {
       save(); close(); render();
     };
     const del = $("[data-del]", mm); if (del) del.onclick = async () => {
+      if (!isGrp(c) && ARX.dateLocked(w.date)) { ARX.deny(quarterOf(w.date)); return; }
       if (scored && isLocked() && !await unlock()) return;
       if (!await confirmBox("Ishni o'chirish", `${w.type.toUpperCase()} (${fmt(w.date)}) o'chirilsinmi?${scored ? " Kiritilgan ballar ham o'chadi." : ""}`, "O'chirish")) return;
       removeWork(c, w);
@@ -3694,6 +3711,7 @@ async function importEmaktabFiles(files) {
       ${r.new_works || r.s_filled ? `<div>Summativ ishlar: +${r.new_works} · ballar: ${r.s_filled}</div>` : ""}
       ${r.inactive ? `<div class="muted">Faylda bor, lekin faolsiz: ${esc(r.inactive.join(", "))} — baholari saqlandi, jurnalda ko'rinmaydi</div>` : ""}
       ${r.quarter_new ? `<div>${r.quarter_new}-chorak sanalari fayldan olindi</div>` : ""}
+      ${r.arx ? `<div>🔒 Arxivdagi chorak: ${r.arx} ta belgi o'zgartirilmadi</div>` : ""}
       ${r.absent.length ? `<div class="muted">Faylda yo'q o'quvchilar: ${esc(r.absent.slice(0, 8).join(", "))}${r.absent.length > 8 ? "…" : ""}</div>
         <div><button class="btn btn-sm" data-absent="${esc(r.name)}">⏸ Faylda yo'q ${r.absent.length} ta o'quvchini faolsizlantirish…</button></div>` : ""}
       ${Object.keys(r.skipped).length ? `<div class="muted">O'qilmagan qiymatlar: ${esc(Object.entries(r.skipped).map(([k, v]) => `«${k}» ×${v}`).join(", "))}</div>` : ""}</div>`).join("")}
@@ -4261,6 +4279,7 @@ function rollover() {
         students: x.c.students.map((s) => ({name: s.name, marks: {}}))}]}).classes[0]);
       D.classes = D.classes.filter((c) => !rolled.has(c)).concat(created).sort((a, b) => a.name.localeCompare(b.name, "uz", {numeric: true}) || a.subject.localeCompare(b.subject));
       if (resetQ) D.settings.quarters = [null, null, null, null];
+      if (D.web.arx) { D.web.arx.q = {}; D.web.arx.off = []; D.web.arx.log = []; }   // yangi o'quv yili — chorak arxivi noldan
       D.web.gen = []; UNDO.length = 0;
       (D.changelog = D.changelog || []).push({t: new Date().toISOString().slice(0, 19), cls: "(o'quv yili)", student: "(yangi yilga o'tkazish)", date: "", old: lbl, new: `${items.length} jurnal → ${created.length} yangi`, kind: "rollover"});
       save(); S.ci = 0; S.sec = resetQ ? 1 : 5; go("settings"); toast(`Arxiv yuklab olindi. ${created.length} ta yangi jurnal ochildi${resetQ ? " — endi choraklarni kiriting" : ""}`);
@@ -4294,6 +4313,7 @@ function lessonsDialog(ci, focus = null) {
       m.querySelectorAll("[data-lq]").forEach((b) => b.onclick = () => { q = +b.dataset.lq; redraw(); });
       $("#lonly", m).onchange = (e) => { only = e.target.checked; redraw(); };
       const put = (d, k, v) => {
+        if (ARX.dateLocked(d, c)) { ARX.deny(quarterOf(d)); return; }
         const l = Object.assign({}, c.lessons[d] || {}); l[k] = v.trim();
         if (k === "topic" && l.auto) { delete l.auto; delete l.si; }
         if (l.topic || l.hw) c.lessons[d] = l; else delete c.lessons[d];

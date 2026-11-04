@@ -75,7 +75,7 @@ const SZL = (() => {
         `<td><button class="sz-dk ${wd.includes(k) ? "on" : ""}" data-wd="${i}|${k}" aria-pressed="${wd.includes(k)}" aria-label="${esc(label(c))}: ${w}">${wd.includes(k) ? "✓" : ""}</button></td>`).join("")}</tr>`; }).join("")}</tbody></table>`;
     const qs = `<div class="sz-qr sz-qh"><span>Chorak</span><span>Boshlanishi</span><span>Tugashi</span><span style="text-align:right">Davomiyligi</span></div>` + [1, 2, 3, 4].map((n) => {
       const r = st.quarters[n - 1] || ["", ""], now = r[0] && r[1] && r[0] <= t && t <= r[1], wk = r[0] && r[1] ? Math.round((Date.parse(r[1]) - Date.parse(r[0])) / 6048e5) : null;
-      return `<div class="sz-qr ${flash === "q" + n ? "sz-flash" : ""}" id="sz-q${n}"><b>${n}-chorak${now ? ` <span class="sz-badge">HOZIR</span>` : ""}</b><input class="sz-inp" type="date" data-q="${n}|0" value="${r[0] || ""}" aria-label="${n}-chorak boshlanishi"><input class="sz-inp" type="date" data-q="${n}|1" value="${r[1] || ""}" aria-label="${n}-chorak tugashi"><small>${wk !== null ? `${wk} hafta` : ""}</small></div>`;
+      return `<div class="sz-qr ${flash === "q" + n ? "sz-flash" : ""}" id="sz-q${n}"><b>${n}-chorak${now ? ` <span class="sz-badge">HOZIR</span>` : ""}${ARX.entry(n) ? ` <span class="sz-badge ax-sb">${ARX.isOpen(n) ? "🔓 OCHIQ" : "🔒 ARXIV"}</span>` : ""}</b><input class="sz-inp" type="date" data-q="${n}|0" value="${r[0] || ""}" aria-label="${n}-chorak boshlanishi"><input class="sz-inp" type="date" data-q="${n}|1" value="${r[1] || ""}" aria-label="${n}-chorak tugashi"><small>${wk !== null ? `${wk} hafta` : ""}</small></div>`;
     }).join("");
     const hols = `<div class="sz-hols ${flash === "hol" ? "sz-flash" : ""}" id="sz-hol">${st.holidays.map((h, i) => `<span class="sz-hol">${esc(fmtHol(h))}${h.length === 5 ? ` <small>har yili</small>` : ""}<button data-szholx="${i}" aria-label="${esc(fmtHol(h))} ni o'chirish">✕</button></span>`).join("")}<button class="sz-hol add" data-szholadd>＋ Qo'shish</button></div>`;
     const r = remCfg(), perm = "Notification" in window ? Notification.permission : "denied";
@@ -83,10 +83,16 @@ const SZL = (() => {
       (r.on ? row("remm", "Qachon", "", `<select id="remm" class="sz-sel">${[0, 2, 5, 10, 15].map((k) => `<option value="${k}" ${r.min === k ? "selected" : ""}>${k ? `${k} daqiqa oldin` : "Dars boshlanganda"}</option>`).join("")}</select><button class="btn btn-sm" data-a="remt">Sinab ko'rish</button>`, "wide") : "") +
       (feat("gaps") ? row("eve", "📝 Kechki eslatma", "Bugungi darslardan yo'qlama yoki mavzu kiritilmagani qolsa, kechqurun shu vaqtda eslatadi. Dars jadvali shart emas.",
         `<select id="eve" class="sz-sel"><option value="">O'chiq</option>${["16:00", "17:00", "18:00", "19:00", "20:00", "21:00"].map((k) => `<option ${D.web.eve === k ? "selected" : ""}>${k}</option>`).join("")}</select>`) : "");
-    const nd = noDays().length;
+    const nd = noDays().length, ax = ARX.cfg(), axL = [1, 2, 3, 4].filter((n) => ARX.entry(n));
+    // chorak arxivi (arxiv.js): tugagan chorak tuzatish muddatidan keyin o'zi qulflanadi
+    const arx = row("arx", "🗄 Tugagan chorakni arxivlash", "Tuzatish muddati tugagach chorak o'zi qulflanadi: baholar, yo'qlama, mezon va BSB/CHSB ballari, chorak bahosi, mavzular o'zgarmaydi, eMaktab importi ham ularga tegmaydi.", tog('data-axsw="auto"', ax.auto, "Tugagan chorakni arxivlash")) +
+      (ax.auto ? row("arxg", "Tuzatish muddati", "Chorak tugagandan keyin chorak baholarini qo'yib ulgurish uchun", `<div class="sz-seg ${tel ? "full" : ""}">${ARX.GRACE.map((g, i) => `<button class="${ax.grace === g ? "on" : ""}" data-axgr="${i}">${g ? `${g} kun` : "Darhol"}</button>`).join("")}</div>`, "wide") : "") +
+      row("arxp", "Ochishda parol so'ralsin", "«Vaqtincha ochish»da Himoya paroli so'raladi", tog('data-axsw="ask"', ax.ask, "Ochishda parol so'ralsin")) +
+      row("arxv", "Choraklar arxivi", axL.length ? `${axL.join(", ")}-chorak arxivda` : "Hali arxivlangan chorak yo'q", `<button class="btn btn-sm" data-axpage="">Ochish ›</button>`);
     return {body: grp("Haftalik jadval", schRow) +
       grp("Sinflarning dars kunlari", mx, nd ? `<span class="sz-chip sz-rt">⚠ ${nd} ta sinf</span>` : "", sc ? "Jadvaldagi sinflar uchun o'zi belgilanadi. Jadvalsiz sinflar uchun kunni bosib belgilang." : "Har sinf qaysi kunlari darsi borligini bosib belgilang.") +
       grp("Choraklar", qs + row("genq", "Dars kunlarini yaratish", "Chorak sanalari va dars kunlari bo'yicha sanalar qo'shiladi. Qo'yilgan baholar o'chmaydi.", `<button class="btn btn-sm" data-a="genq">↻ Yaratish</button>`), "", "Boshlanish va tugash sanalari — hamma sinflar uchun umumiy.") +
+      grp("Chorak arxivi", arx, axL.length ? `<span class="sz-cnt">${axL.length}</span>` : "", "", "arxs") +
       grp("Dam olish kunlari", hols, cnt(st.holidays.length), "Bu kunlarda dars sanasi yaratilmaydi.") +
       grp("Eslatmalar", rem),
       acts: [[sc ? "✎ Jadval" : "📅 Jadval", 'data-a="sch"', 0], ["↻ Kunlarni yaratish", 'data-a="genq"', 1]], what: "Jadval va dars kunlari"};
@@ -157,7 +163,7 @@ const SZL = (() => {
 
   /* ───────── qidiruv ───────── */
   const IDX = () => [[0, "addc", "Sinf qo'shish", "yangi sinf ro'yxat excel word"], [0, "cls", "O'quvchi qo'shish yoki faolsizlantirish", "o'quvchi faolsiz ketgan"], [0, "cls", "Sinfni tahrirlash yoki o'chirish", "nomi fani o'chirish"],
-    [1, "sch", "Dars jadvali", "jadval soat qo'ng'iroq"], [1, "wd0", "Sinflarning dars kunlari", "hafta kun dushanba"], [1, "q1", "Choraklar", "chorak sana boshlanish tugash"], [1, "genq", "Dars kunlarini yaratish", "sana yaratish"],
+    [1, "sch", "Dars jadvali", "jadval soat qo'ng'iroq"], [1, "wd0", "Sinflarning dars kunlari", "hafta kun dushanba"], [1, "q1", "Choraklar", "chorak sana boshlanish tugash"], [1, "arx", "Chorak arxivi", "arxiv qulf tugagan chorak baholar o'zgarmasin"], [1, "genq", "Dars kunlarini yaratish", "sana yaratish"],
     [1, "hol", "Dam olish kunlari (bayramlar)", "bayram ta'til dam"], [1, "rem", "Dars eslatmasi", "bildirishnoma eslatma"], [1, "eve", "Kechki eslatma", "kechqurun eslatma"],
     [2, "rng", "Baho ranglari", "rang baho guruh"], [2, "rkavg", "Xavf turlari", "xavf risk o'rtacha davomat"], [2, "fb", "Formativ baho (FB) uchun kamida", "fb chorak bahosi"], [2, "ktrw", "KTRdagi BSB/CHSB mavzulari", "ktr bsb chsb summativ"], [2, "past", "O'tgan darslarga belgi qo'yish", "o'tgan kun belgi"],
     [3, "", "Mavzu, rang, yozuv, tugmalar joyi", "dizayn mavzu rang shrift tun tungi kechqurun menyu tugma belgi"], [4, "prot", "Baholarni himoyalash", "himoya qulf"], [4, "pin", "Parol", "parol pin"], [4, "alm", "Avtomatik qulflash", "qulf daqiqa"],
@@ -257,5 +263,5 @@ const SZL = (() => {
     m.querySelectorAll("[data-szholadd]").forEach((b) => b.onclick = holidayAdd);
   }
   addEventListener("resize", () => { if (typeof S !== "undefined" && S.page === "settings" && wasPhone !== null && wasPhone !== phone()) { if (!phone() && S.sec < 0) S.sec = 0; render(); } });
-  return {SECS, page, bind, phone};
+  return {SECS, page, bind, phone, goTo};
 })();
