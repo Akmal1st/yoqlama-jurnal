@@ -70,6 +70,18 @@ test("Hisobotlar: solishtirish, ishlar, to'lish, hisob daftari, moliya = hisobot
   assert.deepEqual(norm(hisobotWeb(loadApp(G.today), H)), G);
 });
 
+test("Bugun: joriy o'zlashtirish (qProgress) — chorak yopilmaganda ham bo'sh qolmaydi", () => {
+  const H = JSON.parse(read("fixtures/hisobot.json")), B = loadApp("2026-11-20"); B.setData(structuredClone(H));
+  const c = B.D.classes[0], st = B.D.settings.quarters[0][0];
+  // BSB/CHSB hali yo'q (birinchi ish 25-sentabr): faqat FB — formativ baholar o'rtachasi / 10 (metodik kun va «dars yo'q» kunlari hisobga kirmaydi)
+  assert.equal(norm(B.qProgress(c, 1, "2026-09-20")), 62.5);
+  // 1-BSB qo'yilgan: ball qo'yilganlar shu ishning maksimali bilan qo'shiladi
+  const r = B.compareRows(st, "2026-10-10", 1)[0];
+  assert.equal(norm(r.qp), norm(B.qProgress(c, 1, "2026-10-10")));
+  assert.ok(r.qp > 0 && r.qp <= 100);
+  assert.equal(B.qProgress(c, 3, "2026-10-10"), null);   // 3-chorak sanalari yo'q
+});
+
 test("Baholanganlar ulushi: kamida 30% (baholangan / jami * 100 >= 30)", () => {
   const mk = (n, g) => ({students: Array.from({length: n}, (_, i) => ({marks: i < g ? {"2026-01-01": "8"} : {"2026-01-01": i % 2 ? "s" : ""}}))});
   const r = (n, g) => { const x = A.gradedShare(mk(n, g), "2026-01-01"); return [x.ok, x.pct, x.need]; };
