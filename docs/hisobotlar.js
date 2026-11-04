@@ -4,16 +4,16 @@
    Kompyuterda: chapda turlar ro'yxati (4 guruh), o'ngda hisobot paneli. Telefonda: «Almashtirish» tugmasi va pastdan chiqadigan tanlov. */
 const HSB = (() => {
   const KINDS = [
-    ["Sinf bo'yicha", [["cls", "📋", "Sinf hisoboti", "Baholar, davomat, xavf"], ["stats", "📈", "Grafik va statistika", "Haftalar bo'yicha o'zgarish"], ["att", "📅", "Davomat varag'i", "Oy bo'yicha kunma-kun"]]],
+    ["Sinf bo'yicha", [["cls", "📋", "Sinf hisoboti", "Baholar, davomat, xavf"], ["stats", "📈", "Grafik va statistika", "Haftalar bo'yicha o'zgarish"], ["att", "📅", "Davomat varag'i", "Chorak bo'yicha belgilar"]]],
     ["Chorak yakuni", [["sum", "🧮", "BSB va CHSB", "Ishlar va chorak bahosi"], ["ready", "✅", "Chorakka tayyorlik", "Nima yetishmaydi"]]],
     ["Chop etish uchun", [["par", "👪", "Ota-onalar majlisi", "Har o'quvchiga varaq"], ["blank", "📝", "Bo'sh varaq", "Qo'lda to'ldirish uchun"]]],
     ["Barcha sinflar", [["cmp", "⚖️", "Sinflarni solishtirish", "Hamma sinflar yonma-yon"]]]];
   const KIND = Object.fromEntries(KINDS.flatMap(([, l]) => l.map((k) => [k[0], k])));
   // har tur nimani so'raydi: davr (per), chorak (q), oy (mon), yoki hech narsa
-  const NEED = {cls: "per", stats: "per", par: "per", cmp: "per", sum: "q", ready: "q", att: "mon", blank: ""};
-  const XLS = {blank: "data-bvx", cls: "data-xlsx", att: "data-axlsx", cmp: "data-ccsv", ready: "data-rxlsx", sum: "data-sxlsx"};
+  const NEED = {cls: "per", stats: "per", par: "per", cmp: "per", sum: "q", ready: "q", att: "q", blank: ""};
+  const XLS = {blank: "data-bvx", cls: "data-xlsx", att: "data-dvx", cmp: "data-ccsv", ready: "data-rxlsx", sum: "data-sxlsx"};
   const SRC = {cls: "<b>Jurnal</b> baholari va yo'qlama, tanlangan davr ichida. Xavf ostida — <b>Sozlamalar → Baholash → Xavf turlari</b> bo'yicha.",
-    stats: "<b>Jurnal</b> baholari va yo'qlama, haftalarga bo'lib.", att: "<b>Jurnal</b> yo'qlamasi: S, DQ, K, KQ belgilari, tanlangan oy.",
+    stats: "<b>Jurnal</b> baholari va yo'qlama, haftalarga bo'lib.", att: "<b>Jurnal</b> yo'qlamasi: S, DQ, K, KQ belgilari, tanlangan chorak ichida (sanalar <b>Sozlamalar → Choraklar</b>dan). Belgisi yo'q kunlar — darsda bo'lgan.",
     sum: "<b>Jurnal → BSB / CHSB</b> ballari va kundalik baholar (FB). Chorak bahosi: jami ≥ 86 — 5, ≥ 66 — 4, ≥ 30 — 3.",
     ready: "<b>Jurnal → BSB / CHSB</b>, kundalik baholar soni va <b>Sozlamalar → Choraklar</b>.",
     par: "Sinf hisoboti bilan bir xil ma'lumot; o'qituvchi ismi <b>BSB tahlili</b> sahifasidagi sarlavhadan.",
@@ -160,24 +160,8 @@ const HSB = (() => {
         <div class="hb-box"><h3>Baholar taqsimoti <span class="hb-mut">· 1 dan 10 gacha</span></h3>${bars(st.dist)}</div>
         <div class="hb-box"><h3>Ko'p qoldirganlar</h3>${top.length ? `<div class="hb-top5">${top.map((r, i) => `<button class="hb-li" data-card="${esc(r.name)}"><span class="hb-l1"><span class="hb-mut hb-num" style="width:16px">${i + 1}</span><b class="hb-ell">${esc(r.name)}</b><span class="hb-num" style="font-weight:800">${missN(r)} dars</span></span><span class="hb-l3" style="padding-left:24px">${missChips(r)}</span></button>`).join("")}</div>` : `<span class="hb-mut">Qoldirish yo'q 👍</span>`}</div></div>`;
   }
-  /* ───────── 4. Davomat varag'i ───────── */
-  function repAtt(X) {
-    const A = attMonth(X.c, S.amon), abs = (r) => r.cells.filter((v) => ["s", "dq", "k"].includes(v)).length;
-    if (!A.dates.length) return `<div class="hb-box"><h3>${A.title}: o'tilgan dars kunlari yo'q</h3><span class="hb-mut">Boshqa oyni tanlang.</span></div>`;
-    const tot = A.tot.s + A.tot.dq + A.tot.k, clean = A.rows.filter((r) => !abs(r) && !r.kq), absent = A.rows.map((r, i) => [r, i]).filter(([r]) => abs(r) || r.kq);
-    const low = (r) => r.att !== null && r.att < D.settings.risk.att_below, grid = S.hattv === "grid";
-    const cell = (v) => v && CODES[v] ? `<td class="ac"><span style="background:${attCol(v)};color:${contrast(attCol(v))}">${CODES[v]}</span></td>` : `<td class="ac"></td>`;
-    const table = `<table class="hb-t attm"><thead><tr><th>№</th><th class="an">O'quvchi</th>${A.dates.map((d) => `<th>${d.slice(8)}<small>${WD[pyWd(d)]}</small></th>`).join("")}<th>S</th><th>DQ</th><th>K</th><th>KQ</th><th>%</th></tr></thead><tbody>
-      ${A.rows.map((r, i) => `<tr><td class="hb-mut hb-num">${i + 1}</td><td class="an nm"><button data-card="${esc(r.name)}">${esc(r.name)}</button></td>${r.cells.map(cell).join("")}<td class="hb-num">${r.s || ""}</td><td class="hb-num">${r.dq || ""}</td><td class="hb-num">${r.k || ""}</td><td class="hb-num">${r.kq || ""}</td><td class="hb-num ${low(r) ? "hb-low" : ""}"><b>${r.att ?? "—"}</b></td></tr>`).join("")}</tbody>
-      <tfoot><tr><td></td><td class="an">Kelmaganlar</td>${A.dayAbs.map((n) => `<td class="hb-num">${n || ""}</td>`).join("")}<td>${A.tot.s}</td><td>${A.tot.dq}</td><td>${A.tot.k}</td><td>${A.tot.kq}</td><td>${A.att ?? "—"}</td></tr></tfoot></table>`;
-    return `<div class="hb-kpis">${kpi("Dars kunlari", A.dates.length)}${kpi("Davomat", A.att === null ? "—" : A.att + "%")}${kpi("Kelmagan holatlar", tot)}${kpi("Hamma kelgan", `${clean.length} <i>/ ${A.rows.length}</i>`)}</div>
-      <div class="hb-tools"><div class="hb-seg hb-tel"><button class="${grid ? "" : "on"}" data-hattv="list">Ro'yxat</button><button class="${grid ? "on" : ""}" data-hattv="grid">Jadval</button></div>
-        <span class="hb-legend">${["s", "dq", "k", "kq"].map((k) => code(k, CODES[k])).join("")} <span>sababsiz · sababli · kasal · kech qoldi${A.rows.some((r) => r.cells.includes("ch")) ? " · CH — chet elda" : ""}</span></span></div>
-      <div class="hb-tw ${grid ? "" : "hb-pc"}">${table}</div>
-      ${grid ? "" : `<div class="hb-tel" style="display:flex;flex-direction:column;gap:12px"><div class="hb-rows">${absent.map(([r]) => `<button class="hb-li ${abs(r) ? "hb-rk" : ""}" data-card="${esc(r.name)}"><span class="hb-l1"><b class="hb-ell">${esc(r.name)}</b><span class="hb-num ${low(r) ? "hb-why" : ""}" style="font-weight:800;font-size:14px">${r.att ?? "—"}%</span></span>
-          <span class="hb-l3">${r.cells.map((v, k) => v && v !== "ch" ? code(v, `${d5(A.dates[k])} ${CODES[v]}`) : "").join("")}</span></button>`).join("") || `<div class="hb-li">Bu oyda hamma darsda bo'lgan 👍</div>`}</div>
-        ${clean.length && absent.length ? `<div class="hb-box"><h3>✓ Hamma darsda bo'lgan · ${clean.length}</h3><span class="hb-mut" style="font-size:12.5px">${clean.map((r) => esc(r.name)).join(", ")}</span></div>` : ""}</div>`}`;
-  }
+  /* ───────── 4. Davomat varag'i: butun chorak — davomat.js (DVM) ───────── */
+  const repAtt = (X) => DVM.body(X);
   /* ───────── 5. Ota-onalar majlisi ───────── */
   function repPar(X) {
     const {c, lo, hi, rq} = X, {rows} = reportRows(c, lo, hi, rq), filt = S.pfilt === "risk" ? "risk" : "all";
@@ -344,7 +328,7 @@ const HSB = (() => {
         <nav class="card hb-list hb-pc" aria-label="Hisobot turlari">${KINDS.map(([g, l]) => `<div class="hb-gt">${g}</div>${l.map(([k, ic, n, d]) => `<button class="hb-ri ${X.R.kind === k ? "on" : ""}" data-kind="${k}"><span class="hb-ic">${ic}</span><span><b class="hb-ell">${n}</b><small class="hb-ell">${d}</small></span>${badge(k, X)}</button>`).join("")}`).join("")}</nav>
         <section class="card hb-panel">
           <div class="hb-hd hb-pc"><div class="hb-top"><div><h2>${K[1]} ${K[2]}</h2><p>${K[3]}</p></div>${bot ? "" : `<div class="hb-acts">${actions(X.R.kind)}</div>`}</div><div class="hb-pks">${pickers(X)}</div></div>
-          ${["blank", "par"].includes(X.R.kind) ? "" : `<h2 class="pronly" style="margin:0 0 6px">${K[2]} · ${sub}${pl && NEED[X.R.kind] !== "mon" ? ` · ${pl[1]}` : ""}</h2>`}
+          ${["blank", "par", "att"].includes(X.R.kind) ? "" : `<h2 class="pronly" style="margin:0 0 6px">${K[2]} · ${sub}${pl && NEED[X.R.kind] !== "mon" ? ` · ${pl[1]}` : ""}</h2>`}
           <div class="hb-con">${body}</div>
           <div class="hb-src"><span>ℹ</span><span>${SRC[X.R.kind]}</span></div>
           ${bot ? `<div class="hb-stick">${actions(X.R.kind)}</div>` : ""}
@@ -359,15 +343,15 @@ const HSB = (() => {
     m.querySelectorAll("[data-rf]").forEach((b) => b.onclick = () => { S.rfilt = b.dataset.rf; render(); });
     m.querySelectorAll("[data-rs]").forEach((th) => th.onclick = () => { const k = th.dataset.rs, o = S.rsort || {}; S.rsort = {k, dir: o.k === k ? -(o.dir || 1) : (k === "name" ? 1 : -1)}; render(); });
     m.querySelectorAll("[data-pf]").forEach((b) => b.onclick = () => { S.pfilt = b.dataset.pf; render(); });
-    m.querySelectorAll("[data-hattv]").forEach((b) => b.onclick = () => { S.hattv = b.dataset.hattv; render(); });
     if (R.kind === "blank") BVQ.bind(m, ctx);
+    if (R.kind === "att") DVM.bind(m, ctx);
     m.querySelectorAll("[data-cmpc]").forEach((b) => b.onclick = () => { R.ci = +b.dataset.cmpc; R.kind = "cls"; keep(); render(); window.scrollTo(0, 0); });
     m.querySelectorAll("[data-hgo]").forEach((b) => b.onclick = () => { S.ci = R.ci; S.jpage = b.dataset.hgo; go("journal"); });
     m.querySelectorAll("[data-print]").forEach((b) => b.onclick = () => { fitPrint(); window.print(); });
     // PDF → Telegram (pdf-tg.js)
     m.querySelectorAll("[data-tgpdf]").forEach((b) => b.onclick = () => { const K = KIND[R.kind], pl = perLabel(X), who = R.kind === "cmp" || (R.kind === "blank" && BVQ.isAll()) ? "Barcha sinflar" : label(c);
       const per = (pl ? `${pl[0]}${NEED[R.kind] !== "mon" && pl[1] ? ` · ${pl[1]}` : ""}` : "").replace(/<[^>]+>/g, "").replace(/&[a-z]+;/g, " ");
-      PTG.run(() => R.kind === "blank" ? BVQ.pdfPages(ctx()) : PTG.reportPdf(), `${K[2]} ${who} ${per}`, `📄 ${K[2]}\n${who}${per ? "\n" + per : ""}`, b); });
+      PTG.run(() => R.kind === "blank" ? BVQ.pdfPages(ctx()) : R.kind === "att" ? DVM.pdfPages(ctx()) : PTG.reportPdf(), `${K[2]} ${who} ${per}`, `📄 ${K[2]}\n${who}${per ? "\n" + per : ""}`, b); });
     // Excel: hisob-kitob va ustunlar avvalgidek
     const on = (sel, fn) => m.querySelectorAll(sel).forEach((b) => b.onclick = fn);
     on("[data-xlsx]", () => {
@@ -375,13 +359,6 @@ const HSB = (() => {
       const hd = ["№", "O'quvchi", "O'rtacha", "Baholar", "Davomat %", "S", "DQ", "K", "KQ"].concat(rq ? ["Chorak balli", "Chorak bahosi"] : [], ["Izoh"]);
       const body = rows.map((r, i) => [i + 1, r.name, r.avg, r.n, r.att, r.s, r.dq, r.k, r.kq].concat(rq ? [r.q ? Math.round(r.q.total * 10) / 10 : null, r.q && r.q.complete ? r.q.grade : null] : [], [r.why.join("; ")]));
       saveTable(`${label(c)} ${lo} ${hi}`, [[`${label(c)} · ${fmt(lo)} – ${fmt(hi)}`], [], hd, ...body], [5, 28, 9, 8, 10, 5, 5, 5, 5].concat(rq ? [11, 12] : [], [50]));
-    });
-    on("[data-axlsx]", () => {
-      const A = attMonth(c, S.amon);
-      saveTable(`${label(c)} davomat ${A.ym}`, [[`${label(c)} · davomat · ${A.title}`], [],
-        ["№", "O'quvchi", ...A.dates.map((d) => d.slice(8)), "S", "DQ", "K", "KQ", "Davomat %"],
-        ...A.rows.map((r, i) => [i + 1, r.name, ...r.cells.map((v) => CODES[v] || ""), r.s, r.dq, r.k, r.kq, r.att]),
-        ["", "Kelmaganlar", ...A.dayAbs, A.tot.s, A.tot.dq, A.tot.k, A.tot.kq, A.att]], [5, 28, ...A.dates.map(() => 4), 5, 5, 5, 5, 10]);
     });
     on("[data-ccsv]", () => {
       const r2 = (v, d) => v === null || v === undefined ? null : +v.toFixed(d), L = compareRows(lo, hi, rq), T = compareTotal(L), ln = (r, nm) => [nm, r.n, r.lessons, r2(r.avg, 2), r2(r.att, 1), r.risk, r2(r.bsb, 0), r2(r.chsb, 0)].concat(rq ? [r2(r.qq, 0), r2(r.qu, 0)] : []);
@@ -395,5 +372,5 @@ const HSB = (() => {
     });
     on("[data-sxlsx]", () => { const q = X.q; if (!qRange(q)) return toast(`${q}-chorak sanalari belgilanmagan`); saveTable(`${label(c)} ${q}-chorak BSB CHSB`, ...sumAoa(c, q)); });
   }
-  return {page, has, KINDS, leave: closePop};
+  return {page, has, KINDS, leave: closePop, student};
 })();

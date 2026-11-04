@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="dizayn.css">
 <link rel="stylesheet" href="hisobotlar.css">
 <link rel="stylesheet" href="bosh-varaq.css">
+<link rel="stylesheet" href="davomat.css">
 <link rel="stylesheet" href="bsb-eksport.css">
 <link rel="stylesheet" href="bugun.css">
 <link rel="stylesheet" href="bugun-arxiv.css">
@@ -37,6 +38,7 @@
 <script src="dizayn.js"></script>
 <script src="hisobotlar.js"></script>
 <script src="bosh-varaq.js"></script>
+<script src="davomat.js"></script>
 <script src="bsb-eksport.js"></script>
 <script src="bugun-arxiv.js"></script>
 <script src="bugun.js"></script>
@@ -4219,7 +4221,7 @@ function compareTotal(L) {
 function fitPrint() {
   const sec = $("main section.card"), kind = S.rep && S.rep.kind;
   let st = document.getElementById("pfit-css"); if (st) st.remove();
-  if (S.page !== "reports" || !sec || kind === "blank" || kind === "par") return;
+  if (S.page !== "reports" || !sec || kind === "blank" || kind === "par" || kind === "att") return;
   const mm = 96 / 25.4;
   sec.classList.add("pfit"); document.body.classList.add("pmeas");
   const old = sec.style.width; sec.style.setProperty("--pz", "1");
