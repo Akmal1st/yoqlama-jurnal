@@ -1125,7 +1125,28 @@ const workKey = (type, date) => `${type}|${date}`;
 const workGone = (c, type, date) => (c.wdel || []).includes(workKey(type, date));
 function forgetWork(c, type, date) { const k = workKey(type, date); c.wdel = c.wdel || []; if (!c.wdel.includes(k)) c.wdel.push(k); }
 function reviveWork(c, type, date) { if (!c.wdel) return; c.wdel = c.wdel.filter((k) => k !== workKey(type, date)); if (!c.wdel.length) delete c.wdel; }
-function removeWork(c, w) { forgetWork(c, w.type, w.date); c.works.splice(c.works.indexOf(w), 1); c.students.forEach((s) => { if (s.scores) delete s.scores[w.id]; }); }
+function removeWork(c, w) { forgetWork(c, w.type, w.date); c.works.splice(c.works.indexOf(w), 1); c.students.forEach((s) => { if (s.scores) delete s.scores[w.id]; }); syncWorkAnalyses(c); }
+/* BSB/CHSB ustuni ochilganda «BSB tahlili»da shu sana uchun bo'sh tahlil ham ochiladi (a.w — ish id si).
+   Ball kiritilmagan (bo'sh) bog'langan tahlil ish sanasi/nomiga ergashadi, ish o'chirilsa — o'chadi; ball kiritilgani tegilmaydi. */
+const anEmpty = (a) => !Object.values(a.rows || {}).some((r) => r && (r.pts || []).some((p) => p !== null && p !== undefined && p !== ""));
+const anTitle = (w) => w.title || w.type.toUpperCase();
+function workAnalysis(c, w) {
+  if (isGrp(c) || !w || (w.type !== "bsb" && w.type !== "chsb")) return;
+  c.analyses = c.analyses || [];
+  if (c.analyses.some((a) => a.w === w.id || a.date === w.date)) return;
+  const ids = c.analyses.map((x) => String(x.id)).filter((x) => /^a\d+$/.test(x)).map((x) => +x.slice(1));
+  c.analyses.push({id: "a" + (Math.max(0, ...ids) + 1), title: anTitle(w), date: w.date, q: 5, max: [2, 2, 2, 2, 2], names: [], rows: {}, w: w.id});
+}
+function syncWorkAnalyses(c) {
+  if (!c.analyses || !c.analyses.length) return;
+  c.analyses = c.analyses.filter((a) => {
+    if (!a.w || !anEmpty(a)) return true;
+    const w = c.works.find((x) => x.id === a.w);
+    if (!w) return false;
+    if (a.date !== w.date && c.analyses.some((b) => b !== a && b.date === w.date)) return false;
+    a.date = w.date; a.title = anTitle(w); return true;
+  });
+}
 function planWorks(c, slots) {
   if (!ktrWorksOn()) return;
   const wanted = {};
@@ -1137,10 +1158,11 @@ function planWorks(c, slots) {
   const mine = {}; for (const w of c.works) if (w.ktr !== undefined && w.ktr !== null) mine[w.ktr] = w;
   for (const [si, [d, typ, mx, title]] of Object.entries(wanted)) {
     const w = mine[si];
-    if (!w) c.works.push({id: newWorkId(c), type: typ, date: d, max: mx, title, ktr: +si});
+    if (!w) { const nw = {id: newWorkId(c), type: typ, date: d, max: mx, title, ktr: +si}; c.works.push(nw); workAnalysis(c, nw); }
     else { w.date = d; w.type = typ; if (!scored(w)) w.max = mx; }
   }
   for (const [si, w] of Object.entries(mine)) if (!(si in wanted) && !scored(w)) c.works.splice(c.works.indexOf(w), 1);
+  syncWorkAnalyses(c);
 }
 const ktrWorksOn = () => (D.settings.auto || {}).ktr_works !== false;
 const reflowAll = () => D.classes.forEach((c) => reflowPlan(c));
@@ -1267,7 +1289,7 @@ function mergeImport(imp, replace) {
   for (const w of imp.works || []) {
     let ex = c.works.find((x) => x.type === w.type && x.date === w.date);
     if (!ex && workGone(c, w.type, w.date)) continue;   // foydalanuvchi o'chirgan ish qayta qo'shilmaydi
-    if (!ex) { ex = {id: newWorkId(c), type: w.type, date: w.date, max: w.max, title: w.title || ""}; c.works.push(ex); rep.new_works++; }
+    if (!ex) { ex = {id: newWorkId(c), type: w.type, date: w.date, max: w.max, title: w.title || ""}; c.works.push(ex); workAnalysis(c, ex); rep.new_works++; }
     wmap[`${w.type}|${w.date}`] = ex;
   }
   for (const [st, cs] of pairs) {
@@ -2917,8 +2939,8 @@ function workDialog(c, w) {
       if (!d) { toast("Sanani tanlang"); return; } if (!(mx > 0)) { toast("Maksimal ball noto'g'ri"); return; }
       if (!isGrp(c) && (ARX.dateLocked(d) || (w && ARX.dateLocked(w.date)))) { ARX.deny(quarterOf(ARX.dateLocked(d) ? d : w.date)); return; }
       if (scored && c.students.some((s) => isNum((s.scores || {})[w.id]) && s.scores[w.id] > mx)) { toast("Ba'zi o'quvchilarning bali yangi maksimaldan katta"); return; }
-      if (isNew) { reviveWork(c, typ, d); c.works.push({id: newWorkId(c), type: typ, date: d, max: mx, title: $("#wn", mm).value.trim()}); }
-      else { if (w.ktr !== undefined && (w.type !== typ || w.date !== d)) forgetWork(c, w.type, w.date); Object.assign(w, {type: typ, date: d, max: mx, title: $("#wn", mm).value.trim()}); if (w.ktr !== undefined) delete w.ktr; reviveWork(c, typ, d); }
+      if (isNew) { reviveWork(c, typ, d); const nw = {id: newWorkId(c), type: typ, date: d, max: mx, title: $("#wn", mm).value.trim()}; c.works.push(nw); workAnalysis(c, nw); }
+      else { if (w.ktr !== undefined && (w.type !== typ || w.date !== d)) forgetWork(c, w.type, w.date); Object.assign(w, {type: typ, date: d, max: mx, title: $("#wn", mm).value.trim()}); if (w.ktr !== undefined) delete w.ktr; reviveWork(c, typ, d); syncWorkAnalyses(c); workAnalysis(c, w); }
       const nq = quarterOf(d); if (nq) S.sq = nq;
       save(); close(); render();
     };
@@ -2973,7 +2995,7 @@ function chsbOptHtml(c, w) {
 }
 function pageChsbTest(m) {
   const c = D.classes[S.ci], ws = c.works.filter((w) => w.type === "chsb").sort((a, b) => a.date < b.date ? -1 : 1);
-  const newTest = () => { reviveWork(c, "chsb", todayIso()); const nw = {id: newWorkId(c), type: "chsb", date: todayIso(), max: CHSB_TOTAL, title: ""}; c.works.push(nw); S.tw = nw.id; S.cttab = "tbl"; save(); render(); };
+  const newTest = () => { reviveWork(c, "chsb", todayIso()); const nw = {id: newWorkId(c), type: "chsb", date: todayIso(), max: CHSB_TOTAL, title: ""}; c.works.push(nw); workAnalysis(c, nw); S.tw = nw.id; S.cttab = "tbl"; save(); render(); };
   if (!ws.length) {
     m.innerHTML = `<div class="vcol" style="gap:12px">${classChips()}<div class="hrow">${jpSeg()}</div><div class="card muted">Hali CHSB testi yo'q. Test shaklidagi CHSB ni shu yerda yarating: to'g'ri javoblarni belgilab, o'quvchilarning variantlarini kiriting — ball o'zi hisoblanadi.</div><div><button class="btn btn-primary" data-newt>＋ Yangi CHSB testi</button></div></div>`;
     bindTop(m); $("[data-newt]", m).onclick = newTest; return;
@@ -3026,8 +3048,8 @@ function pageChsbTest(m) {
   $("[data-tsave]", m).onclick = () => { save(); const el = $("#tsaved", m); if (el) el.textContent = "✓ saqlangan"; toast("CHSB testi saqlandi"); };
   $("#tws", m).onchange = (e) => { S.tw = e.target.value; render(); };
   m.querySelectorAll("[data-ctab]").forEach((b) => b.onclick = () => { S.cttab = b.dataset.ctab; render(); });
-  $("#tt", m).oninput = (e) => { w.title = e.target.value; save(); };
-  $("#tdt", m).onchange = (e) => { if (e.target.value) { w.date = e.target.value; save(); render(); } };
+  $("#tt", m).oninput = (e) => { w.title = e.target.value; syncWorkAnalyses(c); save(); };
+  $("#tdt", m).onchange = (e) => { if (e.target.value) { w.date = e.target.value; syncWorkAnalyses(c); workAnalysis(c, w); save(); render(); } };
   $("#tmx", m).onchange = async (e) => {
     const mx = Math.round(parseFloat(String(e.target.value).replace(",", ".")) * 10) / 10;
     if (!(mx > 0)) { toast("Maksimal ball noto'g'ri"); e.target.value = gnum(w.max); return; }
@@ -3401,6 +3423,7 @@ function baSave(c, B, quiet) {
   if (!B.max.every((v) => v > 0)) { toast("Hamma savol uchun maksimal ball (0 dan katta) kiriting"); return false; }
   const rows = {}; c.students.forEach((s) => { const r = baRow(B, s.name); rows[s.name] = {in: r.in !== false, pts: Array.from({length: B.q}, (_, i) => r.pts[i] == null ? null : Math.min(r.pts[i], B.max[i]))}; });
   const a = {id: B.id, title: B.title.trim(), date: B.date, q: B.q, max: B.max.slice(), names: Array.from({length: B.q}, (_, i) => (B.names[i] || "").trim()), rows};
+  { const old = B.id && c.analyses.find((x) => x.id === B.id); if (old && old.w && old.date === B.date) a.w = old.w; }
   if (!B.id) { const ids = c.analyses.map((x) => String(x.id)).filter((x) => /^a\d+$/.test(x)).map((x) => +x.slice(1)); a.id = B.id = "a" + (Math.max(0, ...ids) + 1); c.analyses.push(a); }
   else { const i = c.analyses.findIndex((x) => x.id === B.id); if (i >= 0) c.analyses[i] = a; else c.analyses.push(a); }
   B.dirty = false; save(); if (!quiet) toast("BSB tahlili saqlandi"); return true;
