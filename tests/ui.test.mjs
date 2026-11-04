@@ -3009,6 +3009,9 @@ test("Bugun: BSB/CHSB tahlili qilinmagan sinflar va tahlil sahifasini ochish", a
     });
     assert.deepEqual(r.ids, ["wa1,wa3"], "faqat tahlilsiz, o'tgan va shu chorakdagi BSB/CHSB");
     assert.equal(await page.locator(".bn-grp.anl [data-anl]").count(), 3);
+    // «Bajarish kerak» kartasi och sariq fonda (bajarish.css), Eslatmalar o'zgarmagan
+    const bg = await page.evaluate(() => getComputedStyle(document.querySelector(".card.bn-todoc")).backgroundColor);
+    assert.notEqual(bg, "rgb(255, 255, 255)", "Bajarish kerak kartasi oq bo'lmasligi kerak");
     await page.click(`.bn-grp.anl button.btn[data-anl]`);
     assert.deepEqual(await page.evaluate(() => [S.page, S.jpage, S.ci, baCur().date, baCur().title, baCur().id]), ["journal", "bsb", r.ci, r.d1, "Kasrlar", null]);
     assert.equal(await page.inputValue("#bt"), "Kasrlar");
