@@ -2897,3 +2897,39 @@ test("chorak arxivi: tugagan chorak qulflanadi, vaqtincha ochiladi, «Bugun» es
     await page.close();
   } finally { await browser.close(); }
 });
+
+test("Bugun: BSB/CHSB tahlili qilinmagan sinflar va tahlil sahifasini ochish", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1366, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const r = await page.evaluate(() => {
+      const t = todayIso(), dd = (k) => iso(addDays(pdate(t), k));
+      D.settings.quarters = [[dd(-40), dd(20)], null, null, null];
+      const ci = D.classes.findIndex((c) => !isGrp(c)), c = D.classes[ci];
+      D.classes.forEach((x) => { x.works = []; x.analyses = []; });
+      c.works.push({id: "wa1", type: "bsb", date: dd(-10), max: 10, title: "Kasrlar"}, {id: "wa2", type: "bsb", date: dd(-5), max: 10, title: ""},
+        {id: "wa3", type: "chsb", date: dd(-3), max: 30, title: ""}, {id: "wa4", type: "chsb", date: dd(-2), max: 30, title: "", test: {n: 2, o: 4, key: "AB", ans: {[c.students[0].id]: "AB"}}},
+        {id: "wa5", type: "bsb", date: dd(5), max: 10, title: ""}, {id: "wa6", type: "bsb", date: dd(-60), max: 10, title: ""});
+      c.analyses.push({id: "a1", title: "", date: dd(-5), q: 1, max: [10], names: [], rows: {[c.students[0].name]: {in: true, pts: [7]}}});
+      save(); go("today");
+      return {ci, ids: analysisGaps().rows.map((x) => x.works.map((w) => w.id).join(",")), d1: dd(-10)};
+    });
+    assert.deepEqual(r.ids, ["wa1,wa3"], "faqat tahlilsiz, o'tgan va shu chorakdagi BSB/CHSB");
+    assert.equal(await page.locator(".bn-grp.anl [data-anl]").count(), 3);
+    await page.click(`.bn-grp.anl button.btn[data-anl]`);
+    assert.deepEqual(await page.evaluate(() => [S.page, S.jpage, S.ci, baCur().date, baCur().title, baCur().id]), ["journal", "bsb", r.ci, r.d1, "Kasrlar", null]);
+    assert.equal(await page.inputValue("#bt"), "Kasrlar");
+    await page.evaluate(() => go("today"));
+    await page.click(`.bn-anw [data-anl="${r.ci}|wa3"]`);
+    assert.deepEqual(await page.evaluate(() => [S.jpage, S.tw]), ["chsbt", "wa3"]);
+    // tahlil qilingach ro'yxatdan chiqadi
+    await page.evaluate(() => { const c = D.classes[S.ci]; c.analyses.push({id: "a2", title: "", date: c.works[0].date, q: 1, max: [10], names: [], rows: {[c.students[0].name]: {in: true, pts: [5]}}});
+      c.works[2].test = {n: 1, o: 4, key: "A", ans: {[c.students[0].id]: "A"}}; save(); go("today"); });
+    assert.equal(await page.locator(".bn-grp.anl").count(), 0);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});

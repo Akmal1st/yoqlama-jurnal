@@ -725,6 +725,36 @@ function quarterGaps(c, q, t = todayIso()) {
   const left = c.dates.filter((d) => t < d && d <= qRange(q)[1] && !isNoLesson(c, d)).length;
   return {low, noScore, left};
 }
+/* BSB/CHSB tahlili qilinmagan ishlar (joriy chorak, o'tib bo'lgan): BSB — shu sanada «BSB tahlili»da ball kiritilgan tahlil yo'q;
+   CHSB — «CHSB testi»da javoblar kiritilmagan va shu sanada tahlil ham yo'q. Ta'til kunlarida — oxirgi tugagan chorak. */
+function analysisGaps(t = todayIso()) {
+  let q = quarterOf(t);
+  if (!q) q = [4, 3, 2, 1].find((k) => { const r = qRange(k); return r && r[1] < t; }) || null;
+  if (!q) return {q: null, rows: []};
+  const has = (a) => Object.values(a.rows || {}).some((r) => r && r.in !== false && (r.pts || []).some((p) => p !== null && p !== undefined));
+  const rows = [];
+  D.classes.forEach((c, ci) => {
+    if (isGrp(c)) return;
+    const done = new Set((c.analyses || []).filter(has).map((a) => a.date));
+    const miss = worksInQuarter(c, q).filter((w) => (w.type === "bsb" || w.type === "chsb") && w.date <= t && !done.has(w.date)
+      && !(w.type === "chsb" && w.test && Object.values(w.test.ans || {}).some((a) => /[^.]/.test(a))))
+      .sort((a, b) => a.date < b.date ? -1 : 1);
+    if (miss.length) rows.push({c, ci, works: miss});
+  });
+  return {q, rows};
+}
+/* tahlil sahifasini ochish: BSB — yangi tahlil (sana va mavzu ishdan), CHSB — shu ishning «CHSB testi» */
+function openAnalysis(ci, wid) {
+  const c = D.classes[ci], w = c && c.works.find((x) => x.id === wid); if (!w) return;
+  S.ci = ci; S.page = "journal";
+  if (w.type === "chsb") { S.jpage = "chsbt"; S.tw = w.id; S.cttab = "tbl"; }
+  else {
+    S.jpage = "bsb"; S.batab = "tbl"; S.bas = S.bas || {};
+    const cur = S.bas[label(c)];
+    if (!(cur && cur.dirty)) { const a = (c.analyses || []).find((x) => x.date === w.date); S.bas[label(c)] = a ? baFrom(a) : Object.assign(baBlank(), {date: w.date, title: w.title || ""}); }
+  }
+  go("journal");
+}
 /* qarzdorlar: past baho (qizil oraliq) yoki o'tgan BSB/CHSB topshirilmagan / past natija; s.retake[kalit] = {d, v} — qayta topshirdi */
 const lowMax = () => { const r = ranges(); return r.length > 1 ? r[1].min - 1 : 0; };
 function debtsOf(c, s, lo, hi, t = todayIso()) {
