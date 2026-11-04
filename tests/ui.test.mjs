@@ -2105,6 +2105,11 @@ test("Bugun: sinflar ko'rsatkichi kartasi (davomat, o'zlashtirish)", async () =>
     assert.equal(await page.locator(".clsstat tbody tr").count(), await page.evaluate(() => D.classes.filter((c) => !isGrp(c)).length));
     assert.ok(await page.locator(".clsstat .bn-tr i").count() > 0);   // davomat va o'zlashtirish chiziqlari (bugun.js)
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
+    // ta'til kuni (1-chorak 29.10 da tugagan): oy boshidan emas, tugagan chorak natijasi, O'zlashtirish bo'sh emas
+    await page.clock.setFixedTime(new Date(2026, 10, 2, 10, 0)); await page.evaluate(() => render());
+    await page.waitForSelector(".clsstat tbody tr");
+    assert.match(await page.locator(".bn-per").first().textContent(), /1-chorak · 02\.09 – 29\.10/);
+    assert.ok(await page.locator(".clsstat tbody tr td:nth-child(3) .bn-mb").count() > 0);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
