@@ -1,0 +1,7 @@
+/* «Bugun» → «Bajarish kerak» kartasi: och sariq fon (Akmal tasdiqlagan maket, 2-variant, 2026-11-04).
+   Kompyuterda — «Bajarish kerak» kartasi, telefonda — «Vazifalar» bo'limi ochiq turgan karta (.bn-todoc). */
+.bn{--bk-a:#d97706;--bk-a-s:#fef3e2}
+html[data-theme="dark"] .bn{--bk-a:#f5b454;--bk-a-s:#2e2414}
+.bn .card.bn-todoc{background:var(--bk-a-s)!important;border-color:color-mix(in srgb,var(--bk-a) 40%,transparent)!important}
+.bn-todoc .bn-todo .bn-ti:hover{background:color-mix(in srgb,var(--base) 60%,transparent)}
+.bn-todoc .bn-todo .bn-ti+.bn-ti{border-top:1px solid color-mix(in srgb,var(--bk-a) 22%,transparent)}

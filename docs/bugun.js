@@ -126,7 +126,7 @@ const BGN = (() => {
     if (T.ktr.length) out.push(`<div class="bn-grp"><div class="bn-g">📚 KTR: rejadan orqada</div>${T.ktr.map(({c, ci, k}) => `<div class="bn-ti"><span class="bn-tx"><b class="bn-ell">${esc(label(c))}</b><small>${ktrLine(k)}</small></span><span class="bn-r"><button class="btn btn-sm" data-ktr="${ci}">Reja</button></span></div>`).join("")}</div>`);
     return `<div class="bn-todo">${out.join("") || `<div class="bn-okl">✓ Hamma ishlar bajarilgan — to'ldirilmagan dars yo'q.</div>`}</div>`;
   }
-  const todoCard = (T) => `<section class="card"><div class="bn-ch"><h2>Bajarish kerak</h2>${T.n ? `<span class="bn-cnt warn">${T.n}</span>` : ""}</div>${todoBody(T)}</section>`;
+  const todoCard = (T) => `<section class="card bn-todoc"><div class="bn-ch"><h2>Bajarish kerak</h2>${T.n ? `<span class="bn-cnt warn">${T.n}</span>` : ""}</div>${todoBody(T)}</section>`;
   function riskList() {
     const risk = riskOverview().flatMap((r) => r.names.map((n) => ({ci: r.ci, ...n})));
     for (const h of hwOverview()) { const x = risk.find((r) => r.ci === h.ci && r.name === h.name); if (x) x.why = x.why.concat(h.why); else risk.push(h); }
@@ -222,7 +222,7 @@ const BGN = (() => {
       const tabs = [["todo", "Vazifalar", T.n], ["risk", "E'tibor", risk.length], ["cls", "Sinflar", C.R.length]];
       const tb = tab === "todo" ? todoBody(T) : tab === "risk" ? riskBody(risk) : AX ? `<div class="ba-tel">${BAX.banner(AX)}${BAX.clsCard(AX, true)}</div>` : clsBody(C, true);
       body = `${header(t, L, true)}${z.act === "top" ? `<div class="bn-qrow">${quick(false)}</div>` : ""}${reminders(true)}${ARX.todayCard(true)}${hero(t, L, true)}${timeline(t, L, true)}
-        <div class="tgrid bn-one"><div class="bn-col">${week()}<section class="card" style="overflow:hidden"><div style="padding:8px"><div class="bn-seg" role="tablist">${tabs.map(([k, n, c]) => `<button role="tab" aria-selected="${tab === k}" class="${tab === k ? "on" : ""}" data-btab="${k}">${n}${c ? `<em>${c}</em>` : ""}</button>`).join("")}</div></div>${tb}</section>
+        <div class="tgrid bn-one"><div class="bn-col">${week()}<section class="card${tab === "todo" ? " bn-todoc" : ""}" style="overflow:hidden"><div style="padding:8px"><div class="bn-seg" role="tablist">${tabs.map(([k, n, c]) => `<button role="tab" aria-selected="${tab === k}" class="${tab === k ? "on" : ""}" data-btab="${k}">${n}${c ? `<em>${c}</em>` : ""}</button>`).join("")}</div></div>${tb}</section>
         ${upcomingCard()}${z.act !== "top" ? quickCard() : ""}</div></div>${bot ? stick(L, true) : ""}`;
     } else {
       body = `${header(t, L, false)}${reminders(false)}${ARX.todayCard(false)}${AX ? BAX.banner(AX) : ""}
