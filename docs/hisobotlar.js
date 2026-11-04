@@ -11,14 +11,14 @@ const HSB = (() => {
   const KIND = Object.fromEntries(KINDS.flatMap(([, l]) => l.map((k) => [k[0], k])));
   // har tur nimani so'raydi: davr (per), chorak (q), oy (mon), yoki hech narsa
   const NEED = {cls: "per", stats: "per", par: "per", cmp: "per", sum: "q", ready: "q", att: "mon", blank: ""};
-  const XLS = {cls: "data-xlsx", att: "data-axlsx", cmp: "data-ccsv", ready: "data-rxlsx", sum: "data-sxlsx"};
+  const XLS = {blank: "data-bvx", cls: "data-xlsx", att: "data-axlsx", cmp: "data-ccsv", ready: "data-rxlsx", sum: "data-sxlsx"};
   const SRC = {cls: "<b>Jurnal</b> baholari va yo'qlama, tanlangan davr ichida. Xavf ostida — <b>Sozlamalar → Baholash → Xavf turlari</b> bo'yicha.",
     stats: "<b>Jurnal</b> baholari va yo'qlama, haftalarga bo'lib.", att: "<b>Jurnal</b> yo'qlamasi: S, DQ, K, KQ belgilari, tanlangan oy.",
     sum: "<b>Jurnal → BSB / CHSB</b> ballari va kundalik baholar (FB). Chorak bahosi: jami ≥ 86 — 5, ≥ 66 — 4, ≥ 30 — 3.",
     ready: "<b>Jurnal → BSB / CHSB</b>, kundalik baholar soni va <b>Sozlamalar → Choraklar</b>.",
     par: "Sinf hisoboti bilan bir xil ma'lumot; o'qituvchi ismi <b>BSB tahlili</b> sahifasidagi sarlavhadan.",
     cmp: "Har sinfning sinf hisoboti, bir xil davr uchun. Jami qatori vaznli: baho — barcha baholar, davomat — o'quvchilar, BSB/CHSB — ballar yig'indisi bo'yicha.",
-    blank: "Faqat o'quvchilar ro'yxati va dars kunlari — qolgani qo'lda to'ldiriladi."};
+    blank: "O'quvchilar ro'yxati va dars kunlari <b>Jurnal</b>dan, kelgusi kunlar <b>dars jadvali</b>dan (bayram va metod kunlari tashlanadi); sarlavha <b>BSB tahlili</b> sahifasidagi maktab va o'qituvchi ismidan."};
   const CODES = {s: "S", dq: "DQ", k: "K", kq: "KQ", ch: "CH"};
   const has = (k) => k in KIND;
   const phone = () => matchMedia("(max-width:820px)").matches;
@@ -234,29 +234,8 @@ const HSB = (() => {
         <div class="m"><div><small>O'rtacha</small><b>${f(r.avg, 2)}</b></div><div><small>Davomat</small><b>${f(r.att, 0, "%")}</b></div><div><small>Xavf</small><b style="color:${many(r) ? "var(--danger)" : "inherit"}">${r.risk}</b></div><div><small>BSB/CHSB</small><b>${f(r.bsb, 0)}${r.chsb !== null ? "/" + f(r.chsb, 0) : ""}</b></div></div>
         <button class="hb-link" data-cmpc="${D.classes.indexOf(r.c)}">Sinf hisobotini ochish ›</button></div>`).join("")}</div>`;
   }
-  /* ───────── 8. Bo'sh varaq ───────── */
-  function repBlank(X) {
-    const {c} = X, mode = S.bmode || "week", t = todayIso();
-    let lo, hi;
-    if (mode === "day") { lo = hi = S.bday || t; }
-    else if (mode === "week") { const st = addDays(pdate(S.bday || t), -pyWd(S.bday || t)); lo = iso(st); hi = iso(addDays(st, 6)); }
-    else { const d = pdate(S.bday || t); lo = iso(new Date(d.getFullYear(), d.getMonth(), 1)); hi = iso(new Date(d.getFullYear(), d.getMonth() + 1, 0)); }
-    const dates = c.dates.filter((d) => lo <= d && d <= hi && !isNoLesson(c, d)), two = mode === "day";
-    const chunks = []; for (let i = 0; i < Math.max(1, dates.length); i += 31) chunks.push(dates.slice(i, i + 31));
-    // har bo'lak bitta varaqqa sig'sin: ustunlar kam bo'lsa — tik (A4), ko'p bo'lsa — yotiq; qator balandligi o'quvchilar soniga qarab (mm)
-    const ncol = Math.max(...chunks.map((ds) => ds.length)) * (two ? 2 : 1), wide = ncol > 8, nameW = ncol <= 4 ? 40 : ncol <= 8 ? 32 : ncol <= 16 ? 26 : 20;
-    const avail = (wide ? 190 : 277) - (two ? 30 : 26), rowH = Math.min(9, Math.max(4, avail / Math.max(1, c.students.length))), fs = rowH < 5 ? 7.5 : rowH < 6.5 ? 9 : 10.5;
-    const printCss = `<style>@media print{@page{size:A4 ${wide ? "landscape" : "portrait"};margin:10mm}
-      .blank{break-inside:avoid}.blank h2{font-size:14pt}.blank .hrow{margin-bottom:2mm}
-      .hb .hb-paper table.bl{margin-top:0;font-size:${fs}pt;table-layout:fixed;width:100%}.hb .hb-paper table.bl .bn{min-width:0;width:${nameW}%;overflow:hidden;white-space:nowrap}.hb .hb-paper table.bl .nr{width:7mm}.hb .hb-paper table.bl td{height:${rowH.toFixed(2)}mm;padding:0 1.5mm}.hb .hb-paper table.bl th{height:auto;padding:1mm}}</style>`;
-    return `${printCss}<div class="hb-tools"><div class="hb-seg">${[["day", "Kun"], ["week", "Hafta"], ["month", "Oy"]].map(([k, n]) => `<button class="${mode === k ? "on" : ""}" data-bm="${k}">${n}</button>`).join("")}</div>
-        <input class="hb-date" type="date" id="bday" value="${S.bday || t}" aria-label="Sana"><span class="hb-mut hb-pc" style="font-size:12.5px;display:inline">Faqat ismlar va dars kunlari — belgilar chiqmaydi.</span></div>
-      <div class="hb-paper"><div>${chunks.map((ds, n) => `<div class="blank ${n ? "pb" : ""}"><div class="hrow"><h2 style="flex:1">${esc(label(c))}</h2><span>${fmt(lo)} – ${fmt(hi)}</span></div>
-        <table class="bl"><tr><th ${two ? 'rowspan="2"' : ""} class="nr">№</th><th ${two ? 'rowspan="2"' : ""} class="bn">O'quvchi</th>${ds.map((d) => two ? `<th colspan="2">${d5(d)} ${WD[pyWd(d)]}</th>` : `<th>${mode === "month" ? d.slice(8) : d5(d)}<br><small>${WD[pyWd(d)]}</small></th>`).join("")}</tr>
-        ${two ? `<tr>${ds.map(() => "<th><small>Davomat</small></th><th><small>Ball</small></th>").join("")}</tr>` : ""}
-        ${c.students.map((s, i) => `<tr><td>${i + 1}</td><td class="bn">${esc(s.name)}</td>${"<td></td>".repeat(ds.length * (two ? 2 : 1))}</tr>`).join("")}</table></div>`).join("")}
-      ${dates.length ? "" : `<div style="color:#555">Bu davrda dars kunlari yo'q.</div>`}</div></div>`;
-  }
+  /* ───────── 8. Bo'sh varaq — bosh-varaq.js (tasdiqlangan maket, 2026-11-04) ───────── */
+  const repBlank = (X) => BVQ.body(X);
   const REP = {cls: repCls, sum: repSum, stats: repStats, att: repAtt, par: repPar, ready: repReady, cmp: repCmp, blank: repBlank};
 
   // ro'yxatdagi belgilar: sinf hisobotida xavf ostidagilar, tayyorlikda kamchiligi borlar
@@ -271,7 +250,7 @@ const HSB = (() => {
   /* ───────── tanlov oynalari ───────── */
   function sheetBody(k, X) {
     if (k === "kind") return ["Hisobot turi", KINDS.map(([g, l]) => `<div class="hb-ogt">${g}</div><div class="hb-kg">${l.map(([kk, ic, n]) => `<button class="hb-kt ${X.R.kind === kk ? "on" : ""}" data-kind="${kk}"><span class="hb-ic">${ic}</span><b class="hb-ell">${n}</b></button>`).join("")}</div>`).join("")];
-    if (k === "cls") return ["Sinf", `<div class="hb-opts">${X.CL.map((i) => { const c = D.classes[i]; return `<button class="hb-opt ${X.R.ci === i ? "on" : ""}" data-ho="ci" data-v="${i}"><span class="hb-ic">${esc(c.name.slice(0, 4))}</span><span><b class="hb-ell">${esc(label(c))}</b><small>${c.students.length} o'quvchi · ${c.dates.length} dars kuni</small></span><span class="hb-ck">${X.R.ci === i ? "✓" : ""}</span></button>`; }).join("")}</div>`];
+    if (k === "cls") return ["Sinf", `<div class="hb-opts">${X.R.kind === "blank" ? `<button class="hb-opt ${BVQ.isAll() ? "on" : ""}" data-ho="ci" data-v="all"><span class="hb-ic">📚</span><span><b class="hb-ell">Barcha sinflar</b><small>Har sinf alohida varaqda · ${X.CL.length} ta</small></span><span class="hb-ck">${BVQ.isAll() ? "✓" : ""}</span></button>` : ""}${X.CL.map((i) => { const c = D.classes[i]; return `<button class="hb-opt ${X.R.ci === i && !(X.R.kind === "blank" && BVQ.isAll()) ? "on" : ""}" data-ho="ci" data-v="${i}"><span class="hb-ic">${esc(c.name.slice(0, 4))}</span><span><b class="hb-ell">${esc(label(c))}</b><small>${c.students.length} o'quvchi · ${c.dates.length} dars kuni</small></span><span class="hb-ck">${X.R.ci === i && !(X.R.kind === "blank" && BVQ.isAll()) ? "✓" : ""}</span></button>`; }).join("")}</div>`];
     if (k === "sort") {
       const so = S.rsort || {}, sv = so.k ? `${so.k}|${so.dir}` : "", rt = S.rtype || "";
       const {rows} = reportRows(X.c, X.lo, X.hi, X.rq);
@@ -291,7 +270,7 @@ const HSB = (() => {
   }
   function choose(attr, v) {
     const R = S.rep;
-    if (attr === "ci") R.ci = +v;
+    if (attr === "ci") { if (R.kind === "blank") BVQ.setAll(v === "all"); if (v !== "all") R.ci = +v; }
     else if (attr === "per") { R.per = v; keep(); }
     else if (attr === "q") S.rq = +v;
     else if (attr === "mon") S.amon = v;
@@ -344,7 +323,7 @@ const HSB = (() => {
     const n = NEED[X.R.kind], pl = perLabel(X), on = (k) => pop && pop.dataset && false;
     const cls = X.R.kind === "cmp"
       ? `<span class="hb-pk fixed"><span class="hb-v"><small>Sinflar</small><b class="hb-ell">Hammasi · ${X.CL.length} ta</b></span></span>`
-      : `<button class="hb-pk" data-hk="cls" aria-haspopup="true"><span class="hb-v"><small>Sinf</small><b class="hb-ell">${esc(label(X.c))}</b></span><span class="hb-car">▼</span></button>`;
+      : `<button class="hb-pk" data-hk="cls" aria-haspopup="true"><span class="hb-v"><small>Sinf</small><b class="hb-ell">${X.R.kind === "blank" && BVQ.isAll() ? `Barcha sinflar · ${X.CL.length} ta` : esc(label(X.c))}</b></span><span class="hb-car">▼</span></button>`;
     const per = pl ? `<button class="hb-pk" data-hk="per" aria-haspopup="true"><span class="hb-v"><small>${n === "q" ? "Chorak" : n === "mon" ? "Oy" : "Davr"}</small><b class="hb-ell">${pl[0]}${n !== "mon" ? `<span class="hb-mut hb-pc" style="font-weight:600;display:inline"> · ${pl[1]}</span>` : ""}</b></span><span class="hb-car">▼</span></button>` : "";
     return cls + per;
   }
@@ -354,7 +333,7 @@ const HSB = (() => {
     closePop();
     if (!D.classes.some((c) => !isGrp(c))) { m.innerHTML = `<div class="hb"><h1>Hisobotlar</h1><p class="hb-mut">Avval sinf qo'shing: Sozlamalar → Sinflar va o'quvchilar.</p></div>`; return; }
     const X = ctx(), K = KIND[X.R.kind], pl = perLabel(X), bot = typeof DZN !== "undefined" && DZN.cfg().act === "bot";
-    const sub = `${X.R.kind === "cmp" ? "Barcha sinflar" : esc(label(X.c))}${pl ? ` · ${pl[0]}` : ""}`;
+    const sub = `${X.R.kind === "cmp" || (X.R.kind === "blank" && BVQ.isAll()) ? "Barcha sinflar" : esc(label(X.c))}${pl ? ` · ${pl[0]}` : ""}`;
     let body;
     try { body = REP[X.R.kind](X); } catch (e) { console.error(e); body = `<div class="hb-box hb-why">Hisobotni chizishda xato: ${esc(e.message)}</div>`; }
     m.innerHTML = `<div class="hb">
@@ -381,15 +360,14 @@ const HSB = (() => {
     m.querySelectorAll("[data-rs]").forEach((th) => th.onclick = () => { const k = th.dataset.rs, o = S.rsort || {}; S.rsort = {k, dir: o.k === k ? -(o.dir || 1) : (k === "name" ? 1 : -1)}; render(); });
     m.querySelectorAll("[data-pf]").forEach((b) => b.onclick = () => { S.pfilt = b.dataset.pf; render(); });
     m.querySelectorAll("[data-hattv]").forEach((b) => b.onclick = () => { S.hattv = b.dataset.hattv; render(); });
-    m.querySelectorAll("[data-bm]").forEach((b) => b.onclick = () => { S.bmode = b.dataset.bm; render(); });
-    const bd = m.querySelector("#bday"); if (bd) bd.onchange = () => { S.bday = bd.value || null; render(); };
+    if (R.kind === "blank") BVQ.bind(m, ctx);
     m.querySelectorAll("[data-cmpc]").forEach((b) => b.onclick = () => { R.ci = +b.dataset.cmpc; R.kind = "cls"; keep(); render(); window.scrollTo(0, 0); });
     m.querySelectorAll("[data-hgo]").forEach((b) => b.onclick = () => { S.ci = R.ci; S.jpage = b.dataset.hgo; go("journal"); });
     m.querySelectorAll("[data-print]").forEach((b) => b.onclick = () => { fitPrint(); window.print(); });
     // PDF → Telegram (pdf-tg.js)
-    m.querySelectorAll("[data-tgpdf]").forEach((b) => b.onclick = () => { const K = KIND[R.kind], pl = perLabel(X), who = R.kind === "cmp" ? "Barcha sinflar" : label(c);
+    m.querySelectorAll("[data-tgpdf]").forEach((b) => b.onclick = () => { const K = KIND[R.kind], pl = perLabel(X), who = R.kind === "cmp" || (R.kind === "blank" && BVQ.isAll()) ? "Barcha sinflar" : label(c);
       const per = (pl ? `${pl[0]}${NEED[R.kind] !== "mon" && pl[1] ? ` · ${pl[1]}` : ""}` : "").replace(/<[^>]+>/g, "").replace(/&[a-z]+;/g, " ");
-      PTG.run(() => PTG.reportPdf(), `${K[2]} ${who} ${per}`, `📄 ${K[2]}\n${who}${per ? "\n" + per : ""}`, b); });
+      PTG.run(() => R.kind === "blank" ? BVQ.pdfPages(ctx()) : PTG.reportPdf(), `${K[2]} ${who} ${per}`, `📄 ${K[2]}\n${who}${per ? "\n" + per : ""}`, b); });
     // Excel: hisob-kitob va ustunlar avvalgidek
     const on = (sel, fn) => m.querySelectorAll(sel).forEach((b) => b.onclick = fn);
     on("[data-xlsx]", () => {
