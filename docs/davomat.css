@@ -1,0 +1,115 @@
+/* Hisobotlar → «Davomat varag'i» — tasdiqlangan dizayn (maket v4.1, 2026-11-04). Panel .hb .dv ichida, varaqning o'zi .dv-pg
+   (o'lchash va Telegram PDF uchun .hb dan tashqarida ham chiziladi). Ranglar ilovaning umumiy belgilaridan; varaq doim oq qog'oz. */
+.hb .dv{display:flex;flex-direction:column;gap:12px;min-width:0}
+.hb .dv-tools{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap}
+.hb .dv-sp{flex:1}
+.hb .dv-seg button{min-width:max-content;flex-shrink:0}
+.hb .dv-lbl{font-size:12.5px;font-weight:600;color:var(--muted)}
+.hb .dv-lgd{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.hb .dv-code{display:inline-block;min-width:24px;text-align:center;border-radius:calc(5px*var(--rk,1));font-weight:700;font-size:11px;padding:2px 5px;line-height:1.3;white-space:nowrap;background:var(--soft);color:var(--text);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.hb .dv-chk{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--text);border:0;background:none;padding:2px 0;cursor:pointer;flex-shrink:0}
+.hb .dv-chk i{width:18px;height:18px;border-radius:calc(5px*var(--rk,1));border:1.5px solid var(--line);display:grid;place-items:center;font-style:normal;font-size:12px;color:#fff;background:var(--base)}
+.hb .dv-chk.on i{background:var(--acc);border-color:var(--acc)}
+.hb .dv-ok{color:var(--muted);font-size:12.5px}
+.hb .dv-lw{color:var(--danger)}
+.hb .dv-empty{padding:34px 16px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:calc(10px*var(--rk,1));display:flex;flex-direction:column;gap:6px;align-items:center}
+.hb .dv-empty b{color:var(--text);font-size:15px}
+/* ekran: ixcham jadval (kompyuter) */
+.hb .dv-tw{border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));overflow:auto;background:var(--base)}
+.hb table.dv-t{border-collapse:separate;border-spacing:0;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+.hb table.dv-t th,.hb table.dv-t td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:5px 6px;text-align:center;white-space:nowrap}
+.hb table.dv-t th:last-child,.hb table.dv-t td:last-child{border-right:0}
+.hb table.dv-t thead th{background:var(--alt);font-weight:700;position:sticky;top:0;z-index:1}
+.hb table.dv-t th small{font-weight:600;font-size:11px;color:var(--muted);margin-left:4px}
+.hb table.dv-t .dv-no{color:var(--muted);width:28px}
+.hb table.dv-t .dv-nm{text-align:left;padding-left:10px;min-width:170px}
+.hb table.dv-t .dv-nm button{border:0;background:none;padding:0;font-weight:600;color:var(--text);text-align:left;cursor:pointer}
+.hb table.dv-t .dv-nm button:hover{color:var(--acc-t,var(--acc));text-decoration:underline}
+.hb table.dv-t .dv-mk{text-align:left;white-space:normal;width:100%;min-width:240px;padding:5px 8px}
+.hb table.dv-t td.dv-mk .dv-code{margin:1px 4px 1px 0}
+.hb table.dv-t .dv-pc{font-weight:800}
+.hb table.dv-t tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--soft) 45%,var(--base))}
+.hb table.dv-t tbody tr:hover td{background:var(--acc-soft)}
+.hb table.dv-t tfoot td{background:var(--alt);font-weight:700}
+/* ekran: ro'yxat (telefon) */
+.hb .dv-rows{display:flex;flex-direction:column;gap:8px}
+.hb .dv-li{align-items:stretch!important;justify-content:flex-start!important;border:1px solid var(--line);background:var(--base);border-radius:calc(10px*var(--rk,1));padding:9px 11px;display:flex;flex-direction:column;gap:6px;text-align:left;color:var(--text);width:100%;cursor:pointer}
+.hb .dv-li.rk{box-shadow:inset 3px 0 0 var(--danger)}
+.hb .dv-l1{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left}
+.hb .dv-l1 b{flex:1;font-weight:700}
+.hb .dv-l1>span{font-weight:800;font-variant-numeric:tabular-nums}
+.hb .dv-mg{display:flex;gap:5px;flex-wrap:wrap;align-items:center;justify-content:flex-start;width:100%}
+/* oldindan ko'rish */
+.hb .dv-pv{display:flex;flex-direction:column;gap:8px;min-width:0}
+.hb .dv-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hb .dv-chip{display:inline-flex;align-items:center;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;background:var(--soft);color:var(--muted);white-space:nowrap}
+.hb .dv-chip.a{background:var(--acc-soft);color:var(--acc-t,var(--acc))}
+.hb .dv-chip.w{background:var(--hb-warn-s);color:var(--hb-warn)}
+.hb .dv-desk{background:var(--soft);border-radius:calc(10px*var(--rk,1));padding:14px;display:flex;justify-content:center;overflow:hidden}
+.hb .dv-fit{position:relative;flex:none}
+.hb .dv-scale{position:absolute;left:0;top:0;transform-origin:0 0}
+.hb .dv-scale .dv-pg{box-shadow:0 10px 30px -10px rgba(0,0,0,.35),0 0 0 1px rgba(0,0,0,.06)}
+.dv-print{display:none}
+.dv-host{position:fixed;left:-10000px;top:0;visibility:hidden;pointer-events:none}
+
+/* ── varaqning o'zi: A4 tik, 10 mm chet ── */
+.dv-pg{width:210mm;height:297mm;padding:10mm;background:#fff;color:#111;box-sizing:border-box;font-family:"Times New Roman",Georgia,serif;overflow:hidden}
+.dv-pg .dv-in{height:100%;display:flex;flex-direction:column;gap:2.6mm;line-height:1.25;overflow:hidden}
+.dv-pg .dv-phd{text-align:center;display:flex;flex-direction:column;gap:.8mm;border-bottom:.6mm solid #111;padding-bottom:2.6mm}
+.dv-pg .dv-sch{font-size:9pt;letter-spacing:.08em;text-transform:uppercase;color:#333}
+.dv-pg .dv-phd h4{margin:.5mm 0 0;font-size:16.5pt;letter-spacing:.12em;font-weight:700;color:#111}
+.dv-pg .dv-sub{font-size:10.5pt}
+.dv-pg .dv-inf{display:flex;flex-wrap:wrap;justify-content:space-between;gap:1mm 4mm;font-size:9.5pt}
+.dv-pg table.dv-st{border-collapse:collapse;width:100%;table-layout:fixed;margin:0;font-variant-numeric:tabular-nums}
+.dv-pg .dv-st th,.dv-pg .dv-st td{border:1px solid #8a929c;text-align:center;overflow:hidden;color:#111;background:#fff}
+.dv-pg .dv-st th{background:#eceef1;font-weight:700;padding:1.2mm .6mm;font-size:.92em;border-bottom:.4mm solid #111;white-space:nowrap}
+.dv-pg .dv-st th.l{text-align:left;padding-left:1.5mm}
+.dv-pg .dv-st td{padding:.3mm 1mm;line-height:1.3;height:var(--rh);white-space:nowrap}
+.dv-pg .dv-st tbody tr:nth-child(even) td{background:#f5f6f8}
+.dv-pg .dv-st td.dv-no{color:#444}
+.dv-pg .dv-st td.dv-nm{text-align:left;padding-left:1.5mm;text-overflow:ellipsis}
+.dv-pg .dv-st td.dv-mk{text-align:left;white-space:normal;padding-left:1.5mm}
+.dv-pg .dv-pm{display:inline-block;margin-right:2.2mm;white-space:nowrap}
+.dv-pg .dv-pn{color:#999}
+.dv-pg .dv-bt{font-weight:700}
+.dv-pg .dv-lw{text-decoration:underline}
+.dv-pg .dv-st tfoot td{background:#f1f3f5;font-weight:700;border-top:.4mm solid #111}
+.dv-pg .dv-lg{font-size:8pt;color:#333}
+.dv-pg .dv-sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3.5mm;border:1px solid #8a929c;padding:2.4mm 3mm;font-size:9pt}
+.dv-pg .dv-sum h5{margin:0 0 1mm;font-size:9pt;text-transform:uppercase;letter-spacing:.05em;color:#111}
+.dv-pg .dv-sum p{margin:0 0 .4mm}
+.dv-pg .dv-sig{margin-top:auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6mm;padding-top:6mm;font-size:8.5pt}
+.dv-pg .dv-sig span{display:block;border-bottom:1px solid #111;height:5.5mm}
+.dv-pg .dv-sig small{display:block;font-size:8.5pt;color:#333;padding-top:.8mm}
+.dv-pg .dv-ft{display:flex;justify-content:space-between;font-size:7.5pt;color:#777;border-top:1px solid #ccc;padding-top:1.2mm}
+.dv-pg .dv-ft{margin-top:auto}
+.dv-pg .dv-sig+.dv-ft{margin-top:0}
+.dv-pg.dense .dv-in{gap:1.8mm}
+.dv-pg.dense .dv-phd{padding-bottom:1.6mm;gap:.3mm}
+.dv-pg.dense .dv-phd h4{font-size:14.5pt}
+.dv-pg.dense .dv-sub,.dv-pg.dense .dv-inf{font-size:9pt}
+.dv-pg.dense .dv-sum{padding:1.6mm 2.6mm;font-size:8.3pt;gap:2.6mm}
+.dv-pg.dense .dv-sum h5{font-size:8.3pt;margin-bottom:.5mm}
+.dv-pg.dense .dv-sum p{margin:0}
+.dv-pg.dense .dv-sig{padding-top:3.5mm}
+.dv-pg.dense .dv-sig span{height:4.2mm}
+.dv-pg.dense .dv-lg{font-size:7.5pt}
+.dv-pg *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.dv-pg,.dv-pg *{font-family:"Times New Roman",Times,Georgia,serif!important;letter-spacing:normal}
+.dv-pg .dv-sch,.dv-pg .dv-phd h4,.dv-pg .dv-sum h5{letter-spacing:.08em}
+
+/* telefon */
+@media (max-width:820px){
+  .hb .dv-tools{gap:8px 12px}
+  .hb .dv-seg{display:flex;width:100%}
+  .hb .dv-seg button{flex:1}
+  .hb .dv-desk{padding:8px}
+}
+
+/* chop etish: ekrandagi qism yashirinadi, faqat varaq; @page davomat.js dagi <style> da */
+@media print{
+  .hb .dv{display:none!important}
+  .dv-print{display:block}
+  .dv-print .dv-pg{width:auto;height:auto;padding:0}
+  .dv-print .dv-pg .dv-in{height:277mm}
+}

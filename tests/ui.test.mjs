@@ -1581,31 +1581,73 @@ test("Sinf hisoboti: saralash, xavf filtri, sifat/o'zlashtirish va Excel", async
   } finally { await browser.close(); }
 });
 
-test("Davomat varag'i: oy bo'yicha belgilar, jamilar va Excel", async () => {
+test("Davomat varag'i: butun chorak, har o'quvchining belgilari sanasi bilan, 36 o'quvchi bitta A4 varaqda, Excel", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
-    const page = await browser.newPage({viewport: {width: 390, height: 844}, acceptDownloads: true});
-    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
-    await page.goto(APP);
-    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
-    const exp = await page.evaluate(() => {
-      const c = D.classes[0], t = todayIso(), ym = c.dates.filter((d) => d <= t).pop().slice(0, 7);
-      const ds = c.dates.filter((d) => d.slice(0, 7) === ym && d <= t && !isNoLesson(c, d));
-      const s0 = c.students[0]; s0.marks[ds[0]] = "s"; s0.marks[ds[1]] = "8"; save();
-      S.amon = ym; S.rep = {ci: 0, per: "cur", kind: "att"}; go("reports");
-      return {n: ds.length, s: ds.filter((d) => attPart(s0.marks[d] || "") === "s").length};
-    });
-    assert.equal(await page.$$eval("table.attm tr:first-child th", (x) => x.length), exp.n + 7);
-    const row1 = await page.$$eval("table.attm tbody tr:first-child td", (x) => x.map((e) => e.textContent));
-    assert.equal(row1[2], "S"); assert.equal(row1[3], "", "baho qo'yilgan kun — darsda");
-    assert.equal(+row1[exp.n + 2], exp.s);
-    // chop etishda yotiq varaq
-    await page.evaluate(() => fitPrint()); assert.ok((await page.textContent("#pfit-css")).includes("landscape"));
-    await page.evaluate(() => { window.loadXlsx = () => Promise.reject(new Error("offline")); });
-    const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-axlsx]:visible")]);
-    assert.ok(dl.suggestedFilename().includes("davomat"), dl.suggestedFilename());
-    assert.deepEqual(errors, []);
+    for (const [name, viewport] of [["kompyuter", {width: 1024, height: 800}], ["telefon", {width: 390, height: 844}]]) {
+      const page = await browser.newPage({viewport, acceptDownloads: true});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 10, 3, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      // sinfda 36 o'quvchi (eng ko'p); birinchisiga 1-chorakda S va K, 2-chorakdagi belgi hisobga kirmaydi
+      const exp = await page.evaluate(() => {
+        const c = D.classes[0], base = c.students[0];
+        for (let i = c.students.length; i < 36; i++) c.students.push(Object.assign(JSON.parse(JSON.stringify(base)), {name: `Sinovov O'quvchi ${i + 1}`, marks: {}}));
+        const [lo, hi] = qRange(1), ds = c.dates.filter((d) => lo <= d && d <= hi && !isNoLesson(c, d));
+        c.students.forEach((s) => { for (const d of ds) if (attPart(s.marks[d] || "")) delete s.marks[d]; });
+        const s0 = c.students[0]; s0.marks[ds[0]] = "s"; s0.marks[ds[2]] = "k"; s0.marks[ds[3]] = "8";
+        c.students[35].marks[ds[1]] = "8kq";
+        save(); S.rq = 1; S.rep = {ci: 0, per: "cur", kind: "att"}; go("reports");
+        return {n: ds.length, d0: fmt(ds[0]).slice(0, 5), d2: fmt(ds[2]).slice(0, 5), d1: fmt(ds[1]).slice(0, 5)};
+      });
+      await page.waitForSelector(".hb .dv");
+      assert.ok((await page.textContent("[data-hk=per]:visible")).includes("1-chorak"));
+      assert.ok((await page.textContent(".hb .hb-kpis")).includes(String(exp.n)), "dars kunlari soni");
+      const tel = name === "telefon";
+      const rowsSel = tel ? ".dv-rows .dv-li" : "table.dv-t tbody tr";
+      assert.equal(await page.locator(rowsSel).count(), 36);
+      const r1 = await page.locator(rowsSel).first().textContent();
+      assert.ok(r1.includes(`${exp.d0} S`) && r1.includes(`${exp.d2} K`), r1);
+      if (!tel) { const td = await page.$$eval("table.dv-t tbody tr:first-child td", (x) => x.map((e) => e.textContent.trim())); assert.deepEqual(td.slice(3, 7), ["1", "", "1", ""]); }
+      assert.ok((await page.locator(rowsSel).last().textContent()).includes(`${exp.d1} KQ`));
+      // «hamma kelganlar» o'chirilsa — faqat belgisi borlar; panel qayta yaratilmaydi
+      await page.evaluate(() => { document.querySelector(".dv").__mark = 1; });
+      await page.click("[data-dv=tog][data-k=all]");
+      assert.equal(await page.locator(rowsSel).count(), 2);
+      assert.equal(await page.evaluate(() => document.querySelector(".dv").__mark), 1, "panel qayta chizildi");
+      await page.click("[data-dv=tog][data-k=all]");
+      // varaq ko'rinishi: 36 o'quvchi bitta A4 tik varaqqa sig'adi (har shrift o'lchamida)
+      await page.click("[data-dv=view][data-v=paper]");
+      await page.waitForSelector(".dv-scale .dv-pg");
+      await page.evaluate(() => window.scrollTo(0, 150)); const y0 = await page.evaluate(() => scrollY);
+      for (const fs of ["l", "m", "s"]) {
+        await page.click(`[data-dv=fs][data-v=${fs}]`);
+        assert.equal(await page.evaluate(() => scrollY), y0, "sahifa joyidan siljidi");
+        assert.equal(await page.locator(".dv-scale .dv-pg tbody tr").count(), 36);
+        assert.ok((await page.textContent(".dv-bar")).includes("1 varaq"), `${fs}: sig'madi`);
+      }
+      assert.ok((await page.textContent(".dv-scale .dv-pg")).includes("DAVOMAT VARAG'I"));
+      if (!tel) {
+        // chop etish: faqat varaq, A4 tik, sig'adi
+        await page.evaluate(() => fitPrint()); assert.equal(await page.$("#pfit-css"), null);
+        await page.emulateMedia({media: "print"});
+        assert.equal(await page.locator(".hb .dv").isVisible(), false);
+        assert.ok(await page.evaluate(() => { const i = document.querySelector(".dv-print .dv-in"); return i.offsetHeight > 0 && i.scrollHeight <= i.clientHeight + 1; }), "chop etishda varaq sig'maydi");
+        await page.emulateMedia({media: "screen"});
+        await page.evaluate(() => { window.loadXlsx = () => Promise.reject(new Error("offline")); });
+        const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-dvx]:visible")]);
+        assert.ok(dl.suggestedFilename().includes("davomat"), dl.suggestedFilename());
+        // tugmalar matni sig'adi (1024 px)
+        assert.deepEqual(await page.$$eval(".hb .dv button, .hb-acts .btn", (bs) => bs.filter((b) => b.offsetWidth && b.scrollWidth > b.clientWidth + 1).map((b) => b.textContent)), []);
+      }
+      // boshlanmagan chorak
+      await page.evaluate(() => { S.rq = 2; D.settings.quarters[1] = ["2026-11-10", "2026-12-27"]; render(); });
+      assert.ok((await page.textContent(".dv-empty")).includes("hali boshlanmagan"));
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
   } finally { await browser.close(); }
 });
 
@@ -1684,7 +1726,7 @@ test("Hisobotlar: tur kartochkalari, telefonda saralash, solishtirishdan sinfga 
     await page.reload(); await page.waitForSelector(".tabbar");
     await page.click(".tabbar [data-go=reports]");
     assert.equal(await page.evaluate(() => S.rep.kind), "att");
-    assert.ok((await page.textContent("[data-hk=per]:visible")).includes("Oy"));
+    assert.ok((await page.textContent("[data-hk=per]:visible")).includes("chorak"));
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
