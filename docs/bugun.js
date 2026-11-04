@@ -215,21 +215,22 @@ const BGN = (() => {
   function page(m) {
     const t = todayIso(), tel = phone(); wasPhone = tel;
     const L = lessons(), T = todoData(), risk = riskList(), C = clsRows(t), z = dz(), bot = z.act === "bot";
+    const aq = BAX.quarter(t), AX = aq ? BAX.data(aq) : null;   // ta'til + chorak arxivlangan → bugun-arxiv.js
     let body;
     if (tel) {
       const tab = ["todo", "risk", "cls"].includes(S.btab) ? S.btab : "todo";
       const tabs = [["todo", "Vazifalar", T.n], ["risk", "E'tibor", risk.length], ["cls", "Sinflar", C.R.length]];
-      const tb = tab === "todo" ? todoBody(T) : tab === "risk" ? riskBody(risk) : clsBody(C, true);
+      const tb = tab === "todo" ? todoBody(T) : tab === "risk" ? riskBody(risk) : AX ? `<div class="ba-tel">${BAX.banner(AX)}${BAX.clsCard(AX, true)}</div>` : clsBody(C, true);
       body = `${header(t, L, true)}${z.act === "top" ? `<div class="bn-qrow">${quick(false)}</div>` : ""}${reminders(true)}${ARX.todayCard(true)}${hero(t, L, true)}${timeline(t, L, true)}
         <div class="tgrid bn-one"><div class="bn-col">${week()}<section class="card" style="overflow:hidden"><div style="padding:8px"><div class="bn-seg" role="tablist">${tabs.map(([k, n, c]) => `<button role="tab" aria-selected="${tab === k}" class="${tab === k ? "on" : ""}" data-btab="${k}">${n}${c ? `<em>${c}</em>` : ""}</button>`).join("")}</div></div>${tb}</section>
         ${upcomingCard()}${z.act !== "top" ? quickCard() : ""}</div></div>${bot ? stick(L, true) : ""}`;
     } else {
-      body = `${header(t, L, false)}${reminders(false)}${ARX.todayCard(false)}
-        <div class="tgrid bn-grid"><div class="bn-col">${hero(t, L, false)}${timeline(t, L, false)}${clsCard(C, t)}${upcomingCard()}</div>
+      body = `${header(t, L, false)}${reminders(false)}${ARX.todayCard(false)}${AX ? BAX.banner(AX) : ""}
+        <div class="tgrid bn-grid"><div class="bn-col">${hero(t, L, false)}${timeline(t, L, false)}${AX ? BAX.clsCard(AX, false) : clsCard(C, t)}${upcomingCard()}</div>
           <div class="bn-col">${week()}${todoCard(T)}${riskCard(risk)}${z.act !== "top" ? quickCard() : ""}</div></div>${bot ? stick(L, false) : ""}`;
     }
     m.innerHTML = `<div class="bn ${z.pri === "left" ? "pl" : ""}">${body}</div>`;
-    bindPage(m, t);
+    bindPage(m, t); BAX.bind(m);
   }
   // amal tugmalari (sahifa va dars oynasi uchun umumiy)
   function bindActs(root, close) {

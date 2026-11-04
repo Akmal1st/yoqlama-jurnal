@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="bosh-varaq.css">
 <link rel="stylesheet" href="bsb-eksport.css">
 <link rel="stylesheet" href="bugun.css">
+<link rel="stylesheet" href="bugun-arxiv.css">
 <link rel="stylesheet" href="sozlamalar.css">
 <link rel="stylesheet" href="mezon.css">
 <link rel="stylesheet" href="kunlik.css">
@@ -37,6 +38,7 @@
 <script src="hisobotlar.js"></script>
 <script src="bosh-varaq.js"></script>
 <script src="bsb-eksport.js"></script>
+<script src="bugun-arxiv.js"></script>
 <script src="bugun.js"></script>
 <script src="sozlamalar.js"></script>
 <script src="mezon.js"></script>
@@ -4170,7 +4172,7 @@ function compareRows(lo, hi, q = null) {
     const ql = q ? qualityOf(rows) : null, qp = q ? qProgress(c, q, hi) : null;
     return {c, n: c.students.length, qp, lessons, avg, att, nGr, sGr, nAt: at.length, sAt: at.reduce((a, r) => a + r.att, 0), risk: rows.filter((r) => r.risk).length, P,
       bsb: P.bsb[1] ? 100 * P.bsb[0] / P.bsb[1] : null, chsb: P.chsb[1] ? 100 * P.chsb[0] / P.chsb[1] : null,
-      qn: ql ? ql.n : 0, q45: ql ? ql.by[0] + ql.by[1] : 0, qt: ql ? ql.t : 0, qq: ql ? ql.q : null, qu: ql ? ql.u : null};
+      qn: ql ? ql.n : 0, by: ql ? ql.by : [0, 0, 0, 0], q45: ql ? ql.by[0] + ql.by[1] : 0, qt: ql ? ql.t : 0, qq: ql ? ql.q : null, qu: ql ? ql.u : null};
   });
 }
 // Joriy o'zlashtirish (chorak hali yopilmagan, jami ball to'liq emas): shu kungacha olingan ball ÷ shu ishlarning maksimali.

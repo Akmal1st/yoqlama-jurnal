@@ -1,0 +1,63 @@
+/* «Bugun» → arxivlangan chorak (bugun-arxiv.js) — tasdiqlangan maket v2 «Birlashtirilgan». Sinflar «ba-» bilan, .bn ichida. */
+.bn{--ba-lock-s:#eeebfb}
+html[data-theme="dark"] .bn{--ba-lock-s:#221d3d}
+.ba-x{background:linear-gradient(135deg,var(--ba-lock-s),var(--acc-soft));border:1px solid var(--line);border-radius:var(--r,14px);padding:16px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:16px}
+.ba-x h2{font-size:18px;text-wrap:balance}
+.ba-xs{color:var(--muted);font-size:13px;margin:4px 0 12px}
+.ba-k{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ba-k div{background:var(--base);border-radius:10px;padding:9px 12px}
+.ba-k small{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.ba-k b{font-size:20px;font-variant-numeric:tabular-nums}
+.ba-k .ba-bad{color:var(--danger)}
+.ba-h{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.ba-h button{display:flex;gap:8px;align-items:center;font:inherit;font-size:13px;color:var(--text);background:var(--base);border:0;border-radius:10px;padding:7px 10px;cursor:pointer;text-align:left}
+.ba-h button span{flex:1}
+.ba-a{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.ba-a .btn{flex-shrink:0;min-width:max-content}
+.ba-c{background:var(--base);border-radius:12px;padding:12px 12px 8px;display:flex;flex-direction:column;gap:6px}
+.ba-t{font-size:12px;font-weight:700;color:var(--muted)}
+.ba-cols{display:flex;align-items:flex-end;gap:8px;height:130px;border-bottom:1px solid var(--line);padding-top:16px}
+.ba-cols button{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;border:0;background:none;cursor:pointer;font:inherit;color:var(--text);padding:0}
+.ba-cols b{font-size:11.5px;font-variant-numeric:tabular-nums}
+.ba-cols i{width:100%;max-width:34px;border-radius:6px 6px 0 0;display:block}
+.ba-cl{display:flex;gap:8px}.ba-cl span{flex:1;text-align:center;font-size:11px;color:var(--muted);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ba-dist{display:flex;height:9px;border-radius:999px;overflow:hidden;background:var(--soft)}
+.ba-dist i{display:block;height:100%}
+.ba-dl{display:block;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:3px}
+.ba-sw{width:auto;flex-shrink:0}
+.ba-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;padding:4px 12px 12px}
+.ba-kt{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:9px;background:var(--base);cursor:pointer;text-align:left;font:inherit;color:var(--text)}
+.ba-kt:hover{border-color:var(--acc)}
+.ba-kn{display:flex;align-items:center;gap:6px}.ba-kn b{flex:1;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ba-rg{display:flex;align-items:center;gap:12px}
+.ba-ring{width:62px;height:62px;border-radius:50%;flex:0 0 auto;background:conic-gradient(var(--c) calc(var(--p)*1%),var(--soft) 0);display:grid;place-items:center}
+.ba-ring::before{content:"";grid-area:1/1;width:48px;height:48px;border-radius:50%;background:var(--base)}
+.ba-ring b{grid-area:1/1;font-size:14px;font-variant-numeric:tabular-nums;z-index:1}
+.ba-rl{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.ba-rl b{color:var(--text);font-variant-numeric:tabular-nums}
+.ba-rm{padding:0 16px 8px}.ba-ms{width:auto;display:inline-flex;flex-wrap:wrap}
+.ba-rk{display:flex;flex-direction:column;gap:2px;padding:4px 8px 10px}
+.ba-rr{display:grid;grid-template-columns:28px minmax(0,170px) minmax(0,1fr) 54px;align-items:center;gap:10px;padding:7px 8px;border-radius:10px;cursor:pointer;border:0;background:none;font:inherit;color:var(--text);text-align:left;width:100%}
+.ba-rr:hover{background:var(--alt)}
+.ba-no{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;background:var(--soft);color:var(--muted)}
+.ba-no.g1{background:var(--bn-ok-s);color:var(--ok)}.ba-no.gl{background:var(--bn-bad-s);color:var(--danger)}
+.ba-nm{font-weight:700;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ba-nm small{display:block;font-weight:500;color:var(--muted);font-size:11.5px}
+.ba-rb{position:relative;height:14px;background:var(--soft);border-radius:999px}
+.ba-rb i{position:absolute;inset:0 auto 0 0;border-radius:999px}
+.ba-rb u{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--text);opacity:.55;text-decoration:none}
+.ba-vv{text-align:right;font-variant-numeric:tabular-nums}
+.ba-lg{display:flex;gap:14px;flex-wrap:wrap;padding:0 16px 12px;font-size:12px;color:var(--muted)}
+.ba-lg i{display:inline-block;width:2px;height:12px;background:var(--text);opacity:.55;vertical-align:-2px;margin-right:5px}
+.ba-f{display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap;padding:10px 16px;border-top:1px solid var(--line);font-size:13px}
+@media (max-width:820px){
+  .ba-x{grid-template-columns:1fr;padding:14px}
+  .ba-g{grid-template-columns:1fr 1fr;gap:8px;padding:4px 10px 10px}
+  .ba-kt{padding:10px;gap:7px}.ba-rg{gap:8px}
+  .ba-ring{width:52px;height:52px}.ba-ring::before{width:40px;height:40px}.ba-ring b{font-size:12.5px}
+  .ba-rr{grid-template-columns:24px minmax(0,1fr) 46px;row-gap:4px}
+  .ba-rr .ba-rb{grid-column:2/4;grid-row:2}
+}
+.ba-ms button,.ba-sw button{padding:0 12px}
+.ba-sw button,.ba-ms button{flex:0 0 auto;min-width:max-content}
+.ba-cl span small{display:block;font-weight:600;font-size:10px}
