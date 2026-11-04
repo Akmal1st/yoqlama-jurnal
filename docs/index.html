@@ -4165,11 +4165,22 @@ function compareRows(lo, hi, q = null) {
     const at = rows.filter((r) => r.att !== null), att = at.length ? at.reduce((a, r) => a + r.att, 0) / at.length : null;
     const P = {bsb: [0, 0], chsb: [0, 0]};
     for (const w of c.works) { if (w.date < lo || w.date > hi) continue; const acc = P[w.type === "bsb" ? "bsb" : "chsb"]; for (const s of c.students) { const v = (s.scores || {})[w.id]; if (isNum(v)) { acc[0] += v; acc[1] += +w.max; } } }
-    const ql = q ? qualityOf(rows) : null;
-    return {c, n: c.students.length, lessons, avg, att, nGr, sGr, nAt: at.length, sAt: at.reduce((a, r) => a + r.att, 0), risk: rows.filter((r) => r.risk).length, P,
+    const ql = q ? qualityOf(rows) : null, qp = q ? qProgress(c, q, hi) : null;
+    return {c, n: c.students.length, qp, lessons, avg, att, nGr, sGr, nAt: at.length, sAt: at.reduce((a, r) => a + r.att, 0), risk: rows.filter((r) => r.risk).length, P,
       bsb: P.bsb[1] ? 100 * P.bsb[0] / P.bsb[1] : null, chsb: P.chsb[1] ? 100 * P.chsb[0] / P.chsb[1] : null,
       qn: ql ? ql.n : 0, q45: ql ? ql.by[0] + ql.by[1] : 0, qt: ql ? ql.t : 0, qq: ql ? ql.q : null, qu: ql ? ql.u : null};
   });
+}
+// Joriy o'zlashtirish (chorak hali yopilmagan, jami ball to'liq emas): shu kungacha olingan ball ÷ shu ishlarning maksimali.
+// BSB/CHSB — faqat ball qo'yilgan ishlar; FB — formativ baholar o'rtachasi (FB_TOTAL dan). Hammasi to'liq bo'lsa = o'rtacha jami ball.
+function qProgress(c, q, hi) {
+  const rng = qRange(q); if (!rng) return null;
+  const works = worksInQuarter(c, q).filter((w) => w.date <= hi), end = hi < rng[1] ? hi : rng[1]; let g = 0, m = 0;
+  for (const s of c.students) {
+    for (const w of works) { const v = (s.scores || {})[w.id]; if (isNum(v)) { g += v; m += +w.max; } }
+    const [, n, avg] = fbInfo(c, s, [rng[0], end]); if (n) { g += Math.min(avg, FB_TOTAL); m += FB_TOTAL; }
+  }
+  return m ? 100 * g / m : null;
 }
 function compareTotal(L) {
   const sum = (f) => L.reduce((a, r) => a + r[f], 0), nGr = sum("nGr"), nAt = sum("nAt"), qn = sum("qn");
