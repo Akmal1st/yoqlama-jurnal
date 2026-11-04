@@ -142,14 +142,20 @@ const BGN = (() => {
   const tone = (v) => v >= 85 ? "var(--ok)" : v >= 70 ? "var(--acc)" : v >= 55 ? "var(--bn-warn-b)" : "var(--danger)";
   const mb = (v) => v === null || v === undefined ? `<span class="bn-mut">—</span>` : `<span class="bn-mb"><span class="bn-tr"><i style="width:${Math.max(0, Math.min(100, v))}%;background:${tone(v)}"></i></span><b>${Math.round(v)}%</b></span>`;
   const gp = (v) => v === null || v === undefined ? `<span class="bn-gp">—</span>` : `<span class="bn-gp ${v < 5 ? "lo" : v < 8 ? "mid" : "hi"}">${v.toFixed(2)}</span>`;
-  function clsRows(t) { const q = quarterOf(t), lo = q ? qRange(q)[0] : t.slice(0, 8) + "01"; return {q, lo, R: compareRows(lo, t, q).filter((r) => r.n)}; }
+  // Ta'til kunlari joriy chorak yo'q — oxirgi tugagan chorak natijasi ko'rsatiladi (aks holda O'zlashtirish hisoblanmaydi)
+  function clsRows(t) {
+    let q = quarterOf(t), hi = t;
+    if (!q) { q = [4, 3, 2, 1].find((k) => { const r = qRange(k); return r && r[1] < t; }) || null; if (q) hi = qRange(q)[1]; }
+    const lo = q ? qRange(q)[0] : t.slice(0, 8) + "01";
+    return {q, lo, hi, R: compareRows(lo, hi, q).filter((r) => r.n)};
+  }
   function clsBody(C, tel) {
     if (!C.R.length) return `<div class="bn-okl bn-mut" style="padding:4px 16px 14px">Hali ma'lumot yo'q.</div>`;
     const ci = (r) => D.classes.indexOf(r.c);
     return tel ? `<div class="clsstat">${C.R.map((r) => `<button class="bn-cr" data-cls="${ci(r)}"><span class="bn-l1"><b class="bn-ell">${esc(label(r.c))}</b>${r.risk ? `<span class="bn-chip bad">⚠ ${r.risk}</span>` : ""}${gp(r.avg)}</span><span class="bn-l2"><span><small>Davomat</small>${mb(r.att)}</span><span><small>O'zlashtirish</small>${mb(r.qu ?? r.qp)}</span></span></button>`).join("")}</div>`
       : `<div class="clsstat"><table class="bn-ct"><thead><tr><th>Sinf</th><th>Davomat</th><th title="O'rtacha jami ball (100 dan). Chorak tugamagan bo'lsa — shu kungacha olingan ball ÷ maksimal ball">O'zlashtirish</th><th class="s">O'rtacha</th><th class="s">Xavf</th></tr></thead><tbody>${C.R.map((r) => `<tr data-cls="${ci(r)}" tabindex="0"><td><b>${esc(label(r.c))}</b></td><td>${mb(r.att)}</td><td>${mb(r.qu ?? r.qp)}</td><td class="s">${gp(r.avg)}</td><td class="s">${r.risk ? `<span class="bn-chip bad">${r.risk}</span>` : `<span class="bn-mut">—</span>`}</td></tr>`).join("")}</tbody></table></div>`;
   }
-  const clsCard = (C, t) => C.R.length ? `<section class="card" style="overflow:hidden"><div class="bn-ch"><h2>Sinflar ko'rsatkichi</h2><span class="bn-mut bn-per">${C.q ? `${C.q}-chorak · ` : ""}${d5(C.lo)} – ${d5(t)}</span></div>${clsBody(C, false)}</section>` : "";
+  const clsCard = (C, t) => C.R.length ? `<section class="card" style="overflow:hidden"><div class="bn-ch"><h2>Sinflar ko'rsatkichi</h2><span class="bn-mut bn-per">${C.q ? `${C.q}-chorak · ` : ""}${d5(C.lo)} – ${d5(C.hi)}</span></div>${clsBody(C, false)}</section>` : "";
   function upcomingCard() {
     const U = upcomingItems(); if (!U.length) return "";
     return `<section class="card"><div class="bn-ch"><h2>Yaqin kunlarda</h2></div><div class="bn-up">${U.slice(0, 6).map((u) => `<div class="bn-ui"><span class="bn-dt ${u.left <= 2 ? "hot" : ""}"><b>${u.date.slice(8)}</b><small>${WD[pyWd(u.date)]}</small></span><span class="bn-tx"><b class="bn-ell">${esc(u.title)}</b><small>${esc(u.sub)}</small></span></div>`).join("")}</div></section>`;
