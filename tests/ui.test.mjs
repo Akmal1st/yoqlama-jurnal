@@ -2993,6 +2993,57 @@ test("Bugun: BSB/CHSB tahlili qilinmagan sinflar va tahlil sahifasini ochish", a
   } finally { await browser.close(); }
 });
 
+test("BSB/CHSB ustuni ochilsa «BSB tahlili»da shu sana uchun tahlil ochiladi (36 o'quvchi)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1366, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    const d = await page.evaluate(() => {
+      const t = todayIso(), dd = (k) => iso(addDays(pdate(t), k));
+      D.settings.quarters = [[dd(-40), dd(20)], null, null, null];
+      const ci = D.classes.findIndex((c) => !isGrp(c)), c = D.classes[ci];
+      while (c.students.length < 36) c.students.push({id: "s36_" + c.students.length, name: `Sinov O'quvchi ${c.students.length + 1}`, marks: {}, scores: {}});
+      c.works = []; c.analyses = []; save(); S.ci = ci; S.page = "journal"; S.jpage = "sum"; go("journal");
+      return {a: dd(-3), b: dd(-2), ci};
+    });
+    assert.equal(await page.evaluate(() => D.classes[S.ci].students.length), 36);
+    // 1) BSB ustuni qo'shiladi → bo'sh tahlil shu sana va nom bilan
+    await page.click("[data-addw]"); await page.fill(".modal #wd", d.a); await page.fill(".modal #wn", "Kasrlar"); await page.click(".modal [data-ok]");
+    let an = await page.evaluate(() => { const c = D.classes[S.ci]; return c.analyses.map((a) => ({date: a.date, title: a.title, w: a.w === c.works[0].id, q: a.q})); });
+    assert.deepEqual(an, [{date: d.a, title: "Kasrlar", w: true, q: 5}]);
+    // 2) CHSB ustuni ham
+    await page.click("[data-addw]"); await page.click(".modal #wt [data-t=chsb]"); await page.fill(".modal #wd", d.b); await page.click(".modal [data-ok]");
+    an = await page.evaluate(() => D.classes[S.ci].analyses.map((a) => [a.date, a.title]));
+    assert.deepEqual(an, [[d.a, "Kasrlar"], [d.b, "CHSB"]]);
+    // 3) «BSB tahlili» ro'yxatida ko'rinadi, «Bugun»dan ochilganda shu tahlil ochiladi
+    await page.evaluate(() => { S.jpage = "bsb"; render(); });
+    assert.equal(await page.locator("#bas option").count(), 3);
+    await page.evaluate((ci) => { const c = D.classes[ci]; openAnalysis(ci, c.works[0].id); }, d.ci);
+    assert.equal(await page.evaluate(() => baCur().id), "a1");
+    assert.equal(await page.locator(".bsa tbody tr, .bsa tr[data-row]").count() >= 36, true);
+    // 4) ish sanasi/nomi o'zgarsa, bo'sh tahlil ergashadi; ish o'chirilsa — o'chadi
+    await page.evaluate(() => { S.jpage = "sum"; render(); });
+    await page.click(`[data-we="${await page.evaluate(() => D.classes[S.ci].works[1].id)}"]`);
+    const d3 = await page.evaluate(() => iso(addDays(pdate(todayIso()), -1)));
+    await page.fill(".modal #wd", d3); await page.click(".modal [data-ok]");
+    assert.deepEqual(await page.evaluate(() => D.classes[S.ci].analyses.map((a) => [a.date, a.title])), [[d.a, "Kasrlar"], [d3, "CHSB"]]);
+    await page.click(`[data-we="${await page.evaluate(() => D.classes[S.ci].works[1].id)}"]`);
+    await page.click(".modal [data-del]"); await page.click(".modal:last-of-type .btn-primary, .modal:last-of-type .btn-danger");
+    await page.waitForFunction(() => D.classes[S.ci].works.length === 1);
+    assert.deepEqual(await page.evaluate(() => D.classes[S.ci].analyses.map((a) => a.date)), [d.a]);
+    // 5) ball kiritilgan tahlil ish o'chirilganda saqlanib qoladi
+    await page.evaluate(() => { const c = D.classes[S.ci]; c.analyses[0].rows[c.students[35].name] = {in: true, pts: [2, 1, 0, 2, 2]}; removeWork(c, c.works[0]); save(); });
+    assert.equal(await page.evaluate(() => D.classes[S.ci].analyses.length), 1);
+    // 6) mavjud tahlil bor sanada ikkinchisi ochilmaydi
+    await page.evaluate((a) => { const c = D.classes[S.ci]; reviveWork(c, "bsb", a); const w = {id: newWorkId(c), type: "bsb", date: a, max: 25, title: ""}; c.works.push(w); workAnalysis(c, w); }, d.a);
+    assert.equal(await page.evaluate(() => D.classes[S.ci].analyses.length), 1);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
 test("Bo'sh varaq: 5 xil tur, kelgusi kunlar jadvaldan, barcha sinflar, qayta chizilmaydi, chop etish va Excel", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
