@@ -2147,12 +2147,42 @@ test("Bugun: sinflar ko'rsatkichi kartasi (davomat, o'zlashtirish)", async () =>
     assert.equal(await page.locator(".clsstat tbody tr").count(), await page.evaluate(() => D.classes.filter((c) => !isGrp(c)).length));
     assert.ok(await page.locator(".clsstat .bn-tr i").count() > 0);   // davomat va o'zlashtirish chiziqlari (bugun.js)
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
-    // ta'til kuni (1-chorak 29.10 da tugagan): oy boshidan emas, tugagan chorak natijasi, O'zlashtirish bo'sh emas
-    await page.clock.setFixedTime(new Date(2026, 10, 2, 10, 0)); await page.evaluate(() => render());
+    // ta'til kuni (1-chorak 29.10 da tugagan, hali arxivlanmagan): oy boshidan emas, tugagan chorak natijasi, O'zlashtirish bo'sh emas
+    await page.clock.setFixedTime(new Date(2026, 10, 1, 10, 0)); await page.evaluate(() => render());
     await page.waitForSelector(".clsstat tbody tr");
     assert.match(await page.locator(".bn-per").first().textContent(), /1-chorak · 02\.09 – 29\.10/);
     assert.ok(await page.locator(".clsstat tbody tr td:nth-child(3) .bn-mb").count() > 0);
     assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("Bugun: arxivlangan chorak — xulosa bloki, Kartalar | Reyting (bugun-arxiv.js)", async () => {
+  const browser = await chromium.launch();
+  try {
+    for (const [w, tel] of [[1300, false], [390, true]]) {
+      const page = await browser.newPage({viewport: {width: w, height: 900}});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 10, 3, 10, 0));   // 1-chorak 29.10 da tugagan, 3 kundan keyin arxivlangan; 2-chorak 05.11 dan
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await page.evaluate(() => { ARX.tick(); render(); });
+      assert.ok(await page.evaluate(() => !!ARX.entry(1)));
+      if (tel) { await page.click("[data-btab=cls]"); }
+      await page.waitForSelector(".ba-x");
+      assert.match(await page.locator(".ba-x h2").textContent(), /1-chorak yakunlandi/);
+      const n = await page.evaluate(() => D.classes.filter((c) => !isGrp(c) && c.students.length).length);
+      assert.equal(await page.locator(".ba-kt").count(), n);
+      assert.equal(await page.locator(".clsstat").count(), 0);
+      await page.click("[data-baxv=r]");
+      assert.equal(await page.locator(".ba-rr").count(), n);
+      await page.click("[data-baxm=att]");
+      assert.equal(await page.locator("[data-baxm=att].on").count(), 1);
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
+      await page.click("[data-baxv=k]");
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
   } finally { await browser.close(); }
 });
 
