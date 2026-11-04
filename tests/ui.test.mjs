@@ -190,6 +190,7 @@ test("BSB/CHSB: kech qolgan (KQ) o'quvchiga ball qo'yish", async () => {
   try {
     const page = await browser.newPage({viewport: {width: 1440, height: 900}});
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // 1-chorak ichidagi kun: chorak arxivi (arxiv.js) qulflamasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
@@ -279,6 +280,7 @@ test("Tavsiyalar: o'quvchi id va bir xil ismlar, to'lovni qaytarish, buzilgan xo
     const page = await browser.newPage({viewport: {width: 1440, height: 900}});
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     // buzilgan localStorage: matn alohida saqlanadi va ogohlantiriladi
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // 1-chorak ichidagi kun: chorak arxivi (arxiv.js) qulflamasin
     await page.goto(APP);
     await page.evaluate(() => { localStorage.setItem(STORE_KEY, "{buzilgan"); indexedDB.deleteDatabase("yoqlama_jurnal"); });
     await page.reload();
@@ -478,6 +480,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       const ctx = await browser.newContext({viewport, acceptDownloads: true});
       const page = await ctx.newPage();
       const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // 1-chorak ichidagi kun: chorak arxivi (arxiv.js) qulflamasin
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
       await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
@@ -2830,5 +2833,67 @@ test("Sozlamalar → Dizayn: mavzular, tungi variant, rang, tugmalar joyi va qay
       assert.deepEqual(errors, []);
       await page.close();
     }
+  } finally { await browser.close(); }
+});
+
+test("chorak arxivi: tugagan chorak qulflanadi, vaqtincha ochiladi, «Bugun» eslatmasi va arxiv sahifasi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const vp of [{width: 1440, height: 900}, {width: 390, height: 844}]) {
+      const page = await browser.newPage({viewport: vp});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      // 31.10: 1-chorak (02.09–29.10) tugagan, 3 kunlik tuzatish muddati ichida — hali qulflanmagan
+      await page.clock.setFixedTime(new Date(2026, 9, 31, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await page.waitForSelector(".ax-today");
+      assert.match(await page.textContent(".ax-today"), /1-chorak 29\.10 da tugadi/);
+      assert.equal(await page.evaluate(() => ARX.lockedQ(1)), false);
+      const d0 = await page.evaluate(() => { D.web.past = "all"; D.settings.protect.enabled = false; const c = D.classes[0]; return c.dates.find((d) => d < "2026-10-29" && !isNoLesson(c, d) && !c.students[0].marks[d]); });
+      assert.equal(await page.evaluate((d) => putMark(D.classes[0], 0, d, "7"), d0), true, "muddat ichida o'zgartirish mumkin");
+      // «Hozir arxivlash»
+      await page.click("[data-axnow]"); await page.click(".modal [data-ok]");
+      assert.equal(await page.evaluate(() => ARX.lockedQ(1)), true);
+      assert.equal(await page.evaluate((d) => putMark(D.classes[0], 0, d, "8"), d0), false, "arxivda baho o'zgarmaydi");
+      assert.equal(await page.evaluate((d) => D.classes[0].students[0].marks[d], d0), "7");
+      assert.equal(await page.evaluate(async () => { const c = D.classes[0]; return putScore(c, c.students[0], "final:q1", 5); }), false, "chorak bahosi ham qulf");
+      assert.equal(await page.evaluate(async () => { const c = D.classes[0]; return putScore(c, c.students[0], "final:q2", 5); }), true, "boshqa chorak ochiq");
+      // jurnal: banner, BSB/CHSB kataklari o'chirilgan
+      await page.evaluate(() => { S.ci = 0; S.page = "journal"; S.jpage = "sum"; S.sq = 1; render(); });
+      await page.waitForSelector(".ax-ban");
+      assert.ok(await page.evaluate(() => [...document.querySelectorAll("[data-sc],[data-fq]")].every((x) => x.disabled)));
+      await page.evaluate(() => { S.jpage = "j"; V.mode = "month"; V.anchor = "2026-10-20"; render(); });
+      assert.ok(await page.locator(".cell.axl").count() > 0, "arxivdagi kataklar belgilangan");
+      // vaqtincha ochish → o'zgartirish → qulflash; tarixga yoziladi
+      await page.click("[data-axopen]"); await page.click(".modal [data-axd='0']"); await page.click(".modal [data-ok]");
+      assert.equal(await page.evaluate(() => ARX.lockedQ(1)), false);
+      assert.equal(await page.evaluate((d) => putMark(D.classes[0], 0, d, "9"), d0), true);
+      await page.click("[data-axrelock]");
+      assert.equal(await page.evaluate(() => ARX.lockedQ(1)), true);
+      const log = await page.evaluate(() => D.web.arx.log.map((x) => x.x).join("\n"));
+      assert.match(log, /Qo'lda arxivlandi/); assert.match(log, /Vaqtincha ochildi/); assert.match(log, /7 → 9/); assert.match(log, /Yana qulflandi/);
+      // arxiv sahifasi
+      await page.evaluate(() => ARX.go(1)); await page.waitForSelector(".ax-qline");
+      assert.equal(await page.locator(".ax-tbl tr, .ax-crow").count() > 0, true);
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "yonga chiqmasin");
+      // arxivdan butunlay chiqarish — avtomatik qayta qulflanmaydi
+      await page.click("[data-axoff]"); await page.click(".modal [data-ok]");
+      assert.equal(await page.evaluate(() => { ARX.tick(); return ARX.lockedQ(1); }), false);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+    // 04.11: tuzatish muddati o'tgan — 1-chorak o'zi arxivlanadi; eMaktab importi arxiv sanalariga tegmaydi
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    await page.clock.setFixedTime(new Date(2026, 10, 4, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    assert.equal(await page.evaluate(() => [ARX.lockedQ(1), D.web.arx.q[1].by].join()), "true,auto");
+    const r = await page.evaluate(() => { const c = D.classes[0], s = c.students[0], d = c.dates.find((x) => x < "2026-10-29" && s.marks[x]), old = s.marks[d];
+      const rep = mergeImport({name: c.name, subject: c.subject, dates: [d], students: [{name: s.name, marks: {[d]: "2"}, scores: {}}], works: [], skipped: {}}, true);
+      return [rep.arx, s.marks[d] === old]; });
+    assert.deepEqual(r, [1, true]);
+    await page.close();
   } finally { await browser.close(); }
 });
