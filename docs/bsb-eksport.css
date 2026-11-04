@@ -19,6 +19,13 @@
 .bx-fc b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bx-fc small{color:var(--muted);font-size:11.5px;white-space:nowrap}
 .bx-fc svg{width:100%;height:auto;display:block;border-radius:calc(4px*var(--rk,1))}
+.bx-dvs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.bx-dv{border:1.5px solid var(--line);background:var(--base);border-radius:calc(10px*var(--rk,1));padding:6px 5px 5px;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text);min-width:0;position:relative}
+.bx-dv.on{border-color:var(--acc);background:var(--acc-soft)}
+.bx-dv svg{width:100%;height:auto;display:block;background:#fff;border-radius:4px;border:1px solid #e3e7e6}
+.bx-dv b{font-size:12px;white-space:nowrap}
+.bx-dv i{position:absolute;top:-7px;right:-4px;font-style:normal;font-size:9.5px;font-weight:800;background:var(--acc);color:#fff;border-radius:6px;padding:1px 5px}
+.bx-dvh{font-size:11.5px;color:var(--muted);margin:6px 0 0}
 .bx-chips{display:flex;flex-wrap:wrap;gap:6px}
 .bx-chip{border:1px solid var(--line);background:var(--alt,var(--soft));border-radius:999px;padding:5px 10px;font-size:12.5px;font-weight:600;white-space:nowrap;display:inline-flex;gap:5px;align-items:center;color:var(--text)}
 .bx-chip.on{background:var(--acc-soft);border-color:var(--acc);color:var(--acc-d)}
@@ -153,6 +160,18 @@ details.bx-grp[open]>summary::after{content:"▴"}
 .bx-small{font-size:7.3pt;color:#555;margin:2px 0 0}
 .bx-ft2{display:grid;grid-template-columns:1.15fr 1fr;gap:12px;align-items:start}
 .bx-ft2.one{grid-template-columns:1fr}
+.bx-dw{max-width:62%}.bx-dw.bx-full{max-width:none}
+.bx-pg table.bx-dtab td.bx-dbar{text-align:left;padding:2px 6px}
+.bx-dtab .bx-gb{display:inline-block;height:9px;border:1px solid rgba(0,0,0,.25);border-radius:calc(2px*var(--rk,1));vertical-align:middle;min-width:1px}
+.bx-pg table.bx-dtab tr.bx-dj td{background:#f3f3f3;font-weight:700}
+.bx-pg table.bx-drow td{font-size:9.5pt;padding:4px}
+.bx-pg table.bx-drow td small{display:block;font-size:7.5pt;color:#555;font-weight:600}
+.bx-dcol{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;align-items:end;height:92px;border-bottom:1px solid #999;padding:0 6px}
+.bx-dcol>div{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:2px;min-width:0}
+.bx-dcol b{font-size:9pt}
+.bx-dcol span{width:70%;border:1px solid rgba(0,0,0,.25);border-bottom:0;border-radius:calc(3px*var(--rk,1)) calc(3px*var(--rk,1)) 0 0;min-height:2px}
+.bx-dcx{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:2px 6px 0;font-size:8pt;text-align:center;color:#444}
+.bx-dcx b{color:#111}
 .bx-meas{position:absolute;left:-99999px;top:0;visibility:hidden;pointer-events:none}
 
 /* chop etish: varaqlar aynan ko'rinishdagidek, chetlarsiz A4 */

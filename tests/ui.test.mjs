@@ -594,6 +594,18 @@ test("BSB tahlili: strelka tugmalari, Excel'dan joylash, savol nomlari va xatola
     assert.equal(a2[1][0], "Bo'lim bo'yicha summativ baholash (BSB) natijalari"); assert.ok(a2.some((r) => r.some((x) => String(x).startsWith("Sinf rahbari"))));
     await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]'); await page.click('[data-chip="dist"]'); await page.click(".modal [data-pdf]");
     ft = await page.evaluate(() => window.__printed); assert.ok(ft.includes("Baholar taqsimoti"), "qism qaytdi");
+    // taqsimot ko'rinishi: asosiy — jadval; tanlov eslab qolinadi, qism o'chsa tanlov yashiriladi
+    assert.ok(await page.evaluate(() => !!document.querySelector("#pdoc table.bx-dtab")), "asosiy ko'rinish jadval");
+    await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]');
+    assert.equal(await page.getAttribute('.modal [data-dv="tab"]', "aria-pressed"), "true");
+    await page.click('[data-chip="dist"]'); assert.ok(await page.isHidden(".modal [data-dvw]"), "taqsimot o'chsa tanlov yashirin");
+    await page.click('[data-chip="dist"]'); await page.click('.modal [data-dv="col"]');
+    assert.ok(await page.evaluate(() => !!document.querySelector(".modal .bx-pg .bx-dcol")), "ko'rinishda ustunli diagramma");
+    await page.click(".modal [data-pdf]");
+    assert.deepEqual(await page.evaluate(() => [D.web.bsb_hdr.bx.dv, !!document.querySelector("#pdoc .bx-dcol"), !!document.querySelector("#pdoc .bx-dtab")]), ["col", true, false]);
+    await page.click("[data-bexp]"); await page.click('.modal [data-v="1"]'); await page.click('.modal [data-dv="row"]');
+    assert.ok(await page.evaluate(() => !!document.querySelector(".modal .bx-pg table.bx-drow")), "tahlil hisobotida qator jadval");
+    await page.click('.modal [data-dv="tab"]'); await page.click(".modal [data-x]");
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });

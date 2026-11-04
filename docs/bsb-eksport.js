@@ -3,6 +3,7 @@
    Ikki shakl: 1) Tahlil hisoboti — varaqlarga oqib tushadi, uzun jadval bo'linadi; 2) Rasmiy shakl — doim bitta varaqqa sig'diriladi.
    Hisob-kitob index.html da: baAnalysis, bsbRecs, bsbErrors, baMeta, baFileBase, quarterOf. Bu fayl asosiy skriptdan OLDIN ulanadi.
    Sozlamalar D.web.bsb_hdr da: school, note, fnote, sign («Lavozim | F.I.Sh.» qatorlari), teacher, deputy, bx {form, off1, off2, bw, ord1, ord2, ori}.
+   Taqsimot ko'rinishi bx.dv: tab (Jadval, asosiy) | row (Qator) | bar (Chiziq) | col (Ustun) — Akmal 2026-11-04 tasdiqlagan.
    Sarlavha ish turidan o'zi tuziladi (eski H.title ishlatilmaydi). Savol nomlari eksportga chiqmaydi (Akmal). */
 const BXP = (() => {
   const SECS = {
@@ -25,6 +26,7 @@ const BXP = (() => {
     const x = H.bx;
     x.form = x.form === 2 ? 2 : 1;
     for (const f of [1, 2]) { const ok = SECS[f].map((s) => s[0]); x["off" + f] = (Array.isArray(x["off" + f]) ? x["off" + f] : []).filter((k) => ok.includes(k)); x["ord" + f] = x["ord" + f] === "list" || x["ord" + f] === "score" ? x["ord" + f] : f === 1 ? "score" : "list"; }
+    x.dv = DVK.includes(x.dv) ? x.dv : "tab";
     x.bw = !!x.bw; x.ori = ["auto", "p", "l"].includes(x.ori) ? x.ori : "auto";
     return H;
   }
@@ -57,6 +59,21 @@ const BXP = (() => {
     return `<div class="bx-kpis">${k("Qatnashdi", `${an.n}<small> / ${X.c.students.length}</small>`, an.absent.length ? `${an.absent.length} ta qatnashmadi` : "hammasi")}
       ${k("O'rtacha ball", `${nf(an.mean_total)}<small> / ${gn(an.tot_max)}</small>`, `mediana ${p0(an.median_pct)}`)}${k("O'zlashtirish", p0(an.mastery), "o'rtacha foiz")}
       ${k("Bilim sifati", p0(an.quality), "«4» va «5» ulushi")}${k("Eng yuqori / past", `${gn(an.best.total)}<small> / ${gn(an.worst.total)}</small>`, "ball")}</div>`;
+  }
+  const DV = [["tab", "Jadval"], ["row", "Qator"], ["bar", "Chiziq"], ["col", "Ustun"]], DVK = DV.map((d) => d[0]);
+  const DVH = {tab: "Baho · Soni · % · chiziq — har baho alohida qatorda.", row: "Bitta qatorli ixcham jadval: «5», «4», «3», «2» yonma-yon.", bar: "Bitta ko'ndalang chiziq va izoh.", col: "Ustunli diagramma: har bahoning soni ustun balandligida."};
+  const DVT = {
+    tab: `<svg viewBox="0 0 60 38"><g stroke="#9aa" stroke-width=".6" fill="none"><rect x="3" y="3" width="54" height="32"/><path d="M3 9h54M3 15h54M3 21h54M3 27h54M14 3v32M24 3v32M33 3v32"/></g><rect x="3.3" y="9.3" width="10.4" height="5.4" fill="#5fb36a"/><rect x="3.3" y="15.3" width="10.4" height="5.4" fill="#bcdca0"/><rect x="3.3" y="21.3" width="10.4" height="5.4" fill="#f6e58d"/><rect x="3.3" y="27.3" width="10.4" height="2" fill="#ee9a96"/><rect x="3.3" y="3.3" width="53.4" height="5.4" fill="#e6f2f1"/><rect x="35" y="11" width="14" height="2.4" fill="#5fb36a"/><rect x="35" y="17" width="20" height="2.4" fill="#bcdca0"/><rect x="35" y="23" width="13" height="2.4" fill="#f6e58d"/><rect x="35" y="29" width="5" height="2.4" fill="#ee9a96"/></svg>`,
+    row: `<svg viewBox="0 0 60 38"><rect x="3" y="11" width="10.8" height="7" fill="#5fb36a"/><rect x="13.8" y="11" width="10.8" height="7" fill="#bcdca0"/><rect x="24.6" y="11" width="10.8" height="7" fill="#f6e58d"/><rect x="35.4" y="11" width="10.8" height="7" fill="#ee9a96"/><rect x="46.2" y="11" width="10.8" height="7" fill="#e6f2f1"/><g stroke="#9aa" stroke-width=".6" fill="none"><rect x="3" y="11" width="54" height="16"/><path d="M3 18h54M13.8 11v16M24.6 11v16M35.4 11v16M46.2 11v16"/></g><g fill="#555"><rect x="6" y="21" width="5" height="2"/><rect x="16.8" y="21" width="5" height="2"/><rect x="27.6" y="21" width="5" height="2"/><rect x="38.4" y="21" width="5" height="2"/><rect x="49.2" y="21" width="5" height="2"/></g></svg>`,
+    bar: `<svg viewBox="0 0 60 38"><g stroke="#888" stroke-width=".6"><rect x="3" y="12" width="15" height="7" fill="#5fb36a"/><rect x="18" y="12" width="21" height="7" fill="#bcdca0"/><rect x="39" y="12" width="13" height="7" fill="#f6e58d"/><rect x="52" y="12" width="5" height="7" fill="#ee9a96"/></g><g fill="#888"><rect x="3" y="24" width="3" height="3" fill="#5fb36a"/><rect x="7" y="24.5" width="8" height="2"/><rect x="18" y="24" width="3" height="3" fill="#bcdca0"/><rect x="22" y="24.5" width="8" height="2"/><rect x="33" y="24" width="3" height="3" fill="#f6e58d"/><rect x="37" y="24.5" width="8" height="2"/></g></svg>`,
+    col: `<svg viewBox="0 0 60 38"><g stroke="#888" stroke-width=".6"><rect x="7" y="18" width="8" height="15" fill="#5fb36a"/><rect x="20" y="8" width="8" height="25" fill="#bcdca0"/><rect x="33" y="18" width="8" height="15" fill="#f6e58d"/><rect x="46" y="27" width="8" height="6" fill="#ee9a96"/></g><path d="M3 33h54" stroke="#777" stroke-width=".8"/></svg>`,
+  };
+  function distBox(X, kind) {     // tanlangan ko'rinishdagi taqsimot (bar — eski chiziq ko'rinishi)
+    const g = X.an.grades, n = X.an.n || 1, K = [5, 4, 3, 2], pc = (k) => 100 * g[k] / n, mx = Math.max(1, ...K.map((k) => g[k]));
+    if (kind === "row") return `<table class="bx-drow"><tr>${K.map((k) => `<th style="background:${gcol(k)}">«${k}»</th>`).join("")}<th>Jami</th></tr><tr>${K.map((k) => `<td><b>${g[k]} ta</b><small>${p0(pc(k))}</small></td>`).join("")}<td><b>${X.an.n} ta</b><small>100%</small></td></tr></table>`;
+    if (kind === "col") return `<div><div class="bx-dcol">${K.map((k) => `<div><b>${g[k]}</b><span style="height:${Math.round(86 * g[k] / mx)}%;background:${gcol(k)}"></span></div>`).join("")}</div><div class="bx-dcx">${K.map((k) => `<div><b>«${k}»</b> · ${p0(pc(k))}</div>`).join("")}</div></div>`;
+    if (kind === "bar") return dist(X);
+    return `<table class="bx-dtab"><tr><th>Baho</th><th>Soni</th><th>%</th><th class="l">Taqsimot</th></tr>${K.map((k) => `<tr><td style="background:${gcol(k)}"><b>«${k}»</b></td><td>${g[k]}</td><td>${p0(pc(k))}</td><td class="bx-dbar"><span class="bx-gb" style="width:${Math.round(100 * g[k] / mx)}%;background:${gcol(k)}"></span></td></tr>`).join("")}<tr class="bx-dj"><td>Jami</td><td>${X.an.n}</td><td>100%</td><td></td></tr></table>`;
   }
   function dist(X) {
     const g = X.an.grades, n = X.an.n || 1;
@@ -104,7 +121,7 @@ const BXP = (() => {
     B.push(on("hdr") ? hdr(X, H, form, sg) : `<h1>${esc(title(X, form))}</h1>`);
     if (form === 1) {
       if (!X.ok) { B.push("<p>Tahlil uchun ishtirok etgan o'quvchilar va ballar kiritilmagan.</p>"); if (on("sig")) B.push(signs(H, sg)); return B; }
-      if (on("kpi")) B.push(`<div style="display:grid;gap:8px">${kpis(X)}${dist(X)}</div>`);
+      if (on("kpi")) B.push(`<div style="display:grid;gap:8px">${kpis(X)}${x.dv === "bar" ? dist(X) : `<div><h3>Baholar taqsimoti</h3><div class="bx-dw${x.dv === "row" ? " bx-full" : ""}">${distBox(X, x.dv)}</div></div>`}</div>`);
       if (on("chart")) B.push(chart(X));
       if (on("qtab")) B.push(qtab(X));
       if (on("rec")) B.push(...rec(X));
@@ -114,7 +131,7 @@ const BXP = (() => {
       const d = on("dist") && X.ok, k = on("kpi");
       if (d || k) {
         const kp = (l, v) => `<div class="bx-kpi"><span>${l}</span><b>${v}</b></div>`;
-        B.push(`<div class="bx-ft2${d && k ? "" : " one"}">${d ? `<div><h3>Baholar taqsimoti</h3>${dist(X)}</div>` : ""}${k ? `<div><h3>Ko'rsatkichlar</h3><div class="bx-kg">${kp("Sinfda", X.c.students.length)}${kp("Qatnashdi", an.n)}${kp("Qatnashmadi", an.absent.length)}${kp("O'rtacha ball", X.ok ? nf(an.mean_total) + "<small> / " + gn(an.tot_max) + "</small>" : "—")}${kp("O'zlashtirish", X.ok ? p0(an.mastery) : "—")}${kp("Bilim sifati", X.ok ? p0(an.quality) : "—")}</div></div>` : ""}</div>`);
+        B.push(`<div class="bx-ft2${d && k ? "" : " one"}">${d ? `<div><h3>Baholar taqsimoti</h3>${distBox(X, x.dv)}</div>` : ""}${k ? `<div><h3>Ko'rsatkichlar</h3><div class="bx-kg">${kp("Sinfda", X.c.students.length)}${kp("Qatnashdi", an.n)}${kp("Qatnashmadi", an.absent.length)}${kp("O'rtacha ball", X.ok ? nf(an.mean_total) + "<small> / " + gn(an.tot_max) + "</small>" : "—")}${kp("O'zlashtirish", X.ok ? p0(an.mastery) : "—")}${kp("Bilim sifati", X.ok ? p0(an.quality) : "—")}</div></div>` : ""}</div>`);
       }
     }
     if (on("sig")) B.push(signs(H, sg));
@@ -276,6 +293,7 @@ const BXP = (() => {
         <div class="bx-side-b">
           <div><div class="bx-lbl">Shakl</div><div class="bx-forms">${[1, 2].map((f) => `<button type="button" class="bx-fc" data-v="${f}">${THUMB[f]}<b>${f === 1 ? "📊 Tahlil hisoboti" : "📋 Rasmiy shakl"}</b><small data-fcn="${f}"></small></button>`).join("")}</div></div>
           <div><div class="bx-lbl">Varaqqa kiradigan qismlar</div><div class="bx-chips" data-chips></div></div>
+          <div data-dvw><div class="bx-lbl">Taqsimot ko'rinishi</div><div class="bx-dvs" data-dvs></div><p class="bx-dvh" data-dvh></p></div>
           <div style="display:grid;gap:8px"><div class="bx-lbl" style="margin:0">Ko'rinish</div>
             <div class="bx-opt"><span>Ranglar</span>${seg("bw", [["c", "🎨 Rangli"], ["bw", "⚫ Oq-qora"]], H.bx.bw ? "bw" : "c")}</div>
             <div class="bx-opt"><span>O'quvchilar</span><div data-ordw></div></div>
@@ -302,6 +320,9 @@ const BXP = (() => {
         mm.querySelectorAll(".bx-fc").forEach((b) => b.classList.toggle("on", +b.dataset.v === f));
         q("[data-chips]").innerHTML = SECS[f].map(([k, l]) => `<button type="button" class="bx-chip ${off.has(k) ? "" : "on"}" data-chip="${k}"><i>${off.has(k) ? "＋" : "✓"}</i>${l}</button>`).join("");
         q("[data-ordw]").innerHTML = seg("ord", [["list", "Ro'yxat"], ["score", "Ball bo'yicha"]], H.bx["ord" + f]);
+        q("[data-dvs]").innerHTML = DV.map(([v, l]) => `<button type="button" class="bx-dv${v === H.bx.dv ? " on" : ""}" data-dv="${v}" aria-pressed="${v === H.bx.dv}">${v === "tab" ? "<i>asosiy</i>" : ""}${DVT[v]}<b>${l}</b></button>`).join("");
+        q("[data-dvh]").textContent = DVH[H.bx.dv];
+        q("[data-dvw]").hidden = off.has(f === 2 ? "dist" : "kpi");
         q("[data-tit]").textContent = title(X, f);
         q("[data-signs]").innerHTML = sg.map(([l, n], i) => `<div class="bx-sg"><input type="text" data-sl="${i}" value="${esc(l)}" placeholder="Lavozim" aria-label="Lavozim"><input type="text" data-sn="${i}" value="${esc(n)}" placeholder="F.I.Sh." aria-label="F.I.Sh."><button type="button" class="bx-ib" data-sdel="${i}" title="O'chirish">✕</button></div>`).join("");
       };
@@ -325,6 +346,7 @@ const BXP = (() => {
         else if (sgId === "ord") { H.bx["ord" + H.bx.form] = v; store(); all(); }
         else if (sgId === "pv") { st.view = v; segSet("pv", v); draw(); }
         else if (sgId === "zm") { st.zoom = v; segSet("zm", v); draw(); }
+        else if (t.dataset.dv) { H.bx.dv = t.dataset.dv; store(); all(); }
         else if (t.classList.contains("bx-fc")) { H.bx.form = +v; S.bavar = +v; store(); all(); }
         else if (t.dataset.chip) { const a = H.bx["off" + H.bx.form], k = t.dataset.chip, i = a.indexOf(k); if (i >= 0) a.splice(i, 1); else a.push(k); store(); all(); }
         else if (t.dataset.sdel !== undefined) { sg.splice(+t.dataset.sdel, 1); store(); all(); }
