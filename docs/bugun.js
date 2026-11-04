@@ -106,18 +106,21 @@ const BGN = (() => {
     }).join("");
     return `<section class="card"><div class="bn-ch"><h2>Bugungi darslar</h2><span class="bn-cnt">${L.filter((x) => x.done).length} / ${L.length} tugadi</span></div><div class="bn-tl ${L.some((x) => x.from) ? "" : "notime"}">${rows}</div></section>`;
   }
-  // «Bajarish kerak»: to'ldirilmagan darslar, chorak yakuni, KTR
+  // «Bajarish kerak»: to'ldirilmagan darslar, BSB/CHSB tahlili qilinmagan ishlar, chorak yakuni, KTR
   function todoData() {
     const gaps = feat("gaps") ? lessonGaps() : [];
     const qe = feat("qend") && quarterEnd();
     const qrows = qe ? D.classes.map((c, ci) => ({c, ci, g: quarterGaps(c, qe.q)})).filter((x) => !isGrp(x.c) && (x.g.low.length || x.g.noScore.length)) : [];
     const ktr = feat("ktr") ? D.classes.map((c, ci) => ({c, ci, k: ktrProgress(c)})).filter((x) => x.k && (x.k.behind >= 2 || x.k.short)) : [];
-    return {gaps, qe, qrows, ktr, n: gaps.length + qrows.length + ktr.length};
+    const an = analysisGaps();
+    return {gaps, qe, qrows, ktr, an, n: gaps.length + an.rows.length + qrows.length + ktr.length};
   }
   function todoBody(T) {
     const out = [];
     if (T.gaps.length) out.push(`<div class="bn-grp gaps"><div class="bn-g">📝 To'ldirilmagan darslar<span>oxirgi ${GAP_DAYS} kun</span></div>${T.gaps.slice(0, 5).map((x) => `<div class="bn-ti ${x.noAtt ? "two" : ""}"><span class="bn-tx"><b class="bn-ell">${esc(label(x.c))}</b><small>${d5(x.d)} ${WD[pyWd(x.d)]} · ${[x.noAtt ? "yo'qlama belgilanmagan" : "", x.noTopic ? "mavzu yozilmagan" : ""].filter(Boolean).join(", ")}</small></span>
       <span class="bn-r">${x.noAtt ? `<button class="btn btn-sm" data-gapok="${x.ci}|${x.d}" title="${isGrp(x.c) ? "Hammaga «dars o'tildi»" : "Hech kim qoldirmagan bo'lsa"}">${allokLabel(x.c)}</button>` : ""}<button class="btn btn-sm" data-gap="${x.ci}|${x.d}|${x.noAtt ? 1 : 0}">To'ldirish</button></span></div>`).join("")}${T.gaps.length > 5 ? `<div class="bn-more2">va yana ${T.gaps.length - 5} ta</div>` : ""}</div>`);
+    if (T.an.rows.length) out.push(`<div class="bn-grp anl"><div class="bn-g">🔍 BSB/CHSB tahlili qilinmagan<span>${T.an.q}-chorak</span></div>${T.an.rows.map(({c, ci, works}) => `<div class="bn-ti"><span class="bn-tx"><b class="bn-ell">${esc(label(c))}</b><small class="bn-anw">${works.map((w) => `<button type="button" data-anl="${ci}|${esc(w.id)}" title="${esc(w.title || "")}">${w.type.toUpperCase()} ${d5(w.date)}</button>`).join("")}</small></span>
+      <span class="bn-r"><button class="btn btn-sm" data-anl="${ci}|${esc(works[0].id)}" title="${works[0].type === "chsb" ? "«CHSB testi»ni ochadi" : "«BSB tahlili»ni shu ish sanasi bilan ochadi"}">Tahlil qilish</button></span></div>`).join("")}</div>`);
     if (T.qe) out.push(`<div class="bn-grp qend"><div class="bn-g">📋 ${T.qe.q}-chorak tugashiga ${T.qe.left ? `${T.qe.left} kun` : "bugun"} qoldi<span>${d5(T.qe.end)}</span></div>${T.qrows.length ? T.qrows.map(({c, ci, g}) => `<div class="bn-ti"><span class="bn-tx"><b class="bn-ell">${esc(label(c))}</b><small>${[g.low.length ? `${g.low.length} o'quvchida formativ baho kam (kamida ${fbMin()} ta kerak)` : "", g.noScore.length ? `${g.noScore.length} o'quvchida BSB/CHSB balli yo'q` : "", feat("debts") && (() => { const [lo, hi] = periodNow(), n = c.students.reduce((a, st) => a + debtsOf(c, st, lo, hi).filter((d) => !d.done).length, 0); return n ? `qarzlar: ${n}` : ""; })(), `qolgan darslar: ${g.left}`].filter(Boolean).join(" · ")}</small></span>
       <span class="bn-r"><button class="btn btn-sm" data-qready="${ci}">Ko'rish</button></span></div>`).join("") : `<div class="bn-okl">✓ Hamma sinflarda baholar va ballar yetarli — chorak bahosini qo'yishga tayyor.</div>`}</div>`);
     if (T.ktr.length) out.push(`<div class="bn-grp"><div class="bn-g">📚 KTR: rejadan orqada</div>${T.ktr.map(({c, ci, k}) => `<div class="bn-ti"><span class="bn-tx"><b class="bn-ell">${esc(label(c))}</b><small>${ktrLine(k)}</small></span><span class="bn-r"><button class="btn btn-sm" data-ktr="${ci}">Reja</button></span></div>`).join("")}</div>`);
@@ -241,6 +244,7 @@ const BGN = (() => {
     on("[data-btab]", (b) => { S.btab = b.dataset.btab; render(); if (b.closest(".bn-hero")) { const s = $(".bn-seg", m); if (s) s.scrollIntoView({behavior: "smooth", block: "start"}); } });
     on("[data-go2]", (b) => go(b.dataset.go2));
     on("[data-ktr]", (b) => ktrDialog(+b.dataset.ktr));
+    on("[data-anl]", (b) => { const [ci, wid] = b.dataset.anl.split("|"); openAnalysis(+ci, wid); });
     on("[data-wk]", (b) => weekDialog(+b.dataset.wk));
     on("[data-wkx]", (b) => { D.web.wk_seen = b.dataset.wkx; save(); render(); });
     on("[data-gapok]", (b) => { const [ci, d] = b.dataset.gapok.split("|"), c = D.classes[+ci]; allDone(c, d); save(); render(); toast(`${label(c)} · ${fmt(d)}: ${isGrp(c) ? "dars o'tildi" : "hamma keldi"} ✓`); });
