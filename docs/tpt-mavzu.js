@@ -221,7 +221,6 @@ const TPTM = (() => {
     out.push(`${A.rows.length} ta dars o'tkazildi${A.own.length ? `, shundan ${A.own.length} tasi rejadan tashqari mavzu` : ""}. Yillik rejadagi ${A.total} darsdan ${A.first ? `${A.first}–${A.last}-darslar` : "hech biri"} o'tildi (${A.topics.length} ta mavzu); yillik reja ${Math.round(A.last / A.total * 100)}% bajarildi.`);
     const sh = A.offs.length + A.own.length;
     out.push(sh ? `${A.offs.length ? `${A.offs.length} kun dars bo'lmadi (${A.offs.map(H.dm).join(", ")})` : ""}${A.offs.length && A.own.length ? ", " : ""}${A.own.length ? `${A.own.length} darsda boshqa mavzu o'tildi` : ""} — reja ${sh} darsga surildi.` : "Darslar reja bo'yicha, kechikishsiz o'tildi.");
-    out.push(`O'rtacha davomat ${A.att}%. ${A.full ? `${A.full} o'quvchi birorta ham darsni qoldirmadi.` : ""}${A.miss.length ? ` Ko'p qoldirganlar: ${A.miss.map((x) => `${x.name} (${x.miss})`).join(", ")}.` : ""}`.trim());
     if (A.nrows.length) { const a = A.nrows[0], b = A.nrows[A.nrows.length - 1]; out.push(`Keyingi chorakda ${A.nrows.length} ta dars rejalashtirilgan: «${a.s.t}» dan «${b.s.t}» gacha.`); }
     else if (A.last >= sl.length) out.push("Yillik reja to'liq bajarildi.");
     return out;
@@ -410,7 +409,7 @@ const TPTM = (() => {
     const rows = my.map((r, i) => { const on = (s.marks || {})[r.d] === "ot"; return `<tr class="${on ? "" : "miss"}"><td>${i + 1}</td><td>${dd(r.d).slice(0, 5)} <small>${H.WDS[H.wdOf(r.d)]}</small></td><td class="l">${r.own ? H.e(r.own) : H.e(sTxt(r.s))}</td><td>${on ? "✓ keldi" : "<b>✗ kelmadi</b>"}</td></tr>`; });
     const thead = (cont) => `<div class="g-a4h">Darslar${cont ? " (davomi)" : ""}</div><table class="g-a4tab g-a4st2"><thead><tr><th>№</th><th>Sana</th><th class="l">Mavzu</th><th>Holat</th></tr></thead><tbody>`;
     const mt = [...new Set(miss.map((r) => r.own || r.s.t))];
-    const sum = [`${s.name} ${P.lab.toLowerCase()}da ${my.length} ta darsdan ${cm.length} tasiga keldi (${pc}%; guruh bo'yicha o'rtacha ${A.att}%).`]
+    const sum = [`${s.name} uchun ${P.lab.toLowerCase()}da ${my.length} ta dars o'tildi (${new Set(my.map((r) => r.own || r.s.t)).size} ta mavzu).`]
       .concat(ac && ac.k ? [ac.left < 0 ? `To'lov: ${-ac.left} dars to'lanmagan.` : ac.left === 0 ? "To'lov: to'langan darslar tugadi, keyingi paket uchun to'lov qilish kerak." : `To'lov: yana ${ac.left} dars to'langan.`] : []);
     const rec = miss.length ? [`Qoldirilgan mavzularni uyda takrorlash kerak: ${mt.slice(0, 6).join("; ")}${mt.length > 6 ? ` va yana ${mt.length - 6} ta` : ""}.`].concat(pc < 75 ? ["Davomat 75% dan past — darslarga muntazam qatnashishini ta'minlashingizni so'raymiz."] : [])
       : ["Birorta ham dars qoldirilmagan — rahmat! Shu tartibda davom eting."];
@@ -497,8 +496,7 @@ const TPTM = (() => {
   function allSummary(G) {
     const P = G.P, out = [];
     out.push(`${P.lab} (${H.dm(P.from)} – ${fullD(G.partial ? addD(H.today(), -1) : P.to)}): ${G.rows.length} ta guruhda jami ${G.st} nafar o'quvchi bilan ${G.les} ta dars o'tkazildi${G.top ? `, ${G.top} ta mavzu o'tildi` : ""}.`);
-    out.push(`O'rtacha davomat ${G.att}%${G.pct != null ? `, yillik rejalar o'rtacha ${G.pct}% bajarildi` : ""}.${G.paid ? ` Pullik guruhlardan tushum: ${sp3(G.inc)} so'm.` : ""}`);
-    const best = G.rows.filter((r) => r.les).sort((a, b) => b.att - a.att)[0]; if (best && G.rows.length > 1) out.push(`Davomati eng yuqori guruh — «${best.c.name}» (${best.att}%).`);
+    const t2 = `${G.pct != null ? `Yillik rejalar o'rtacha ${G.pct}% bajarildi.` : ""}${G.paid ? ` Pullik guruhlardan tushum: ${sp3(G.inc)} so'm.` : ""}`.trim(); if (t2) out.push(t2);
     return out;
   }
   function allAdvice(G) {
