@@ -13,7 +13,7 @@ const TPTM = (() => {
   const T = {flt: "next", view: "plan", rq: null, rk: "q", rs: "", rv: "scr", o: {by: "topic", stu: true, sum: true, sig: true, chart: true, rec: true}};
   try { Object.assign(T.o, JSON.parse(localStorage.getItem("yoqlama_tptrep3")) || {}); } catch (err) { /* sozlama yo'q */ }
   // varaq uslubi: v3 — «Kartochkali» (yangi), mod — «Zamonaviy», off — «Rasmiy (oq-qora)»
-  const ST = [["nv", "Yashil"], ["nv n2", "Ko'k"], ["nv bw", "Oq-qora"]];
+  const ST = [["nv", "Yashil"], ["nv n2", "Ko'k"], ["nv bw", "Oq-qora"], ["nv sm", "Oddiy"]];
   const stCls = () => (ST.find((x) => x[0] === T.o.st) || ST[0])[0];
   const stSeg = () => `<div class="g-seg g-stseg" role="group" aria-label="Dizayn">${ST.map(([k, l]) => `<button type="button" data-tpst="${k}" class="${stCls() === k ? "on" : ""}" aria-pressed="${stCls() === k}">${l}</button>`).join("")}</div>`;
   const keepO = () => { try { localStorage.setItem("yoqlama_tptrep3", JSON.stringify(T.o)); } catch (err) { /* saqlanmadi */ } };

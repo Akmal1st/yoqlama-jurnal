@@ -279,3 +279,34 @@
 /* hisobot matni namunadagidek: qalin, ikki tomonga tekislangan */
 .tpt .g-a4p.dc .g-dtx{font-weight:700}
 .tpt .g-a4p.dc .g-dtt{font-size:1.1em}
+/* «Oddiy» varianti: yon panelsiz, bezaksiz — oq fon, ingichka chiziqlar, bitta shrift */
+.tpt .bx-pg.g-a4p.nv.sm,.tpt .g-a4p.g-a4flow.nv.sm{--a:#222;--a2:#f0f0f0;--a3:#fff;--o:#222;--bad:#000;--ln:#d6d6d6;--mu:#666;--sf:inherit;color:#111}
+.tpt .bx-pg.g-a4p.nv.sm{padding:57px 57px 45px}
+.tpt .bx-pg.g-a4p.nv.sm::before,.tpt .bx-pg.g-a4p.nv.sm::after{display:none}
+.tpt .g-a4p.nv.sm .g-a4band{flex-direction:row;align-items:flex-end;border-bottom:1.5px solid #222}
+.tpt .g-a4p.nv.sm .g-a4bl{flex:1}
+.tpt .g-a4p.nv.sm .g-a4bl small{color:var(--mu);letter-spacing:.06em}
+.tpt .g-a4p.nv.sm .g-a4t{font-size:1.7em;color:#111}
+.tpt .bx-pg.g-a4p.nv.sm .g-a4qb,.tpt .g-a4flow.nv.sm .g-a4qb{position:static;width:auto;background:none;color:#111;flex-direction:row;align-items:baseline;gap:.3em;padding:0;min-width:0}
+.tpt .g-a4p.nv.sm .g-a4qb b{font-size:1.5em}.tpt .g-a4p.nv.sm .g-a4qb.y b{font-size:1.2em}
+.tpt .g-a4p.nv.sm .g-a4qb span{font-size:.85em;letter-spacing:0;text-transform:none;opacity:1}
+.tpt .g-a4p.nv.sm .g-a4tiles{background:none;padding:0;border-bottom:1px solid var(--ln);padding-bottom:.5em}
+.tpt .g-a4p.nv.sm .g-a4tiles b{font-size:1.6em;color:#111}
+.tpt .g-a4p.nv.sm .g-a4bar i{background:#555}
+.tpt .g-a4p.nv.sm .g-a4h{font-size:1em;color:#111}
+.tpt .g-a4p.nv.sm .g-a4h::before{display:none}
+.tpt .g-a4p.nv.sm .g-a4tab th{color:#111;border-bottom:1px solid #222;letter-spacing:.03em}
+.tpt .g-a4p.nv.sm .g-a4tab tbody tr:nth-child(even) td{background:none}
+.tpt .g-a4p.nv.sm .g-a4tab td:first-child{font-family:inherit;font-weight:400}
+.tpt .g-a4p.nv.sm .g-a4stu th:nth-child(5),.tpt .g-a4p.nv.sm .g-a4stu td:nth-child(5){border-left:1px solid #222}
+.tpt .g-a4p.nv.sm .g-a4stu b,.tpt .g-a4p.nv.sm .g-a4st2 td b,.tpt .g-a4p.nv.sm .g-a4tab i{color:#000!important}
+.tpt .g-a4p.nv.sm .g-a4st2 tr.miss td{background:#f2f2f2!important}
+.tpt .g-a4p.nv.sm .g-a4all tfoot td{background:none;border-top:1.5px solid #222;color:#111}
+.tpt .g-a4p.nv.sm .g-a4ch rect.c1{fill:#9a9a9a}.tpt .g-a4p.nv.sm .g-a4ch rect.c2{fill:#222}
+.tpt .g-a4p.nv.sm .g-a4lg .b1{background:#9a9a9a}.tpt .g-a4p.nv.sm .g-a4lg .b2{background:#222}
+.tpt .g-a4p.nv.sm .g-a4sum{background:none;border:0;padding:0}
+.tpt .g-a4p.nv.sm .g-a4rec li::before{color:#111;font-weight:600}
+.tpt .g-a4p.nv.sm .g-a4warn{background:none;border:1px solid var(--ln)}
+.tpt .g-a4p.nv.sm .g-a4sig span{color:#111;font-weight:600}
+.tpt .g-a4p.g-a4flow.nv.sm{border-left:1px solid var(--ln);box-shadow:none;padding-left:24px}
+@media (max-width:520px){.tpt .g-stseg{grid-template-columns:1fr 1fr}.tpt .g-a4p.g-a4flow.nv.sm{padding-left:14px}}
