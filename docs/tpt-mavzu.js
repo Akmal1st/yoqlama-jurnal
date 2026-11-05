@@ -10,9 +10,12 @@
 const TPTM = (() => {
   let H = null; // guruhlar.js yordamchilari
   const ISO = /^\d{4}-\d\d-\d\d$/;
-  const T = {flt: "next", view: "plan", rq: null, rk: "q", rs: "", rv: "scr", o: {by: "topic", stu: true, sum: true, sig: true, chart: true, rec: true, st: "mod"}};
-  try { Object.assign(T.o, JSON.parse(localStorage.getItem("yoqlama_tptrep")) || {}); } catch (err) { /* sozlama yo'q */ }
-  const keepO = () => { try { localStorage.setItem("yoqlama_tptrep", JSON.stringify(T.o)); } catch (err) { /* saqlanmadi */ } };
+  const T = {flt: "next", view: "plan", rq: null, rk: "q", rs: "", rv: "scr", o: {by: "topic", stu: true, sum: true, sig: true, chart: true, rec: true, st: "v3"}};
+  try { Object.assign(T.o, JSON.parse(localStorage.getItem("yoqlama_tptrep2")) || {}); } catch (err) { /* sozlama yo'q */ }
+  // varaq uslubi: v3 — «Kartochkali» (yangi), mod — «Zamonaviy», off — «Rasmiy (oq-qora)»
+  const stCls = () => T.o.st === "off" ? "" : T.o.st === "mod" ? "mod" : "mod v3";
+  const stSeg = () => `<div class="g-seg g-stseg">${[["v3", "Kartochkali"], ["mod", "Zamonaviy"], ["off", "Rasmiy (oq-qora)"]].map(([k, l]) => `<button type="button" data-tpst="${k}" class="${(T.o.st || "v3") === k ? "on" : ""}">${l}</button>`).join("")}</div>`;
+  const keepO = () => { try { localStorage.setItem("yoqlama_tptrep2", JSON.stringify(T.o)); } catch (err) { /* saqlanmadi */ } };
 
   function parse(text) {
     const out = [];
@@ -315,7 +318,7 @@ const TPTM = (() => {
   function paginate(X) {
     if (!host) { host = document.createElement("div"); host.className = "tpt g-a4host"; host.setAttribute("aria-hidden", "true"); }
     if (!host.isConnected) document.body.append(host);
-    const page = (fs, body) => `<div class="bx-pg g-a4p ${T.o.st !== "off" ? "mod" : ""}" style="--fs:${fs}px"><div class="g-a4i">${body}</div></div>`;
+    const page = (fs, body) => `<div class="bx-pg g-a4p ${stCls()}" style="--fs:${fs}px"><div class="g-a4i">${body}</div></div>`;
     const fits = (html) => { host.innerHTML = html; const i = host.querySelector(".g-a4i"); return i.scrollHeight <= i.clientHeight + 1; };
     const one = (fs) => page(fs, X.head + X.thead(false) + X.rows.join("") + "</tbody></table>" + X.tail + X.foot(1, 1));
     try {
@@ -337,7 +340,7 @@ const TPTM = (() => {
     const ps = a4pages(c, A);
     const h0 = hdrS(), gh = c.grh || {}, hdr = {org: gh.org != null ? gh.org : h0.school, tch: gh.tch != null ? gh.tch : h0.teacher};
     const ck = (k, t) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${t}</button>`;
-    return `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span><div class="g-seg"><button type="button" data-tpst="mod" class="${T.o.st !== "off" ? "on" : ""}">Zamonaviy</button><button type="button" data-tpst="off" class="${T.o.st === "off" ? "on" : ""}">Rasmiy (oq-qora)</button></div></div>
+    return `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span>${stSeg()}</div>
       <div class="g-fld"><span class="g-lbl">Jadval</span><div class="g-seg"><button type="button" data-tpby="topic" class="${T.o.by === "topic" ? "on" : ""}">Mavzular bo'yicha</button><button type="button" data-tpby="day" class="${T.o.by !== "topic" ? "on" : ""}">Har bir dars</button></div></div>
         <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${ck("chart", "Grafik va oylar")}${ck("stu", "O'quvchilar davomati")}${ck("sum", "Xulosa")}${ck("rec", "Tavsiyalar")}${ck("sig", "Imzo joyi")}</div></div>
         <div class="g-frow g-a4hdr"><div class="g-fld"><label for="g-ro">Tashkilot (markaz, maktab) nomi</label><input id="g-ro" class="g-inp" value="${H.e(hdr.org)}" placeholder="Masalan: «Bilim» o'quv markazi"></div>
@@ -350,7 +353,7 @@ const TPTM = (() => {
   /* ───────── boshqa turdagi hisobotlar: yillik (choraklar kesimi) va o'quvchi hisoboti ─────────
      Ikkalasi ham bitta qismlar (X) dan quriladi: A4 — paginate(X), ekranda — xuddi shu mazmun oqib turadigan varaqda. */
   const RK = [["q", "Chorak hisoboti"], ["yr", "Yillik: choraklar kesimi"], ["st", "O'quvchi hisoboti"]];
-  const flow = (X) => `<div class="g-a4p g-a4flow ${T.o.st !== "off" ? "mod" : ""}"><div class="g-a4i">${X.head}${X.rows.length ? X.thead(false) + X.rows.join("") + "</tbody></table>" : ""}${X.tail}</div></div>`;
+  const flow = (X) => `<div class="g-a4p g-a4flow ${stCls()}"><div class="g-a4i">${X.head}${X.rows.length ? X.thead(false) + X.rows.join("") + "</tbody></table>" : ""}${X.tail}</div></div>`;
   const hdrOf = (c) => { const h0 = hdrS(), gh = c.grh || {}; return {school: gh.org != null ? gh.org : h0.school, teacher: gh.tch != null ? gh.tch : h0.teacher}; };
   const band = (h, title, sub, badge) => T.o.st !== "off"
     ? `<div class="g-a4band"><div class="g-a4bl"><small>${h.school ? H.e(h.school) : "O'quv guruhi hisoboti"}</small><div class="g-a4t">${title}</div><div class="g-a4st">${sub}</div></div>${badge}</div>`
@@ -422,7 +425,7 @@ const TPTM = (() => {
   }
   function optCard(c, keys) {
     const h = hdrOf(c), ck = (k, t) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${t}</button>`;
-    return `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span><div class="g-seg"><button type="button" data-tpst="mod" class="${T.o.st !== "off" ? "on" : ""}">Zamonaviy</button><button type="button" data-tpst="off" class="${T.o.st === "off" ? "on" : ""}">Rasmiy (oq-qora)</button></div></div>
+    return `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span>${stSeg()}</div>
       <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${keys.map(([k, l]) => ck(k, l)).join("")}</div></div>
       <div class="g-frow g-a4hdr"><div class="g-fld"><label for="g-ro">Tashkilot (markaz, maktab) nomi</label><input id="g-ro" class="g-inp" value="${H.e(h.school)}" placeholder="Masalan: «Bilim» o'quv markazi"></div>
         <div class="g-fld"><label for="g-rt">O'qituvchi F.I.Sh.</label><input id="g-rt" class="g-inp" value="${H.e(h.teacher)}" placeholder="Masalan: Otaboboyev A."></div></div></div>`;
@@ -548,7 +551,7 @@ const TPTM = (() => {
     const pages = T.rv === "a4" ? paginate(allParts(G)) : null;
     return head + `<div class="g-row"><div class="g-seg g-qseg g-qseg5" role="group" aria-label="Davr">${qChips(c0, AL.q).replace(/data-tpq=/g, "data-alq=")}</div></div>
       <div class="g-row"><div class="g-seg" role="group" aria-label="Ko'rinish"><button type="button" data-tprv="scr" class="${T.rv !== "a4" ? "on" : ""}">Ekranda</button><button type="button" data-tprv="a4" class="${T.rv === "a4" ? "on" : ""}">A4 varaq</button></div></div>
-      ${pages ? `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span><div class="g-seg"><button type="button" data-tpst="mod" class="${T.o.st !== "off" ? "on" : ""}">Zamonaviy</button><button type="button" data-tpst="off" class="${T.o.st === "off" ? "on" : ""}">Rasmiy (oq-qora)</button></div></div>
+      ${pages ? `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span>${stSeg()}</div>
         <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${[["chart", "Davomat grafigi"], ["sum", "Xulosa"], ["rec", "Tavsiyalar"], ["sig", "Imzo joyi"]].map(([k, l]) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${l}</button>`).join("")}</div></div></div>
         <div class="g-a4w">${pages.map((x) => `<div class="g-a4s">${x}</div>`).join("")}</div><span class="g-muted" style="font-size:12.5px">A4 varaq: ${pages.length} bet.</span>`
       : `<div class="g-card g-rep"><div class="g-rhead"><small>Umumiy hisobot</small><h2>${G.P.lab}</h2><span class="g-muted">${fullD(G.P.from)} – ${fullD(G.P.to)}${G.partial ? ` · <b class="g-rpart">davr hali tugamagan</b>` : ""}</span></div>

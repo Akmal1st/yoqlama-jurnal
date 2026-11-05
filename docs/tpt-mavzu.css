@@ -222,3 +222,43 @@
 .tpt .g-a4p .g-a4st2 tr.miss td{background:#fdecec!important}
 .tpt .g-a4p:not(.mod) .g-a4st2 tr.miss td{background:#ececec!important}
 @media (max-width:520px){.tpt .g-strow{display:grid;grid-template-columns:1fr 1fr}.tpt .g-strow .g-fld{grid-column:1/-1}.tpt .g-strow .g-btn{min-height:40px;border:1px solid var(--g-line);background:var(--g-base)}}
+/* «Kartochkali» varaq (v3): to'q ko'k sarlavha bloki, rangli plitkalar, kartochka bo'limlar */
+.tpt .g-a4p.mod.v3{--a:#24358f;--a2:#e9edfb;--a3:#f6f7fc;--o:#f08c00;--bad:#e03131;--cl:#0c8599;--ln:#dfe3ef;--mu:#5d6680}
+.tpt .g-a4p.v3 .g-a4i{gap:.95em}
+.tpt .g-a4p.v3 .g-a4band{background:var(--a);border:0;border-radius:14px;padding:1.1em 1.3em;align-items:center;position:relative;overflow:hidden}
+.tpt .g-a4p.v3 .g-a4band::after{content:"";position:absolute;right:-2.5em;top:-3em;width:11em;height:11em;border-radius:50%;background:rgba(255,255,255,.07)}
+.tpt .g-a4p.v3 .g-a4bl small{color:#aab6ff!important}
+.tpt .g-a4p.v3 .g-a4t,.tpt .g-a4p.v3 .g-a4band .g-a4st{color:#fff!important}
+.tpt .g-a4p.v3 .g-a4band .g-a4st{opacity:.85}
+.tpt .g-a4p.v3 .g-a4qb{background:#fff;border-radius:12px;position:relative;z-index:1}
+.tpt .g-a4p.v3 .g-a4qb b,.tpt .g-a4p.v3 .g-a4qb span{color:var(--a)!important}
+.tpt .g-a4p.v3 .g-a4meta{background:var(--a3);border:1px solid var(--ln);border-radius:12px;padding:.6em .4em;gap:0}
+.tpt .g-a4p.v3 .g-a4meta>div{border-left:0;padding:0 .8em}
+.tpt .g-a4p.v3 .g-a4meta>div+div{border-left:1px solid var(--ln)}
+.tpt .g-a4p.v3 .g-a4tiles{gap:.7em}
+.tpt .g-a4p.v3 .g-a4tiles>div{background:#fff;border:1px solid var(--ln);border-top:4px solid var(--a);border-radius:12px;box-shadow:0 2px 6px rgba(36,53,143,.08)}
+.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(2){border-top-color:var(--cl)}.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(2) b{color:var(--cl)!important}
+.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(3){border-top-color:var(--o)}.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(3) b{color:var(--o)!important}
+.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(4){border-top-color:#2f9e44}.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(4) b{color:#2f9e44!important}
+.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(5){border-top-color:#ae3ec9}.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(5) b{color:#ae3ec9!important}
+.tpt .g-a4p.v3 .g-a4bar{background:var(--a2)}.tpt .g-a4p.v3 .g-a4bar i{background:linear-gradient(90deg,var(--a),#5c7cfa)}
+.tpt .g-a4p.v3 .g-a4h{display:inline-flex;align-self:flex-start;background:var(--a);color:#fff!important;border-radius:99px;padding:.25em .9em;margin-bottom:-.2em;font-size:.8em}
+.tpt .g-a4p.v3 .g-a4h::after{display:none}
+.tpt .g-a4p.v3 .g-a4dyn .g-a4h{display:inline-flex}
+.tpt .g-a4p.v3 .g-a4tab{border:1px solid var(--ln);border-radius:10px;border-collapse:separate;border-spacing:0;overflow:hidden}
+.tpt .g-a4p.v3 .g-a4tab th{background:var(--a2);color:var(--a)!important;border-bottom:1px solid var(--ln)}
+.tpt .g-a4p.v3 .g-a4tab td{border-bottom:1px solid var(--ln)}
+.tpt .g-a4p.v3 .g-a4tab tbody tr:last-child td{border-bottom:0}
+.tpt .g-a4p.v3 .g-a4tab tbody tr:nth-child(even) td{background:var(--a3)}
+.tpt .g-a4p.v3 .g-a4tab td:first-child{color:var(--a)!important;font-weight:800}
+.tpt .g-a4p.v3 .g-a4stu th:nth-child(5),.tpt .g-a4p.v3 .g-a4stu td:nth-child(5){border-left:2px solid var(--a)}
+.tpt .g-a4p.v3 .g-a4all tfoot td{background:var(--a);color:#fff!important}
+.tpt .g-a4p.v3 .g-a4ch rect.c1{fill:var(--a)}.tpt .g-a4p.v3 .g-a4ch rect.c2{fill:var(--bad)}.tpt .g-a4p.v3 .g-a4ch rect.c3{fill:var(--o)}.tpt .g-a4p.v3 .g-a4ch rect.c0{fill:var(--a2);stroke:var(--a)}
+.tpt .g-a4p.v3 .g-a4lg .b1{background:var(--a)}.tpt .g-a4p.v3 .g-a4lg .b2{background:var(--bad)}.tpt .g-a4p.v3 .g-a4lg .b3{background:var(--o)}.tpt .g-a4p.v3 .g-a4lg .b0{background:var(--a2);border:1px solid var(--a)}
+.tpt .g-a4p.v3 .g-a4sum{background:#fff;border:1px solid var(--ln);border-left:0;border-radius:12px;box-shadow:inset 5px 0 0 var(--o)}
+.tpt .g-a4p.v3 .g-a4rec li::before{background:var(--o)}
+.tpt .g-a4p.v3 .g-a4tab i{color:var(--o)!important}
+.tpt .g-a4p.v3 .g-a4f{border-top:1px dashed var(--a)}
+.tpt .g-a4p.v3 .g-a4warn{background:#fff4e6;color:#d9480f!important}
+.tpt .g-stseg{flex-wrap:wrap}
+@media (max-width:520px){.tpt .g-stseg{display:grid;grid-template-columns:1fr 1fr 1fr}.tpt .g-stseg button{padding:6px 4px;font-size:13px}.tpt .g-a4flow.v3 .g-a4meta>div+div{border-left:0}}
