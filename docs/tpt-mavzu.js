@@ -10,7 +10,7 @@
 const TPTM = (() => {
   let H = null; // guruhlar.js yordamchilari
   const ISO = /^\d{4}-\d\d-\d\d$/;
-  const T = {flt: "next", view: "plan", rq: 0, rv: "scr", o: {by: "topic", stu: true, sum: true, sig: true}};
+  const T = {flt: "next", view: "plan", rq: 0, rv: "scr", o: {by: "topic", stu: true, sum: true, sig: true, chart: true, rec: true}};
   try { Object.assign(T.o, JSON.parse(localStorage.getItem("yoqlama_tptrep")) || {}); } catch (err) { /* sozlama yo'q */ }
   const keepO = () => { try { localStorage.setItem("yoqlama_tptrep", JSON.stringify(T.o)); } catch (err) { /* saqlanmadi */ } };
 
@@ -201,7 +201,9 @@ const TPTM = (() => {
     const partial = !qDone(c, q);
     return {P, rows, offs, plan, own, topics, first, last, total: L.total, nTopics: c.gplan.topics.length, att: sumN ? Math.round(sumK / sumN * 100) : 0,
       miss: st.filter((x) => x.miss).sort((a, b) => b.miss - a.miss || a.name.localeCompare(b.name)).slice(0, 3),
-      full: st.filter((x) => !x.miss).length, nSt: st.length, stu: st, nrows, partial, upto};
+      full: st.filter((x) => !x.miss).length, nSt: st.length, stu: st, end: L.end,
+      months: [...new Set(rows.map((r) => r.d.slice(0, 7)))].map((m) => { const rs = rows.filter((r) => r.d.startsWith(m)), k = rs.reduce((a, r) => a + r.k, 0), n = rs.reduce((a, r) => a + r.na, 0);
+        return {m, n: rs.length, t: new Set(rs.filter((r) => r.n).map((r) => r.s.i)).size, att: n ? Math.round(k / n * 100) : 0}; }), nrows, partial, upto};
   }
   // o'qituvchi uchun tayyor matn (xulosa) — ota-onalar guruhiga yoki ma'muriyatga
   function summary(c, A) {
@@ -215,6 +217,30 @@ const TPTM = (() => {
     if (A.nrows.length) { const a = A.nrows[0], b = A.nrows[A.nrows.length - 1]; out.push(`Keyingi chorakda ${A.nrows.length} ta dars rejalashtirilgan: «${a.s.t}» dan «${b.s.t}» gacha.`); }
     else if (A.last >= sl.length) out.push("Yillik reja to'liq bajarildi.");
     return out;
+  }
+  // tavsiyalar: ma'lumotdan kelib chiqadigan aniq takliflar
+  function advice(c, A) {
+    const out = [], pc = (x) => x.all ? Math.round(x.came / x.all * 100) : 100;
+    const low = A.stu.filter((x) => pc(x) < 75).sort((a, b) => pc(a) - pc(b));
+    if (low.length) out.push(`${low.slice(0, 5).map((x) => x.name).join(", ")}${low.length > 5 ? ` va yana ${low.length - 5} nafar` : ""} — davomati 75% dan past; ota-onalari bilan suhbat o'tkazish va qoldirilgan mavzularni qayta tushuntirish tavsiya etiladi.`);
+    const tp = {}; for (const r of A.rows) if (r.n && r.na) { const t = tp[r.s.i] || (tp[r.s.i] = {t: r.s.t, k: 0, n: 0}); t.k += r.k; t.n += r.na; }
+    const weak = Object.values(tp).filter((x) => x.k / x.n < 0.75).sort((a, b) => a.k / a.n - b.k / b.n).slice(0, 2);
+    if (weak.length) out.push(`${weak.map((x) => `«${x.t}» (${Math.round(x.k / x.n * 100)}%)`).join(", ")} mavzularida davomat past bo'ldi — takrorlash darsida qisqacha qaytarish kerak.`);
+    const sh = A.offs.length + A.own.length, q4 = qR(4);
+    if (A.end && q4 && A.end > q4[1]) out.push(`Joriy sur'atda yillik reja ${fullD(A.end)} da tugaydi — o'quv yili oxiridan (${fullD(q4[1])}) keyin. Qo'shimcha dars belgilash yoki ayrim mavzularni birlashtirish kerak.`);
+    else if (sh) out.push(`Reja ${sh} darsga surilgan, lekin yil oxirigacha yetadi${A.end ? ` (taxminan ${fullD(A.end)})` : ""}.`);
+    if (!out.length) out.push("Reja va davomat bo'yicha kamchilik yo'q — shu tartibda davom ettirish tavsiya etiladi.");
+    return out;
+  }
+  // har bir dars davomati — oq-qora ustunli grafik (A4 uchun)
+  function chartSvg(A) {
+    const rs = A.rows; if (rs.length < 2) return "";
+    const W = 680, Hh = 96, pad = 24, bw = (W - pad) / rs.length, y = (v) => 6 + (Hh - 20) * (1 - v);
+    let g = `<line x1="${pad}" x2="${W}" y1="${y(.75)}" y2="${y(.75)}" stroke="#000" stroke-dasharray="3 3" stroke-width=".8"/><text x="0" y="${y(.75) + 3}" font-size="8">75%</text><text x="0" y="${y(1) + 3}" font-size="8">100</text>`;
+    rs.forEach((r, i) => { const v = r.na ? r.k / r.na : 0, x = pad + i * bw + bw * .15, w = bw * .7;
+      g += `<rect x="${x.toFixed(1)}" y="${y(v).toFixed(1)}" width="${w.toFixed(1)}" height="${(y(0) - y(v)).toFixed(1)}" fill="${r.own ? "#fff" : v < .75 ? "#000" : "#9a9a9a"}" stroke="#000" stroke-width=".6"/>`;
+      if (i % Math.ceil(rs.length / 13) === 0) g += `<text x="${(x + w / 2).toFixed(1)}" y="${Hh - 2}" font-size="8" text-anchor="middle">${r.d.slice(8, 10)}.${r.d.slice(5, 7)}</text>`; });
+    return `<svg class="g-a4ch" viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Har bir darsdagi davomat">${g}<line x1="${pad}" x2="${W}" y1="${y(0)}" y2="${y(0)}" stroke="#000" stroke-width=".8"/></svg>`;
   }
   function sheet(c, A) {
     const P = A.P, lines = summary(c, A);
@@ -237,7 +263,7 @@ const TPTM = (() => {
   const yearOf = (d) => { const y = +d.slice(0, 4) - (+d.slice(5, 7) < 8 ? 1 : 0); return `${y}–${y + 1}`; };
   const dd = (d) => `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}`;
   function a4parts(c, A) {
-    const P = A.P, h = hdrS(), lines = summary(c, A).slice(1);
+    const P = A.P, h0 = hdrS(), gh = c.grh || {}, h = {school: gh.org != null ? gh.org : h0.school, teacher: gh.tch != null ? gh.tch : h0.teacher}, lines = summary(c, A).slice(1);
     const list = A.rows.concat(A.offs.map((d) => ({d, off: true}))).sort((a, b) => a.d.localeCompare(b.d));
     const head = `${h.school ? `<div class="g-a4sch">${H.e(h.school)}</div>` : ""}<div class="g-a4t">O'tilgan mavzular hisoboti</div>
       <div class="g-a4st">«${H.e(c.name)}» guruhi · ${P.q}-chorak · ${yearOf(P.from)} o'quv yili</div>
@@ -245,7 +271,9 @@ const TPTM = (() => {
         <tr><td>O'quvchilar: <b>${A.nSt} nafar</b></td><td>O'qituvchi: <b>${h.teacher ? H.e(h.teacher) : "____________________"}</b></td></tr></table>
       ${A.partial ? `<div class="g-a4warn">Chorak hali tugamagan — ma'lumot ${dd(A.upto)} holatiga.</div>` : ""}
       <table class="g-a4kpi"><tr><th>O'tkazilgan darslar</th><th>O'tilgan mavzular</th><th>Yillik reja bajarilishi</th><th>O'rtacha davomat</th></tr>
-        <tr><td>${A.rows.length}</td><td>${A.topics.length}</td><td>${A.total ? Math.round(A.last / A.total * 100) : 0}% <small>(${A.last}/${A.total} dars)</small></td><td>${A.att}%</td></tr></table>`;
+        <tr><td>${A.rows.length}</td><td>${A.topics.length}</td><td>${A.total ? Math.round(A.last / A.total * 100) : 0}% <small>(${A.last}/${A.total} dars)</small></td><td>${A.att}%</td></tr></table>
+      ${T.o.chart && A.rows.length > 1 ? `<div class="g-a4dyn"><div><div class="g-a4h">Darslardagi davomat</div>${chartSvg(A)}<div class="g-a4lg"><span><i class="b1"></i>75% va yuqori</span><span><i class="b2"></i>75% dan past</span><span><i class="b3"></i>rejadan tashqari</span></div></div>
+        <div><div class="g-a4h">Oylar kesimida</div><table class="g-a4tab g-a4mo"><thead><tr><th class="l">Oy</th><th>Dars</th><th>Mavzu</th><th>Davomat</th></tr></thead><tbody>${A.months.map((x) => `<tr><td class="l">${H.MN[+x.m.slice(5) - 1]}</td><td>${x.n}</td><td>${x.t}</td><td>${x.att}%</td></tr>`).join("")}</tbody></table></div></div>` : ""}`;
     // «Mavzular bo'yicha»: bir mavzuning hamma darslari bitta qatorda (sanalari, soati, o'rtacha davomat)
     const groups = [];
     for (const r of list) {
@@ -265,7 +293,7 @@ const TPTM = (() => {
     const byT = T.o.by === "topic";
     const thead = (cont) => byT ? `<div class="g-a4h">O'tilgan mavzular${cont ? " (davomi)" : ""}</div><table class="g-a4tab"><thead><tr><th>№</th><th class="l" colspan="2">Mavzu</th><th>Dars sanalari</th><th>Soat</th><th>Davomat</th></tr></thead><tbody>`
       : `<div class="g-a4h">Darslar va mavzular${cont ? " (davomi)" : ""}</div><table class="g-a4tab"><thead><tr><th>№</th><th>Sana</th><th>Kun</th><th class="l">Mavzu</th><th>Keldi</th></tr></thead><tbody>`;
-    const tail = `${T.o.stu ? stuH : ""}${T.o.sum ? `<div class="g-a4h">Xulosa</div><div class="g-a4sum">${lines.map((x) => `<p>${H.e(x)}</p>`).join("")}</div>` : ""}
+    const tail = `${T.o.stu ? stuH : ""}${T.o.sum ? `<div class="g-a4h">Xulosa</div><div class="g-a4sum">${lines.map((x) => `<p>${H.e(x)}</p>`).join("")}</div>` : ""}${T.o.rec ? `<div class="g-a4h">Tavsiyalar</div><ol class="g-a4rec">${advice(c, A).map((x) => `<li>${H.e(x)}</li>`).join("")}</ol>` : ""}
       <div class="g-a4note">* — rejadan tashqari mavzu${byT ? "; «Soat» — shu chorakda o'tilgan darslar (2/3 — mavzuning 3 darsidan 2 tasi)" : "; «Keldi» — darsga kelgan / guruhdagi o'quvchilar"}${T.o.stu && stu.length ? "; davomati 75% dan past o'quvchilar «*» bilan" : ""}.</div>
       ${T.o.sig ? "" : "<!--"}<div class="g-a4sig"><div><span>O'qituvchi</span><i></i><small>(imzo)</small></div><div><span>F.I.Sh.</span><i>${h.teacher ? H.e(h.teacher) : ""}</i><small></small></div><div><span>Sana</span><i></i><small></small></div></div>${T.o.sig ? "" : "-->"}`;
     return {head, rows: byT ? groups.map(grpH) : list.map(rowH), thead, tail, foot: (i, n) => `<div class="g-a4f"><span>«${H.e(c.name)}» · ${P.q}-chorak · o'tilgan mavzular</span><span>${i} / ${n}</span></div>`};
@@ -295,9 +323,12 @@ const TPTM = (() => {
   }
   function a4view(c, A) {
     const ps = a4pages(c, A);
+    const h0 = hdrS(), gh = c.grh || {}, hdr = {org: gh.org != null ? gh.org : h0.school, tch: gh.tch != null ? gh.tch : h0.teacher};
     const ck = (k, t) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${t}</button>`;
     return `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Jadval</span><div class="g-seg"><button type="button" data-tpby="topic" class="${T.o.by === "topic" ? "on" : ""}">Mavzular bo'yicha</button><button type="button" data-tpby="day" class="${T.o.by !== "topic" ? "on" : ""}">Har bir dars</button></div></div>
-        <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${ck("stu", "O'quvchilar davomati")}${ck("sum", "Xulosa")}${ck("sig", "Imzo joyi")}</div></div></div>
+        <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${ck("chart", "Grafik va oylar")}${ck("stu", "O'quvchilar davomati")}${ck("sum", "Xulosa")}${ck("rec", "Tavsiyalar")}${ck("sig", "Imzo joyi")}</div></div>
+        <div class="g-frow g-a4hdr"><div class="g-fld"><label for="g-ro">Tashkilot (markaz, maktab) nomi</label><input id="g-ro" class="g-inp" value="${H.e(hdr.org)}" placeholder="Masalan: «Bilim» o'quv markazi"></div>
+          <div class="g-fld"><label for="g-rt">O'qituvchi F.I.Sh.</label><input id="g-rt" class="g-inp" value="${H.e(hdr.tch)}" placeholder="Masalan: Otaboboyev A."></div></div></div>
       <div class="g-a4w">${ps.map((x) => `<div class="g-a4s">${x}</div>`).join("")}</div>
       <span class="g-muted" style="font-size:12.5px">A4 varaq: ${ps.length} bet. «Chop etish» bosilganda xuddi shunday chiqadi; «PDF — Telegram'ga» ham shu varaqni yuboradi.</span>`;
   }
@@ -342,6 +373,8 @@ const TPTM = (() => {
     H.qa("[data-tprv]", m).forEach((b) => b.onclick = () => { T.rv = b.dataset.tprv; H.draw(); });
     H.qa("[data-tpby]", m).forEach((b) => b.onclick = () => { T.o.by = b.dataset.tpby; keepO(); H.draw(); });
     H.qa("[data-tpo2]", m).forEach((b) => b.onclick = () => { const k = b.dataset.tpo2; T.o[k] = !T.o[k]; keepO(); H.draw(); });
+    // sarlavha: yozib bo'lgach (change) saqlanadi — har harfda qayta chizilmaydi
+    [["#g-ro", "org"], ["#g-rt", "tch"]].forEach(([sel, k]) => { const i = H.q(sel, m); if (i) i.onchange = () => { c.grh = Object.assign({}, c.grh, {[k]: i.value.trim().slice(0, 120)}); H.save(); H.draw(); }; });
     const pr = H.q("[data-tpprint]", m); if (pr) pr.onclick = () => printA4(c, T.rq);
     fitA4(m);
     const cp = H.q("[data-tpcopy]", m); if (cp) cp.onclick = () => copyTxt(summary(c, repData(c, T.rq)).join("\n"));

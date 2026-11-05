@@ -129,3 +129,16 @@
 .tpt .g-a4stu td,.tpt .g-a4stu th{padding:.12em .25em;overflow:hidden}
 .tpt .g-a4stu th:nth-child(5),.tpt .g-a4stu td:nth-child(5){border-left:2px solid #000}
 @media (max-width:520px){.tpt .g-a4opt .g-fld{width:100%}.tpt .g-a4opt .g-seg{display:grid;grid-template-columns:1fr 1fr}}
+.tpt .g-a4hdr{flex:1 1 100%;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.tpt .g-a4hdr{grid-template-columns:1fr}}
+.tpt .g-a4dyn{display:grid;grid-template-columns:minmax(0,1fr) 34%;gap:1.2em;align-items:start}
+.tpt .g-a4dyn .g-a4h{margin-bottom:.3em}
+.tpt .g-a4ch{display:block;height:auto}
+.tpt .g-a4ch text{font-family:"Times New Roman",Times,serif;fill:#000}
+.tpt .g-a4lg{display:flex;gap:1em;font-size:.8em;margin-top:.2em}
+.tpt .g-a4lg i{display:inline-block;width:.8em;height:.8em;border:1px solid #000;margin-right:.3em;vertical-align:-.1em}
+.tpt .g-a4lg .b1{background:#9a9a9a}.tpt .g-a4lg .b2{background:#000}.tpt .g-a4lg .b3{background:#fff}
+.tpt .g-a4lg i,.tpt .g-a4ch rect{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.tpt .g-a4mo .l{width:auto}
+.tpt .g-a4rec{margin:0;padding:.3em .7em .3em 2em;border:1px solid #000;text-align:justify}
+.tpt .g-a4rec li{margin:0 0 .15em}
