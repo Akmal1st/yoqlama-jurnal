@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="vendor/bootstrap-5.3.3.css">
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="guruhlar.css">
+<link rel="stylesheet" href="tpt-mavzu.css">
 <link rel="stylesheet" href="tpt-tema.css">
 <link rel="stylesheet" href="dizayn.css">
 <link rel="stylesheet" href="hisobotlar.css">
@@ -35,6 +36,7 @@
   <nav class="tabbar" id="tabbar"></nav>
 </div>
 <input type="file" id="file" accept=".json,application/json" class="hide">
+<script src="tpt-mavzu.js"></script>
 <script src="guruhlar.js"></script>
 <script src="dizayn.js"></script>
 <script src="hisobotlar.js"></script>
@@ -285,6 +287,13 @@ function cleanClass(c) {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(c.gtime || ""))) delete c.gtime;
   { const n = Math.trunc(num0(c.gdur)); if (n >= 15 && n <= 600) c.gdur = n; else delete c.gdur; }
   if (c.garch !== true) delete c.garch;
+  // yillik mavzular (tpt-mavzu.js): c.gplan {topics: [{t, h}], start}, c.gtop {sana: {t} | {off: true}}
+  { const p = c.gplan && typeof c.gplan === "object" ? c.gplan : null, tp = p && Array.isArray(p.topics) ? p.topics.filter((x) => x && typeof x === "object" && String(x.t ?? "").trim())
+      .map((x) => ({t: String(x.t).trim().slice(0, 200), h: Math.max(1, Math.min(10, Math.trunc(num0(x.h)) || 1))})).slice(0, 600) : [];
+    if (tp.length) { c.gplan = {topics: tp}; if (ISO_D.test(String(p.start))) c.gplan.start = p.start; } else delete c.gplan; }
+  { const g = c.gtop && typeof c.gtop === "object" ? c.gtop : {}, o = {};
+    for (const [d, v] of Object.entries(g)) { if (!ISO_D.test(d) || !v || typeof v !== "object") continue; if (v.off === true) o[d] = {off: true}; else if (String(v.t ?? "").trim()) o[d] = {t: String(v.t).trim().slice(0, 200)}; }
+    if (Object.keys(o).length) c.gtop = o; else delete c.gtop; }
   c.works = (Array.isArray(c.works) ? c.works : []).filter((w) => w && typeof w === "object" && SAFE_ID.test(String(w.id)) && (w.type === "bsb" || w.type === "chsb") && ISO_D.test(String(w.date)))
     .map((w) => Object.assign({}, w, {id: String(w.id), max: num0(w.max)}));
   for (const w of c.works) cleanTest(w);

@@ -3158,3 +3158,71 @@ test("Bo'sh varaq v3: 5 xil tur, jadval dizayni, kelgusi kunlar, BSB ballari, 36
     }
   } finally { await browser.close(); }
 });
+
+// TPT guruhlari: yillik mavzular (docs/tpt-mavzu.js) — 36 va 18 o'quvchili guruhlarda, kompyuter va telefonda
+for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["telefon", {width: 390, height: 844}]]) {
+  test(`${name}: TPT guruhlari — yillik mavzular`, async () => {
+    const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+    try {
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 10, 4, 10, 0));   // chorshanba
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      // 36 o'quvchili pullik guruh (Du·Ch·Ju) va 18 o'quvchili to'garak (Se·Pa); 2 noyabr — 30 kishi keldi
+      await page.evaluate(() => {
+        const mk = (n, p) => Array.from({length: n}, (_, i) => ({id: p + i, name: `${p} O'quvchi ${i + 1}`, marks: i < 30 ? {"2026-11-02": "ot"} : {}, joined: "2026-09-01"}));
+        D.classes.push(...normalize({classes: [
+          {name: "Katta guruh", subject: "", kind: "paid", gdays: [1, 3, 5], dates: ["2026-11-02"], packs: [{id: "pk1", name: "12 dars", n: 12, sum: 600000}], students: mk(36, "K")},
+          {name: "Kichik guruh", subject: "", kind: "club", gdays: [2, 4], dates: [], students: mk(18, "C")}]}).classes);
+        save();
+      });
+      await page.click(`${name === "telefon" ? ".tabbar" : ".side"} [data-go=groups]`);
+      await page.waitForSelector(".tpt .g-gcard");
+      await page.click(".g-gcard:has-text('Katta guruh')");
+      await page.click("[data-tab=top]");
+      await page.waitForSelector("text=Yillik mavzular rejasi kiritilmagan");
+      // reja: 2-mavzu 2 dars; 2-noyabrdan (dushanba) boshlanadi
+      await page.click("[data-tpl]");
+      await page.fill("#g-tt", "1. Tanishuv\nPresent Simple | 2\nTakrorlash");
+      assert.match(await page.textContent("#g-tc"), /3 mavzu · 4 dars/);
+      await page.click("[data-tpo]");   // kalendar reja boshlanishi (1-sentabr) oyida ochiladi
+      await page.click(".g-dlg [data-m='2026-10']"); await page.click(".g-dlg [data-m='2026-11']");
+      await page.click(".g-dlg [data-day='2026-11-02']");
+      await page.click(".g-dlg [data-save]");
+      const lay = () => page.evaluate(() => { const c = D.classes.find((x) => x.name === "Katta guruh"); return TPTM.layout(c).rows.map((r) => r.d + ":" + (r.n || r.own)).join(","); });
+      assert.equal(await lay(), "2026-11-02:1,2026-11-04:2,2026-11-06:3,2026-11-09:4");
+      assert.equal(await page.textContent(".g-tnext b"), "2. Present Simple (1/2)");
+      // 4-noyabr «Dars bo'lmadi» — mavzular bir darsga suriladi
+      await page.click("[data-tpf=all]");
+      await page.click("[data-tpe='2026-11-04']");
+      await page.click("[data-tk=off]"); await page.click(".g-dlg [data-save]");
+      assert.equal(await lay(), "2026-11-02:1,2026-11-06:2,2026-11-09:3,2026-11-11:4");
+      // Yo'qlama → Kun: shu kun mavzusi ko'rinadi; sahifa telefonda yon tomonga siljimaydi
+      await page.click("[data-tab=att]");
+      await page.click("[data-pick='2026-11-02']");
+      assert.match(await page.textContent(".g-tpc"), /1-dars \/ 4.*Tanishuv/);
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+      // saqlanib, qayta yuklangandan keyin ham bor
+      await page.reload(); await page.waitForSelector("text=Xayrli");
+      assert.equal(await page.evaluate(() => { const c = D.classes.find((x) => x.name === "Katta guruh"); return [c.gplan.topics.length, c.gplan.start, JSON.stringify(c.gtop)].join("|"); }), '3|2026-11-02|{"2026-11-04":{"off":true}}');
+      // 18 o'quvchili to'garak: «Boshqa mavzu» kuni rejadan mavzu olmaydi
+      await page.click(`${name === "telefon" ? ".tabbar" : ".side"} [data-go=groups]`);
+      await page.click(".g-gcard:has-text('Kichik guruh')");
+      await page.click("[data-tab=top]");
+      await page.click("[data-tpl]");
+      await page.fill("#g-tt", "Robot nima\nMotorlar\nDatchiklar");
+      await page.click("[data-tpo]");   // kalendar reja boshlanishi (1-sentabr) oyida ochiladi
+      await page.click(".g-dlg [data-m='2026-10']"); await page.click(".g-dlg [data-m='2026-11']");
+      await page.click(".g-dlg [data-day='2026-11-03']");
+      await page.click(".g-dlg [data-save]");
+      await page.click("[data-tpf=all]");
+      await page.click("[data-tpe='2026-11-03']");
+      await page.click("[data-tk=own]"); await page.fill("#g-to", "Xavfsizlik qoidalari"); await page.click(".g-dlg [data-save]");
+      assert.equal(await page.evaluate(() => { const c = D.classes.find((x) => x.name === "Kichik guruh"); return TPTM.layout(c).rows.map((r) => r.d + ":" + (r.n || r.own)).join(","); }), "2026-11-03:Xavfsizlik qoidalari,2026-11-05:1,2026-11-10:2,2026-11-12:3");
+      assert.equal(await page.locator(".g-trow").count(), 4);
+      assert.deepEqual(errors, []);
+    } finally { await browser.close(); }
+  });
+}
