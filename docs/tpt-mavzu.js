@@ -12,8 +12,9 @@ const TPTM = (() => {
   const ISO = /^\d{4}-\d\d-\d\d$/;
   const T = {flt: "next", view: "plan", rq: null, rk: "q", rs: "", rv: "scr", o: {by: "topic", stu: true, sum: true, sig: true, chart: true, rec: true}};
   try { Object.assign(T.o, JSON.parse(localStorage.getItem("yoqlama_tptrep3")) || {}); } catch (err) { /* sozlama yo'q */ }
-  // varaq uslubi: v3 — «Kartochkali» (yangi), mod — «Zamonaviy», off — «Rasmiy (oq-qora)»
-  const ST = [["nv", "Yashil"], ["nv n2", "Ko'k"], ["nv bw", "Oq-qora"], ["nv sm", "Oddiy"]];
+  // varaq uslubi: nv — yon panelli (Yashil/Ko'k/Oq-qora), nv sm — «Oddiy», pl — «Bezaksiz» (rasmiy: Times, chegarali jadvallar)
+  const ST = [["nv", "Yashil"], ["nv n2", "Ko'k"], ["nv bw", "Oq-qora"], ["nv sm", "Oddiy"], ["pl", "Bezaksiz"]];
+  const fancy = () => stCls() !== "pl";
   const stCls = () => (ST.find((x) => x[0] === T.o.st) || ST[0])[0];
   const stSeg = () => `<div class="g-seg g-stseg" role="group" aria-label="Dizayn">${ST.map(([k, l]) => `<button type="button" data-tpst="${k}" class="${stCls() === k ? "on" : ""}" aria-pressed="${stCls() === k}">${l}</button>`).join("")}</div>`;
   const keepO = () => { try { localStorage.setItem("yoqlama_tptrep3", JSON.stringify(T.o)); } catch (err) { /* saqlanmadi */ } };
@@ -272,7 +273,7 @@ const TPTM = (() => {
   function a4parts(c, A) {
     const P = A.P, h0 = hdrS(), gh = c.grh || {}, h = {school: gh.org != null ? gh.org : h0.school, teacher: gh.tch != null ? gh.tch : h0.teacher}, lines = summary(c, A).slice(1);
     const list = A.rows.concat(A.offs.map((d) => ({d, off: true}))).sort((a, b) => a.d.localeCompare(b.d));
-    const pct = A.total ? Math.round(A.last / A.total * 100) : 0, mod = true;
+    const pct = A.total ? Math.round(A.last / A.total * 100) : 0, mod = fancy();
     const headM = `<div class="g-a4band"><div class="g-a4bl"><small>${h.school ? H.e(h.school) : "O'quv guruhi hisoboti"}</small><div class="g-a4t">O'tilgan mavzular hisoboti</div>
         <div class="g-a4st">«${H.e(c.name)}» guruhi · ${yearOf(P.from)} o'quv yili</div></div>${qBadge(P)}</div>
       <div class="g-a4meta"><div><small>Davr</small><b>${dd(P.from)} – ${dd(P.to)}</b></div><div><small>Dars kunlari</small><b>${H.e(H.sched(c))}</b></div><div><small>O'quvchilar</small><b>${A.nSt} nafar</b></div><div><small>O'qituvchi</small><b>${h.teacher ? H.e(h.teacher) : "&nbsp;"}</b></div></div>
@@ -355,12 +356,12 @@ const TPTM = (() => {
   const RK = [["q", "Chorak hisoboti"], ["yr", "Yillik: choraklar kesimi"], ["st", "O'quvchi hisoboti"], ["doc", "To'garak hujjatlari"]];
   const flow = (X) => `<div class="g-a4p g-a4flow ${stCls()}"><div class="g-a4i">${X.head}${X.rows.length ? X.thead(false) + X.rows.join("") + "</tbody></table>" : ""}${X.tail}</div></div>`;
   const hdrOf = (c) => { const h0 = hdrS(), gh = c.grh || {}; return {school: gh.org != null ? gh.org : h0.school, teacher: gh.tch != null ? gh.tch : h0.teacher}; };
-  const band = (h, title, sub, badge) => true
+  const band = (h, title, sub, badge) => fancy()
     ? `<div class="g-a4band"><div class="g-a4bl"><small>${h.school ? H.e(h.school) : "O'quv guruhi hisoboti"}</small><div class="g-a4t">${title}</div><div class="g-a4st">${sub}</div></div>${badge}</div>`
     : `${h.school ? `<div class="g-a4sch">${H.e(h.school)}</div>` : ""}<div class="g-a4t">${title}</div><div class="g-a4st">${sub}</div>`;
-  const meta = (pairs) => true ? `<div class="g-a4meta">${pairs.map(([k, v]) => `<div><small>${k}</small><b>${v || "&nbsp;"}</b></div>`).join("")}</div>`
+  const meta = (pairs) => fancy() ? `<div class="g-a4meta">${pairs.map(([k, v]) => `<div><small>${k}</small><b>${v || "&nbsp;"}</b></div>`).join("")}</div>`
     : `<table class="g-a4info"><tr>${pairs.slice(0, 2).map(([k, v]) => `<td>${k}: <b>${v || "____________"}</b></td>`).join("")}</tr><tr>${pairs.slice(2).map(([k, v]) => `<td>${k}: <b>${v || "____________"}</b></td>`).join("")}</tr></table>`;
-  const tilesH = (ts) => true ? `<div class="g-a4tiles" style="grid-template-columns:repeat(${ts.length},1fr)">${ts.map(([v, l, bar]) => `<div class="${bar != null ? "w" : ""}"><b>${v}</b><span>${l}</span>${bar != null ? `<div class="g-a4bar"><i style="width:${bar}%"></i></div>` : ""}</div>`).join("")}</div>`
+  const tilesH = (ts) => fancy() ? `<div class="g-a4tiles" style="grid-template-columns:repeat(${ts.length},1fr)">${ts.map(([v, l, bar]) => `<div class="${bar != null ? "w" : ""}"><b>${v}</b><span>${l}</span>${bar != null ? `<div class="g-a4bar"><i style="width:${bar}%"></i></div>` : ""}</div>`).join("")}</div>`
     : `<table class="g-a4kpi"><tr>${ts.map(([, l]) => `<th>${l}</th>`).join("")}</tr><tr>${ts.map(([v]) => `<td>${v}</td>`).join("")}</tr></table>`;
   const sigH = (who) => `<div class="g-a4sig">${who.map(([a, b]) => `<div><span>${a}</span><i>${b ? H.e(b) : ""}</i><small>${b ? "" : "(imzo)"}</small></div>`).join("")}</div>`;
   const block = (t, items, ol) => items.length ? `<div class="g-a4h">${t}</div>${ol ? `<ol class="g-a4rec">${items.map((x) => `<li>${H.e(x)}</li>`).join("")}</ol>` : `<div class="g-a4sum">${items.map((x) => `<p>${H.e(x)}</p>`).join("")}</div>`}` : "";
@@ -594,7 +595,7 @@ const TPTM = (() => {
     return `<svg class="g-a4ch" viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Guruhlar davomati">${g}</svg>`;
   }
   function allParts(G) {
-    const P = G.P, h0 = hdrS(), gh = (G.rows.find((r) => r.c.grh) || {c: {}}).c.grh || {}, h = {school: gh.org != null ? gh.org : h0.school, teacher: gh.tch != null ? gh.tch : h0.teacher}, mod = true;
+    const P = G.P, h0 = hdrS(), gh = (G.rows.find((r) => r.c.grh) || {c: {}}).c.grh || {}, h = {school: gh.org != null ? gh.org : h0.school, teacher: gh.tch != null ? gh.tch : h0.teacher}, mod = fancy();
     const mln = (x) => x >= 1e6 ? [`${String(Math.round(x / 1e5) / 10).replace(".", ",")} mln`, "tushum, so'm"] : [sp3(x), "tushum, so'm"];
     const tiles = [[G.rows.length, "guruh"], [G.st, "o'quvchi"], [G.les, "dars o'tkazildi"], [G.att + "%", "o'rtacha davomat"]].concat(G.paid ? [mln(G.inc)] : []);
     const head = mod ? `<div class="g-a4band"><div class="g-a4bl"><small>${h.school ? H.e(h.school) : "Guruhlar bo'yicha"}</small><div class="g-a4t">Umumiy hisobot</div>
