@@ -663,6 +663,7 @@ test("jurnal: telefonda sinf ☰ ro'yxatdan tanlanadi", async () => {
   try {
     const page = await browser.newPage({viewport: {width: 390, height: 844}});
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // 1-chorak ichidagi kun: chorak arxivi (arxiv.js) qulflamasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
@@ -946,6 +947,7 @@ test("Hisobotlar va BSB/CHSB tahlili: PDF hisobot Telegram'ga (soxta bot API)", 
           pdf: i >= 0 && j > i ? buf.subarray(i, j + 5) : null}); }
       return route.fulfill({status: 200, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: JSON.stringify({ok: true, result: {message_id: 1}})});
     });
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // 1-chorak ichidagi kun: chorak arxivi (arxiv.js) qulflamasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
@@ -3077,7 +3079,7 @@ test("BSB/CHSB ustuni ochilsa «BSB tahlili»da shu sana uchun tahlil ochiladi (
   } finally { await browser.close(); }
 });
 
-test("Bo'sh varaq: 5 xil tur, kelgusi kunlar jadvaldan, barcha sinflar, qayta chizilmaydi, chop etish va Excel", async () => {
+test("Bo'sh varaq v3: 5 xil tur, jadval dizayni, kelgusi kunlar, BSB ballari, 36 va 18 o'quvchida teng bo'lish, chop etish va Excel", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["telefon", {width: 390, height: 844}]]) {
@@ -3087,38 +3089,62 @@ test("Bo'sh varaq: 5 xil tur, kelgusi kunlar jadvaldan, barcha sinflar, qayta ch
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
       await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      // 36 va 18 o'quvchili sinflar (Akmal: test 36 va 18 o'quvchi bilan)
+      await page.evaluate(() => { const grow = (c, n) => { for (let i = c.students.length; i < n; i++) c.students.push({name: `Qo'shimcha O'quvchi ${i + 1}`, marks: {}, scores: {}}); c.students.length = n; };
+        grow(D.classes[0], 36); grow(D.classes[1], 18); save(); });
       await page.click(`${name === "telefon" ? ".tabbar" : ".side"} [data-go=reports]`);
       if (name === "telefon") { await page.click("[data-hk=kind]"); await page.click(".modal [data-kind=blank]"); } else await page.click("[data-kind=blank]");
       await page.waitForSelector(".bv-scale .bv-pg");
-      // tanlov bosilganda panel qayta yaratilmaydi (faqat o'zgargan joylar almashtiriladi), sahifa joyida qoladi
+      const tap = (sel) => page.evaluate((s) => document.querySelector(s).click(), sel);
+      // tanlov bosilganda panel qayta yaratilmaydi, sahifa joyida qoladi
       await page.evaluate(() => { document.querySelector(".bv").__mark = 1; window.scrollTo(0, 120); });
       const y0 = await page.evaluate(() => scrollY);
-      const tap = (sel) => page.evaluate((s) => document.querySelector(s).click(), sel);
       for (const t of ["only", "mz", "bsb", "own", "att"]) {
-        await tap(`.bv-tile[data-v=${t}]`);
+        await tap(`.bv-tab[data-v=${t}]`);
         assert.equal(await page.evaluate(() => document.querySelector(".bv").__mark), 1, `${t}: panel qayta chizildi`);
         assert.ok(await page.locator(".bv-scale .bv-pg table.bv-t").count(), `${t}: varaq yo'q`);
       }
+      for (const d of ["oq", "rang", "daf", "qal", "kl"]) { await tap(`.bv-dz[data-v=${d}]`); assert.equal(await page.locator(`.bv-scale .bv-pg.d-${d}`).count() > 0, true, d); }
       assert.equal(await page.evaluate(() => scrollY), y0);
-      if (name === "telefon") continue;
-      // mezon: har kunga Ish / Uy / Baho; kelgusi hafta jurnalda yo'q bo'lsa ham dars jadvalidan chiqadi
-      await tap(".bv-tile[data-v=mz]");
-      assert.ok(await page.locator(".bv-scale th small", {hasText: "Uy"}).count() >= 1);
+      // sozlamalar oynasi
+      await tap("[data-bv=set]"); assert.ok(await page.locator(".bv-pop").isVisible()); await tap(".bv-x");
+      assert.equal(await page.locator(".bv-pop").count(), 0);
+      if (name === "telefon") { assert.deepEqual(errors, []); continue; }
+      // teng bo'lish: 36 o'quvchi + 2 bo'sh qator, mezon, oy, yotiq → kunlar 2 ga, qatorlar 19 + 19
+      await tap(".bv-tab[data-v=mz]"); await tap("[data-bv=per][data-v=month]");
+      await tap("[data-bv=set]"); await tap("[data-bv=ori][data-v=land]"); await tap("[data-bv=set]");
+      const rows = await page.$$eval(".bv-print .bv-pg", (a) => a.map((p) => p.querySelectorAll("tbody tr").length));
+      assert.ok(rows.length >= 2, `varaqlar: ${rows}`);
+      assert.ok(Math.max(...rows) - Math.min(...rows) <= 1, `qatorlar teng emas: ${rows}`);
+      const days = await page.$$eval(".bv-print .bv-pg", (a) => [...new Set(a.map((p) => p.querySelectorAll("thead tr:first-child th[colspan]").length))]);
+      assert.ok(Math.max(...days) - Math.min(...days) <= 1, `kunlar teng emas: ${days}`);
+      assert.ok(await page.locator(".bv-chip.ok").count(), "teng bo'lingan belgisi");
+      // 18 o'quvchi: bitta varaq, hafta bo'yicha
+      await tap("[data-bv=set]"); await tap("[data-bv=ori][data-v=auto]"); await tap("[data-bv=set]");
+      await page.click(".hb-pks [data-hk=cls]"); await page.click(".hb-pop [data-ho=ci][data-v='1']");
+      await tap(".bv-tab[data-v=att]"); await tap("[data-bv=per][data-v=week]");
+      assert.equal(await page.locator(".bv-print .bv-pg").count(), 1);
+      assert.equal(await page.locator(".bv-print .bv-pg tbody tr").count(), 18 + 2);
+      // kelgusi hafta jurnalda yo'q bo'lsa ham dars jadvalidan chiqadi
       for (let i = 0; i < 3; i++) await tap("[data-bv=shift][data-v='1']");
       assert.ok(await page.locator(".bv-scale th.bv-fut").count() > 0, "kelgusi kunlar jadvaldan chiqishi kerak");
-      // BSB: topshiriqlar soni, Jami, Baho
-      await tap(".bv-tile[data-v=bsb]"); await tap("[data-bv=tasks][data-v='1']");
+      // BSB: tartib raqami, ballar katakka yoziladi, Jami
+      await tap(".bv-tab[data-v=bsb]"); await tap("[data-bv=tasks][data-v='1']"); await tap("[data-bv=wno][data-v='1']"); await tap("[data-bv=wt][data-v=CHSB]");
+      await page.click("#bv-tm-0"); await page.keyboard.type("8"); await page.keyboard.press("Enter"); await page.keyboard.type("12"); await page.waitForTimeout(500);
+      assert.deepEqual(await page.$$eval(".bv-scale thead tr:last-child th small", (a) => a.slice(0, 2).map((x) => x.textContent)), ["8 ball", "12 ball"]);
+      assert.match(await page.textContent(".bv-scale .bv-ttl b"), /2-CHSB/);
       assert.deepEqual(await page.$$eval(".bv-scale thead tr:first-child th", (a) => a.map((x) => x.textContent.trim()).slice(-3)), ["6", "Jami", "Baho"]);
+      await tap("[data-bv=tsplit]");
+      assert.match(await page.textContent(".bv-tot"), /Jami: 40 ball/);
       // O'z ustunlarim
-      await tap(".bv-tile[data-v=own]"); await page.fill("#bv-own", "Kitob, Daftar"); await page.waitForTimeout(500);
+      await tap(".bv-tab[data-v=own]"); await page.fill("#bv-own", "Kitob, Daftar"); await page.waitForTimeout(500);
       assert.deepEqual(await page.$$eval(".bv-scale thead th", (a) => a.map((x) => x.textContent.trim())), ["№", "O'quvchi", "Kitob", "Daftar"]);
       // izoh ustuni va bo'sh qatorlar
-      await tap("[data-bv=tog][data-k=note]"); await tap("[data-bv=extra][data-v='1']");
-      const n0 = await page.evaluate(() => D.classes[S.rep.ci].students.length);
-      assert.equal(await page.locator(".bv-scale tbody tr").count(), n0 + 3);
+      await tap("[data-bv=set]"); await tap("[data-bv=tog][data-k=note]"); await tap("[data-bv=extra][data-v='1']"); await tap("[data-bv=set]");
+      assert.equal(await page.locator(".bv-print .bv-pg tbody tr").count(), 18 + 3);
       assert.ok(await page.locator(".bv-scale thead th", {hasText: "Izoh"}).count());
       // barcha sinflar: har sinf alohida varaqda, chop etilganda ham
-      await tap(".bv-tile[data-v=att]"); await tap("[data-bv=per][data-v=week]");
+      await tap(".bv-tab[data-v=att]"); await tap("[data-bv=per][data-v=week]");
       await page.click(".hb-pks [data-hk=cls]"); await page.click(".hb-pop [data-ho=ci][data-v=all]");
       const sheets = await page.locator(".bv-print .bv-pg").count();
       assert.ok(sheets >= 2, `barcha sinflar: ${sheets} varaq`);
