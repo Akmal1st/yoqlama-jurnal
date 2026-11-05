@@ -252,3 +252,27 @@
 .tpt .g-a4p.nv.bw .g-a4rec li::before{color:#000}
 .tpt .g-stseg{flex-wrap:wrap}
 @media (max-width:520px){.tpt .g-stseg{display:grid;grid-template-columns:1fr 1fr 1fr;width:100%}}
+/* «To'garak hujjatlari»: rasmiy hujjat (oq-qora, serif), maktab namunasidagi kabi */
+.tpt .bx-pg.g-a4p.dc{font-family:"Times New Roman",Times,"Liberation Serif",serif}
+.tpt .g-a4p.dc .g-dcov{height:100%;display:flex;flex-direction:column;justify-content:space-between;text-align:center;font-weight:700;font-style:italic;padding:2em 0 3em}
+.tpt .g-a4p.dc .g-dco{font-size:1.45em;line-height:1.45}
+.tpt .g-a4p.dc .g-dmid{display:flex;flex-direction:column;gap:.6em}
+.tpt .g-a4p.dc .g-dct{font-size:4.2em;line-height:1.05;font-weight:800;letter-spacing:.02em}
+.tpt .g-a4p.dc .g-dcn{font-size:1.7em}
+.tpt .g-a4p.dc .g-dtas{align-self:flex-end;text-align:right;display:flex;flex-direction:column;gap:.35em;font-weight:700}
+.tpt .g-a4p.dc .g-dtt{text-align:center;font-weight:700;font-size:1.15em;margin-top:.4em}
+.tpt .g-a4p.dc .g-dts{text-align:center;margin-top:-.5em}
+.tpt .g-a4p.dc .g-dtab td,.tpt .g-a4p.dc .g-dtab th{padding:.15em .35em}
+.tpt .g-a4p.dc .g-dtab .l{white-space:normal;width:auto}
+.tpt .g-a4p.dc .g-dtab th{background:none}
+.tpt .g-a4p.dc .g-dtx{text-align:justify;line-height:1.45}
+.tpt .g-a4p.dc .g-dtx p{margin:0 0 .3em;text-indent:2em}
+.tpt .g-a4p.dc .g-dtx p.g-dk{font-weight:700;margin:.4em 0 .15em}
+.tpt .g-a4p.dc .g-dtx ol,.tpt .g-a4p.dc .g-dtx ul{margin:0 0 .4em;padding-left:4.2em}
+.tpt .g-a4p.dc .g-dtx li{margin:0 0 .1em}
+.tpt .g-a4p.dc .g-dsig{display:grid;grid-template-columns:auto 9em auto;gap:1em;align-items:end;justify-content:center;margin-top:1.4em}
+.tpt .g-a4p.dc .g-dsig span{border-bottom:1px solid #000;height:1.2em}
+.tpt .g-dgrid{flex:1 1 100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.tpt .g-dgrid .g-dfw{grid-column:1/-1}
+.tpt .g-dgrid textarea{resize:vertical;min-height:0;font:inherit}
+@media (max-width:520px){.tpt .g-dgrid{grid-template-columns:1fr}}
