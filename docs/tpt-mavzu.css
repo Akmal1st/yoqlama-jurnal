@@ -276,3 +276,6 @@
 .tpt .g-dgrid .g-dfw{grid-column:1/-1}
 .tpt .g-dgrid textarea{resize:vertical;min-height:0;font:inherit}
 @media (max-width:520px){.tpt .g-dgrid{grid-template-columns:1fr}}
+/* hisobot matni namunadagidek: qalin, ikki tomonga tekislangan */
+.tpt .g-a4p.dc .g-dtx{font-weight:700}
+.tpt .g-a4p.dc .g-dtt{font-size:1.1em}

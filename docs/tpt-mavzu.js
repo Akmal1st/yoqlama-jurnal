@@ -444,13 +444,16 @@ const TPTM = (() => {
     const h = dcH(c), A = repData(c, q), P = A.P, y = yearOf(P.from), nm = H.e(c.name);
     const per = q ? `${y}-o'quv yilining ${q}-choragi` : `${y}-o'quv yili`, pq = q ? `${q}-chorak` : "O'quv yili";
     const seen = new Set(), tops = [];
-    A.rows.forEach((r) => { const t = r.own || r.s.t, k = t.toLowerCase(); if (!seen.has(k)) { seen.add(k); tops.push(t); } });
+    const gen = /amaliy|takror|test|nazorat|masalalar yechish|mustahkamlash/i;
+    A.rows.forEach((r) => { const t = (r.own || r.s.t).replace(/\.$/, ""), k = t.toLowerCase(); if (!gen.test(t) && !seen.has(k)) { seen.add(k); tops.push(t); } });
+    const gl = [/amaliy/i, /takror/i, /masalalar yechish/i].map((re) => A.rows.some((r) => re.test(r.own || r.s.t)));
+    if (gl.some(Boolean)) tops.push([gl[0] ? "Amaliy mashg'ulotlar" : "", gl[1] ? "bob bo'yicha takrorlash" : "", gl[2] ? "masalalar yechish" : ""].filter(Boolean).join(", ").replace(/, ([^,]*)$/, " va $1").replace(/^./, (x) => x.toUpperCase()));
     const cnt = (re) => A.rows.filter((r) => re.test(r.own || r.s.t)).length;
     const tests = [...new Set(A.rows.map((r) => r.own || r.s.t).filter((t) => /test|nazorat/i.test(t)))];
     const am = cnt(/amaliy/i), tk = cnt(/takror/i);
-    const parts = [am ? `${am} ta amaliy mashg'ulot` : "", tk ? `${tk} ta takrorlash darsi` : "", tests.length ? tests.map((t) => t.replace(/\bTEST\b/, "test")).join(", ") : ""].filter(Boolean);
+    const parts = [am ? "amaliy mashg'ulotlar" : "", tk ? "takrorlash darslari" : "", tests.length ? tests.map((t) => t.replace(/\bTEST\b/, "test")).join(", ") : ""].filter(Boolean);
     const nat = String(h.nat[q] || "").split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
-    const xul = `${pq} davomida «${nm}» to'garagida belgilangan mavzular asosida mashg'ulotlar olib borildi; ish rejadagi ${A.total} ta mashg'ulotdan ${A.last} tasi (${A.total ? Math.round(A.last / A.total * 100) : 0}%) o'tildi.${A.nrows.length && q ? ` Keyingi chorakda ${A.nrows.length} ta mashg'ulot rejalashtirilgan: «${H.e(A.nrows[0].s.t)}» dan «${H.e(A.nrows[A.nrows.length - 1].s.t)}» gacha.` : ""}`;
+    const xul = `${pq} davomida «${nm}» to'garagida belgilangan mavzular asosida mashg'ulotlar olib borildi; ish rejadagi ${A.total} ta mashg'ulotdan ${A.last} tasi (${A.total ? Math.round(A.last / A.total * 100) : 0}%) o'tildi. O'quvchilarning ${lc(h.sub) ? lc(h.sub) + " faniga oid " : ""}bilim va ko'nikmalarini rivojlantirishga alohida e'tibor qaratildi.${A.nrows.length && q ? ` Keyingi chorakda ${A.nrows.length} ta mashg'ulot rejalashtirilgan: «${H.e(A.nrows[0].s.t)}» dan «${H.e(A.nrows[A.nrows.length - 1].s.t)}» gacha.` : ""}${q && q < 4 ? " Keyingi choraklarda ham o'quvchilarning bilimlarini chuqurlashtirish, amaliy masalalar yechish va fikrlash qobiliyatini rivojlantirish bo'yicha ishlar davom ettiriladi." : ""}`;
     const extra = [A.offs.length ? `${A.offs.length} kun dars bo'lmadi` : "", A.own.length ? `${A.own.length} ta rejadan tashqari mashg'ulot o'tkazildi` : ""].filter(Boolean).join(", ");
     const head = `<div class="g-dtt">${H.e(per.toUpperCase())} BO'YICHA HISOBOT</div>${A.partial ? `<div class="g-a4warn">Davr hali tugamagan — ma'lumot ${dd(A.upto)} holatiga.</div>` : ""}
       <div class="g-dtx"><p>${per[0].toUpperCase() + per.slice(1)} davomida ${h.cls ? `${H.e(h.cls)}-sinf o'quvchilari uchun ` : ""}${h.sub ? `${H.e(lc(h.sub))} fanidan ` : ""}tashkil etilgan «${nm}» to'garagida tasdiqlangan ish reja asosida mashg'ulotlar olib borildi.</p>
