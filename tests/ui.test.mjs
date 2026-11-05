@@ -185,7 +185,9 @@ test("emaktab.uz saytidan xatcho'p orqali import", async () => {
   } finally { await browser.close(); }
 });
 
-test("emaktab: yangi «Mening sinflarim» (sinflar JSON ichida) — 36 va 18 o'quvchili sinflar", async () => {
+// «Mening sinflarim»ning ikki ko'rinishi: yangi (sinflar JSON ichida) va eski (#ContentPanelTeacher .cc dagi havolalar,
+// yonida sinf rahbari paneli #ContentPanelMyClasses, jurnal havolasi …/journals/?school=&group=&subject= ko'rinishida ham)
+for (const kind of ["json", "cc"]) test(`emaktab: «Mening sinflarim» (${kind}) — 36 va 18 o'quvchili sinflar`, async () => {
   const {readFile} = await import("node:fs/promises");
   const XLSX = (await import("xlsx")).default;
   const docs = fileURLToPath(new URL("../docs/", import.meta.url));
@@ -212,11 +214,19 @@ test("emaktab: yangi «Mening sinflarim» (sinflar JSON ichida) — 36 va 18 o'q
     await ctx.route("https://schools.emaktab.uz/**", (r) => {
       const u = new URL(r.request().url()); asked.push(u.pathname + u.search);
       // sarlavhada bitta sinf havolasi bor — u JSON dagi ro'yxatni to'smasligi kerak
-      if (u.pathname === "/v2/myclasses") return r.fulfill({contentType: "text/html", body: `<html><body><a href="/v2/class?class=99">Mening sinfim</a><div id="teacher-root-v2"></div>
+      if (u.pathname === "/v2/myclasses") return r.fulfill({contentType: "text/html", body: kind === "json" ? `<html><body><a href="/v2/class?class=99">Mening sinfim</a><div id="teacher-root-v2"></div>
         <script>window.__TEACHERV2__INITIAL__STATE__ = {
             groups: ${JSON.stringify({groups})},
             other: {}
-        };</script></body></html>`});
+        };</script></body></html>` : `<html><body><div id="content"><h2>Mening sinflarim (2026/2027)</h2><div class="col23 first">
+        <div id="ContentPanelMyClasses" class="panel gray"><div class="rounded"><div class="c1"></div><div class="cc"><a href="/v2/class?class=99">11-V</a></div><div class="c3"></div></div></div>
+        <div id="ContentPanelTeacher" class="panel gray"><div class="rounded"><div class="c1"><a href="/v2/class?class=98">Menyu</a></div><div class="cc">
+          <a href="/v2/class?class=22"><img src="g.png"></a><a href="/v2/class?class=22">6-A</a>
+          <a href="https://schools.emaktab.uz/journals/?school=11&group=22&subject=33&period77&subgroup=0&tab=planning">Rejalashtirish</a>
+          <a href="https://emaktab.uz/journal/school/11/group/22/subject/33?periodId=77" title="Matematika">Matematika</a>
+          <a href="/v2/class?class=23">9-A</a><a href="/v2/class?class=22&view=files">Fayllar</a>
+          <a href="https://schools.emaktab.uz/journals/?school=11&group=23&subject=34&period=78">Algebra</a>
+        </div><div class="c3"></div></div></div></div></div></body></html>`});
       if (u.pathname === "/journal/school/11/group/22/subject/33") return r.fulfill({contentType: "text/html", body: `<script>window.__JOURNAL__INITIAL__STATE__ = {"journalHeader":{"currentPeriodId":77}};</script>`});
       if (u.pathname === "/v2/excel") { const b = XLS[u.searchParams.get("group")]; return b ? r.fulfill({contentType: "application/vnd.ms-excel", body: b}) : r.fulfill({status: 404}); }
       return r.fulfill({status: 404});
@@ -232,7 +242,7 @@ test("emaktab: yangi «Mening sinflarim» (sinflar JSON ichida) — 36 va 18 o'q
     // 6-A: jurnal sahifasi schools.emaktab.uz dan o'qildi; 9-A: jurnal sahifasi yo'q — havoladagi periodId (78) olindi
     assert.ok(asked.includes("/v2/excel?action=gjsxls&school=11&group=22&subgroup=0&subject=33&period=77"), asked.join(" "));
     assert.ok(asked.includes("/v2/excel?action=gjsxls&school=11&group=23&subgroup=0&subject=34&period=78"), asked.join(" "));
-    assert.ok(!asked.some((a) => a.includes("class=99") || a.includes("group=24")));
+    assert.ok(!asked.some((a) => /class=9[89]|group=24/.test(a)));
     const cls = await pop.evaluate(() => D.classes.map((c) => [c.name, c.subject, c.students.length]));
     assert.deepEqual(cls, [["6-A", "Matematika", 36], ["9-A", "Algebra", 18]]);
     await emk.waitForSelector("text=2 ta jurnal yuborildi");

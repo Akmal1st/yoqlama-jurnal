@@ -255,3 +255,19 @@ def test_catalog_subgroup_name():
         groups: {"groups":[{"name":"9-D","journal":[{"subjectName":"Algebra","subgroupName":"2-guruh","journalUrl":"https://emaktab.uz/journal/school/1/group/7/subject/8?periodId=3"}]}]}};</script>"""
     assert EH.catalog_from_html(html) == [{"name": "9-D", "url": "", "journals": [
         {"subject": "Algebra (2-guruh)", "url": "https://emaktab.uz/journal/school/1/group/7/subject/8"}]}]
+
+
+def test_catalog_links_query_form():
+    """Eski sahifa (#ContentPanelTeacher .cc): jurnal havolasi …/journals/?school=&group=&subject= ko'rinishida ham bo'ladi;
+    «Rejalashtirish» havolasi bilan bir jurnal ikki marta olinmaydi."""
+    html = """<div id="ContentPanelTeacher" class="panel gray"><div class="rounded"><div class="c1"></div><div class="cc">
+      <a href="/v2/class?class=5">8-B</a>
+      <a href="https://schools.emaktab.uz/journals/?school=1&group=5&subject=7&period2&subgroup=0&tab=planning">Rejalashtirish</a>
+      <a href="https://emaktab.uz/journal/school/1/group/5/subject/7?periodId=2">Informatika</a>
+      <a href="https://schools.emaktab.uz/journals/?school=1&group=5&subject=8">Fizika</a>
+      <a href="https://schools.emaktab.uz/v2/excel?action=gjsxls&school=1&group=5&subject=9">Excel</a>
+      </div><div class="c3"></div></div></div>"""
+    out = EH.catalog_from_html(html, "https://schools.emaktab.uz/v2/myclasses")
+    assert out == [{"name": "8-B", "url": "https://schools.emaktab.uz/v2/class?class=5", "journals": [
+        {"subject": "Informatika", "url": "https://emaktab.uz/journal/school/1/group/5/subject/7"},
+        {"subject": "Fizika", "url": "https://emaktab.uz/journal/school/1/group/5/subject/8"}]}]

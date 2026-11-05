@@ -143,6 +143,23 @@ def catalog_from_state(html):
 _CLS_NAME = re.compile(r"^\d{1,2}\s*[-–—]?\s*[^\W\d_]", re.U)
 
 
+def journal_ref(href):
+    """Jurnal havolasi: …/journal/school/S/group/G/subject/X yoki …/journals/?school=S&group=G&subject=X (eski sahifa,
+    «Rejalashtirish») → {"group", "url" (bir xil ko'rinishda), "path"}; jurnal bo'lmasa None."""
+    m = re.search(r"/journal/school/(\d+)/group/(\d+)/subject/(\d+)", href)
+    if m:
+        s, g, x = m.groups()
+    else:
+        if not re.search(r"/journals?[/?]", href):
+            return None
+        q = _up.parse_qs(_up.urlparse(href).query)
+        s, g, x = ((q.get(k) or [""])[0] for k in ("school", "group", "subject"))
+        if not (s.isdigit() and g.isdigit() and x.isdigit()):
+            return None
+    return {"group": g, "path": bool(m), "key": (s, g, x),
+            "url": href[:m.end()] if m else f"https://emaktab.uz/journal/school/{s}/group/{g}/subject/{x}"}
+
+
 def catalog_from_links(links, base, root_only=False):
     """Eski «Mening sinflarim» (havolalar bilan): sinf — `/v2/class?class=ID` havolasi, jurnal — `/journal/…/group/ID/…`.
     Jurnal sinfga sahifadagi tartib bo'yicha emas, guruh ID si bo'yicha biriktiriladi: bir sinfning bir nechta havolasi
@@ -165,19 +182,25 @@ def catalog_from_links(links, base, root_only=False):
                 cur["name"] = text[:40]
             last = cur
             continue
-        m = re.search(r"/journal/school/\d+/group/(\d+)/subject/\d+", href)
-        if not m:
+        j = journal_ref(href)
+        if not j:
             continue
-        cur = by_id.get(m.group(1)) or last
+        cur = by_id.get(j["group"]) or last
         if cur is None:
-            cur = by_id[m.group(1)] = {"name": "", "url": "", "journals": [], "_id": m.group(1)}
+            cur = by_id[j["group"]] = {"name": "", "url": "", "journals": [], "_id": j["group"]}
             out.append(cur)
-        url = href[:m.end()]
-        if not any(j["url"] == url for c in out for j in c["journals"]):
-            cur["journals"].append({"subject": re.sub(r"\s+", " ", a.get("title") or text).strip(), "url": url})
+        subj = re.sub(r"\s+", " ", a.get("title") or text).strip()
+        ex = next((x for c in out for x in c["journals"] if x["_key"] == j["key"]), None)
+        if ex is None:
+            cur["journals"].append({"subject": subj, "url": j["url"], "_path": j["path"], "_key": j["key"]})
+        elif j["path"] and not ex["_path"]:                   # «Rejalashtirish» havolasi oldin kelgan — jurnal havolasi nomini oladi
+            ex.update(subject=subj or ex["subject"], url=j["url"], _path=True)
     res = []
     for c in out:
         c.pop("_id", None)
+        for x in c["journals"]:
+            x.pop("_path", None)
+            x.pop("_key", None)
         if c["journals"] and c["name"]:
             res.append(c)
     return res

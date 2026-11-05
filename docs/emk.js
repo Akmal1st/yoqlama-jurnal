@@ -45,11 +45,21 @@
      (window.__TEACHERV2__INITIAL__STATE__ = {groups: {"groups": [{name, journal: [{subjectName, subgroupName, journalUrl}]}]}}) —
      shu asosiy manba. Eski sahifa (havolalar): jurnal sinfga tartib bo'yicha emas, guruh ID si bo'yicha biriktiriladi —
      bir sinfning bir nechta havolasi (rasm, «Fayllar», sinf rahbari menyusi) sinf nomini buzmaydi. */
-  const JRE = /\/journal\/school\/\d+\/group\/(\d+)\/subject\/\d+/, CLS = /^\d{1,2}\s*[-–—]?\s*\p{L}/u;
+  const CLS = /^\d{1,2}\s*[-–—]?\s*\p{L}/u;
+  // jurnal havolasi ikki ko'rinishda bo'ladi: …/journal/school/S/group/G/subject/X yoki …/journals/?school=S&group=G&subject=X
+  // (eski sahifa, «Rejalashtirish»). Ikkalasi bitta jurnalga keltiriladi; periodId / period (emaktabda ba'zan «=» siz) — chorak
+  const jref = (href) => {
+    href = String(href || ""); const m = href.match(/\/journal\/school\/(\d+)\/group\/(\d+)\/subject\/(\d+)/);
+    let s, g, x; if (m) [, s, g, x] = m;
+    else { if (!/\/journals?[/?]/.test(href)) return null; const q = (k) => (href.match(new RegExp(`[?&]${k}=(\\d+)`)) || [])[1]; s = q("school"); g = q("group"); x = q("subject"); if (!s || !g || !x) return null; }
+    return {g, key: `${s}/${g}/${x}`, path: !!m, url: m ? href.slice(0, m.index + m[0].length) : `https://emaktab.uz/journal/school/${s}/group/${g}/subject/${x}`,
+      pid: (href.match(/[?&](?:periodId|period)=?(\d+)/) || [])[1] || null};
+  };
   const catalog = (html, base) => {
-    const jobs = [], seen = new Set(), clean = (t) => String(t || "").replace(/\s+/g, " ").trim();
-    const push = (cls, subject, href) => { const m = String(href || "").match(JRE); if (!m || !cls) return; const url = href.slice(0, m.index + m[0].length);
-      if (!seen.has(url)) { seen.add(url); jobs.push({cls, subject: clean(subject), url, pid: (href.match(/[?&]periodId=(\d+)/) || [])[1] || null}); } };
+    const jobs = [], seen = {}, clean = (t) => String(t || "").replace(/\s+/g, " ").trim();
+    const push = (cls, subject, href) => { const j = jref(href); if (!j || !cls) return; const ex = seen[j.key];
+      if (!ex) { seen[j.key] = {cls, subject: clean(subject), url: j.url, pid: j.pid, path: j.path}; jobs.push(seen[j.key]); }
+      else if (j.path && !ex.path) Object.assign(ex, {subject: clean(subject) || ex.subject, url: j.url, pid: j.pid || ex.pid, path: true}); };
     const i = html.indexOf("__TEACHERV2__INITIAL__STATE__");
     if (i >= 0) {
       const re = /["']?groups["']?\s*:\s*\{/g; re.lastIndex = i; const m = re.exec(html), st = m && jsonAt(html, m.index + m[0].length - 1);
@@ -65,7 +75,7 @@
       let u; try { u = new URL(a.getAttribute("href"), base); } catch (e) { continue; }
       const text = clean(a.textContent), id = /\/v2\/class$/.test(u.pathname) && u.searchParams.get("class");
       if (id) { const c = byId[id] = byId[id] || {name: ""}; if (text && (!c.name || (CLS.test(text) && !CLS.test(c.name)))) c.name = text.slice(0, 40); last = c; continue; }
-      const m = u.href.match(JRE); if (m) pend.push([byId[m[1]] || last || (byId[m[1]] = {name: ""}), a.title || text, u.href]);
+      const j = jref(u.href); if (j) pend.push([byId[j.g] || last || (byId[j.g] = {name: ""}), a.title || text, u.href]);
     }
     for (const [c, subject, href] of pend) push(c.name, subject, href);
     return jobs;
