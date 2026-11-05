@@ -64,12 +64,21 @@ class _EmkForms(_HP):
         super().__init__(convert_charrefs=True)
         self.forms, self._f, self.imgs, self.img_attrs, self.inputs = [], None, [], {}, []
         self.links, self._a, self._root_depth, self._depth, self.has_root = [], None, None, 0, False
+        self._cc_depth, self.has_cc = None, False
+
+    # «Mening sinflarim»: sinflar ikki panelda — #ContentPanelTeacher (dars beradigan sinflar) va #ContentPanelMyClasses
+    # (sinf rahbari), ro'yxat har birining .rounded > .cc qismida (.c1/.c3 — burchak bezaklari)
+    PANELS = ("ContentPanelTeacher", "ContentPanelMyClasses")
+    VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
-        self._depth += 1
-        if a.get("id") == "ContentPanelTeacher":
+        if tag not in self.VOID:                                 # yopilmaydigan teglar chuqurlikni buzmasin
+            self._depth += 1
+        if a.get("id") in self.PANELS and self._root_depth is None:
             self.has_root, self._root_depth = True, self._depth
+        elif self._root_depth is not None and self._cc_depth is None and "cc" in (a.get("class") or "").split():
+            self.has_cc, self._cc_depth = True, self._depth
         if tag == "form":
             self._f = {"action": a.get("action") or "", "inputs": [], "imgs": []}
             self.forms.append(self._f)
@@ -86,7 +95,8 @@ class _EmkForms(_HP):
             if self._f is not None:
                 self._f["inputs"].append(i)
         elif tag == "a" and a.get("href"):
-            self._a = {"href": a["href"], "title": a.get("title") or "", "text": "", "root": self._root_depth is not None}
+            self._a = {"href": a["href"], "title": a.get("title") or "", "text": "", "root": self._root_depth is not None,
+                       "cc": self._cc_depth is not None}
             self.links.append(self._a)
 
     def handle_endtag(self, tag):
@@ -94,6 +104,10 @@ class _EmkForms(_HP):
             self._f = None
         elif tag == "a":
             self._a = None
+        if tag in self.VOID:
+            return
+        if self._cc_depth is not None and self._depth == self._cc_depth:
+            self._cc_depth = None
         if self._root_depth is not None and self._depth == self._root_depth:
             self._root_depth = None
         self._depth -= 1
@@ -160,13 +174,13 @@ def journal_ref(href):
             "url": href[:m.end()] if m else f"https://emaktab.uz/journal/school/{s}/group/{g}/subject/{x}"}
 
 
-def catalog_from_links(links, base, root_only=False):
+def catalog_from_links(links, base, root_only=False, cc_only=False):
     """Eski «Mening sinflarim» (havolalar bilan): sinf — `/v2/class?class=ID` havolasi, jurnal — `/journal/…/group/ID/…`.
     Jurnal sinfga sahifadagi tartib bo'yicha emas, guruh ID si bo'yicha biriktiriladi: bir sinfning bir nechta havolasi
     (rasm, «Fayllar» — `&view=files`, sinf rahbari menyusi) yangi «sinf» ochmaydi va nomini buzmaydi."""
     out, by_id, last = [], {}, None
     for a in links:
-        if root_only and not a.get("root"):
+        if (root_only and not a.get("root")) or (cc_only and not a.get("cc")):
             continue
         href = _up.urljoin(base, a["href"])
         text = re.sub(r"\s+", " ", a.get("text") or "").strip()
@@ -208,13 +222,13 @@ def catalog_from_links(links, base, root_only=False):
 
 def catalog_from_html(html, base=EMK_URLS["myclasses"]):
     """«Mening sinflarim» sahifasidan sinflar va jurnallar: avval skript ichidagi JSON (yangi sahifa — aniq manba),
-    bo'lmasa havolalar (eski sahifa, #ContentPanelTeacher ichidagisi)."""
+    bo'lmasa havolalar (eski sahifa: #ContentPanelTeacher va #ContentPanelMyClasses panellarining .cc qismidagilari)."""
     out = [c for c in catalog_from_state(html) if c["journals"]]
     if out:
         return out
     fp = _EmkForms()
     fp.feed(html)
-    return catalog_from_links(fp.links, base, fp.has_root)
+    return catalog_from_links(fp.links, base, fp.has_root, fp.has_cc)
 
 
 class EmkHttp:

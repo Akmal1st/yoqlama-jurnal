@@ -271,3 +271,19 @@ def test_catalog_links_query_form():
     assert out == [{"name": "8-B", "url": "https://schools.emaktab.uz/v2/class?class=5", "journals": [
         {"subject": "Informatika", "url": "https://emaktab.uz/journal/school/1/group/5/subject/7"},
         {"subject": "Fizika", "url": "https://emaktab.uz/journal/school/1/group/5/subject/8"}]}]
+
+
+def test_catalog_both_panels_cc():
+    """Sinflar ikkala panelning .cc qismidan olinadi: #ContentPanelTeacher va #ContentPanelMyClasses (sinf rahbari);
+    .c1/.c3 va panellardan tashqaridagi havolalar olinmaydi; <img> (yopilmaydigan teg) panel chegarasini buzmaydi."""
+    html = """<a href="/v2/class?class=90">Tepa menyu</a><div id="content"><div class="col23 first">
+      <div id="ContentPanelMyClasses" class="panel gray"><div class="rounded"><div class="c1"><a href="/v2/class?class=91">Burchak</a></div>
+        <div class="cc"><a href="/v2/class?class=5"><img src="a.png"></a><a href="/v2/class?class=5">11-V</a>
+          <a href="https://emaktab.uz/journal/school/1/group/5/subject/7" title="Fizika">Fizika</a></div><div class="c3"></div></div></div>
+      <div id="ContentPanelTeacher" class="panel gray"><div class="rounded"><div class="c1"></div>
+        <div class="cc"><a href="/v2/class?class=6">7-A</a><br><img src="b.png">
+          <a href="https://schools.emaktab.uz/journals/?school=1&group=6&subject=8">Algebra</a>
+          <a href="https://emaktab.uz/journal/school/1/group/5/subject/7">Fizika</a></div><div class="c3"></div></div></div>
+      </div></div><a href="/v2/class?class=92">Pastki menyu</a><a href="https://emaktab.uz/journal/school/1/group/92/subject/1">X</a>"""
+    out = EH.catalog_from_html(html, "https://schools.emaktab.uz/v2/myclasses")
+    assert [(c["name"], [j["subject"] for j in c["journals"]]) for c in out] == [("11-V", ["Fizika"]), ("7-A", ["Algebra"])]

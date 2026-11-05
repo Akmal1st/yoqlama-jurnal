@@ -3866,9 +3866,13 @@ function emkGrab() {
       }
       if (jobs.length) return jobs;
     }
-    const doc = new DOMParser().parseFromString(html, "text/html"), root = doc.querySelector("#ContentPanelTeacher .cc") || doc.getElementById("ContentPanelTeacher") || doc, byId = {}, pend = [];   // sinflar ro'yxati — panelning .cc qismida
+    // sinflar ro'yxati ikki panelda: #ContentPanelTeacher (dars beradigan sinflar) va #ContentPanelMyClasses (sinf rahbari),
+    // har birining .cc qismida; .cc topilmasa — panelning o'zi, panel ham bo'lmasa — butun sahifa
+    const doc = new DOMParser().parseFromString(html, "text/html"), byId = {}, pend = [], P = "#ContentPanelTeacher, #ContentPanelMyClasses";
+    let roots = [...doc.querySelectorAll("#ContentPanelTeacher .cc, #ContentPanelMyClasses .cc")].filter((x) => !x.parentElement.closest(".cc"));
+    if (!roots.length) roots = [...doc.querySelectorAll(P)]; if (!roots.length) roots = [doc];
     let last = null;
-    for (const a of root.querySelectorAll("a[href]")) {
+    for (const a of roots.flatMap((r) => [...r.querySelectorAll("a[href]")])) {
       let u; try { u = new URL(a.getAttribute("href"), base); } catch (e) { continue; }
       const text = clean(a.textContent), id = /\/v2\/class$/.test(u.pathname) && u.searchParams.get("class");
       if (id) { const c = byId[id] = byId[id] || {name: ""}; if (text && (!c.name || (CLS.test(text) && !CLS.test(c.name)))) c.name = text.slice(0, 40); last = c; continue; }
