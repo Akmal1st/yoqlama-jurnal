@@ -250,6 +250,35 @@ for (const kind of ["json", "cc"]) test(`emaktab: «Mening sinflarim» (${kind})
   } finally { await browser.close(); }
 });
 
+test("emaktab: kompyuter xatcho'pi har safar yangi emk.js ni yuklaydi, yuklanmasa — ichidagi zaxira kod", async () => {
+  const {readFile} = await import("node:fs/promises");
+  const docs = fileURLToPath(new URL("../docs/", import.meta.url));
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const ok of [true, false]) {
+      const ctx = await browser.newContext({serviceWorkers: "block"}), asked = [];
+      await ctx.route("https://app.test/**", async (r) => {
+        const p = new URL(r.request().url()).pathname.slice(1) || "index.html"; asked.push(p);
+        if (p === "emk.js" && !ok) return r.fulfill({status: 404});
+        try { r.fulfill({body: await readFile(docs + p), contentType: p.endsWith(".html") ? "text/html" : p.endsWith(".js") ? "text/javascript" : undefined}); } catch { r.fulfill({status: 404}); }
+      });
+      await ctx.route("https://schools.emaktab.uz/**", (r) => r.fulfill({contentType: "text/html", body: "<html><body></body></html>"}));
+      const app = await ctx.newPage(); await app.goto("https://app.test/");
+      const bm = await app.evaluate(() => emkBookmark());
+      assert.ok(bm.includes("emk.js"), "xatcho'p emk.js ni yuklashi kerak");
+      const emk = await ctx.newPage(); const errors = []; emk.on("pageerror", (e) => errors.push(e.message));
+      await emk.goto("https://schools.emaktab.uz/v2/myclasses");
+      await emk.evaluate(() => { window.open = () => null; });
+      await emk.evaluate(decodeURIComponent(bm.slice(11)));
+      await emk.waitForSelector("text=Yo'qlama jurnali");   // ikkala holatda ham kod ishga tushdi
+      assert.ok(asked.includes("emk.js"));
+      await emk.waitForSelector("text=jurnal topilmadi");
+      assert.deepEqual(errors, [], ok ? "emk.js" : "zaxira");
+      await ctx.close();
+    }
+  } finally { await browser.close(); }
+});
+
 test("BSB/CHSB: kech qolgan (KQ) o'quvchiga ball qo'yish", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {

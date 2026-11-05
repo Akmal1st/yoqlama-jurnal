@@ -3935,7 +3935,9 @@ function emkGrab() {
 const appUrl = () => location.origin + location.pathname.replace(/index\.html$/, "");
 const emkCode = () => `(${emkGrab.toString().replace("__APP__", appUrl())})()`;
 // xatcho'p manzili: kodlangan (telefon manzil maydoni qator o'tkazishni o'chiradi — «//» izohlar qolgan kodni yutib yuborardi)
-const emkBookmark = () => "javascript:" + encodeURIComponent(emkCode());
+// kompyuter xatcho'pi ham har bosilganda eng yangi kodni saytdagi emk.js dan yuklaydi — ilova yangilansa xatcho'pni qayta qo'shish
+// shart emas (Akmal, 2026-11-05). emk.js yuklanmasa (internet yo'q, sayt to'sib qo'ysa) ichidagi zaxira nusxa ishlaydi.
+const emkBookmark = () => "javascript:" + encodeURIComponent(`(function(){var s=document.createElement("script");s.src="${appUrl()}emk.js?"+Date.now();s.onerror=function(){s.remove();${emkCode()}};document.body.appendChild(s)})()`);
 // telefon uchun qisqa xatcho'p: manzil maydoni uzun kodni sig'dirmaydi — to'liq kod saytdagi emk.js dan yuklanadi
 const emkLoader = () => "javascript:" + encodeURIComponent(`(function(){var s=document.createElement("script");s.src="${appUrl()}emk.js?"+Date.now();s.onerror=function(){alert("Yo'qlama jurnali: kod yuklanmadi. Internetni tekshirib, qayta bosing.")};document.body.appendChild(s)})()`);
 /* ───────── kompyuterdagi (tizim) shriftlari ─────────
@@ -3990,6 +3992,7 @@ function emkDialog(tab = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)
       <div><b>1-usul · xatcho'p.</b> Quyidagi tugmani sichqoncha bilan brauzerning <b>xatcho'plar paneliga</b> sudrab olib boring (panel ko'rinmasa: Ctrl+Shift+B).</div>
       <div><a class="btn btn-primary" id="emkbm" href="#" onclick="return false" draggable="true">📒 emaktab → Jurnal</a></div>
       <div>So'ng emaktab.uz ga kiring, <b>«Sinflarim»</b> sahifasini oching va xatcho'pni bosing. Joriy chorak yoki yil boshidan barcha choraklarni tanlaysiz — jurnallar shu ilovaga keladi.</div>
+      <div class="muted">Xatcho'p har bosilganda eng yangi kodni o'zi yuklaydi — ilova yangilanganda uni qayta qo'shish shart emas. (5-noyabrdan oldin qo'shilgan xatcho'pni bir marta o'chirib, qaytadan qo'shing.)</div>
       <div><b>2-usul · konsol</b> (xatcho'p qo'yib bo'lmasa). emaktab'da «Sinflarim» sahifasida <b>F12</b> ni bosing → <b>Console</b> bo'limi → kodni qo'yib <b>Enter</b>. (Brauzer «allow pasting» deb yozishni so'rasa — yozing.)</div>
       <div><button class="btn" data-copyc>📋 Konsol uchun kodni nusxalash</button></div></div>`,
     phone: `<div class="vcol" style="gap:10px">
