@@ -3856,7 +3856,7 @@ function emkGrab() {
       }
       if (jobs.length) return jobs;
     }
-    const doc = new DOMParser().parseFromString(html, "text/html"), root = doc.getElementById("ContentPanelTeacher") || doc, byId = {}, pend = [];
+    const doc = new DOMParser().parseFromString(html, "text/html"), root = doc.querySelector("#ContentPanelTeacher .cc") || doc.getElementById("ContentPanelTeacher") || doc, byId = {}, pend = [];   // sinflar ro'yxati — panelning .cc qismida
     let last = null;
     for (const a of root.querySelectorAll("a[href]")) {
       let u; try { u = new URL(a.getAttribute("href"), base); } catch (e) { continue; }
