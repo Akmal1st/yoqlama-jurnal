@@ -10,7 +10,7 @@
 const TPTM = (() => {
   let H = null; // guruhlar.js yordamchilari
   const ISO = /^\d{4}-\d\d-\d\d$/;
-  const T = {flt: "next", view: "plan", rq: 0, rv: "scr", o: {by: "topic", stu: true, sum: true, sig: true, chart: true, rec: true}};
+  const T = {flt: "next", view: "plan", rq: 0, rv: "scr", o: {by: "topic", stu: true, sum: true, sig: true, chart: true, rec: true, st: "mod"}};
   try { Object.assign(T.o, JSON.parse(localStorage.getItem("yoqlama_tptrep")) || {}); } catch (err) { /* sozlama yo'q */ }
   const keepO = () => { try { localStorage.setItem("yoqlama_tptrep", JSON.stringify(T.o)); } catch (err) { /* saqlanmadi */ } };
 
@@ -238,7 +238,7 @@ const TPTM = (() => {
     const W = 680, Hh = 96, pad = 24, bw = (W - pad) / rs.length, y = (v) => 6 + (Hh - 20) * (1 - v);
     let g = `<line x1="${pad}" x2="${W}" y1="${y(.75)}" y2="${y(.75)}" stroke="#000" stroke-dasharray="3 3" stroke-width=".8"/><text x="0" y="${y(.75) + 3}" font-size="8">75%</text><text x="0" y="${y(1) + 3}" font-size="8">100</text>`;
     rs.forEach((r, i) => { const v = r.na ? r.k / r.na : 0, x = pad + i * bw + bw * .15, w = bw * .7;
-      g += `<rect x="${x.toFixed(1)}" y="${y(v).toFixed(1)}" width="${w.toFixed(1)}" height="${(y(0) - y(v)).toFixed(1)}" fill="${r.own ? "#fff" : v < .75 ? "#000" : "#9a9a9a"}" stroke="#000" stroke-width=".6"/>`;
+      g += `<rect x="${x.toFixed(1)}" y="${y(v).toFixed(1)}" width="${w.toFixed(1)}" height="${(y(0) - y(v)).toFixed(1)}" class="${r.own ? "c3" : v < .75 ? "c2" : "c1"}" fill="${r.own ? "#fff" : v < .75 ? "#000" : "#9a9a9a"}" stroke="#000" stroke-width=".6"/>`;
       if (i % Math.ceil(rs.length / 13) === 0) g += `<text x="${(x + w / 2).toFixed(1)}" y="${Hh - 2}" font-size="8" text-anchor="middle">${r.d.slice(8, 10)}.${r.d.slice(5, 7)}</text>`; });
     return `<svg class="g-a4ch" viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Har bir darsdagi davomat">${g}<line x1="${pad}" x2="${W}" y1="${y(0)}" y2="${y(0)}" stroke="#000" stroke-width=".8"/></svg>`;
   }
@@ -265,13 +265,21 @@ const TPTM = (() => {
   function a4parts(c, A) {
     const P = A.P, h0 = hdrS(), gh = c.grh || {}, h = {school: gh.org != null ? gh.org : h0.school, teacher: gh.tch != null ? gh.tch : h0.teacher}, lines = summary(c, A).slice(1);
     const list = A.rows.concat(A.offs.map((d) => ({d, off: true}))).sort((a, b) => a.d.localeCompare(b.d));
-    const head = `${h.school ? `<div class="g-a4sch">${H.e(h.school)}</div>` : ""}<div class="g-a4t">O'tilgan mavzular hisoboti</div>
+    const pct = A.total ? Math.round(A.last / A.total * 100) : 0, mod = T.o.st !== "off";
+    const headM = `<div class="g-a4band"><div class="g-a4bl"><small>${h.school ? H.e(h.school) : "O'quv guruhi hisoboti"}</small><div class="g-a4t">O'tilgan mavzular hisoboti</div>
+        <div class="g-a4st">«${H.e(c.name)}» guruhi · ${yearOf(P.from)} o'quv yili</div></div><div class="g-a4qb"><b>${P.q}</b><span>chorak</span></div></div>
+      <div class="g-a4meta"><div><small>Davr</small><b>${dd(P.from)} – ${dd(P.to)}</b></div><div><small>Dars kunlari</small><b>${H.e(H.sched(c))}</b></div><div><small>O'quvchilar</small><b>${A.nSt} nafar</b></div><div><small>O'qituvchi</small><b>${h.teacher ? H.e(h.teacher) : "&nbsp;"}</b></div></div>
+      ${A.partial ? `<div class="g-a4warn">Chorak hali tugamagan — ma'lumot ${dd(A.upto)} holatiga.</div>` : ""}
+      <div class="g-a4tiles"><div><b>${A.rows.length}</b><span>dars o'tkazildi</span></div><div><b>${A.topics.length}</b><span>mavzu o'tildi</span></div>
+        <div class="w"><b>${pct}%</b><span>yillik reja · ${A.last}/${A.total} dars</span><div class="g-a4bar"><i style="width:${pct}%"></i></div></div><div><b>${A.att}%</b><span>o'rtacha davomat</span></div></div>`;
+    const head0 = `${h.school ? `<div class="g-a4sch">${H.e(h.school)}</div>` : ""}<div class="g-a4t">O'tilgan mavzular hisoboti</div>
       <div class="g-a4st">«${H.e(c.name)}» guruhi · ${P.q}-chorak · ${yearOf(P.from)} o'quv yili</div>
       <table class="g-a4info"><tr><td>Davr: <b>${dd(P.from)} – ${dd(P.to)}</b></td><td>Dars kunlari: <b>${H.e(H.sched(c))}</b></td></tr>
         <tr><td>O'quvchilar: <b>${A.nSt} nafar</b></td><td>O'qituvchi: <b>${h.teacher ? H.e(h.teacher) : "____________________"}</b></td></tr></table>
       ${A.partial ? `<div class="g-a4warn">Chorak hali tugamagan — ma'lumot ${dd(A.upto)} holatiga.</div>` : ""}
       <table class="g-a4kpi"><tr><th>O'tkazilgan darslar</th><th>O'tilgan mavzular</th><th>Yillik reja bajarilishi</th><th>O'rtacha davomat</th></tr>
-        <tr><td>${A.rows.length}</td><td>${A.topics.length}</td><td>${A.total ? Math.round(A.last / A.total * 100) : 0}% <small>(${A.last}/${A.total} dars)</small></td><td>${A.att}%</td></tr></table>
+        <tr><td>${A.rows.length}</td><td>${A.topics.length}</td><td>${pct}% <small>(${A.last}/${A.total} dars)</small></td><td>${A.att}%</td></tr></table>`;
+    const head = (mod ? headM : head0) + `
       ${T.o.chart && A.rows.length > 1 ? `<div class="g-a4dyn"><div><div class="g-a4h">Darslardagi davomat</div>${chartSvg(A)}<div class="g-a4lg"><span><i class="b1"></i>75% va yuqori</span><span><i class="b2"></i>75% dan past</span><span><i class="b3"></i>rejadan tashqari</span></div></div>
         <div><div class="g-a4h">Oylar kesimida</div><table class="g-a4tab g-a4mo"><thead><tr><th class="l">Oy</th><th>Dars</th><th>Mavzu</th><th>Davomat</th></tr></thead><tbody>${A.months.map((x) => `<tr><td class="l">${H.MN[+x.m.slice(5) - 1]}</td><td>${x.n}</td><td>${x.t}</td><td>${x.att}%</td></tr>`).join("")}</tbody></table></div></div>` : ""}`;
     // «Mavzular bo'yicha»: bir mavzuning hamma darslari bitta qatorda (sanalari, soati, o'rtacha davomat)
@@ -303,7 +311,7 @@ const TPTM = (() => {
     const X = a4parts(c, A);
     if (!host) { host = document.createElement("div"); host.className = "tpt g-a4host"; host.setAttribute("aria-hidden", "true"); }
     if (!host.isConnected) document.body.append(host);
-    const page = (fs, body) => `<div class="bx-pg g-a4p" style="--fs:${fs}px"><div class="g-a4i">${body}</div></div>`;
+    const page = (fs, body) => `<div class="bx-pg g-a4p ${T.o.st !== "off" ? "mod" : ""}" style="--fs:${fs}px"><div class="g-a4i">${body}</div></div>`;
     const fits = (html) => { host.innerHTML = html; const i = host.querySelector(".g-a4i"); return i.scrollHeight <= i.clientHeight + 1; };
     const one = (fs) => page(fs, X.head + X.thead(false) + X.rows.join("") + "</tbody></table>" + X.tail + X.foot(1, 1));
     try {
@@ -325,7 +333,8 @@ const TPTM = (() => {
     const ps = a4pages(c, A);
     const h0 = hdrS(), gh = c.grh || {}, hdr = {org: gh.org != null ? gh.org : h0.school, tch: gh.tch != null ? gh.tch : h0.teacher};
     const ck = (k, t) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${t}</button>`;
-    return `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Jadval</span><div class="g-seg"><button type="button" data-tpby="topic" class="${T.o.by === "topic" ? "on" : ""}">Mavzular bo'yicha</button><button type="button" data-tpby="day" class="${T.o.by !== "topic" ? "on" : ""}">Har bir dars</button></div></div>
+    return `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span><div class="g-seg"><button type="button" data-tpst="mod" class="${T.o.st !== "off" ? "on" : ""}">Zamonaviy</button><button type="button" data-tpst="off" class="${T.o.st === "off" ? "on" : ""}">Rasmiy (oq-qora)</button></div></div>
+      <div class="g-fld"><span class="g-lbl">Jadval</span><div class="g-seg"><button type="button" data-tpby="topic" class="${T.o.by === "topic" ? "on" : ""}">Mavzular bo'yicha</button><button type="button" data-tpby="day" class="${T.o.by !== "topic" ? "on" : ""}">Har bir dars</button></div></div>
         <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${ck("chart", "Grafik va oylar")}${ck("stu", "O'quvchilar davomati")}${ck("sum", "Xulosa")}${ck("rec", "Tavsiyalar")}${ck("sig", "Imzo joyi")}</div></div>
         <div class="g-frow g-a4hdr"><div class="g-fld"><label for="g-ro">Tashkilot (markaz, maktab) nomi</label><input id="g-ro" class="g-inp" value="${H.e(hdr.org)}" placeholder="Masalan: «Bilim» o'quv markazi"></div>
           <div class="g-fld"><label for="g-rt">O'qituvchi F.I.Sh.</label><input id="g-rt" class="g-inp" value="${H.e(hdr.tch)}" placeholder="Masalan: Otaboboyev A."></div></div></div>
@@ -371,6 +380,7 @@ const TPTM = (() => {
     H.qa("[data-tprep]", m).forEach((b) => b.onclick = () => { T.view = "rep"; T.rq = +b.dataset.tprep; H.draw(); });
     H.qa("[data-tpq]", m).forEach((b) => b.onclick = () => { T.rq = +b.dataset.tpq; H.draw(); });
     H.qa("[data-tprv]", m).forEach((b) => b.onclick = () => { T.rv = b.dataset.tprv; H.draw(); });
+    H.qa("[data-tpst]", m).forEach((b) => b.onclick = () => { T.o.st = b.dataset.tpst; keepO(); H.draw(); });
     H.qa("[data-tpby]", m).forEach((b) => b.onclick = () => { T.o.by = b.dataset.tpby; keepO(); H.draw(); });
     H.qa("[data-tpo2]", m).forEach((b) => b.onclick = () => { const k = b.dataset.tpo2; T.o[k] = !T.o[k]; keepO(); H.draw(); });
     // sarlavha: yozib bo'lgach (change) saqlanadi — har harfda qayta chizilmaydi

@@ -142,3 +142,50 @@
 .tpt .g-a4mo .l{width:auto}
 .tpt .g-a4rec{margin:0;padding:.3em .7em .3em 2em;border:1px solid #000;text-align:justify}
 .tpt .g-a4rec li{margin:0 0 .15em}
+/* «Zamonaviy» varaq: Manrope, firuza rang, plitkalar (chop etishda ranglar saqlanadi) */
+.tpt .bx-pg.g-a4p.mod{font-family:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:calc(var(--fs,12px)*.92);--a:#0d8a87;--a2:#e3f4f3;--a3:#f3f8f8;--bad:#d1393a;--cl:#6d4fd3;--ln:#d5dde3;--mu:#5b6675}
+.tpt .g-a4p.mod *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.tpt .g-a4p.mod .g-a4i{gap:.85em}
+.tpt .g-a4band{display:flex;align-items:stretch;gap:1em;border-bottom:3px solid var(--a);padding-bottom:.7em}
+.tpt .g-a4bl{flex:1;display:flex;flex-direction:column;gap:.15em}
+.tpt .g-a4bl small{font-size:.8em;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--a)!important}
+.tpt .g-a4p.mod .g-a4t{text-align:left;font-size:1.9em;font-weight:800;letter-spacing:-.01em;text-transform:none;margin:0;line-height:1.15}
+.tpt .g-a4p.mod .g-a4st{text-align:left;margin:0;color:var(--mu)!important;font-size:1.05em}
+.tpt .g-a4qb{background:var(--a);border-radius:10px;min-width:5.6em;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.3em .8em}
+.tpt .g-a4qb b{font-size:2.4em;line-height:1;font-weight:800;color:#fff!important}
+.tpt .g-a4qb span{font-size:.8em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#fff!important}
+.tpt .g-a4meta{display:grid;grid-template-columns:1.25fr 1.15fr .8fr 1.1fr;gap:.6em}
+.tpt .g-a4meta>div{display:flex;flex-direction:column;border-left:2px solid var(--a);padding-left:.55em}
+.tpt .g-a4meta small{font-size:.78em;color:var(--mu)!important;font-weight:600}
+.tpt .g-a4meta b{font-size:.98em;min-height:1.3em}
+.tpt .g-a4p.mod .g-a4warn{border:0;background:#fef3e2;border-radius:8px;font-style:normal;color:#a15c07!important;font-weight:600}
+.tpt .g-a4tiles{display:grid;grid-template-columns:1fr 1fr 1.5fr 1fr;gap:.6em}
+.tpt .g-a4tiles>div{background:var(--a3);border:1px solid var(--ln);border-radius:10px;padding:.55em .8em;display:flex;flex-direction:column}
+.tpt .g-a4tiles b{font-size:1.9em;font-weight:800;line-height:1.1;color:var(--a)!important;font-variant-numeric:tabular-nums}
+.tpt .g-a4tiles span{font-size:.82em;color:var(--mu)!important;font-weight:600}
+.tpt .g-a4bar{height:.45em;border-radius:99px;background:#dfe7ea;margin-top:.35em;overflow:hidden}
+.tpt .g-a4bar i{display:block;height:100%;background:var(--a);border-radius:99px}
+.tpt .g-a4p.mod .g-a4h{color:var(--a)!important;font-size:.85em;letter-spacing:.07em;display:flex;align-items:center;gap:.6em;margin-bottom:-.25em}
+.tpt .g-a4p.mod .g-a4h::after{content:"";flex:1;border-top:1px solid var(--ln)}
+.tpt .g-a4p.mod .g-a4tab th,.tpt .g-a4p.mod .g-a4tab td{border:0;border-bottom:1px solid var(--ln);padding:.22em .4em}
+.tpt .g-a4p.mod .g-a4tab th{background:var(--a2);font-weight:700;font-size:.9em;color:#0a5a58!important}
+.tpt .g-a4p.mod .g-a4tab tbody tr:nth-child(even) td{background:#f7f9fa}
+.tpt .g-a4p.mod .g-a4tab td:first-child{color:var(--mu)!important;font-weight:600}
+.tpt .g-a4p.mod .g-a4tab tr.off td{color:var(--mu)!important}
+.tpt .g-a4p.mod .g-a4tab i{color:var(--cl)!important;font-style:normal;font-size:.9em}
+.tpt .g-a4p.mod .g-a4stu th:nth-child(5),.tpt .g-a4p.mod .g-a4stu td:nth-child(5){border-left:2px solid var(--a)}
+.tpt .g-a4p.mod .g-a4stu b{color:var(--bad)!important}
+.tpt .g-a4p.mod .g-a4ch rect{stroke:none}
+.tpt .g-a4p.mod .g-a4ch rect.c1{fill:var(--a)}.tpt .g-a4p.mod .g-a4ch rect.c2{fill:var(--bad)}.tpt .g-a4p.mod .g-a4ch rect.c3{fill:var(--cl)}
+.tpt .g-a4p.mod .g-a4ch text{font-family:"Manrope",sans-serif;fill:#5b6675}
+.tpt .g-a4p.mod .g-a4lg i{border:0;border-radius:2px}
+.tpt .g-a4p.mod .g-a4lg .b1{background:var(--a)}.tpt .g-a4p.mod .g-a4lg .b2{background:var(--bad)}.tpt .g-a4p.mod .g-a4lg .b3{background:var(--cl)}
+.tpt .g-a4p.mod .g-a4sum{border:0;background:var(--a3);border-left:4px solid var(--a);border-radius:0 8px 8px 0;padding:.55em .9em}
+.tpt .g-a4p.mod .g-a4sum p{text-indent:0}
+.tpt .g-a4p.mod .g-a4rec{border:0;list-style:none;padding:0;counter-reset:r;display:flex;flex-direction:column;gap:.35em}
+.tpt .g-a4p.mod .g-a4rec li{counter-increment:r;display:flex;gap:.6em;align-items:flex-start;margin:0}
+.tpt .g-a4p.mod .g-a4rec li::before{content:counter(r);flex:none;width:1.5em;height:1.5em;border-radius:50%;background:var(--a);color:#fff;font-weight:800;font-size:.85em;display:grid;place-items:center;margin-top:.05em}
+.tpt .g-a4p.mod .g-a4note{color:var(--mu)!important}
+.tpt .g-a4p.mod .g-a4sig i{border-bottom-color:#8a96a3}
+.tpt .g-a4p.mod .g-a4f{border-top:2px solid var(--a);color:var(--mu)!important}
+.tpt .g-a4p.mod .g-a4f span{color:var(--mu)!important}
