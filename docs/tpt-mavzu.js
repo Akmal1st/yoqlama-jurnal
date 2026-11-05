@@ -319,7 +319,7 @@ const TPTM = (() => {
   function paginate(X) {
     if (!host) { host = document.createElement("div"); host.className = "tpt g-a4host"; host.setAttribute("aria-hidden", "true"); }
     if (!host.isConnected) document.body.append(host);
-    const page = (fs, body) => `<div class="bx-pg g-a4p ${X.cls || stCls()}" style="--fs:${fs}px"><div class="g-a4i">${body}</div></div>`;
+    const page = (fs, body) => `<div class="bx-pg g-a4p ${X.cls || stCls()}" style="--fs:${fs}px"><div class="g-a4i">${X.cls || fancy() ? body : untab(body)}</div></div>`;
     const fits = (html) => { host.innerHTML = html; const i = host.querySelector(".g-a4i"); return i.scrollHeight <= i.clientHeight + 1; };
     const one = (fs) => page(fs, X.head + X.thead(false) + X.rows.join("") + "</tbody></table>" + X.tail + X.foot(1, 1));
     try {
@@ -354,7 +354,39 @@ const TPTM = (() => {
   /* ───────── boshqa turdagi hisobotlar: yillik (choraklar kesimi) va o'quvchi hisoboti ─────────
      Ikkalasi ham bitta qismlar (X) dan quriladi: A4 — paginate(X), ekranda — xuddi shu mazmun oqib turadigan varaqda. */
   const RK = [["q", "Chorak hisoboti"], ["yr", "Yillik: choraklar kesimi"], ["st", "O'quvchi hisoboti"], ["doc", "To'garak hujjatlari"]];
-  const flow = (X) => `<div class="g-a4p g-a4flow ${stCls()}"><div class="g-a4i">${X.head}${X.rows.length ? X.thead(false) + X.rows.join("") + "</tbody></table>" : ""}${X.tail}</div></div>`;
+  const flow = (X) => { const b = `${X.head}${X.rows.length ? X.thead(false) + X.rows.join("") + "</tbody></table>" : ""}${X.tail}`; return `<div class="g-a4p g-a4flow ${stCls()}"><div class="g-a4i">${fancy() ? b : untab(b)}</div></div>`; };
+  /* «Bezaksiz»: jadvallar o'rniga oddiy matn qatorlari. Sarlavha ustunlari nomi «nomi: qiymati» bo'lib yoziladi;
+     ikki ustunli o'quvchilar jadvali avval chap, keyin o'ng yarmi tartibida bitta ro'yxatga yoyiladi. */
+  function untab(html) {
+    const d = document.createElement("div"); d.innerHTML = html;
+    d.querySelectorAll("table").forEach((t) => t.replaceWith(tabLines(t)));
+    return d.innerHTML;
+  }
+  function tabLines(t) {
+    const box = document.createElement("div"); box.className = "g-pll";
+    const hs = []; t.querySelectorAll("thead th").forEach((th) => { for (let k = 0; k < (+th.getAttribute("colspan") || 1); k++) hs.push(th.textContent.trim()); });
+    const rows = [...t.querySelectorAll("tbody tr, tfoot tr")];
+    const add = (h) => { const p = document.createElement("div"); p.innerHTML = h; box.append(p); };
+    if (!hs.length) { [...t.querySelectorAll("td")].forEach((td) => { if (td.textContent.trim()) add(td.innerHTML); }); return box; }
+    const n = hs.length, half = n % 2 === 0 && hs.slice(0, n / 2).join("|") === hs.slice(n / 2).join("|") ? n / 2 : n;
+    const out = [[], []];
+    rows.forEach((tr) => {
+      const cells = []; [...tr.children].forEach((td) => { cells.push(td); for (let k = 1; k < (+td.getAttribute("colspan") || 1); k++) cells.push(null); });
+      for (let k = 0; k * half < cells.length && k < 2; k++) {
+        const seg = cells.slice(k * half, (k + 1) * half), lab = hs.slice(0, half);
+        if (seg.every((c) => !c || !c.textContent.trim())) continue;
+        let pre = "", main = "";
+        const rest = [];
+        seg.forEach((c, i) => { if (!c) return; const v = c.innerHTML.trim(), tx = c.textContent.trim(); if (!tx) return;
+          if (i === 0 && (lab[0] === "№" || lab[0] === "Chorak")) pre = lab[0] === "Chorak" ? `${tx}-chorak. ` : /^\d+$/.test(tx) ? `${tx}. ` : `${tx} `;
+          else if (!main && c.classList.contains("l")) main = v;
+          else rest.push(`${lab[i] === "%" ? "davomat" : lab[i].toLowerCase()}: ${v}`); });
+        out[k].push(`${pre}${main}${rest.length ? (main ? " — " : "") + rest.join("; ") : ""}`);
+      }
+    });
+    out.flat().forEach(add);
+    return box;
+  }
   const hdrOf = (c) => { const h0 = hdrS(), gh = c.grh || {}; return {school: gh.org != null ? gh.org : h0.school, teacher: gh.tch != null ? gh.tch : h0.teacher}; };
   const band = (h, title, sub, badge) => fancy()
     ? `<div class="g-a4band"><div class="g-a4bl"><small>${h.school ? H.e(h.school) : "O'quv guruhi hisoboti"}</small><div class="g-a4t">${title}</div><div class="g-a4st">${sub}</div></div>${badge}</div>`
