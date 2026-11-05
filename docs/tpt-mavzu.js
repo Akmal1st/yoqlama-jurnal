@@ -10,7 +10,7 @@
 const TPTM = (() => {
   let H = null; // guruhlar.js yordamchilari
   const ISO = /^\d{4}-\d\d-\d\d$/;
-  const T = {flt: "next", view: "plan", rq: 0};
+  const T = {flt: "next", view: "plan", rq: 0, rv: "scr"};
 
   function parse(text) {
     const out = [];
@@ -228,6 +228,62 @@ const TPTM = (() => {
       ${A.nrows.length ? `<div class="g-rnext"><h3>Keyingi chorak rejasi</h3><span>${A.nrows.length} dars · ${A.nrows[0].n}–${A.nrows[A.nrows.length - 1].n}-darslar: ${H.e(A.nrows[0].s.t)} … ${H.e(A.nrows[A.nrows.length - 1].s.t)}</span></div>` : ""}
       <div class="g-rsig"><span>O'qituvchi: ____________________</span><span>${fullD(H.today())}</span></div>`;
   }
+  /* ───────── A4 varaq (chop etish va PDF) ─────────
+     Rasmiy hujjat ko'rinishi: oq-qora, Times. Avval bitta varaqqa sig'dirishga harakat (shrift 14 → 10 px),
+     sig'masa — jadval keyingi varaqqa «(davomi)» bilan o'tadi. O'lchash yashirin .g-a4host ichida. */
+  const hdrS = () => { try { return Object.assign({school: "", teacher: ""}, (D.web || {}).bsb_hdr || {}); } catch (err) { return {school: "", teacher: ""}; } };
+  const yearOf = (d) => { const y = +d.slice(0, 4) - (+d.slice(5, 7) < 8 ? 1 : 0); return `${y}–${y + 1}`; };
+  const dd = (d) => `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}`;
+  function a4parts(c, A) {
+    const P = A.P, h = hdrS(), lines = summary(c, A).slice(1);
+    const list = A.rows.concat(A.offs.map((d) => ({d, off: true}))).sort((a, b) => a.d.localeCompare(b.d));
+    const head = `${h.school ? `<div class="g-a4sch">${H.e(h.school)}</div>` : ""}<div class="g-a4t">O'tilgan mavzular hisoboti</div>
+      <div class="g-a4st">«${H.e(c.name)}» guruhi · ${P.q}-chorak · ${yearOf(P.from)} o'quv yili</div>
+      <table class="g-a4info"><tr><td>Davr: <b>${dd(P.from)} – ${dd(P.to)}</b></td><td>Dars kunlari: <b>${H.e(H.sched(c))}</b></td></tr>
+        <tr><td>O'quvchilar: <b>${A.nSt} nafar</b></td><td>O'qituvchi: <b>${h.teacher ? H.e(h.teacher) : "____________________"}</b></td></tr></table>
+      ${A.partial ? `<div class="g-a4warn">Chorak hali tugamagan — ma'lumot ${dd(A.upto)} holatiga.</div>` : ""}
+      <table class="g-a4kpi"><tr><th>O'tkazilgan darslar</th><th>O'tilgan mavzular</th><th>Yillik reja bajarilishi</th><th>O'rtacha davomat</th></tr>
+        <tr><td>${A.rows.length}</td><td>${A.topics.length}</td><td>${A.total ? Math.round(A.last / A.total * 100) : 0}% <small>(${A.last}/${A.total} dars)</small></td><td>${A.att}%</td></tr></table>`;
+    const rowH = (r) => `<tr class="${r.off ? "off" : ""}"><td>${r.n || (r.off ? "—" : "*")}</td><td>${dd(r.d)}</td><td>${H.WDS[H.wdOf(r.d)]}</td><td class="l">${r.off ? "Dars bo'lmadi (mavzu keyingi darsga surildi)" : r.own ? `${H.e(r.own)} <i>(rejadan tashqari)</i>` : H.e(sTxt(r.s))}</td><td>${r.off ? "" : `${r.k}/${r.na}`}</td></tr>`;
+    const thead = (cont) => `<div class="g-a4h">Darslar va mavzular${cont ? " (davomi)" : ""}</div><table class="g-a4tab"><thead><tr><th>№</th><th>Sana</th><th>Kun</th><th class="l">Mavzu</th><th>Keldi</th></tr></thead><tbody>`;
+    const tail = `<div class="g-a4h">Xulosa</div><div class="g-a4sum">${lines.map((x) => `<p>${H.e(x)}</p>`).join("")}</div>
+      <div class="g-a4note">* — rejadan tashqari mavzu; «Keldi» — darsga kelgan / guruhdagi o'quvchilar.</div>
+      <div class="g-a4sig"><div><span>O'qituvchi</span><i></i><small>(imzo)</small></div><div><span>F.I.Sh.</span><i>${h.teacher ? H.e(h.teacher) : ""}</i><small></small></div><div><span>Sana</span><i></i><small></small></div></div>`;
+    return {head, rows: list.map(rowH), thead, tail, foot: (i, n) => `<div class="g-a4f"><span>«${H.e(c.name)}» · ${P.q}-chorak · o'tilgan mavzular</span><span>${i} / ${n}</span></div>`};
+  }
+  let host = null;
+  function a4pages(c, A) {
+    const X = a4parts(c, A);
+    if (!host) { host = document.createElement("div"); host.className = "tpt g-a4host"; host.setAttribute("aria-hidden", "true"); }
+    if (!host.isConnected) document.body.append(host);
+    const page = (fs, body) => `<div class="bx-pg g-a4p" style="--fs:${fs}px"><div class="g-a4i">${body}</div></div>`;
+    const fits = (html) => { host.innerHTML = html; const i = host.querySelector(".g-a4i"); return i.scrollHeight <= i.clientHeight + 1; };
+    const one = (fs) => page(fs, X.head + X.thead(false) + X.rows.join("") + "</tbody></table>" + X.tail + X.foot(1, 1));
+    try {
+      for (let fs = 14; fs >= 10; fs -= 0.5) if (fits(one(fs))) return [one(fs)];
+      // bir nechta varaq: har birida iloji boricha ko'p qator; oxirgisida xulosa va imzo
+      const fs = 12, out = []; let i = 0;
+      while (i < X.rows.length || !out.length) {
+        let n = X.rows.length - i;
+        const mk = (k, last) => page(fs, (out.length ? "" : X.head) + X.thead(out.length > 0) + X.rows.slice(i, i + k).join("") + "</tbody></table>" + (last ? X.tail : "") + X.foot(out.length + 1, "@@"));
+        if (fits(mk(n, true))) { out.push(mk(n, true)); i += n; break; }
+        while (n > 1 && !fits(mk(n, false))) n--;
+        out.push(mk(n, false)); i += n;
+        if (i >= X.rows.length) { out.push(page(fs, X.tail + X.foot(out.length + 1, "@@"))); break; }
+      }
+      return out.map((x) => x.replace("@@", out.length));
+    } finally { host.innerHTML = ""; }
+  }
+  function a4view(c, A) {
+    const ps = a4pages(c, A);
+    return `<div class="g-a4w">${ps.map((x) => `<div class="g-a4s">${x}</div>`).join("")}</div>
+      <span class="g-muted" style="font-size:12.5px">A4 varaq: ${ps.length} bet. «Chop etish» bosilganda xuddi shunday chiqadi; «PDF — Telegram'ga» ham shu varaqni yuboradi.</span>`;
+  }
+  function printA4(c, q) {
+    const ps = a4pages(c, repData(c, q));
+    if (typeof printDoc === "function") printDoc(`<div class="tpt g-a4print">${ps.join("")}</div>`, false, false, `${c.name} ${q}-chorak mavzular`);
+    else H.toast("Chop etib bo'lmadi");
+  }
   function repHtml(c) {
     const qs = [1, 2, 3, 4].filter((q) => qPer(c, q)), t = H.today();
     if (!qs.length) return `<div class="g-card g-empty"><h2>Choraklar sanasi kiritilmagan</h2><div class="g-muted">Hisobot chorak bo'yicha tuziladi. «Sozlamalar»da o'quv yili choraklarining boshlanish va tugash sanalarini kiriting.</div></div>`;
@@ -235,8 +291,9 @@ const TPTM = (() => {
     const q = T.rq, A = repData(c, q);
     if (qDone(c, q) && !(c.grep || {})[q]) { c.grep = Object.assign({}, c.grep, {[q]: {at: t}}); H.save(); }
     return `<div class="g-row"><div class="g-seg g-qseg" role="group" aria-label="Chorak">${qs.map((x) => { const P = qPer(c, x); return `<button type="button" data-tpq="${x}" class="${x === q ? "on" : ""}">${x}-chorak<small>${P.from > t ? "boshlanmagan" : qDone(c, x) ? "tugagan" : "davom etmoqda"}</small></button>`; }).join("")}</div></div>
-      ${qPer(c, q).from > t ? `<div class="g-card g-muted">${q}-chorak hali boshlanmagan (${fullD(qPer(c, q).from)}).</div>` : `<div class="g-card g-rep">${sheet(c, A)}</div>
-      <div class="g-row g-ract"><button class="g-btn pri" type="button" data-tpsend>PDF — Telegram'ga</button><button class="g-btn" type="button" data-tpcopy>Xulosa matnini nusxalash</button></div>`}`;
+      ${qPer(c, q).from > t ? `<div class="g-card g-muted">${q}-chorak hali boshlanmagan (${fullD(qPer(c, q).from)}).</div>` : `<div class="g-row"><div class="g-seg" role="group" aria-label="Ko'rinish"><button type="button" data-tprv="scr" class="${T.rv !== "a4" ? "on" : ""}">Ekranda</button><button type="button" data-tprv="a4" class="${T.rv === "a4" ? "on" : ""}">A4 varaq</button></div></div>
+      ${T.rv === "a4" ? a4view(c, A) : `<div class="g-card g-rep">${sheet(c, A)}</div>`}
+      <div class="g-row g-ract"><button class="g-btn pri" type="button" data-tpprint>Chop etish (A4)</button><button class="g-btn" type="button" data-tpsend>PDF — Telegram'ga</button><button class="g-btn" type="button" data-tpcopy>Xulosa matnini nusxalash</button></div>`}`;
   }
   function tabHtml(c) {
     if (!has(c)) return planHtml(c);
@@ -251,16 +308,21 @@ const TPTM = (() => {
     const f = fresh(list); if (!f.length) return "";
     return `<div class="g-note g-rnote"><b>${f[0].q}-chorak tugadi.</b> O'tilgan mavzular hisoboti tayyor: ${f.map((x) => `<button class="g-btn sm" type="button" data-tphome="${x.ci}|${x.q}">${H.e(x.c.name)}</button>`).join(" ")}</div>`;
   }
-  const pdfPage = (c, q) => `<div class="tpt"><div class="bx-pg g-rpg">${sheet(c, repData(c, q))}</div></div>`;
+  const pdfPages = (c, q) => [`<div class="tpt">${a4pages(c, repData(c, q)).join("")}</div>`];
+  // A4 ko'rinishini ekran kengligiga moslab kichraytirish
+  function fitA4(m) { H.qa(".g-a4s", m).forEach((w) => { const k = Math.min(1, w.clientWidth / 794), pg = w.firstElementChild; if (!pg) return; pg.style.transform = `scale(${k})`; w.style.height = Math.ceil(1123 * k) + "px"; }); }
   function copyTxt(txt) { const done = () => H.toast("Xulosa nusxalandi — Telegram yoki Word ga qo'ying"); try { navigator.clipboard.writeText(txt).then(done, () => H.toast(txt)); } catch (err) { H.toast(txt); } }
 
   function bind(m, c) {
     H.qa("[data-tpv]", m).forEach((b) => b.onclick = () => { T.view = b.dataset.tpv; H.draw(); });
     H.qa("[data-tprep]", m).forEach((b) => b.onclick = () => { T.view = "rep"; T.rq = +b.dataset.tprep; H.draw(); });
     H.qa("[data-tpq]", m).forEach((b) => b.onclick = () => { T.rq = +b.dataset.tpq; H.draw(); });
+    H.qa("[data-tprv]", m).forEach((b) => b.onclick = () => { T.rv = b.dataset.tprv; H.draw(); });
+    const pr = H.q("[data-tpprint]", m); if (pr) pr.onclick = () => printA4(c, T.rq);
+    fitA4(m);
     const cp = H.q("[data-tpcopy]", m); if (cp) cp.onclick = () => copyTxt(summary(c, repData(c, T.rq)).join("\n"));
     const sd = H.q("[data-tpsend]", m); if (sd) sd.onclick = () => { const q = T.rq; if (typeof PTG === "undefined") { H.toast("PDF yuborib bo'lmadi"); return; }
-      PTG.run(() => PTG.pagesPdf([pdfPage(c, q)], false), `${c.name} ${q}-chorak mavzular`, `📘 ${c.name}: ${q}-chorak — o'tilgan mavzular\n${summary(c, repData(c, q))[1] || ""}`, sd); };
+      PTG.run(() => PTG.pagesPdf(pdfPages(c, q), false), `${c.name} ${q}-chorak mavzular`, `📘 ${c.name}: ${q}-chorak — o'tilgan mavzular\n${summary(c, repData(c, q))[1] || ""}`, sd); };
     H.qa("[data-tpl]", m).forEach((b) => b.onclick = () => planDialog(c));
     H.qa("[data-tpx]", m).forEach((b) => b.onclick = () => fromExcel(c, (txt) => planDialog(c, txt)));
     H.qa("[data-tpe]", m).forEach((b) => b.onclick = () => dayDialog(c, b.dataset.tpe));

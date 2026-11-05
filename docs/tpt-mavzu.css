@@ -81,10 +81,43 @@
   .tpt .g-rtab{font-size:13px}
   .tpt .g-rtab td,.tpt .g-rtab th{padding:6px 4px}
 }
-/* PDF varag'i (A4) — har doim och rangda */
-.tpt .bx-pg.g-rpg{height:auto;min-height:1120px;gap:12px;--g-text:#111;--g-muted:#555;--g-line:#c9cfd8;--g-alt:#f4f6f8;--g-acc:#0a706e;--g-acc-soft:#eaf5f4;--g-warn:#a15c07;--g-club:#6d4fd3}
-.tpt .bx-pg.g-rpg .g-rhead h2{font-size:17pt;color:#111}
-.tpt .bx-pg.g-rpg table{font-size:9.5pt}
-.tpt .bx-pg.g-rpg td,.tpt .bx-pg.g-rpg th{border:0;border-bottom:1px solid #c9cfd8;padding:3px 5px}
-.tpt .bx-pg.g-rpg .g-rsum p{font-size:10pt}
-.tpt .bx-pg.g-rpg .g-rsig{margin-top:auto;padding-top:24px;font-size:10pt}
+/* A4 varaq: chop etish va PDF (rasmiy hujjat, oq-qora, Times). 794×1123 px = 210×297 mm, chet 15 mm */
+.tpt .g-a4host{position:absolute;left:-99999px;top:0;visibility:hidden;display:block}
+.tpt .g-a4w{display:flex;flex-direction:column;gap:14px}
+.tpt .g-a4s{overflow:hidden;width:100%;max-width:794px;margin:0 auto}
+.tpt .g-a4s>.g-a4p{transform-origin:0 0;box-shadow:0 2px 12px rgba(16,24,40,.18)}
+.tpt .bx-pg.g-a4p{width:794px;height:1123px;padding:57px 57px 45px;background:#fff;color:#000;display:block;overflow:hidden;box-sizing:border-box;
+  font:var(--fs,12px)/1.35 "Times New Roman",Times,"Liberation Serif",serif;text-align:left;letter-spacing:normal}
+.tpt .g-a4p *{color:#000;box-sizing:border-box}
+.tpt .g-a4i{height:100%;display:flex;flex-direction:column;gap:.7em;overflow:hidden}
+.tpt .g-a4sch{text-align:center;font-size:1em;text-transform:uppercase;letter-spacing:.04em}
+.tpt .g-a4t{text-align:center;font-size:1.55em;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:.2em}
+.tpt .g-a4st{text-align:center;font-size:1.1em;margin-top:-.4em}
+.tpt .g-a4p table{width:100%;border-collapse:collapse;font-size:inherit;font-variant-numeric:tabular-nums}
+.tpt .g-a4info td{padding:.1em 0;font-size:1em;border:0;width:50%}
+.tpt .g-a4warn{border:1px solid #000;padding:.25em .6em;font-style:italic}
+.tpt .g-a4kpi th,.tpt .g-a4kpi td{border:1px solid #000;text-align:center;padding:.3em .4em}
+.tpt .g-a4kpi th{font-weight:400;font-size:.9em}
+.tpt .g-a4kpi td{font-weight:700;font-size:1.25em}
+.tpt .g-a4kpi small{font-weight:400;font-size:.65em}
+.tpt .g-a4h{font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:.95em;margin-bottom:-.35em}
+.tpt .g-a4tab th,.tpt .g-a4tab td{border:1px solid #000;padding:.12em .35em;text-align:center;white-space:nowrap}
+.tpt .g-a4tab th{font-weight:700;background:#efefef;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.tpt .g-a4tab .l{text-align:left;white-space:normal;width:100%}
+.tpt .g-a4tab tr.off td{font-style:italic}
+.tpt .g-a4sum{border:1px solid #000;padding:.4em .7em;text-align:justify}
+.tpt .g-a4sum p{margin:0 0 .2em;text-indent:1.5em}
+.tpt .g-a4note{font-size:.85em;font-style:italic}
+.tpt .g-a4sig{display:grid;grid-template-columns:1.2fr 1.6fr 1fr;gap:1.4em;margin-top:auto;padding-top:1.2em}
+.tpt .g-a4sig>div{display:flex;flex-direction:column;gap:.15em}
+.tpt .g-a4sig i{font-style:normal;border-bottom:1px solid #000;min-height:1.6em;display:flex;align-items:flex-end}
+.tpt .g-a4sig small{font-size:.75em;text-align:center}
+.tpt .g-a4f{display:flex;justify-content:space-between;font-size:.8em;border-top:1px solid #000;padding-top:.25em}
+.tpt .g-a4sig+.g-a4f,.tpt .g-a4i>.g-a4f{margin-top:auto}
+.tpt .g-a4sig+.g-a4f{margin-top:.6em}
+/* chop etish: printDoc (#pdoc) ichida, @page margin 12 mm */
+@media print{
+  #pdoc .g-a4print{display:block;gap:0}
+  #pdoc .bx-pg.g-a4p{width:auto;height:271mm;padding:0;box-shadow:none;break-after:page;page-break-after:always}
+  #pdoc .bx-pg.g-a4p:last-child{break-after:auto;page-break-after:auto}
+}
