@@ -3319,4 +3319,74 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
       assert.deepEqual(errors, []);
     } finally { await browser.close(); }
   });
+
+  test(`${name}: TPT guruhlari — chorak mavzular hisoboti`, async () => {
+    const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+    try {
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 10, 4, 10, 0));   // 4-noyabr: 1-chorak tugagan
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      // 36 o'quvchili pullik guruh (Du·Ch·Ju) va 18 o'quvchili to'garak (Se·Pa); 1-chorak 2-sentabr — 31-oktabr
+      await page.evaluate(() => {
+        D.settings.quarters = [["2026-09-02", "2026-10-31"], ["2026-11-09", "2026-12-27"], ["2027-01-11", "2027-03-20"], ["2027-03-30", "2027-05-25"]];
+        const days = (wd) => { const o = []; for (let d = new Date(2026, 8, 2); d <= new Date(2026, 9, 31); d.setDate(d.getDate() + 1)) if (wd.includes(d.getDay())) o.push(iso(d)); return o; };
+        const mk = (n, p, ds) => Array.from({length: n}, (_, i) => ({id: p + i, name: `${p} O'quvchi ${i + 1}`, marks: Object.fromEntries(ds.filter((d, k) => (i + k) % 7).map((d) => [d, "ot"])), joined: "2026-09-01"}));
+        const dk = days([1, 3, 5]), dc = days([2, 4]);
+        const plan = (n) => ({start: "2026-09-01", topics: Array.from({length: n}, (_, i) => ({t: `${i + 1}-mavzu`, h: 1}))});
+        D.classes.push(...normalize({classes: [
+          {name: "Katta guruh", subject: "", kind: "paid", gdays: [1, 3, 5], dates: dk, packs: [{id: "pk1", name: "12 dars", n: 12, sum: 600000}], students: mk(36, "K", dk), gplan: plan(60),
+            grep: {"1": {at: "2026-11-01"}, "9": {at: "x"}}, grh: {org: "2-sonli IDUM", tch: "Otaboboyev Akmal", sub: "Matematika", bad: 1, nat: {"1": "Natija bir", "7": "x"}}},
+          {name: "Kichik guruh", subject: "", kind: "club", gdays: [2, 4], dates: dc, students: mk(18, "C", dc), gplan: plan(40)}]}).classes);
+        save();
+      });
+      // ma'lumot tozalanadi: noto'g'ri chorak va maydonlar tashlanadi
+      assert.equal(await page.evaluate(() => { const c = D.classes.find((x) => x.name === "Katta guruh"); return JSON.stringify([c.grep, c.grh]); }),
+        '[{"1":{"at":"2026-11-01"}},{"org":"2-sonli IDUM","tch":"Otaboboyev Akmal","sub":"Matematika","nat":{"1":"Natija bir"}}]');
+      await page.click(`${name === "telefon" ? ".tabbar" : ".side"} [data-go=groups]`);
+      await page.waitForSelector(".tpt .g-gcard");
+      // 18 o'quvchili to'garak: 1-chorak hisoboti tayyor (banner), ochilganda «ko'rildi» bo'ladi
+      await page.click(".g-gcard:has-text('Kichik guruh')");
+      await page.click("[data-tab=top]");
+      await page.click("[data-tprep='1']");
+      await page.waitForSelector(".g-rep");
+      assert.ok(await page.evaluate(() => !!D.classes.find((x) => x.name === "Kichik guruh").grep[1]));
+      // A4 varaq: 5 xil dizayn, hammasida varaq chiqadi; «Bezaksiz» — jadvalsiz, namunadagi matnli hisobot
+      await page.click("[data-tprv=a4]");
+      for (const st of ["nv", "nv n2", "nv bw", "nv sm", "pl"]) {
+        await page.click(`[data-tpst='${st}']`);
+        assert.ok(await page.locator(".g-a4s .bx-pg").count() >= 1, st);
+      }
+      assert.equal(await page.locator(".g-a4s table:not([hidden])").count(), 0);
+      assert.match(await page.textContent(".g-a4s .g-dtt"), /1-CHORAGI BO'YICHA HISOBOT/);
+      assert.match(await page.textContent(".g-a4s .g-dtx"), /to'garagida/);
+      // «To'garak hujjatlari»: muqova + ish reja (40 mavzu) + hisobot
+      await page.click("[data-tprk=doc]");
+      await page.waitForSelector(".g-dcov");
+      assert.equal(await page.locator(".g-a4s .g-dtab tbody tr").count(), 40);
+      assert.match(await page.textContent(".g-a4s .g-dtas"), /TASDIQLAYMAN/);
+      await page.fill("#g-dsub", "Informatika"); await page.press("#g-dsub", "Tab");
+      await page.waitForFunction(() => document.querySelector(".g-dtt") && /Informatika fanidan/.test(document.body.textContent));
+      assert.equal(await page.evaluate(() => D.classes.find((x) => x.name === "Kichik guruh").grh.sub), "Informatika");
+      // 36 o'quvchili guruh: o'quvchi hisoboti va yillik hisobot, «Yashil» dizaynda
+      await page.click("[data-home]");
+      await page.click(".g-gcard:has-text('Katta guruh')");
+      await page.click("[data-tab=top]");
+      await page.click("[data-tpv=rep]");
+      await page.click("[data-tprk=st]");
+      await page.click("[data-tpst='nv']").catch(() => {});
+      assert.equal(await page.locator("#g-rsel option").count(), 36);
+      await page.click("[data-tprk=yr]");
+      await page.waitForSelector(".g-a4yr, .g-a4flow");
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+      // umumiy hisobot: ikkala guruh
+      await page.click("[data-home]");
+      await page.click("[data-allrep]");
+      await page.click("[data-tprv=scr]");
+      assert.equal(await page.locator("[data-allg]").count(), 2);
+      assert.deepEqual(errors, []);
+    } finally { await browser.close(); }
+  });
 }
