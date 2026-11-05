@@ -142,53 +142,6 @@
 .tpt .g-a4mo .l{width:auto}
 .tpt .g-a4rec{margin:0;padding:.3em .7em .3em 2em;border:1px solid #000;text-align:justify}
 .tpt .g-a4rec li{margin:0 0 .15em}
-/* «Zamonaviy» varaq: Manrope, firuza rang, plitkalar (chop etishda ranglar saqlanadi) */
-.tpt .bx-pg.g-a4p.mod{font-family:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:calc(var(--fs,12px)*.92);--a:#0d8a87;--a2:#e3f4f3;--a3:#f3f8f8;--bad:#d1393a;--cl:#6d4fd3;--ln:#d5dde3;--mu:#5b6675}
-.tpt .g-a4p.mod *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.tpt .g-a4p.mod .g-a4i{gap:.85em}
-.tpt .g-a4band{display:flex;align-items:stretch;gap:1em;border-bottom:3px solid var(--a);padding-bottom:.7em}
-.tpt .g-a4bl{flex:1;display:flex;flex-direction:column;gap:.15em}
-.tpt .g-a4bl small{font-size:.8em;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--a)!important}
-.tpt .g-a4p.mod .g-a4t{text-align:left;font-size:1.9em;font-weight:800;letter-spacing:-.01em;text-transform:none;margin:0;line-height:1.15}
-.tpt .g-a4p.mod .g-a4st{text-align:left;margin:0;color:var(--mu)!important;font-size:1.05em}
-.tpt .g-a4qb{background:var(--a);border-radius:10px;min-width:5.6em;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.3em .8em}
-.tpt .g-a4qb b{font-size:2.4em;line-height:1;font-weight:800;color:#fff!important}
-.tpt .g-a4qb span{font-size:.8em;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#fff!important}
-.tpt .g-a4meta{display:grid;grid-template-columns:1.25fr 1.15fr .8fr 1.1fr;gap:.6em}
-.tpt .g-a4meta>div{display:flex;flex-direction:column;border-left:2px solid var(--a);padding-left:.55em}
-.tpt .g-a4meta small{font-size:.78em;color:var(--mu)!important;font-weight:600}
-.tpt .g-a4meta b{font-size:.98em;min-height:1.3em}
-.tpt .g-a4p.mod .g-a4warn{border:0;background:#fef3e2;border-radius:8px;font-style:normal;color:#a15c07!important;font-weight:600}
-.tpt .g-a4tiles{display:grid;grid-template-columns:1fr 1fr 1.5fr 1fr;gap:.6em}
-.tpt .g-a4tiles>div{background:var(--a3);border:1px solid var(--ln);border-radius:10px;padding:.55em .8em;display:flex;flex-direction:column}
-.tpt .g-a4tiles b{font-size:1.9em;font-weight:800;line-height:1.1;color:var(--a)!important;font-variant-numeric:tabular-nums}
-.tpt .g-a4tiles span{font-size:.82em;color:var(--mu)!important;font-weight:600}
-.tpt .g-a4bar{height:.45em;border-radius:99px;background:#dfe7ea;margin-top:.35em;overflow:hidden}
-.tpt .g-a4bar i{display:block;height:100%;background:var(--a);border-radius:99px}
-.tpt .g-a4p.mod .g-a4h{color:var(--a)!important;font-size:.85em;letter-spacing:.07em;display:flex;align-items:center;gap:.6em;margin-bottom:-.25em}
-.tpt .g-a4p.mod .g-a4h::after{content:"";flex:1;border-top:1px solid var(--ln)}
-.tpt .g-a4p.mod .g-a4tab th,.tpt .g-a4p.mod .g-a4tab td{border:0;border-bottom:1px solid var(--ln);padding:.22em .4em}
-.tpt .g-a4p.mod .g-a4tab th{background:var(--a2);font-weight:700;font-size:.9em;color:#0a5a58!important}
-.tpt .g-a4p.mod .g-a4tab tbody tr:nth-child(even) td{background:#f7f9fa}
-.tpt .g-a4p.mod .g-a4tab td:first-child{color:var(--mu)!important;font-weight:600}
-.tpt .g-a4p.mod .g-a4tab tr.off td{color:var(--mu)!important}
-.tpt .g-a4p.mod .g-a4tab i{color:var(--cl)!important;font-style:normal;font-size:.9em}
-.tpt .g-a4p.mod .g-a4stu th:nth-child(5),.tpt .g-a4p.mod .g-a4stu td:nth-child(5){border-left:2px solid var(--a)}
-.tpt .g-a4p.mod .g-a4stu b{color:var(--bad)!important}
-.tpt .g-a4p.mod .g-a4ch rect{stroke:none}
-.tpt .g-a4p.mod .g-a4ch rect.c1{fill:var(--a)}.tpt .g-a4p.mod .g-a4ch rect.c2{fill:var(--bad)}.tpt .g-a4p.mod .g-a4ch rect.c3{fill:var(--cl)}
-.tpt .g-a4p.mod .g-a4ch text{font-family:"Manrope",sans-serif;fill:#5b6675}
-.tpt .g-a4p.mod .g-a4lg i{border:0;border-radius:2px}
-.tpt .g-a4p.mod .g-a4lg .b1{background:var(--a)}.tpt .g-a4p.mod .g-a4lg .b2{background:var(--bad)}.tpt .g-a4p.mod .g-a4lg .b3{background:var(--cl)}
-.tpt .g-a4p.mod .g-a4sum{border:0;background:var(--a3);border-left:4px solid var(--a);border-radius:0 8px 8px 0;padding:.55em .9em}
-.tpt .g-a4p.mod .g-a4sum p{text-indent:0}
-.tpt .g-a4p.mod .g-a4rec{border:0;list-style:none;padding:0;counter-reset:r;display:flex;flex-direction:column;gap:.35em}
-.tpt .g-a4p.mod .g-a4rec li{counter-increment:r;display:flex;gap:.6em;align-items:flex-start;margin:0}
-.tpt .g-a4p.mod .g-a4rec li::before{content:counter(r);flex:none;width:1.5em;height:1.5em;border-radius:50%;background:var(--a);color:#fff;font-weight:800;font-size:.85em;display:grid;place-items:center;margin-top:.05em}
-.tpt .g-a4p.mod .g-a4note{color:var(--mu)!important}
-.tpt .g-a4p.mod .g-a4sig i{border-bottom-color:#8a96a3}
-.tpt .g-a4p.mod .g-a4f{border-top:2px solid var(--a);color:var(--mu)!important}
-.tpt .g-a4p.mod .g-a4f span{color:var(--mu)!important}
 /* umumiy hisobot */
 .tpt .g-qseg{grid-template-columns:repeat(5,minmax(0,1fr));width:min(700px,100%)}
 .tpt .g-allg{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
@@ -198,8 +151,6 @@
 .tpt .g-allk{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--g-muted)}.tpt .g-allk b{color:var(--g-text);font-size:15px}
 .tpt .g-a4all td small{font-size:.8em;color:#555}
 .tpt .g-a4all tfoot td{font-weight:700;border-top:1.5px solid #000}
-.tpt .g-a4p.mod .g-a4all tfoot td{background:var(--a2);border-top:0;color:#0a5a58!important}
-.tpt .g-a4p.mod .g-a4all td small{color:var(--mu)!important}
 @media (max-width:520px){.tpt .g-qseg button{font-size:13px;padding:6px 2px}.tpt .g-qseg button small{font-size:10px}}
 /* boshqa hisobot turlari */
 .tpt .g-rkind .g-chip{min-height:40px;padding:8px 14px}
@@ -207,58 +158,81 @@
 .tpt .g-strow{align-items:flex-end}
 .tpt .g-a4fw{padding:0;overflow:hidden}
 .tpt .g-a4p.g-a4flow{background:#fff;color:#000;padding:22px 24px;font:var(--fs,14px)/1.4 "Times New Roman",Times,serif;overflow-x:auto}
-.tpt .g-a4p.g-a4flow.mod{font-family:"Manrope",system-ui,sans-serif;font-size:13.5px;--a:#0d8a87;--a2:#e3f4f3;--a3:#f3f8f8;--bad:#d1393a;--cl:#6d4fd3;--ln:#d5dde3;--mu:#5b6675}
 .tpt .g-a4flow .g-a4i{height:auto;overflow:visible}
 .tpt .g-a4flow .g-a4sig{margin-top:1em}
 @media (max-width:520px){.tpt .g-a4p.g-a4flow{padding:14px}.tpt .g-a4flow .g-a4meta,.tpt .g-a4flow .g-a4tiles{grid-template-columns:1fr 1fr!important}.tpt .g-a4flow .g-a4band{flex-direction:column}.tpt .g-a4flow .g-a4tab td{white-space:normal}}
 .tpt .g-a4st2 tr.miss td{background:#fdecec}
-.tpt .g-a4p:not(.mod) .g-a4st2 tr.miss td{background:#ececec}
 .tpt .g-a4st2 td b{color:var(--bad,#000)!important}
-.tpt .g-a4p:not(.mod) .g-a4st2 td b{color:#000!important}
 .tpt .g-a4yr td small{font-size:.8em;color:#666}
-.tpt .g-a4p.mod .g-a4ch rect.c0{fill:var(--a2);stroke:var(--a);stroke-width:.8}
-.tpt .g-a4p.mod .g-a4yr td.l{white-space:normal}
-.tpt .g-a4lg .b0{background:#fff}.tpt .g-a4p.mod .g-a4lg .b0{background:var(--a2);border:1px solid var(--a)}
 .tpt .g-a4p .g-a4st2 tr.miss td{background:#fdecec!important}
-.tpt .g-a4p:not(.mod) .g-a4st2 tr.miss td{background:#ececec!important}
 @media (max-width:520px){.tpt .g-strow{display:grid;grid-template-columns:1fr 1fr}.tpt .g-strow .g-fld{grid-column:1/-1}.tpt .g-strow .g-btn{min-height:40px;border:1px solid var(--g-line);background:var(--g-base)}}
-/* «Kartochkali» varaq (v3): to'q ko'k sarlavha bloki, rangli plitkalar, kartochka bo'limlar */
-.tpt .g-a4p.mod.v3{--a:#24358f;--a2:#e9edfb;--a3:#f6f7fc;--o:#f08c00;--bad:#e03131;--cl:#0c8599;--ln:#dfe3ef;--mu:#5d6680}
-.tpt .g-a4p.v3 .g-a4i{gap:.95em}
-.tpt .g-a4p.v3 .g-a4band{background:var(--a);border:0;border-radius:14px;padding:1.1em 1.3em;align-items:center;position:relative;overflow:hidden}
-.tpt .g-a4p.v3 .g-a4band::after{content:"";position:absolute;right:-2.5em;top:-3em;width:11em;height:11em;border-radius:50%;background:rgba(255,255,255,.07)}
-.tpt .g-a4p.v3 .g-a4bl small{color:#aab6ff!important}
-.tpt .g-a4p.v3 .g-a4t,.tpt .g-a4p.v3 .g-a4band .g-a4st{color:#fff!important}
-.tpt .g-a4p.v3 .g-a4band .g-a4st{opacity:.85}
-.tpt .g-a4p.v3 .g-a4qb{background:#fff;border-radius:12px;position:relative;z-index:1}
-.tpt .g-a4p.v3 .g-a4qb b,.tpt .g-a4p.v3 .g-a4qb span{color:var(--a)!important}
-.tpt .g-a4p.v3 .g-a4meta{background:var(--a3);border:1px solid var(--ln);border-radius:12px;padding:.6em .4em;gap:0}
-.tpt .g-a4p.v3 .g-a4meta>div{border-left:0;padding:0 .8em}
-.tpt .g-a4p.v3 .g-a4meta>div+div{border-left:1px solid var(--ln)}
-.tpt .g-a4p.v3 .g-a4tiles{gap:.7em}
-.tpt .g-a4p.v3 .g-a4tiles>div{background:#fff;border:1px solid var(--ln);border-top:4px solid var(--a);border-radius:12px;box-shadow:0 2px 6px rgba(36,53,143,.08)}
-.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(2){border-top-color:var(--cl)}.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(2) b{color:var(--cl)!important}
-.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(3){border-top-color:var(--o)}.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(3) b{color:var(--o)!important}
-.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(4){border-top-color:#2f9e44}.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(4) b{color:#2f9e44!important}
-.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(5){border-top-color:#ae3ec9}.tpt .g-a4p.v3 .g-a4tiles>div:nth-child(5) b{color:#ae3ec9!important}
-.tpt .g-a4p.v3 .g-a4bar{background:var(--a2)}.tpt .g-a4p.v3 .g-a4bar i{background:linear-gradient(90deg,var(--a),#5c7cfa)}
-.tpt .g-a4p.v3 .g-a4h{display:inline-flex;align-self:flex-start;background:var(--a);color:#fff!important;border-radius:99px;padding:.25em .9em;margin-bottom:-.2em;font-size:.8em}
-.tpt .g-a4p.v3 .g-a4h::after{display:none}
-.tpt .g-a4p.v3 .g-a4dyn .g-a4h{display:inline-flex}
-.tpt .g-a4p.v3 .g-a4tab{border:1px solid var(--ln);border-radius:10px;border-collapse:separate;border-spacing:0;overflow:hidden}
-.tpt .g-a4p.v3 .g-a4tab th{background:var(--a2);color:var(--a)!important;border-bottom:1px solid var(--ln)}
-.tpt .g-a4p.v3 .g-a4tab td{border-bottom:1px solid var(--ln)}
-.tpt .g-a4p.v3 .g-a4tab tbody tr:last-child td{border-bottom:0}
-.tpt .g-a4p.v3 .g-a4tab tbody tr:nth-child(even) td{background:var(--a3)}
-.tpt .g-a4p.v3 .g-a4tab td:first-child{color:var(--a)!important;font-weight:800}
-.tpt .g-a4p.v3 .g-a4stu th:nth-child(5),.tpt .g-a4p.v3 .g-a4stu td:nth-child(5){border-left:2px solid var(--a)}
-.tpt .g-a4p.v3 .g-a4all tfoot td{background:var(--a);color:#fff!important}
-.tpt .g-a4p.v3 .g-a4ch rect.c1{fill:var(--a)}.tpt .g-a4p.v3 .g-a4ch rect.c2{fill:var(--bad)}.tpt .g-a4p.v3 .g-a4ch rect.c3{fill:var(--o)}.tpt .g-a4p.v3 .g-a4ch rect.c0{fill:var(--a2);stroke:var(--a)}
-.tpt .g-a4p.v3 .g-a4lg .b1{background:var(--a)}.tpt .g-a4p.v3 .g-a4lg .b2{background:var(--bad)}.tpt .g-a4p.v3 .g-a4lg .b3{background:var(--o)}.tpt .g-a4p.v3 .g-a4lg .b0{background:var(--a2);border:1px solid var(--a)}
-.tpt .g-a4p.v3 .g-a4sum{background:#fff;border:1px solid var(--ln);border-left:0;border-radius:12px;box-shadow:inset 5px 0 0 var(--o)}
-.tpt .g-a4p.v3 .g-a4rec li::before{background:var(--o)}
-.tpt .g-a4p.v3 .g-a4tab i{color:var(--o)!important}
-.tpt .g-a4p.v3 .g-a4f{border-top:1px dashed var(--a)}
-.tpt .g-a4p.v3 .g-a4warn{background:#fff4e6;color:#d9480f!important}
-.tpt .g-stseg{flex-wrap:wrap}
-@media (max-width:520px){.tpt .g-stseg{display:grid;grid-template-columns:1fr 1fr 1fr}.tpt .g-stseg button{padding:6px 4px;font-size:13px}.tpt .g-a4flow.v3 .g-a4meta>div+div{border-left:0}}
+/* Varaq dizayni «nv»: chap yon panel (to'q yashil), serif sarlavhalar, qutisiz ko'rsatkichlar, terrakota urg'u */
+.tpt .bx-pg.g-a4p.nv,.tpt .g-a4p.g-a4flow.nv{--a:#1e5b4f;--a2:#e4eee8;--a3:#f8f5ee;--o:#c8553d;--bad:#c8553d;--ln:#dcd6c8;--mu:#6b6558;--sf:Georgia,"PT Serif","Noto Serif","Times New Roman",serif;
+  color:#1f2a26;font-family:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.tpt .bx-pg.g-a4p.nv{position:relative;padding:57px 50px 45px 104px;font-size:calc(var(--fs,12px)*.92)}
+.tpt .bx-pg.g-a4p.nv::before{content:"";position:absolute;left:0;top:0;bottom:0;width:70px;background:var(--a)}
+.tpt .bx-pg.g-a4p.nv::after{content:"";position:absolute;left:70px;top:0;bottom:0;width:5px;background:var(--o)}
+.tpt .g-a4p.nv *{color:inherit;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.tpt .g-a4p.nv .g-a4i{gap:.9em}
+.tpt .g-a4p.nv .g-a4band{display:flex;flex-direction:column;padding-bottom:.55em;border-bottom:3px double var(--a)}
+.tpt .g-a4p.nv .g-a4bl{display:flex;flex-direction:column;gap:.2em}
+.tpt .g-a4p.nv .g-a4bl small{font-size:.78em;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--o)}
+.tpt .g-a4p.nv .g-a4t{font-family:var(--sf);font-size:2.05em;font-weight:700;line-height:1.1;color:var(--a);text-align:left;text-transform:none;letter-spacing:0}
+.tpt .g-a4p.nv .g-a4st{font-size:1.02em;color:var(--mu);text-align:left;margin:0}
+.tpt .bx-pg.g-a4p.nv .g-a4qb{position:absolute;left:0;top:57px;width:70px;display:flex;flex-direction:column;align-items:center;gap:.2em;color:#fff}
+.tpt .g-a4p.nv .g-a4qb b{font-family:var(--sf);font-size:3em;line-height:1;font-weight:700}
+.tpt .g-a4p.nv .g-a4qb.y b{font-size:1.45em}
+.tpt .g-a4p.nv .g-a4qb span{font-size:.7em;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.85;text-align:center}
+.tpt .g-a4p.nv .g-a4meta{display:grid;grid-template-columns:1.25fr 1.15fr .8fr 1.1fr;border-bottom:1px solid var(--ln);padding-bottom:.6em}
+.tpt .g-a4p.nv .g-a4meta>div{display:flex;flex-direction:column;gap:.1em;padding:0 .8em}
+.tpt .g-a4p.nv .g-a4meta>div:first-child{padding-left:0}
+.tpt .g-a4p.nv .g-a4meta>div+div{border-left:1px solid var(--ln)}
+.tpt .g-a4p.nv .g-a4meta small{font-size:.72em;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mu)}
+.tpt .g-a4p.nv .g-a4meta b{font-size:.98em;min-height:1.3em}
+.tpt .g-a4p.nv .g-a4tiles{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:0;background:var(--a3);padding:.7em 0}
+.tpt .g-a4p.nv .g-a4tiles>div{display:flex;flex-direction:column;padding:0 1em}
+.tpt .g-a4p.nv .g-a4tiles>div+div{border-left:1px solid var(--ln)}
+.tpt .g-a4p.nv .g-a4tiles b{font-family:var(--sf);font-size:2.1em;font-weight:700;line-height:1.05;color:var(--a);font-variant-numeric:lining-nums tabular-nums}
+.tpt .g-a4p.nv .g-a4tiles span{font-size:.8em;color:var(--mu);font-weight:600}
+.tpt .g-a4p.nv .g-a4bar{height:4px;background:var(--ln);margin-top:.4em;overflow:hidden}
+.tpt .g-a4p.nv .g-a4bar i{display:block;height:100%;background:var(--o)}
+.tpt .g-a4p.nv .g-a4warn{border:0;border-left:4px solid var(--o);background:var(--a3);font-style:normal;padding:.35em .7em}
+.tpt .g-a4p.nv .g-a4h{display:flex;align-items:center;gap:.5em;font-family:var(--sf);font-size:1.12em;font-weight:700;color:var(--a);text-transform:none;letter-spacing:0}
+.tpt .g-a4p.nv .g-a4h::before{content:"";width:1.1em;height:3px;background:var(--o);flex:none}
+.tpt .g-a4p.nv .g-a4tab th,.tpt .g-a4p.nv .g-a4tab td{border:0;border-bottom:1px solid var(--ln)}
+.tpt .g-a4p.nv .g-a4tab th{background:none;border-bottom:2px solid var(--a);color:var(--a);font-size:.76em;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding-bottom:.3em}
+.tpt .g-a4p.nv .g-a4tab tbody tr:nth-child(even) td{background:var(--a3)}
+.tpt .g-a4p.nv .g-a4tab td:first-child{font-family:var(--sf);color:var(--mu);font-weight:700}
+.tpt .g-a4p.nv .g-a4tab tr.off td{color:var(--mu)}
+.tpt .g-a4p.nv .g-a4tab i{color:var(--o);font-style:normal;font-weight:700}
+.tpt .g-a4p.nv .g-a4stu th:nth-child(5),.tpt .g-a4p.nv .g-a4stu td:nth-child(5){border-left:2px solid var(--a)}
+.tpt .g-a4p.nv .g-a4stu b,.tpt .g-a4p.nv .g-a4st2 td b{color:var(--o)!important}
+.tpt .g-a4p.nv .g-a4st2 tr.miss td{background:#f9e6df!important}
+.tpt .g-a4p.nv .g-a4all tfoot td{border-top:2px solid var(--a);border-bottom:0;background:var(--a2);color:var(--a);font-weight:800}
+.tpt .g-a4p.nv .g-a4all td small,.tpt .g-a4p.nv .g-a4yr td small{color:var(--mu)}
+.tpt .g-a4p.nv .g-a4ch rect{stroke:none}
+.tpt .g-a4p.nv .g-a4ch rect.c1{fill:var(--a)}.tpt .g-a4p.nv .g-a4ch rect.c2{fill:var(--o)}
+.tpt .g-a4p.nv .g-a4ch rect.c3{fill:#fff;stroke:var(--a);stroke-width:.8}.tpt .g-a4p.nv .g-a4ch rect.c0{fill:var(--a2);stroke:var(--a);stroke-width:.8}
+.tpt .g-a4p.nv .g-a4ch text{font-family:"Manrope",sans-serif;fill:var(--mu)}
+.tpt .g-a4p.nv .g-a4ch line{stroke:var(--mu)}
+.tpt .g-a4p.nv .g-a4lg i{border:0;border-radius:0}
+.tpt .g-a4p.nv .g-a4lg .b1{background:var(--a)}.tpt .g-a4p.nv .g-a4lg .b2{background:var(--o)}
+.tpt .g-a4p.nv .g-a4lg .b3{background:#fff;border:1px solid var(--a)}.tpt .g-a4p.nv .g-a4lg .b0{background:var(--a2);border:1px solid var(--a)}
+.tpt .g-a4p.nv .g-a4sum{border:0;border-top:2px solid var(--o);background:var(--a3);padding:.55em .8em}
+.tpt .g-a4p.nv .g-a4sum p{text-indent:0}
+.tpt .g-a4p.nv .g-a4rec{border:0;list-style:none;padding:0;counter-reset:r;display:flex;flex-direction:column;gap:.3em}
+.tpt .g-a4p.nv .g-a4rec li{counter-increment:r;display:flex;gap:.6em;margin:0}
+.tpt .g-a4p.nv .g-a4rec li::before{content:counter(r) ".";flex:none;min-width:1.3em;font-family:var(--sf);font-weight:700;color:var(--o)}
+.tpt .g-a4p.nv .g-a4note{color:var(--mu)}
+.tpt .g-a4p.nv .g-a4sig span{font-size:.85em;font-weight:700;color:var(--a)}
+.tpt .g-a4p.nv .g-a4sig i{border-bottom:1px solid var(--mu)}
+.tpt .g-a4p.nv .g-a4sig small{color:var(--mu)}
+.tpt .g-a4p.nv .g-a4f{border-top:1px solid var(--ln);color:var(--mu)}
+/* ekrandagi oqim varianti */
+.tpt .g-a4p.g-a4flow.nv{font-size:13.5px;border-left:10px solid var(--a);box-shadow:inset 4px 0 0 var(--o);padding-left:26px}
+.tpt .g-a4flow.nv .g-a4band{flex-direction:row;align-items:flex-end;gap:1em}
+.tpt .g-a4flow.nv .g-a4bl{flex:1}
+.tpt .g-a4flow.nv .g-a4qb{background:var(--a);color:#fff;padding:.35em .8em;display:flex;flex-direction:column;align-items:center;min-width:4.6em}
+.tpt .g-a4flow.nv .g-a4qb b{font-size:2.2em}
+@media (max-width:520px){.tpt .g-a4p.g-a4flow.nv{padding-left:16px;border-left-width:6px}.tpt .g-a4flow.nv .g-a4band{flex-direction:column-reverse;align-items:flex-start}
+  .tpt .g-a4flow.nv .g-a4meta>div{padding:.3em .6em}.tpt .g-a4flow.nv .g-a4meta>div:nth-child(odd){padding-left:0;border-left:0}.tpt .g-a4flow.nv .g-a4tiles>div:nth-child(odd){border-left:0}.tpt .g-a4flow.nv .g-a4tiles{row-gap:.6em}}
