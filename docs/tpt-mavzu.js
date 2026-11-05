@@ -13,7 +13,9 @@ const TPTM = (() => {
   const T = {flt: "next", view: "plan", rq: null, rk: "q", rs: "", rv: "scr", o: {by: "topic", stu: true, sum: true, sig: true, chart: true, rec: true}};
   try { Object.assign(T.o, JSON.parse(localStorage.getItem("yoqlama_tptrep3")) || {}); } catch (err) { /* sozlama yo'q */ }
   // varaq uslubi: v3 — «Kartochkali» (yangi), mod — «Zamonaviy», off — «Rasmiy (oq-qora)»
-  const stCls = () => "nv";
+  const ST = [["nv", "Yashil"], ["nv n2", "Ko'k"], ["nv bw", "Oq-qora"]];
+  const stCls = () => (ST.find((x) => x[0] === T.o.st) || ST[0])[0];
+  const stSeg = () => `<div class="g-seg g-stseg" role="group" aria-label="Dizayn">${ST.map(([k, l]) => `<button type="button" data-tpst="${k}" class="${stCls() === k ? "on" : ""}" aria-pressed="${stCls() === k}">${l}</button>`).join("")}</div>`;
   const keepO = () => { try { localStorage.setItem("yoqlama_tptrep3", JSON.stringify(T.o)); } catch (err) { /* saqlanmadi */ } };
 
   function parse(text) {
@@ -339,7 +341,7 @@ const TPTM = (() => {
     const ps = a4pages(c, A);
     const h0 = hdrS(), gh = c.grh || {}, hdr = {org: gh.org != null ? gh.org : h0.school, tch: gh.tch != null ? gh.tch : h0.teacher};
     const ck = (k, t) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${t}</button>`;
-    return `<div class="g-card g-a4opt">
+    return `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span>${stSeg()}</div>
       <div class="g-fld"><span class="g-lbl">Jadval</span><div class="g-seg"><button type="button" data-tpby="topic" class="${T.o.by === "topic" ? "on" : ""}">Mavzular bo'yicha</button><button type="button" data-tpby="day" class="${T.o.by !== "topic" ? "on" : ""}">Har bir dars</button></div></div>
         <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${ck("chart", "Grafik va oylar")}${ck("stu", "O'quvchilar davomati")}${ck("sum", "Xulosa")}${ck("rec", "Tavsiyalar")}${ck("sig", "Imzo joyi")}</div></div>
         <div class="g-frow g-a4hdr"><div class="g-fld"><label for="g-ro">Tashkilot (markaz, maktab) nomi</label><input id="g-ro" class="g-inp" value="${H.e(hdr.org)}" placeholder="Masalan: «Bilim» o'quv markazi"></div>
@@ -424,7 +426,7 @@ const TPTM = (() => {
   }
   function optCard(c, keys) {
     const h = hdrOf(c), ck = (k, t) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${t}</button>`;
-    return `<div class="g-card g-a4opt">
+    return `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span>${stSeg()}</div>
       <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${keys.map(([k, l]) => ck(k, l)).join("")}</div></div>
       <div class="g-frow g-a4hdr"><div class="g-fld"><label for="g-ro">Tashkilot (markaz, maktab) nomi</label><input id="g-ro" class="g-inp" value="${H.e(h.school)}" placeholder="Masalan: «Bilim» o'quv markazi"></div>
         <div class="g-fld"><label for="g-rt">O'qituvchi F.I.Sh.</label><input id="g-rt" class="g-inp" value="${H.e(h.teacher)}" placeholder="Masalan: Otaboboyev A."></div></div></div>`;
@@ -550,7 +552,7 @@ const TPTM = (() => {
     const pages = T.rv === "a4" ? paginate(allParts(G)) : null;
     return head + `<div class="g-row"><div class="g-seg g-qseg g-qseg5" role="group" aria-label="Davr">${qChips(c0, AL.q).replace(/data-tpq=/g, "data-alq=")}</div></div>
       <div class="g-row"><div class="g-seg" role="group" aria-label="Ko'rinish"><button type="button" data-tprv="scr" class="${T.rv !== "a4" ? "on" : ""}">Ekranda</button><button type="button" data-tprv="a4" class="${T.rv === "a4" ? "on" : ""}">A4 varaq</button></div></div>
-      ${pages ? `<div class="g-card g-a4opt">
+      ${pages ? `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span>${stSeg()}</div>
         <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${[["chart", "Davomat grafigi"], ["sum", "Xulosa"], ["rec", "Tavsiyalar"], ["sig", "Imzo joyi"]].map(([k, l]) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${l}</button>`).join("")}</div></div></div>
         <div class="g-a4w">${pages.map((x) => `<div class="g-a4s">${x}</div>`).join("")}</div><span class="g-muted" style="font-size:12.5px">A4 varaq: ${pages.length} bet.</span>`
       : `<div class="g-card g-rep"><div class="g-rhead"><small>Umumiy hisobot</small><h2>${G.P.lab}</h2><span class="g-muted">${fullD(G.P.from)} – ${fullD(G.P.to)}${G.partial ? ` · <b class="g-rpart">davr hali tugamagan</b>` : ""}</span></div>
@@ -565,6 +567,7 @@ const TPTM = (() => {
   function bindAll(m, list, open) {
     H.qa("[data-alq]", m).forEach((b) => b.onclick = () => { AL.q = +b.dataset.alq; H.draw(); });
     H.qa("[data-tprv]", m).forEach((b) => b.onclick = () => { T.rv = b.dataset.tprv; H.draw(); });
+    H.qa("[data-tpst]", m).forEach((b) => b.onclick = () => { T.o.st = b.dataset.tpst; keepO(); H.draw(); });
     H.qa("[data-tpo2]", m).forEach((b) => b.onclick = () => { const k = b.dataset.tpo2; T.o[k] = !T.o[k]; keepO(); H.draw(); });
     H.qa("[data-allg]", m).forEach((b) => b.onclick = () => open(+b.dataset.allg));
     const G = () => allData(list, AL.q), nm = () => `Umumiy hisobot ${qLab(AL.q)}`;
@@ -584,6 +587,7 @@ const TPTM = (() => {
     H.qa("[data-tpq]", m).forEach((b) => b.onclick = () => { T.rq = +b.dataset.tpq; H.draw(); });
     H.qa("[data-tprv]", m).forEach((b) => b.onclick = () => { T.rv = b.dataset.tprv; H.draw(); });
     H.qa("[data-tpby]", m).forEach((b) => b.onclick = () => { T.o.by = b.dataset.tpby; keepO(); H.draw(); });
+    H.qa("[data-tpst]", m).forEach((b) => b.onclick = () => { T.o.st = b.dataset.tpst; keepO(); H.draw(); });
     H.qa("[data-tpo2]", m).forEach((b) => b.onclick = () => { const k = b.dataset.tpo2; T.o[k] = !T.o[k]; keepO(); H.draw(); });
     // sarlavha: yozib bo'lgach (change) saqlanadi — har harfda qayta chizilmaydi
     [["#g-ro", "org"], ["#g-rt", "tch"]].forEach(([sel, k]) => { const i = H.q(sel, m); if (i) i.onchange = () => { c.grh = Object.assign({}, c.grh, {[k]: i.value.trim().slice(0, 120)}); H.save(); H.draw(); }; });

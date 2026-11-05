@@ -236,3 +236,19 @@
 .tpt .g-a4flow.nv .g-a4qb b{font-size:2.2em}
 @media (max-width:520px){.tpt .g-a4p.g-a4flow.nv{padding-left:16px;border-left-width:6px}.tpt .g-a4flow.nv .g-a4band{flex-direction:column-reverse;align-items:flex-start}
   .tpt .g-a4flow.nv .g-a4meta>div{padding:.3em .6em}.tpt .g-a4flow.nv .g-a4meta>div:nth-child(odd){padding-left:0;border-left:0}.tpt .g-a4flow.nv .g-a4tiles>div:nth-child(odd){border-left:0}.tpt .g-a4flow.nv .g-a4tiles{row-gap:.6em}}
+/* «Ko'k» varianti: shu tuzilish, to'q ko'k panel + xantal urg'u */
+.tpt .bx-pg.g-a4p.nv.n2,.tpt .g-a4p.g-a4flow.nv.n2{--a:#233a6b;--a2:#e6ebf5;--a3:#f6f5f0;--o:#d39b1e;--bad:#c0392b;--ln:#d8dbe2;--mu:#5f6573}
+.tpt .g-a4p.nv.n2 .g-a4stu b,.tpt .g-a4p.nv.n2 .g-a4st2 td b{color:var(--bad)!important}
+.tpt .g-a4p.nv.n2 .g-a4ch rect.c2{fill:var(--bad)}.tpt .g-a4p.nv.n2 .g-a4lg .b2{background:var(--bad)}
+.tpt .g-a4p.nv.n2 .g-a4st2 tr.miss td{background:#f8e4e1!important}
+.tpt .g-a4p.nv.n2 .g-a4tab i{color:#a87300}
+/* «Oq-qora» varianti: shu tuzilish, faqat qora va kulrang (oddiy printer uchun) */
+.tpt .bx-pg.g-a4p.nv.bw,.tpt .g-a4p.g-a4flow.nv.bw{--a:#1a1a1a;--a2:#e6e6e6;--a3:#f3f3f3;--o:#8a8a8a;--bad:#000;--ln:#cfcfcf;--mu:#555;color:#000}
+.tpt .g-a4p.nv.bw .g-a4bl small{color:#555}
+.tpt .g-a4p.nv.bw .g-a4stu b,.tpt .g-a4p.nv.bw .g-a4st2 td b,.tpt .g-a4p.nv.bw .g-a4tab i{color:#000!important;text-decoration:underline}
+.tpt .g-a4p.nv.bw .g-a4st2 tr.miss td{background:#e4e4e4!important}
+.tpt .g-a4p.nv.bw .g-a4ch rect.c1{fill:#a8a8a8}.tpt .g-a4p.nv.bw .g-a4ch rect.c2{fill:#111}
+.tpt .g-a4p.nv.bw .g-a4lg .b1{background:#a8a8a8}.tpt .g-a4p.nv.bw .g-a4lg .b2{background:#111}
+.tpt .g-a4p.nv.bw .g-a4rec li::before{color:#000}
+.tpt .g-stseg{flex-wrap:wrap}
+@media (max-width:520px){.tpt .g-stseg{display:grid;grid-template-columns:1fr 1fr 1fr;width:100%}}
