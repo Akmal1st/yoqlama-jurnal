@@ -66,7 +66,7 @@ const TPT = (() => {
   }
 
   /* ── holat ── */
-  TPTM.init({e, q, qa, pd, iso, dm, wdOf, today, isLesson, sched, WDS, WL, MN, cntOn: (c, d) => cntOn(c, d),
+  TPTM.init({e, q, qa, pd, iso, dm, wdOf, today, isLesson, sched, WDS, WL, MN, cntOn: (c, d) => cntOn(c, d), actOn: (c, d) => actOn(c, d), acct: (c, s) => acct(c, s), inG: (s, d) => inG(s, d),
     openLayer: (...a) => openLayer(...a), closeLayer: () => closeLayer(), hdr: (t) => hdr(t), confirmG: (...a) => confirmG(...a), dayPicker: (o) => dayPicker(o),
     save: () => save(), draw: () => draw(), toast: (x) => toast(x)});
   const T = {scr: "home", gi: -1, tab: "att", day: "", mo: "", av: "day", flt: "all", arch: false};
@@ -100,12 +100,13 @@ const TPT = (() => {
     const mon = paid.flatMap((x) => x.c.students.flatMap((s) => s.pays || [])).filter((p) => String(p.d).startsWith(mo)).reduce((a, p) => a + (+p.sum || 0), 0);
     const nArch = all.filter((x) => x.c.garch).length;
     const head = `<div class="g-row"><div style="flex:1;min-width:0"><h1>${T.arch ? "Arxivdagi guruhlar" : "Guruhlar"}</h1><div class="g-muted">To'garak va pullik ta'lim · ${dm(t)}, ${["yakshanba", "dushanba", "seshanba", "chorshanba", "payshanba", "juma", "shanba"][wdOf(t)]}</div></div>
-      ${T.arch ? `<button class="g-btn" type="button" data-arch="0">‹ Guruhlarga qaytish</button>` : `<button class="g-btn pri" type="button" data-new>＋ Yangi guruh</button>`}</div>`;
+      ${T.arch ? `<button class="g-btn" type="button" data-arch="0">‹ Guruhlarga qaytish</button>` : `${all.length ? `<button class="g-btn" type="button" data-allrep>Umumiy hisobot</button>` : ""}<button class="g-btn pri" type="button" data-new>＋ Yangi guruh</button>`}</div>`;
     if (!all.length) return head + `<div class="g-card g-empty"><h2>Hali guruh yo'q</h2><div class="g-muted">To'garak yoki pullik guruh qo'shing: nomi, dars kunlari va paket narxlari. Keyin o'quvchilarni qo'shasiz.</div><button class="g-btn pri" type="button" data-new>＋ Yangi guruh</button></div>`;
     return head + (T.arch ? "" : `<div class="g-stats">
       <div class="g-stat"><small>Bugun dars</small><strong class="g-num">${todayG.length} guruh</strong><span class="g-muted">${todayG.map((x) => e(x.c.name) + (timeOf(x.c) ? " " + timeOf(x.c) : "")).join(", ") || "yo'q"}</span></div>
       <button class="g-stat" type="button" data-due><small>To'lov kutilmoqda</small><strong class="g-num" style="${due.length ? "color:var(--g-bad)" : ""}">${due.length} o'quvchi</strong><span class="g-muted">${due.length ? "bosing — ro'yxat" : "hamma to'lagan"}</span></button>
       <div class="g-stat"><small>${MN[+mo.slice(5) - 1]} tushumi</small><strong class="g-num">${som(mon)}</strong><span class="g-muted">${paid.length} pullik guruh</span></div></div>`) + `
+    ${T.arch ? "" : TPTM.homeNote(act.map((x) => x))}
     <div class="g-list">${list.map(({c, ci}) => {
       const dueN = c.kind === "paid" ? c.students.filter((s) => acct(c, s).due).length : 0;
       return `<button class="g-gcard" type="button" data-g="${ci}">
@@ -478,11 +479,15 @@ const TPT = (() => {
   function paint(m) {
     if (T.scr === "grp" && !isG(G())) T.scr = "home";
     if (T.scr === "grp" && T.day > today()) T.day = today();
-    m.innerHTML = `<div class="tpt">${T.scr === "home" ? homeHtml() : groupHtml()}</div>`;
+    const act = () => groups().filter((x) => !x.c.garch);
+    m.innerHTML = `<div class="tpt">${T.scr === "home" ? homeHtml() : T.scr === "all" ? TPTM.allHtml(act()) : groupHtml()}</div>`;
+    if (T.scr === "all") TPTM.bindAll(m, act(), (ci) => { TPTM.openRep(TPTM._all.q); openGroup(ci, "top"); });
     bind(m);
   }
   function bind(m) {
     qa("[data-g]", m).forEach((b) => b.onclick = () => openGroup(+b.dataset.g));
+    qa("[data-allrep]", m).forEach((b) => b.onclick = () => { T.scr = "all"; draw(); window.scrollTo(0, 0); });
+    qa("[data-tphome]", m).forEach((b) => b.onclick = () => { const [ci, q] = b.dataset.tphome.split("|").map(Number); TPTM.openRep(q); openGroup(ci, "top"); });
     qa("[data-home]", m).forEach((b) => b.onclick = () => { T.scr = "home"; draw(); window.scrollTo(0, 0); });
     qa("[data-new]", m).forEach((b) => b.onclick = () => setDialog(true));
     qa("[data-arch]", m).forEach((b) => b.onclick = () => { T.arch = b.dataset.arch === "1"; draw(); });

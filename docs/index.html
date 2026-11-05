@@ -294,6 +294,16 @@ function cleanClass(c) {
   { const g = c.gtop && typeof c.gtop === "object" ? c.gtop : {}, o = {};
     for (const [d, v] of Object.entries(g)) { if (!ISO_D.test(d) || !v || typeof v !== "object") continue; if (v.off === true) o[d] = {off: true}; else if (String(v.t ?? "").trim()) o[d] = {t: String(v.t).trim().slice(0, 200)}; }
     if (Object.keys(o).length) c.gtop = o; else delete c.gtop; }
+  // chorak hisoboti (tpt-mavzu.js): c.grep {chorak: {at}} — ko'rilgan; c.grh — varaq sarlavhasi va «To'garak hujjatlari» maydonlari
+  { const g = c.grep && typeof c.grep === "object" ? c.grep : {}, o = {};
+    for (const q of ["1", "2", "3", "4"]) if (g[q] && typeof g[q] === "object" && ISO_D.test(String(g[q].at))) o[q] = {at: g[q].at};
+    if (Object.keys(o).length) c.grep = o; else delete c.grep; }
+  { const g = c.grh && typeof c.grh === "object" ? c.grh : null, o = {};
+    if (g) {
+      for (const [k, n] of [["org", 160], ["tch", 160], ["sub", 160], ["cls", 160], ["dir", 160], ["reg", 1500], ["maq", 1500]]) if (typeof g[k] === "string") o[k] = g[k].slice(0, n);
+      if (g.nat && typeof g.nat === "object") { const nt = {}; for (const q of ["0", "1", "2", "3", "4"]) if (typeof g.nat[q] === "string" && g.nat[q].trim()) nt[q] = g.nat[q].slice(0, 1500); if (Object.keys(nt).length) o.nat = nt; }
+    }
+    if (Object.keys(o).length) c.grh = o; else delete c.grh; }
   c.works = (Array.isArray(c.works) ? c.works : []).filter((w) => w && typeof w === "object" && SAFE_ID.test(String(w.id)) && (w.type === "bsb" || w.type === "chsb") && ISO_D.test(String(w.date)))
     .map((w) => Object.assign({}, w, {id: String(w.id), max: num0(w.max)}));
   for (const w of c.works) cleanTest(w);

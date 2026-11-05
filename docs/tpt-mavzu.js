@@ -10,7 +10,14 @@
 const TPTM = (() => {
   let H = null; // guruhlar.js yordamchilari
   const ISO = /^\d{4}-\d\d-\d\d$/;
-  const T = {flt: "next"};
+  const T = {flt: "next", view: "plan", rq: null, rk: "q", rs: "", rv: "scr", o: {by: "topic", stu: true, sum: true, sig: true, chart: true, rec: true}};
+  try { Object.assign(T.o, JSON.parse(localStorage.getItem("yoqlama_tptrep3")) || {}); } catch (err) { /* sozlama yo'q */ }
+  // varaq uslubi: nv — yon panelli (Yashil/Ko'k/Oq-qora), nv sm — «Oddiy», pl — «Bezaksiz» (rasmiy: Times, chegarali jadvallar)
+  const ST = [["nv", "Yashil"], ["nv n2", "Ko'k"], ["nv bw", "Oq-qora"], ["nv sm", "Oddiy"], ["pl", "Bezaksiz"]];
+  const fancy = () => stCls() !== "pl";
+  const stCls = () => (ST.find((x) => x[0] === T.o.st) || ST[0])[0];
+  const stSeg = () => `<div class="g-seg g-stseg" role="group" aria-label="Dizayn">${ST.map(([k, l]) => `<button type="button" data-tpst="${k}" class="${stCls() === k ? "on" : ""}" aria-pressed="${stCls() === k}">${l}</button>`).join("")}</div>`;
+  const keepO = () => { try { localStorage.setItem("yoqlama_tptrep3", JSON.stringify(T.o)); } catch (err) { /* saqlanmadi */ } };
 
   function parse(text) {
     const out = [];
@@ -61,7 +68,7 @@ const TPTM = (() => {
     return `<div class="g-tpc ${m.off ? "off" : m.own ? "own" : ""}"><span class="g-tpn g-num">${lab}${m.n ? ` / ${L.total}` : ""}</span><span class="g-tpt">${txt}</span><button class="g-btn sm ghost" type="button" data-tpe="${d}" aria-label="Mavzuni o'zgartirish">✎</button></div>`;
   }
   // «Mavzular» bo'limi
-  function tabHtml(c) {
+  function planHtml(c) {
     if (!has(c)) return `<div class="g-card g-empty"><h2>Yillik mavzular rejasi kiritilmagan</h2>
       <div class="g-muted">Mavzularni bir marta kiriting — ular guruhning dars kunlariga (${H.e(H.sched(c))}) tartib bilan o'zi qo'yiladi. Har kuni Yo'qlamada shu kun mavzusi ko'rinadi.</div>
       <div class="g-row" style="justify-content:center"><button class="g-btn pri" type="button" data-tpl>＋ Mavzularni kiritish</button><button class="g-btn" type="button" data-tpx>Excel'dan yuklash</button></div></div>`;
@@ -166,11 +173,560 @@ const TPTM = (() => {
   function todayLine(c) { if (!has(c)) return ""; const m = layout(c).map[H.today()]; return m && m.s ? `${m.n}. ${sTxt(m.s)}` : m && m.own ? m.own : ""; }
   function topicOf(c, d) { if (!has(c)) return ""; const m = layout(c).map[d]; return m ? m.off ? "Dars bo'lmadi" : m.own ? m.own : `${m.n}. ${sTxt(m.s)}` : ""; }
 
+  /* ───────── chorak hisoboti: o'tilgan mavzular ─────────
+     Chorak davri TPT uchun: oldingi chorak tugagan kundan keyin — shu chorak oxirigacha (ta'tildagi darslar keyingi chorakka kiradi);
+     1-chorak reja boshlanishidan (chorakdan oldin bo'lsa). Chorak tugagach (oxirgi kundan keyin) hisobot «tayyor» bo'ladi. */
+  const qR = (q) => { try { return typeof qRange === "function" ? qRange(q) : null; } catch (err) { return null; } };
+  const addD = (d, k) => { const x = H.pd(d); x.setDate(x.getDate() + k); return H.iso(x); };
+  // q = 0 — butun o'quv yili (1-chorak boshidan oxirgi chorak oxirigacha)
+  function qPer(c, q) {
+    if (q === 0) { const qs = [1, 2, 3, 4].filter((x) => qR(x)); if (!qs.length) return null; const a = qPer(c, qs[0]), b = qR(qs[qs.length - 1]); return {q: 0, lab: "Butun o'quv yili", from: a.from, to: b[1], end: b[1]}; }
+    const r = qR(q); if (!r) return null;
+    const pv = q > 1 ? qR(q - 1) : null, st = c.gplan && ISO.test(String(c.gplan.start || "")) ? c.gplan.start : r[0];
+    return {q, lab: `${q}-chorak`, from: pv ? addD(pv[1], 1) : st < r[0] ? st : r[0], to: r[1], end: r[1]};
+  }
+  const qLab = (q) => q ? `${q}-chorak` : "yillik";
+  const qBadge = (P) => P.q ? `<div class="g-a4qb"><b>${P.q}</b><span>chorak</span></div>` : `<div class="g-a4qb y"><b>${yearOf(P.from).replace("–", "/").replace(/(\d\d)(\d\d)\/(\d\d)(\d\d)/, "$2/$4")}</b><span>o'quv yili</span></div>`;
+  const qDone = (c, q) => { const p = qPer(c, q); return !!p && p.end < H.today(); };
+  // shu kunlarda tugagan chorak (21 kun ichida), hisoboti hali ko'rilmagan
+  function freshQ(c) {
+    if (!has(c)) return 0; const t = H.today();
+    for (let q = 4; q >= 1; q--) { const p = qPer(c, q); if (p && p.end < t && addD(p.end, 21) >= t) return (c.grep || {})[q] ? 0 : q; }
+    return 0;
+  }
+  const fullD = (d) => `${H.dm(d)} ${d.slice(0, 4)}`;
+  function repData(c, q) {
+    const P = qPer(c, q); if (!P) return null;
+    const L = layout(c), t = H.today(), upto = P.to < t ? P.to : addD(t, -1);
+    const inP = (d) => d >= P.from && d <= upto;
+    const rows = L.rows.filter((r) => inP(r.d)).map((r) => { const na = H.actOn(c, r.d).length, k = H.cntOn(c, r.d); return Object.assign({}, r, {k, na}); });
+    const offs = Object.keys(L.map).filter((d) => L.map[d].off && inP(d)).sort();
+    const plan = rows.filter((r) => r.n), own = rows.filter((r) => r.own);
+    const topics = [...new Set(plan.map((r) => r.s.i))], last = plan.length ? plan[plan.length - 1].n : (L.rows.filter((r) => r.n && r.d < P.from).pop() || {}).n || 0;
+    const first = plan.length ? plan[0].n : 0;
+    const sumK = rows.reduce((a, r) => a + r.k, 0), sumN = rows.reduce((a, r) => a + r.na, 0);
+    const st = c.students.map((s) => { const ds = rows.filter((r) => H.inG(s, r.d)); const came = ds.filter((r) => (s.marks || {})[r.d] === "ot").length; return {name: s.name, all: ds.length, came, miss: ds.length - came}; }).filter((x) => x.all);
+    const nxt = q ? qPer(c, q + 1) : null, nrows = nxt ? L.rows.filter((r) => r.n && r.d >= nxt.from && r.d <= nxt.to) : L.rows.filter((r) => r.n && r.d > P.to);
+    const partial = !qDone(c, q);
+    return {P, rows, offs, plan, own, topics, first, last, total: L.total, nTopics: c.gplan.topics.length, att: sumN ? Math.round(sumK / sumN * 100) : 0,
+      miss: st.filter((x) => x.miss).sort((a, b) => b.miss - a.miss || a.name.localeCompare(b.name)).slice(0, 3),
+      full: st.filter((x) => !x.miss).length, nSt: st.length, stu: st, end: L.end,
+      months: [...new Set(rows.map((r) => r.d.slice(0, 7)))].map((m) => { const rs = rows.filter((r) => r.d.startsWith(m)), k = rs.reduce((a, r) => a + r.k, 0), n = rs.reduce((a, r) => a + r.na, 0);
+        return {m, n: rs.length, t: new Set(rs.filter((r) => r.n).map((r) => r.s.i)).size, att: n ? Math.round(k / n * 100) : 0}; }), nrows, partial, upto};
+  }
+  // o'qituvchi uchun tayyor matn (xulosa) — ota-onalar guruhiga yoki ma'muriyatga
+  function summary(c, A) {
+    const sl = slots(c.gplan), P = A.P, out = [];
+    out.push(`«${c.name}» guruhi, ${P.lab.toLowerCase()} (${H.dm(P.from)} – ${fullD(A.partial ? A.upto : P.to)}).`);
+    if (!A.rows.length) { out.push("Bu davrda dars o'tkazilmagan."); return out; }
+    out.push(`${A.rows.length} ta dars o'tkazildi${A.own.length ? `, shundan ${A.own.length} tasi rejadan tashqari mavzu` : ""}. Yillik rejadagi ${A.total} darsdan ${A.first ? `${A.first}–${A.last}-darslar` : "hech biri"} o'tildi (${A.topics.length} ta mavzu); yillik reja ${Math.round(A.last / A.total * 100)}% bajarildi.`);
+    const sh = A.offs.length + A.own.length;
+    out.push(sh ? `${A.offs.length ? `${A.offs.length} kun dars bo'lmadi (${A.offs.map(H.dm).join(", ")})` : ""}${A.offs.length && A.own.length ? ", " : ""}${A.own.length ? `${A.own.length} darsda boshqa mavzu o'tildi` : ""} — reja ${sh} darsga surildi.` : "Darslar reja bo'yicha, kechikishsiz o'tildi.");
+    if (A.nrows.length) { const a = A.nrows[0], b = A.nrows[A.nrows.length - 1]; out.push(`Keyingi chorakda ${A.nrows.length} ta dars rejalashtirilgan: «${a.s.t}» dan «${b.s.t}» gacha.`); }
+    else if (A.last >= sl.length) out.push("Yillik reja to'liq bajarildi.");
+    return out;
+  }
+  // tavsiyalar: ma'lumotdan kelib chiqadigan aniq takliflar
+  function advice(c, A) {
+    const out = [], pc = (x) => x.all ? Math.round(x.came / x.all * 100) : 100;
+    const low = A.stu.filter((x) => pc(x) < 75).sort((a, b) => pc(a) - pc(b));
+    if (low.length) out.push(`${low.slice(0, 5).map((x) => x.name).join(", ")}${low.length > 5 ? ` va yana ${low.length - 5} nafar` : ""} — davomati 75% dan past; ota-onalari bilan suhbat o'tkazish va qoldirilgan mavzularni qayta tushuntirish tavsiya etiladi.`);
+    const tp = {}; for (const r of A.rows) if (r.n && r.na) { const t = tp[r.s.i] || (tp[r.s.i] = {t: r.s.t, k: 0, n: 0}); t.k += r.k; t.n += r.na; }
+    const weak = Object.values(tp).filter((x) => x.k / x.n < 0.75).sort((a, b) => a.k / a.n - b.k / b.n).slice(0, 2);
+    if (weak.length) out.push(`${weak.map((x) => `«${x.t}» (${Math.round(x.k / x.n * 100)}%)`).join(", ")} mavzularida davomat past bo'ldi — takrorlash darsida qisqacha qaytarish kerak.`);
+    const sh = A.offs.length + A.own.length, q4 = qR(4);
+    if (A.end && q4 && A.end > q4[1]) out.push(`Joriy sur'atda yillik reja ${fullD(A.end)} da tugaydi — o'quv yili oxiridan (${fullD(q4[1])}) keyin. Qo'shimcha dars belgilash yoki ayrim mavzularni birlashtirish kerak.`);
+    else if (sh) out.push(`Reja ${sh} darsga surilgan, lekin yil oxirigacha yetadi${A.end ? ` (taxminan ${fullD(A.end)})` : ""}.`);
+    if (!out.length) out.push("Reja va davomat bo'yicha kamchilik yo'q — shu tartibda davom ettirish tavsiya etiladi.");
+    return out;
+  }
+  // har bir dars davomati — oq-qora ustunli grafik (A4 uchun)
+  function chartSvg(A) {
+    const rs = A.rows; if (rs.length < 2) return "";
+    const W = 680, Hh = 96, pad = 24, bw = (W - pad) / rs.length, y = (v) => 6 + (Hh - 20) * (1 - v);
+    let g = `<line x1="${pad}" x2="${W}" y1="${y(.75)}" y2="${y(.75)}" stroke="#000" stroke-dasharray="3 3" stroke-width=".8"/><text x="0" y="${y(.75) + 3}" font-size="8">75%</text><text x="0" y="${y(1) + 3}" font-size="8">100</text>`;
+    rs.forEach((r, i) => { const v = r.na ? r.k / r.na : 0, x = pad + i * bw + bw * .15, w = bw * .7;
+      g += `<rect x="${x.toFixed(1)}" y="${y(v).toFixed(1)}" width="${w.toFixed(1)}" height="${(y(0) - y(v)).toFixed(1)}" class="${r.own ? "c3" : v < .75 ? "c2" : "c1"}" fill="${r.own ? "#fff" : v < .75 ? "#000" : "#9a9a9a"}" stroke="#000" stroke-width=".6"/>`;
+      if (i % Math.ceil(rs.length / 13) === 0) g += `<text x="${(x + w / 2).toFixed(1)}" y="${Hh - 2}" font-size="8" text-anchor="middle">${r.d.slice(8, 10)}.${r.d.slice(5, 7)}</text>`; });
+    return `<svg class="g-a4ch" viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Har bir darsdagi davomat">${g}<line x1="${pad}" x2="${W}" y1="${y(0)}" y2="${y(0)}" stroke="#000" stroke-width=".8"/></svg>`;
+  }
+  function sheet(c, A) {
+    const P = A.P, lines = summary(c, A);
+    const list = A.rows.concat(A.offs.map((d) => ({d, off: true}))).sort((a, b) => a.d.localeCompare(b.d));
+    return `<div class="g-rhead"><small>O'tilgan mavzular hisoboti</small><h2>${H.e(c.name)} · ${P.lab}</h2>
+        <span class="g-muted">${fullD(P.from)} – ${fullD(P.to)} · ${H.e(H.sched(c))} · ${A.nSt} o'quvchi${A.partial ? ` · <b class="g-rpart">chorak hali tugamagan, ${H.dm(A.upto)} gacha</b>` : ""}</span></div>
+      <div class="g-rkpi g-num"><div><b>${A.rows.length}</b><span>dars o'tkazildi</span></div><div><b>${A.topics.length}</b><span>mavzu o'tildi</span></div>
+        <div><b>${A.total ? Math.round(A.last / A.total * 100) : 0}%</b><span>yillik reja</span></div><div><b>${A.att}%</b><span>davomat</span></div></div>
+      <div class="g-rsum"><h3>Xulosa</h3>${lines.map((x) => `<p>${H.e(x)}</p>`).join("")}</div>
+      <div class="g-rtw"><table class="g-rtab"><thead><tr><th>№</th><th>Sana</th><th class="l">Mavzu</th><th>Keldi</th></tr></thead>
+        <tbody>${list.map((r) => `<tr class="${r.off ? "off" : r.own ? "own" : ""}"><td class="g-num">${r.n || (r.off ? "—" : "＊")}</td><td class="g-num">${+r.d.slice(8, 10)}.${r.d.slice(5, 7)} <small>${H.WDS[H.wdOf(r.d)]}</small></td>
+          <td class="l">${r.off ? "Dars bo'lmadi" : r.own ? `${H.e(r.own)} <small>(rejadan tashqari)</small>` : H.e(sTxt(r.s))}</td><td class="g-num">${r.off ? "" : `${r.k}/${r.na}`}</td></tr>`).join("") || `<tr><td colspan="4">Bu davrda dars yo'q</td></tr>`}</tbody></table></div>
+      ${A.nrows.length ? `<div class="g-rnext"><h3>Keyingi chorak rejasi</h3><span>${A.nrows.length} dars · ${A.nrows[0].n}–${A.nrows[A.nrows.length - 1].n}-darslar: ${H.e(A.nrows[0].s.t)} … ${H.e(A.nrows[A.nrows.length - 1].s.t)}</span></div>` : ""}
+      <div class="g-rsig"><span>O'qituvchi: ____________________</span><span>${fullD(H.today())}</span></div>`;
+  }
+  /* ───────── A4 varaq (chop etish va PDF) ─────────
+     Rasmiy hujjat ko'rinishi: oq-qora, Times. Avval bitta varaqqa sig'dirishga harakat (shrift 14 → 10 px),
+     sig'masa — jadval keyingi varaqqa «(davomi)» bilan o'tadi. O'lchash yashirin .g-a4host ichida. */
+  const hdrS = () => { try { return Object.assign({school: "", teacher: ""}, (D.web || {}).bsb_hdr || {}); } catch (err) { return {school: "", teacher: ""}; } };
+  const yearOf = (d) => { const y = +d.slice(0, 4) - (+d.slice(5, 7) < 8 ? 1 : 0); return `${y}–${y + 1}`; };
+  const dd = (d) => `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}`;
+  function a4parts(c, A) {
+    const P = A.P, h0 = hdrS(), gh = c.grh || {}, h = {school: gh.org != null ? gh.org : h0.school, teacher: gh.tch != null ? gh.tch : h0.teacher}, lines = summary(c, A).slice(1);
+    const list = A.rows.concat(A.offs.map((d) => ({d, off: true}))).sort((a, b) => a.d.localeCompare(b.d));
+    const pct = A.total ? Math.round(A.last / A.total * 100) : 0, mod = fancy();
+    const headM = `<div class="g-a4band"><div class="g-a4bl"><small>${h.school ? H.e(h.school) : "O'quv guruhi hisoboti"}</small><div class="g-a4t">O'tilgan mavzular hisoboti</div>
+        <div class="g-a4st">«${H.e(c.name)}» guruhi · ${yearOf(P.from)} o'quv yili</div></div>${qBadge(P)}</div>
+      <div class="g-a4meta"><div><small>Davr</small><b>${dd(P.from)} – ${dd(P.to)}</b></div><div><small>Dars kunlari</small><b>${H.e(H.sched(c))}</b></div><div><small>O'quvchilar</small><b>${A.nSt} nafar</b></div><div><small>O'qituvchi</small><b>${h.teacher ? H.e(h.teacher) : "&nbsp;"}</b></div></div>
+      ${A.partial ? `<div class="g-a4warn">Chorak hali tugamagan — ma'lumot ${dd(A.upto)} holatiga.</div>` : ""}
+      <div class="g-a4tiles"><div><b>${A.rows.length}</b><span>dars o'tkazildi</span></div><div><b>${A.topics.length}</b><span>mavzu o'tildi</span></div>
+        <div class="w"><b>${pct}%</b><span>yillik reja · ${A.last}/${A.total} dars</span><div class="g-a4bar"><i style="width:${pct}%"></i></div></div><div><b>${A.att}%</b><span>o'rtacha davomat</span></div></div>`;
+    const head0 = `${h.school ? `<div class="g-a4sch">${H.e(h.school)}</div>` : ""}<div class="g-a4t">O'tilgan mavzular hisoboti</div>
+      <div class="g-a4st">«${H.e(c.name)}» guruhi · ${P.lab} · ${yearOf(P.from)} o'quv yili</div>
+      <table class="g-a4info"><tr><td>Davr: <b>${dd(P.from)} – ${dd(P.to)}</b></td><td>Dars kunlari: <b>${H.e(H.sched(c))}</b></td></tr>
+        <tr><td>O'quvchilar: <b>${A.nSt} nafar</b></td><td>O'qituvchi: <b>${h.teacher ? H.e(h.teacher) : "____________________"}</b></td></tr></table>
+      ${A.partial ? `<div class="g-a4warn">Chorak hali tugamagan — ma'lumot ${dd(A.upto)} holatiga.</div>` : ""}
+      <table class="g-a4info"><tr><td>O'tkazilgan darslar: <b>${A.rows.length}</b></td><td>O'tilgan mavzular: <b>${A.topics.length}</b></td></tr>
+        <tr><td>Yillik reja bajarilishi: <b>${pct}%</b> (${A.last}/${A.total} dars)</td><td>O'rtacha davomat: <b>${A.att}%</b></td></tr></table>`;
+    const head = (mod ? headM : head0) + `
+      ${T.o.chart && fancy() && A.rows.length > 1 ? `<div class="g-a4dyn"><div><div class="g-a4h">Darslardagi davomat</div>${chartSvg(A)}<div class="g-a4lg"><span><i class="b1"></i>75% va yuqori</span><span><i class="b2"></i>75% dan past</span><span><i class="b3"></i>rejadan tashqari</span></div></div>
+        <div><div class="g-a4h">Oylar kesimida</div><table class="g-a4tab g-a4mo"><thead><tr><th class="l">Oy</th><th>Dars</th><th>Mavzu</th><th>Davomat</th></tr></thead><tbody>${A.months.map((x) => `<tr><td class="l">${H.MN[+x.m.slice(5) - 1]}</td><td>${x.n}</td><td>${x.t}</td><td>${x.att}%</td></tr>`).join("")}</tbody></table></div></div>` : ""}`;
+    // «Mavzular bo'yicha»: bir mavzuning hamma darslari bitta qatorda (sanalari, soati, o'rtacha davomat)
+    const groups = [];
+    for (const r of list) {
+      if (r.off) { groups.push({off: true, ds: [r.d]}); continue; }
+      const key = r.own ? "own|" + r.own : "p|" + r.s.i, g = groups.find((x) => x.key === key);
+      if (g) { g.ds.push(r.d); g.k += r.k; g.na += r.na; } else groups.push({key, n: r.n ? r.s.i + 1 : 0, t: r.own || r.s.t, own: !!r.own, h: r.s ? r.s.h : 1, ds: [r.d], k: r.k, na: r.na});
+    }
+    const dShort = (d) => `${d.slice(8, 10)}.${d.slice(5, 7)}`;
+    const grpH = (g) => g.off ? `<tr class="off"><td>—</td><td class="l" colspan="2">Dars bo'lmadi — mavzu keyingi darsga surildi</td><td>${g.ds.map(dShort).join(", ")}</td><td></td><td></td></tr>`
+      : `<tr><td>${g.own ? "*" : g.n}</td><td class="l" colspan="2">${H.e(g.t)}${g.own ? " <i>(rejadan tashqari)</i>" : ""}</td><td>${g.ds.map(dShort).join(", ")}</td><td>${g.ds.length}${!g.own && g.h > 1 && g.ds.length < g.h ? `/${g.h}` : ""}</td><td>${g.na ? Math.round(g.k / g.na * 100) + "%" : ""}</td></tr>`;
+    // o'quvchilar davomati: ikki ustunli ro'yxat
+    const stu = A.stu, half = Math.ceil(stu.length / 2), pc = (x) => x.all ? Math.round(x.came / x.all * 100) : 0;
+    const stCell = (x, i) => x ? `<td>${i + 1}</td><td class="l">${H.e(x.name)}</td><td>${x.came}/${x.all}</td><td>${pc(x) < 75 ? `<b>${pc(x)}%*</b>` : pc(x) + "%"}</td>` : `<td></td><td></td><td></td><td></td>`;
+    const stuH = stu.length ? `<div class="g-a4h">O'quvchilar davomati</div><table class="g-a4tab g-a4stu"><colgroup>${'<col style="width:5%"><col style="width:27%"><col style="width:10%"><col style="width:8%">'.repeat(2)}</colgroup><thead><tr><th>№</th><th class="l">F.I.Sh.</th><th>Keldi</th><th>%</th><th>№</th><th class="l">F.I.Sh.</th><th>Keldi</th><th>%</th></tr></thead><tbody>${
+      Array.from({length: half}, (_, i) => `<tr>${stCell(stu[i], i)}${stCell(stu[i + half], i + half)}</tr>`).join("")}</tbody></table>` : "";
+    const rowH = (r) => `<tr class="${r.off ? "off" : ""}"><td>${r.n || (r.off ? "—" : "*")}</td><td>${dd(r.d)}</td><td>${H.WDS[H.wdOf(r.d)]}</td><td class="l">${r.off ? "Dars bo'lmadi (mavzu keyingi darsga surildi)" : r.own ? `${H.e(r.own)} <i>(rejadan tashqari)</i>` : H.e(sTxt(r.s))}</td><td>${r.off ? "" : `${r.k}/${r.na}`}</td></tr>`;
+    const byT = T.o.by === "topic";
+    const thead = (cont) => byT ? `<div class="g-a4h">O'tilgan mavzular${cont ? " (davomi)" : ""}</div><table class="g-a4tab"><thead><tr><th>№</th><th class="l" colspan="2">Mavzu</th><th>Dars sanalari</th><th>Soat</th><th>Davomat</th></tr></thead><tbody>`
+      : `<div class="g-a4h">Darslar va mavzular${cont ? " (davomi)" : ""}</div><table class="g-a4tab"><thead><tr><th>№</th><th>Sana</th><th>Kun</th><th class="l">Mavzu</th><th>Keldi</th></tr></thead><tbody>`;
+    const tail = `${T.o.stu ? stuH : ""}${T.o.sum ? `<div class="g-a4h">Xulosa</div><div class="g-a4sum">${lines.map((x) => `<p>${H.e(x)}</p>`).join("")}</div>` : ""}${T.o.rec ? `<div class="g-a4h">Tavsiyalar</div><ol class="g-a4rec">${advice(c, A).map((x) => `<li>${H.e(x)}</li>`).join("")}</ol>` : ""}
+      <div class="g-a4note">* — rejadan tashqari mavzu${byT ? "; «Soat» — shu chorakda o'tilgan darslar (2/3 — mavzuning 3 darsidan 2 tasi)" : "; «Keldi» — darsga kelgan / guruhdagi o'quvchilar"}${T.o.stu && stu.length ? "; davomati 75% dan past o'quvchilar «*» bilan" : ""}.</div>
+      ${T.o.sig ? "" : "<!--"}<div class="g-a4sig"><div><span>O'qituvchi</span><i></i><small>(imzo)</small></div><div><span>F.I.Sh.</span><i>${h.teacher ? H.e(h.teacher) : ""}</i><small></small></div><div><span>Sana</span><i></i><small></small></div></div>${T.o.sig ? "" : "-->"}`;
+    return {head, rows: byT ? groups.map(grpH) : list.map(rowH), thead, tail, foot: (i, n) => `<div class="g-a4f"><span>«${H.e(c.name)}» · ${P.lab} · o'tilgan mavzular</span><span>${i} / ${n}</span></div>`};
+  }
+  let host = null;
+  const a4pages = (c, A) => fancy() ? paginate(a4parts(c, A)) : paginate(docRep(c, A.P.q));
+  function paginate(X) {
+    if (!host) { host = document.createElement("div"); host.className = "tpt g-a4host"; host.setAttribute("aria-hidden", "true"); }
+    if (!host.isConnected) document.body.append(host);
+    const page = (fs, body) => `<div class="bx-pg g-a4p ${X.cls || stCls()}" style="--fs:${fs}px"><div class="g-a4i">${X.cls || fancy() ? body : untab(body)}</div></div>`;
+    const fits = (html) => { host.innerHTML = html; const i = host.querySelector(".g-a4i"); return i.scrollHeight <= i.clientHeight + 1; };
+    const one = (fs) => page(fs, X.head + X.thead(false) + X.rows.join("") + "</tbody></table>" + X.tail + X.foot(1, 1));
+    try {
+      for (let fs = 14; fs >= 10; fs -= 0.5) if (fits(one(fs))) return [one(fs)];
+      // bir nechta varaq: har birida iloji boricha ko'p qator; oxirgisida xulosa va imzo
+      const fs = 12, out = []; let i = 0;
+      while (i < X.rows.length || !out.length) {
+        let n = X.rows.length - i;
+        const mk = (k, last) => page(fs, (out.length ? "" : X.head) + X.thead(out.length > 0) + X.rows.slice(i, i + k).join("") + "</tbody></table>" + (last ? X.tail : "") + X.foot(out.length + 1, "@@"));
+        if (fits(mk(n, true))) { out.push(mk(n, true)); i += n; break; }
+        while (n > 1 && !fits(mk(n, false))) n--;
+        out.push(mk(n, false)); i += n;
+        if (i >= X.rows.length) { out.push(page(fs, X.tail + X.foot(out.length + 1, "@@"))); break; }
+      }
+      return out.map((x) => x.replace("@@", out.length));
+    } finally { host.innerHTML = ""; }
+  }
+  function a4view(c, A) {
+    const ps = a4pages(c, A);
+    if (!fancy()) return `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span>${stSeg()}</div>${docFlds(c, A.P.q)}</div>
+      <div class="g-a4w">${ps.map((x) => `<div class="g-a4s">${x}</div>`).join("")}</div><span class="g-muted" style="font-size:12.5px">A4 varaq: ${ps.length} bet.</span>`;
+    const h0 = hdrS(), gh = c.grh || {}, hdr = {org: gh.org != null ? gh.org : h0.school, tch: gh.tch != null ? gh.tch : h0.teacher};
+    const ck = (k, t) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${t}</button>`;
+    return `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span>${stSeg()}</div>
+      <div class="g-fld"><span class="g-lbl">Jadval</span><div class="g-seg"><button type="button" data-tpby="topic" class="${T.o.by === "topic" ? "on" : ""}">Mavzular bo'yicha</button><button type="button" data-tpby="day" class="${T.o.by !== "topic" ? "on" : ""}">Har bir dars</button></div></div>
+        <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${fancy() ? ck("chart", "Grafik va oylar") : ""}${ck("stu", "O'quvchilar davomati")}${ck("sum", "Xulosa")}${ck("rec", "Tavsiyalar")}${ck("sig", "Imzo joyi")}</div></div>
+        <div class="g-frow g-a4hdr"><div class="g-fld"><label for="g-ro">Tashkilot (markaz, maktab) nomi</label><input id="g-ro" class="g-inp" value="${H.e(hdr.org)}" placeholder="Masalan: «Bilim» o'quv markazi"></div>
+          <div class="g-fld"><label for="g-rt">O'qituvchi F.I.Sh.</label><input id="g-rt" class="g-inp" value="${H.e(hdr.tch)}" placeholder="Masalan: Otaboboyev A."></div></div></div>
+      <div class="g-a4w">${ps.map((x) => `<div class="g-a4s">${x}</div>`).join("")}</div>
+      <span class="g-muted" style="font-size:12.5px">A4 varaq: ${ps.length} bet. «Chop etish» bosilganda xuddi shunday chiqadi; «PDF — Telegram'ga» ham shu varaqni yuboradi.</span>`;
+  }
+  const qChips = (c, q) => { const t = H.today(); return [1, 2, 3, 4].filter((x) => qPer(c, x)).map((x) => { const P = qPer(c, x); return `<button type="button" data-tpq="${x}" class="${x === q ? "on" : ""}">${x}-chorak<small>${P.from > t ? "boshlanmagan" : qDone(c, x) ? "tugagan" : "davom etmoqda"}</small></button>`; }).join("")
+    + `<button type="button" data-tpq="0" class="${q === 0 ? "on" : ""}">Butun yil<small>${yearOf(qPer(c, 0).from)}</small></button>`; };
+  /* ───────── boshqa turdagi hisobotlar: yillik (choraklar kesimi) va o'quvchi hisoboti ─────────
+     Ikkalasi ham bitta qismlar (X) dan quriladi: A4 — paginate(X), ekranda — xuddi shu mazmun oqib turadigan varaqda. */
+  const RK = [["q", "Chorak hisoboti"], ["yr", "Yillik: choraklar kesimi"], ["st", "O'quvchi hisoboti"], ["doc", "To'garak hujjatlari"]];
+  const flow = (X) => { const b = `${X.head}${X.rows.length ? X.thead(false) + X.rows.join("") + "</tbody></table>" : ""}${X.tail}`; return `<div class="g-a4p g-a4flow ${stCls()}"><div class="g-a4i">${fancy() ? b : untab(b)}</div></div>`; };
+  /* «Bezaksiz»: jadvallar o'rniga oddiy matn qatorlari. Sarlavha ustunlari nomi «nomi: qiymati» bo'lib yoziladi;
+     ikki ustunli o'quvchilar jadvali avval chap, keyin o'ng yarmi tartibida bitta ro'yxatga yoyiladi. */
+  function untab(html) {
+    const d = document.createElement("div"); d.innerHTML = html;
+    d.querySelectorAll("table").forEach((t) => t.replaceWith(tabLines(t)));
+    return d.innerHTML;
+  }
+  function tabLines(t) {
+    const box = document.createElement("div"); box.className = "g-pll";
+    const hs = []; t.querySelectorAll("thead th").forEach((th) => { for (let k = 0; k < (+th.getAttribute("colspan") || 1); k++) hs.push(th.textContent.trim()); });
+    const rows = [...t.querySelectorAll("tbody tr, tfoot tr")];
+    const add = (h) => { const p = document.createElement("div"); p.innerHTML = h; box.append(p); };
+    if (!hs.length) { [...t.querySelectorAll("td")].forEach((td) => { if (td.textContent.trim()) add(td.innerHTML); }); return box; }
+    const n = hs.length, half = n % 2 === 0 && hs.slice(0, n / 2).join("|") === hs.slice(n / 2).join("|") ? n / 2 : n;
+    const out = [[], []];
+    rows.forEach((tr) => {
+      const cells = []; [...tr.children].forEach((td) => { cells.push(td); for (let k = 1; k < (+td.getAttribute("colspan") || 1); k++) cells.push(null); });
+      for (let k = 0; k * half < cells.length && k < 2; k++) {
+        const seg = cells.slice(k * half, (k + 1) * half), lab = hs.slice(0, half);
+        if (seg.every((c) => !c || !c.textContent.trim())) continue;
+        let pre = "", main = "";
+        const rest = [];
+        seg.forEach((c, i) => { if (!c) return; const v = c.innerHTML.trim(), tx = c.textContent.trim(); if (!tx) return;
+          if (i === 0 && (lab[0] === "№" || lab[0] === "Chorak")) pre = lab[0] === "Chorak" ? `${tx}-chorak. ` : /^\d+$/.test(tx) ? `${tx}. ` : `${tx} `;
+          else if (!main && c.classList.contains("l")) main = v;
+          else rest.push(`${lab[i] === "%" ? "davomat" : lab[i].toLowerCase()}: ${v}`); });
+        out[k].push(`${pre}${main}${rest.length ? (main ? " — " : "") + rest.join("; ") : ""}`);
+      }
+    });
+    out.flat().forEach(add);
+    return box;
+  }
+  const hdrOf = (c) => { const h0 = hdrS(), gh = c.grh || {}; return {school: gh.org != null ? gh.org : h0.school, teacher: gh.tch != null ? gh.tch : h0.teacher}; };
+  const band = (h, title, sub, badge) => fancy()
+    ? `<div class="g-a4band"><div class="g-a4bl"><small>${h.school ? H.e(h.school) : "O'quv guruhi hisoboti"}</small><div class="g-a4t">${title}</div><div class="g-a4st">${sub}</div></div>${badge}</div>`
+    : `${h.school ? `<div class="g-a4sch">${H.e(h.school)}</div>` : ""}<div class="g-a4t">${title}</div><div class="g-a4st">${sub}</div>`;
+  const meta = (pairs) => fancy() ? `<div class="g-a4meta">${pairs.map(([k, v]) => `<div><small>${k}</small><b>${v || "&nbsp;"}</b></div>`).join("")}</div>`
+    : `<table class="g-a4info"><tr>${pairs.slice(0, 2).map(([k, v]) => `<td>${k}: <b>${v || "____________"}</b></td>`).join("")}</tr><tr>${pairs.slice(2).map(([k, v]) => `<td>${k}: <b>${v || "____________"}</b></td>`).join("")}</tr></table>`;
+  const tilesH = (ts) => fancy() ? `<div class="g-a4tiles" style="grid-template-columns:repeat(${ts.length},1fr)">${ts.map(([v, l, bar]) => `<div class="${bar != null ? "w" : ""}"><b>${v}</b><span>${l}</span>${bar != null ? `<div class="g-a4bar"><i style="width:${bar}%"></i></div>` : ""}</div>`).join("")}</div>`
+    : `<table class="g-a4info">${ts.map(([v, l], i) => i % 2 ? "" : `<tr>${[ts[i], ts[i + 1]].map((x) => x ? `<td>${x[1][0].toUpperCase() + x[1].slice(1)}: <b>${x[0]}</b></td>` : "<td></td>").join("")}</tr>`).join("")}</table>`;
+  const sigH = (who) => `<div class="g-a4sig">${who.map(([a, b]) => `<div><span>${a}</span><i>${b ? H.e(b) : ""}</i><small>${b ? "" : "(imzo)"}</small></div>`).join("")}</div>`;
+  const block = (t, items, ol) => items.length ? `<div class="g-a4h">${t}</div>${ol ? `<ol class="g-a4rec">${items.map((x) => `<li>${H.e(x)}</li>`).join("")}</ol>` : `<div class="g-a4sum">${items.map((x) => `<p>${H.e(x)}</p>`).join("")}</div>`}` : "";
+
+  // yillik: har chorakda nechta dars, qaysi mavzular; kelajak choraklar — reja bo'yicha
+  function yrData(c) {
+    const L = layout(c), t = H.today(), qs = [1, 2, 3, 4].filter((q) => qPer(c, q));
+    const rows = qs.map((q) => { const P = qPer(c, q), past = P.from <= t ? repData(c, q) : null;
+      const fut = L.rows.filter((r) => r.n && r.d >= (t > P.from ? t : P.from) && r.d <= P.to);
+      const done = past ? past.plan : [], all = done.concat(fut);
+      return {q, P, st: P.from > t ? "rejada" : qDone(c, q) ? "tugagan" : "davom etmoqda", les: past ? past.rows.length : 0, fut: fut.length,
+        a: all.length ? all[0] : null, b: all.length ? all[all.length - 1] : null, sh: past ? past.offs.length + past.own.length : 0, att: past && past.rows.length ? past.att : null}; });
+    const Y = repData(c, 0);
+    return {rows, Y, L, done: Y.last, total: L.total, end: L.end, q4: qR(4)};
+  }
+  function yrParts(c) {
+    const YD = yrData(c), Y = YD.Y, h = hdrOf(c), pct = YD.total ? Math.round(YD.done / YD.total * 100) : 0;
+    const head = band(h, "Yillik mavzular hisoboti", `«${H.e(c.name)}» guruhi · ${yearOf(Y.P.from)} o'quv yili`, qBadge(Y.P))
+      + meta([["Dars kunlari", H.e(H.sched(c))], ["O'quvchilar", `${Y.nSt} nafar`], ["Reja", `${c.gplan.topics.length} mavzu · ${YD.total} dars`], ["O'qituvchi", h.teacher ? H.e(h.teacher) : ""]])
+      + tilesH([[`${YD.done}/${YD.total}`, "dars o'tildi", pct], [Y.topics.length, "mavzu o'tildi"], [Y.att + "%", "o'rtacha davomat"], [YD.end ? dd(YD.end).slice(0, 5) : "—", YD.end && YD.q4 && YD.end > YD.q4[1] ? "reja tugashi — kech!" : "reja tugashi (taxminan)"]]);
+    // choraklar grafigi: o'tilgan (to'q) va rejadagi (och) darslar
+    const mx = Math.max(1, ...YD.rows.map((r) => r.les + r.fut)), W = 680, Hh = 110, bw = W / YD.rows.length;
+    let g = ""; YD.rows.forEach((r, i) => { const x = i * bw + bw * .3, w = bw * .4, y1 = 90 * (1 - r.les / mx) + 6, y2 = 90 * (1 - (r.les + r.fut) / mx) + 6;
+      g += `<rect x="${x}" y="${y2}" width="${w}" height="${y1 - y2}" class="c0" fill="#fff" stroke="#000" stroke-width=".6"/><rect x="${x}" y="${y1}" width="${w}" height="${96 - y1}" class="c1" fill="#9a9a9a" stroke="#000" stroke-width=".6"/>
+        <text x="${x + w / 2}" y="${Hh - 2}" font-size="10" text-anchor="middle">${r.q}-chorak</text><text x="${x + w + 6}" y="${y2 + 10}" font-size="10">${r.les}${r.fut ? ` + ${r.fut}` : ""}</text>`; });
+    const chart = `<div><div class="g-a4h">Choraklar bo'yicha darslar</div><svg class="g-a4ch" viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Choraklar bo'yicha darslar">${g}<line x1="0" x2="${W}" y1="96" y2="96" stroke="#000" stroke-width=".8"/></svg>
+      <div class="g-a4lg"><span><i class="b1"></i>o'tilgan darslar</span><span><i class="b0"></i>reja bo'yicha qolgan</span></div></div>`;
+    const rows = YD.rows.map((r) => `<tr><td>${r.q}</td><td>${dd(r.P.from).slice(0, 5)}–${dd(r.P.to).slice(0, 5)}</td><td>${r.st}</td><td>${r.les}${r.fut ? ` <small>+${r.fut} rejada</small>` : ""}</td>
+      <td class="l">${r.a ? `${r.a.n}–${r.b.n}: ${H.e(r.a.s.t)} … ${H.e(r.b.s.t)}` : "<i>mavzu yo'q</i>"}</td><td>${r.sh || ""}</td><td>${r.att == null ? "—" : r.att + "%"}</td></tr>`);
+    const thead = () => `<div class="g-a4h">Choraklar kesimida</div><table class="g-a4tab g-a4yr"><thead><tr><th>Chorak</th><th>Davr</th><th>Holat</th><th>Darslar</th><th class="l">Darslar va mavzular</th><th>Surilgan</th><th>Davomat</th></tr></thead><tbody>`;
+    const sum = [`${yearOf(Y.P.from)} o'quv yili: yillik rejadagi ${YD.total} darsdan ${YD.done} tasi (${pct}%) o'tildi, ${Y.topics.length} ta mavzu yakunlandi.`,
+      YD.end ? `Joriy jadval bo'yicha reja ${fullD(YD.end)} da tugaydi${YD.q4 ? (YD.end > YD.q4[1] ? ` — o'quv yili oxiridan (${fullD(YD.q4[1])}) ${Math.round((H.pd(YD.end) - H.pd(YD.q4[1])) / 864e5)} kun kech` : ` — o'quv yili oxiridan (${fullD(YD.q4[1])}) oldin`) : ""}.` : "Reja kunlarga to'liq joylashmadi."];
+    const tail = (T.o.chart && fancy() ? chart : "") + (T.o.sum ? block("Xulosa", sum) : "") + (T.o.rec ? block("Tavsiyalar", advice(c, Y), true) : "") + (T.o.sig ? sigH([["O'qituvchi", ""], ["F.I.Sh.", h.teacher], ["Sana", ""]]) : "");
+    return {head, rows, thead, tail, foot: (i, n) => `<div class="g-a4f"><span>«${H.e(c.name)}» · yillik mavzular hisoboti</span><span>${i} / ${n}</span></div>`};
+  }
+
+  // o'quvchi hisoboti (ota-onaga): kelgan/kelmagan darslar, qoldirilgan mavzular, to'lov holati
+  function stParts(c, s, q) {
+    const A = repData(c, q), P = A.P, h = hdrOf(c), my = A.rows.filter((r) => H.inG(s, r.d));
+    const cm = my.filter((r) => (s.marks || {})[r.d] === "ot"), miss = my.filter((r) => (s.marks || {})[r.d] !== "ot"), pc = my.length ? Math.round(cm.length / my.length * 100) : 0;
+    const ac = c.kind === "paid" && H.acct ? H.acct(c, s) : null;
+    const tl = [[`${cm.length}/${my.length}`, "darsga keldi"], [pc + "%", "davomat", pc], [miss.length, "dars qoldirildi"]].concat(ac && ac.k ? [[ac.left < 0 ? `−${-ac.left}` : ac.left, ac.left < 0 ? "dars qarz (to'lanmagan)" : ac.left === 0 ? "to'langan dars qolmadi" : "to'langan dars qoldi"]] : []);
+    const head = band(h, "O'quvchi hisoboti", `${H.e(s.name)} · «${H.e(c.name)}» guruhi`, qBadge(P))
+      + meta([["Davr", `${dd(P.from)} – ${dd(P.to)}`], ["Dars kunlari", H.e(H.sched(c))], ["Guruh davomati", `${A.att}%`], ["O'qituvchi", h.teacher ? H.e(h.teacher) : ""]])
+      + (A.partial ? `<div class="g-a4warn">Davr hali tugamagan — ma'lumot ${dd(A.upto)} holatiga.</div>` : "") + tilesH(tl);
+    const rows = my.map((r, i) => { const on = (s.marks || {})[r.d] === "ot"; return `<tr class="${on ? "" : "miss"}"><td>${i + 1}</td><td>${dd(r.d).slice(0, 5)} <small>${H.WDS[H.wdOf(r.d)]}</small></td><td class="l">${r.own ? H.e(r.own) : H.e(sTxt(r.s))}</td><td>${on ? "✓ keldi" : "<b>✗ kelmadi</b>"}</td></tr>`; });
+    const thead = (cont) => `<div class="g-a4h">Darslar${cont ? " (davomi)" : ""}</div><table class="g-a4tab g-a4st2"><thead><tr><th>№</th><th>Sana</th><th class="l">Mavzu</th><th>Holat</th></tr></thead><tbody>`;
+    const mt = [...new Set(miss.map((r) => r.own || r.s.t))];
+    const sum = [`${s.name} uchun ${P.lab.toLowerCase()}da ${my.length} ta dars o'tildi (${new Set(my.map((r) => r.own || r.s.t)).size} ta mavzu).`]
+      .concat(ac && ac.k ? [ac.left < 0 ? `To'lov: ${-ac.left} dars to'lanmagan.` : ac.left === 0 ? "To'lov: to'langan darslar tugadi, keyingi paket uchun to'lov qilish kerak." : `To'lov: yana ${ac.left} dars to'langan.`] : []);
+    const rec = miss.length ? [`Qoldirilgan mavzularni uyda takrorlash kerak: ${mt.slice(0, 6).join("; ")}${mt.length > 6 ? ` va yana ${mt.length - 6} ta` : ""}.`].concat(pc < 75 ? ["Davomat 75% dan past — darslarga muntazam qatnashishini ta'minlashingizni so'raymiz."] : [])
+      : ["Birorta ham dars qoldirilmagan — rahmat! Shu tartibda davom eting."];
+    const tail = (T.o.sum ? block("Xulosa", sum) : "") + (T.o.rec ? block("Ota-onaga tavsiya", rec, true) : "") + (T.o.sig ? sigH([["O'qituvchi", ""], ["Ota-ona (tanishdim)", ""], ["Sana", ""]]) : "");
+    return {head, rows: rows.length ? rows : [`<tr><td colspan="4">Bu davrda dars yo'q</td></tr>`], thead, tail, foot: (i, n) => `<div class="g-a4f"><span>${H.e(s.name)} · «${H.e(c.name)}» · ${P.lab}</span><span>${i} / ${n}</span></div>`};
+  }
+  // «To'garak hujjatlari»: muqova, «Tasdiqlayman» bilan ish reja (har dars + o'tilgan sana) va chorak hisobotining matni
+  const dcH = (c) => { const h = hdrOf(c), g = c.grh || {}; return {school: h.school, teacher: h.teacher, reg: g.reg || "", sub: g.sub || "", cls: g.cls || "", dir: g.dir || "", maq: g.maq || "", nat: g.nat || {}}; };
+  const shortN = (n) => { const w = String(n || "").trim().split(/\s+/); return w.length > 1 ? `${w[0]} ${w[1][0]}.` : w[0] || ""; };
+  const lc = (x) => String(x || "").trim().toLowerCase();
+  const natDef = (h) => [`O'quvchilarning ${lc(h.sub) ? lc(h.sub) + " faniga oid " : ""}bilimlari mustahkamlandi.`, "O'tilgan mavzular bo'yicha tushunchalarni farqlash va qo'llash ko'nikmalari rivojlantirildi.", "Masalalarni mustaqil yechish va chizmalar bilan ishlash ko'nikmalari shakllantirildi.", "O'quvchilarning mantiqiy fikrlashi va fanga bo'lgan qiziqishi oshirildi."];
+  const maqDef = (h, c) => `${!c || c.kind !== "paid" ? "To'garak mashg'ulotlarining" : "Mashg'ulotlarning"} asosiy maqsadi o'quvchilarning ${lc(h.sub) ? lc(h.sub) + " faniga" : "fanga"} bo'lgan qiziqishini oshirish, mavzularni chuqur o'zlashtirish, mantiqiy fikrlash va mustaqil masala yechish ko'nikmalarini rivojlantirishdan iborat bo'ldi.`;
+  const yrOfC = (c) => yearOf(qPer(c, 1) ? qPer(c, 1).from : H.today());
+  const isClub = (c) => c.kind !== "paid";
+  const dsig = (h, c) => `<div class="g-dsig"><b>${!c || isClub(c) ? "To'garak rahbari" : "O'qituvchi"}:</b><span></span><b>${H.e(shortN(h.teacher)) || "&nbsp;"}</b></div>`;
+  function docCover(c) {
+    const h = dcH(c), y = yrOfC(c).replace("–", "-");
+    const lines = h.reg.split(/\r?\n/).map((x) => x.trim()).filter(Boolean).concat(h.school ? [h.school] : []);
+    return `<div class="g-dcov"><div class="g-dco">${lines.map((x) => `<div>${H.e(x)}</div>`).join("") || "<div>&nbsp;</div>"}</div>
+      <div class="g-dmid"><div class="g-dct">TO'GARAK<br>HUJJATLARI</div><div class="g-dcn">«${H.e(c.name)}» to'garagi</div></div>
+      <div class="g-dco">${h.sub ? `<div>${H.e(lc(h.sub))} fani o'qituvchisi</div>` : ""}${h.teacher ? `<div>${H.e(h.teacher)}ning</div>` : ""}<div>${y}-o'quv yilida</div>${h.cls || h.sub ? `<div>${h.cls ? `${H.e(h.cls)}-sinf uchun ` : ""}${h.sub ? `${H.e(lc(h.sub))} fanidan` : ""}</div>` : ""}</div></div>`;
+  }
+  function docPlan(c) {
+    const h = dcH(c), L = layout(c), sl = slots(c.gplan), dt = {}, y = yrOfC(c);
+    L.rows.forEach((r) => { if (r.n) dt[r.n] = r.d; });
+    const head = `<div class="g-dtas"><b>“TASDIQLAYMAN”</b><div>Direktor: ____________ ${h.dir ? H.e(h.dir) : "____________________"}</div><div>“______” ________________ ${y.slice(0, 4)}-yil</div></div>
+      <div class="g-dtt">${h.sub ? `${H.e(h.sub)} fanidan ` : ""}“${H.e(c.name)}” to'garak ish rejasi</div><div class="g-dts">${y} o'quv yili</div>`;
+    const rows = sl.map((s, i) => `<tr><td>${i + 1}</td><td class="l">${H.e(sTxt(s))}</td><td>1</td><td>${dt[i + 1] ? dd(dt[i + 1]) : ""}</td></tr>`);
+    const thead = () => `<table class="g-a4tab g-dtab"><colgroup><col style="width:6%"><col><col style="width:7%"><col style="width:16%"></colgroup><thead><tr><th>№</th><th class="l">Mavzu</th><th>Soat</th><th>O'tilgan sana</th></tr></thead><tbody>`;
+    return {cls: "dc", head, rows, thead, tail: dsig(h), foot: () => ""};
+  }
+  function docRep(c, q) {
+    const h = dcH(c), A = repData(c, q), P = A.P, y = yearOf(P.from), nm = H.e(c.name);
+    const per = q ? `${y}-o'quv yilining ${q}-choragi` : `${y}-o'quv yili`, pq = q ? `${q}-chorak` : "O'quv yili";
+    const seen = new Set(), tops = [];
+    const gen = /amaliy|takror|test|nazorat|masalalar yechish|mustahkamlash/i;
+    A.rows.forEach((r) => { const t = (r.own || r.s.t).replace(/\.$/, ""), k = t.toLowerCase(); if (!gen.test(t) && !seen.has(k)) { seen.add(k); tops.push(t); } });
+    const gl = [/amaliy/i, /takror/i, /masalalar yechish/i].map((re) => A.rows.some((r) => re.test(r.own || r.s.t)));
+    if (gl.some(Boolean)) tops.push([gl[0] ? "Amaliy mashg'ulotlar" : "", gl[1] ? "bob bo'yicha takrorlash" : "", gl[2] ? "masalalar yechish" : ""].filter(Boolean).join(", ").replace(/, ([^,]*)$/, " va $1").replace(/^./, (x) => x.toUpperCase()));
+    const cnt = (re) => A.rows.filter((r) => re.test(r.own || r.s.t)).length;
+    const tests = [...new Set(A.rows.map((r) => r.own || r.s.t).filter((t) => /test|nazorat/i.test(t)))];
+    const am = cnt(/amaliy/i), tk = cnt(/takror/i);
+    const parts = [am ? "amaliy mashg'ulotlar" : "", tk ? "takrorlash darslari" : "", tests.length ? [...new Set(tests.map((t) => /test/i.test(t) ? t.replace(/\bTEST\b/, "test") : "nazorat ishi"))].join(", ") : ""].filter(Boolean);
+    const nat = String(h.nat[q] || "").split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+    const xul = `${pq} davomida «${nm}» ${isClub(c) ? "to'garagida" : "guruhida"} belgilangan mavzular asosida mashg'ulotlar olib borildi; ish rejadagi ${A.total} ta mashg'ulotdan ${A.last} tasi (${A.total ? Math.round(A.last / A.total * 100) : 0}%) o'tildi. O'quvchilarning ${lc(h.sub) ? lc(h.sub) + " faniga oid " : ""}bilim va ko'nikmalarini rivojlantirishga alohida e'tibor qaratildi.${A.nrows.length && q ? ` Keyingi chorakda ${A.nrows.length} ta mashg'ulot rejalashtirilgan: «${H.e(A.nrows[0].s.t)}» dan «${H.e(A.nrows[A.nrows.length - 1].s.t)}» gacha.` : ""}${q && q < 4 ? " Keyingi choraklarda ham o'quvchilarning bilimlarini chuqurlashtirish, amaliy masalalar yechish va fikrlash qobiliyatini rivojlantirish bo'yicha ishlar davom ettiriladi." : ""}`;
+    const extra = [A.offs.length ? `${A.offs.length} kun dars bo'lmadi` : "", A.own.length ? `${A.own.length} ta rejadan tashqari mashg'ulot o'tkazildi` : ""].filter(Boolean).join(", ");
+    const head = `<div class="g-dtt">${H.e(per.toUpperCase())} BO'YICHA HISOBOT</div>${A.partial ? `<div class="g-a4warn">Davr hali tugamagan — ma'lumot ${dd(A.upto)} holatiga.</div>` : ""}
+      <div class="g-dtx"><p>${per[0].toUpperCase() + per.slice(1)} davomida ${h.cls ? `${H.e(h.cls)}-sinf o'quvchilari uchun ` : ""}${h.sub ? `${H.e(lc(h.sub))} fanidan ` : ""}tashkil etilgan «${nm}» ${isClub(c) ? "to'garagida" : "guruhida"} tasdiqlangan ish reja asosida mashg'ulotlar olib borildi.</p>
+      <p>${H.e(h.maq || maqDef(h, c))}</p>
+      <p>${pq} davomida jami <b>${A.rows.length} ta mashg'ulot</b> rejalashtirilgan tartibda tashkil etildi${extra ? ` (${extra})` : ""}.</p>
+      <p class="g-dk">Mashg'ulotlarda quyidagi mavzular o'rganildi:</p><ol>${tops.map((t) => `<li>${H.e(t)}.</li>`).join("")}</ol>
+      <p>Mashg'ulotlar davomida tushuntirish, savol-javob, mustaqil ishlash, amaliy topshiriqlar va masalalar yechish kabi metodlardan foydalanildi.</p>
+      ${parts.length ? `<p>O'quvchilarning nazariy bilimlarini mustahkamlash va o'zlashtirish darajasini aniqlash maqsadida ${parts.length > 1 ? parts.slice(0, -1).join(", ") + " hamda " + parts[parts.length - 1] : parts[0]} tashkil etildi.</p>` : ""}
+      <p class="g-dk">Erishilgan natijalar:</p><ul>${(nat.length ? nat : natDef(h)).map((x) => `<li>${H.e(x)}</li>`).join("")}</ul>
+      <p class="g-dk">Xulosa:</p><p>${xul}</p></div>`;
+    return {cls: "dc", head, rows: [], thead: () => `<table hidden><tbody>`, tail: dsig(h, c), foot: () => ""};
+  }
+  function docPages(c, q) {
+    const o = [];
+    if (T.o.dcov !== false) o.push(`<div class="bx-pg g-a4p dc" style="--fs:14px"><div class="g-a4i">${docCover(c)}</div></div>`);
+    if (T.o.dpl !== false) o.push(...paginate(docPlan(c)));
+    if (T.o.drep !== false) o.push(...paginate(docRep(c, q)));
+    return o;
+  }
+  const pagesOf = (C) => C.pages ? C.pages() : paginate(C.X());
+  const curStu = (c) => c.students.find((x) => x.id === T.rs) || c.students[0];
+  // joriy hisobot turi: qismlar, nomi, matni
+  function cur(c) {
+    if (!fancy() && (T.rk === "q" || T.rk === "yr")) { const q = T.rk === "yr" ? 0 : T.rq; return {pages: () => paginate(docRep(c, q)), name: `${c.name} ${qLab(q)} hisobot`, text: () => { const t = []; const d = document.createElement("div"); d.innerHTML = docRep(c, q).head; d.querySelectorAll(".g-dtt,p,li").forEach((x) => t.push((x.tagName === "LI" ? "• " : "") + x.textContent.trim())); return t; }}; }
+    if (T.rk === "doc") return {pages: () => docPages(c, T.rq), name: `${c.name} to'garak hujjatlari ${qLab(T.rq)}`, text: () => { const t = []; const d = document.createElement("div"); d.innerHTML = docRep(c, T.rq).head; d.querySelectorAll(".g-dtt,p,li").forEach((x) => t.push((x.tagName === "LI" ? "• " : "") + x.textContent.trim())); return t; }};
+    if (T.rk === "yr") return {X: () => yrParts(c), name: `${c.name} yillik mavzular`, text: () => { const YD = yrData(c); return [`«${c.name}» — yillik mavzular hisoboti.`, `Rejadagi ${YD.total} darsdan ${YD.done} tasi o'tildi.`].concat(advice(c, YD.Y)); }};
+    if (T.rk === "st") { const s = curStu(c); return {X: () => stParts(c, s, T.rq), name: `${s ? s.name : ""} ${qLab(T.rq)} hisobot`, text: () => { const X = repData(c, T.rq), my = X.rows.filter((r) => H.inG(s, r.d)), cm = my.filter((r) => (s.marks || {})[r.d] === "ot").length; return [`${s.name}, «${c.name}» guruhi, ${X.P.lab.toLowerCase()}: ${my.length} ta darsdan ${cm} tasiga keldi.`]; }}; }
+    return {X: () => a4parts(c, repData(c, T.rq)), name: `${c.name} ${qLab(T.rq)} mavzular`, text: () => summary(c, repData(c, T.rq))};
+  }
+  function optCard(c, keys) {
+    if (!fancy() && T.rk === "yr") return `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span>${stSeg()}</div>${docFlds(c, 0)}</div>`;
+    const h = hdrOf(c), ck = (k, t) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${t}</button>`;
+    return `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span>${stSeg()}</div>
+      <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${keys.map(([k, l]) => ck(k, l)).join("")}</div></div>
+      <div class="g-frow g-a4hdr"><div class="g-fld"><label for="g-ro">Tashkilot (markaz, maktab) nomi</label><input id="g-ro" class="g-inp" value="${H.e(h.school)}" placeholder="Masalan: «Bilim» o'quv markazi"></div>
+        <div class="g-fld"><label for="g-rt">O'qituvchi F.I.Sh.</label><input id="g-rt" class="g-inp" value="${H.e(h.teacher)}" placeholder="Masalan: Otaboboyev A."></div></div></div>`;
+  }
+  function docFlds(c, q) {
+    const h = dcH(c);
+    const inp = (k, l, v, ph) => `<div class="g-fld"><label for="g-d${k}">${l}</label><input id="g-d${k}" class="g-inp" data-grh="${k}" value="${H.e(v)}" placeholder="${H.e(ph)}"></div>`;
+    const ta = (id, l, v, ph, rows, attr) => `<div class="g-fld g-dfw"><label for="${id}">${l}</label><textarea id="${id}" class="g-inp" rows="${rows}" ${attr} placeholder="${H.e(ph)}">${H.e(v)}</textarea></div>`;
+    return `<div class="g-dgrid">${ta("g-dreg", "Yuqori tashkilot (har qatorda bittasi)", h.reg, "Masalan:\nToshkent viloyati hokimligi\nmaktabgacha va maktab ta'limi boshqarmasi", 3, 'data-grh="reg"')}
+          ${inp("org", "Maktab nomi", h.school, "Masalan: 2-sonli IDUM")}${inp("tch", "O'qituvchi F.I.Sh.", h.teacher, "Masalan: Otaboboyev Akmal")}
+          ${inp("sub", "Fan", h.sub, "Masalan: Matematika")}${inp("cls", "Sinflar", h.cls, "Masalan: 6–8")}${inp("dir", "Direktor F.I.Sh.", h.dir, "Masalan: Karimov B.")}
+          ${ta("g-dmaq", "Maqsad (bo'sh qolsa — avtomatik)", h.maq, maqDef(h, c), 2, 'data-grh="maq"')}
+          ${ta("g-dnat", `Erishilgan natijalar — ${qLab(q)} (har qatorda bittasi; bo'sh qolsa — avtomatik)`, h.nat[q] || "", natDef(h).join("\n"), 4, `data-grhn="${q}"`)}</div>`;
+  }
+  function docHtml(c) {
+    const t = H.today(), h = dcH(c), q = T.rq;
+    if (!has(c)) return `<div class="g-card g-muted">Avval «Reja» bo'limida yillik mavzular rejasini kiriting.</div>`;
+    const ck = (k, l) => { const on = T.o[k] !== false; return `<button type="button" class="g-chip ${on ? "on" : ""}" data-tpo3="${k}" aria-pressed="${on}">${on ? "✓ " : ""}${l}</button>`; };
+    const inp = (k, l, v, ph) => `<div class="g-fld"><label for="g-d${k}">${l}</label><input id="g-d${k}" class="g-inp" data-grh="${k}" value="${H.e(v)}" placeholder="${H.e(ph)}"></div>`;
+    const ta = (id, l, v, ph, rows, attr) => `<div class="g-fld g-dfw"><label for="${id}">${l}</label><textarea id="${id}" class="g-inp" rows="${rows}" ${attr} placeholder="${H.e(ph)}">${H.e(v)}</textarea></div>`;
+    const ps = qPer(c, q).from > t ? null : docPages(c, q);
+    return `<div class="g-row"><div class="g-seg g-qseg" role="group" aria-label="Davr">${qChips(c, q)}</div></div>
+      <div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Hujjatga kiradi</span><div class="g-chips">${ck("dcov", "Muqova")}${ck("dpl", "Ish reja (Tasdiqlayman)")}${ck("drep", q ? `${q}-chorak hisoboti` : "Yillik hisobot")}</div></div>
+        ${docFlds(c, q)}</div>
+      ${ps ? `<div class="g-a4w">${ps.map((x) => `<div class="g-a4s">${x}</div>`).join("")}</div><span class="g-muted" style="font-size:12.5px">A4 varaq: ${ps.length} bet.</span>
+      <div class="g-row g-ract"><button class="g-btn pri" type="button" data-tpprint>Chop etish (A4)</button><button class="g-btn" type="button" data-tpsend>PDF — Telegram'ga</button><button class="g-btn" type="button" data-tpcopy>Hisobot matnini nusxalash</button></div>` : `<div class="g-card g-muted">${qLab(q)} hali boshlanmagan.</div>`}`;
+  }
+  function otherHtml(c) {
+    if (T.rk === "doc") return docHtml(c);
+    const isSt = T.rk === "st", t = H.today();
+    if (isSt && !c.students.length) return `<div class="g-card g-muted">Guruhda o'quvchi yo'q.</div>`;
+    const s = isSt ? curStu(c) : null; if (s) T.rs = s.id;
+    const top = isSt ? `<div class="g-row"><div class="g-seg g-qseg" role="group" aria-label="Davr">${qChips(c, T.rq)}</div></div>
+      <div class="g-row g-strow"><div class="g-fld" style="flex:1;min-width:220px"><label for="g-rsel">O'quvchi</label><select id="g-rsel" class="g-inp">${c.students.map((x, i) => `<option value="${H.e(x.id)}" ${x === s ? "selected" : ""}>${i + 1}. ${H.e(x.name)}</option>`).join("")}</select></div>
+        <button class="g-btn sm ghost" type="button" data-rsn="-1" aria-label="Oldingi o'quvchi">‹ Oldingi</button><button class="g-btn sm ghost" type="button" data-rsn="1" aria-label="Keyingi o'quvchi">Keyingi ›</button></div>` : "";
+    if (isSt && qPer(c, T.rq).from > t) return top + `<div class="g-card g-muted">${qLab(T.rq)} hali boshlanmagan.</div>`;
+    const C = cur(c), X = C.pages ? null : C.X(), keys = [["sum", "Xulosa"], ["rec", isSt ? "Ota-onaga tavsiya" : "Tavsiyalar"], ["sig", "Imzo joyi"]].concat(isSt || !fancy() ? [] : [["chart", "Grafik"]]);
+    return top + `<div class="g-row"><div class="g-seg" role="group" aria-label="Ko'rinish"><button type="button" data-tprv="scr" class="${T.rv !== "a4" ? "on" : ""}">Ekranda</button><button type="button" data-tprv="a4" class="${T.rv === "a4" ? "on" : ""}">A4 varaq</button></div></div>
+      ${T.rv === "a4" || C.pages ? (() => { const ps = pagesOf(C); return optCard(c, keys) + `<div class="g-a4w">${ps.map((x) => `<div class="g-a4s">${x}</div>`).join("")}</div><span class="g-muted" style="font-size:12.5px">A4 varaq: ${ps.length} bet.</span>`; })() : `<div class="g-card g-a4fw">${flow(X)}</div>`}
+      <div class="g-row g-ract"><button class="g-btn pri" type="button" data-tpprint>Chop etish (A4)</button>${isSt ? `<button class="g-btn" type="button" data-tpall>Hamma o'quvchilarni chop etish (${c.students.length} ta)</button>` : ""}<button class="g-btn" type="button" data-tpsend>PDF — Telegram'ga</button><button class="g-btn" type="button" data-tpcopy>Matnni nusxalash</button></div>`;
+  }
+  function repHtml(c) {
+    const kinds = `<div class="g-row"><div class="g-chips g-rkind" role="group" aria-label="Hisobot turi">${RK.map(([k, l]) => `<button type="button" class="g-chip ${T.rk === k ? "on" : ""}" data-tprk="${k}" aria-pressed="${T.rk === k}">${l}</button>`).join("")}</div></div>`;
+    if (T.rk !== "q" && [1, 2, 3, 4].some((q) => qPer(c, q))) { if (T.rq == null) T.rq = [1, 2, 3, 4].filter((q) => qPer(c, q) && qPer(c, q).from <= H.today()).pop() || 0; return kinds + otherHtml(c); }
+    return kinds + repHtmlQ(c);
+  }
+  function repHtmlQ(c) {
+    const qs = [1, 2, 3, 4].filter((q) => qPer(c, q)), t = H.today();
+    if (!qs.length) return `<div class="g-card g-empty"><h2>Choraklar sanasi kiritilmagan</h2><div class="g-muted">Hisobot chorak bo'yicha tuziladi. «Sozlamalar»da o'quv yili choraklarining boshlanish va tugash sanalarini kiriting.</div></div>`;
+    if (T.rq == null || (T.rq && !qs.includes(T.rq))) T.rq = qs.filter((q) => qPer(c, q).from <= t).pop() || qs[0];
+    const q = T.rq, A = repData(c, q);
+    if (q && qDone(c, q) && !(c.grep || {})[q]) { c.grep = Object.assign({}, c.grep, {[q]: {at: t}}); H.save(); }
+    return `<div class="g-row"><div class="g-seg g-qseg" role="group" aria-label="Chorak">${qChips(c, q)}</div></div>
+      ${qPer(c, q).from > t ? `<div class="g-card g-muted">${qLab(q)} hali boshlanmagan (${fullD(qPer(c, q).from)}).</div>` : `<div class="g-row"><div class="g-seg" role="group" aria-label="Ko'rinish"><button type="button" data-tprv="scr" class="${T.rv !== "a4" ? "on" : ""}">Ekranda</button><button type="button" data-tprv="a4" class="${T.rv === "a4" ? "on" : ""}">A4 varaq</button></div></div>
+      ${T.rv === "a4" ? a4view(c, A) : `<div class="g-card g-rep">${sheet(c, A)}</div>`}
+      <div class="g-row g-ract"><button class="g-btn pri" type="button" data-tpprint>Chop etish (A4)</button><button class="g-btn" type="button" data-tpsend>PDF — Telegram'ga</button><button class="g-btn" type="button" data-tpcopy>Xulosa matnini nusxalash</button></div>`}`;
+  }
+  function tabHtml(c) {
+    if (!has(c)) return planHtml(c);
+    const fq = freshQ(c);
+    return `${fq && T.view !== "rep" ? `<div class="g-note g-rnote"><b>${fq}-chorak tugadi.</b> O'tilgan mavzular bo'yicha hisobot tayyor. <button class="g-btn sm pri" type="button" data-tprep="${fq}">Hisobotni ko'rish</button></div>` : ""}
+      <div class="g-row"><div class="g-seg"><button type="button" data-tpv="plan" class="${T.view !== "rep" ? "on" : ""}">Reja</button><button type="button" data-tpv="rep" class="${T.view === "rep" ? "on" : ""}">Chorak hisoboti</button></div></div>
+      ${T.view === "rep" ? repHtml(c) : planHtml(c)}`;
+  }
+  // bosh sahifa: tugagan chorak hisoboti tayyor bo'lgan guruhlar
+  const fresh = (list) => list.map((x) => ({ci: x.ci, c: x.c, q: freshQ(x.c)})).filter((x) => x.q);
+  function homeNote(list) {
+    const f = fresh(list); if (!f.length) return "";
+    return `<div class="g-note g-rnote"><b>${f[0].q}-chorak tugadi.</b> O'tilgan mavzular hisoboti tayyor: ${f.map((x) => `<button class="g-btn sm" type="button" data-tphome="${x.ci}|${x.q}">${H.e(x.c.name)}</button>`).join(" ")}</div>`;
+  }
+  /* ───────── umumiy hisobot: hamma guruhlar bir varaqda (chorak yoki butun yil) ───────── */
+  const AL = {q: null};
+  function allData(list, q) {
+    const t = H.today(), rows = [];
+    for (const {c, ci} of list) {
+      const P = qPer(c, q); if (!P || P.from > t) continue;
+      const upto = P.to < t ? P.to : addD(t, -1);
+      let A = null, les = 0, k = 0, n = 0;
+      if (has(c)) { A = repData(c, q); les = A.rows.length; k = A.rows.reduce((a, r) => a + r.k, 0); n = A.rows.reduce((a, r) => a + r.na, 0); }
+      else for (let d = P.from; d <= upto; d = addD(d, 1)) { const x = H.cntOn(c, d); if (x) { les++; k += x; n += H.actOn(c, d).length; } }
+      const inc = c.kind === "paid" ? c.students.flatMap((s) => s.pays || []).filter((p) => String(p.d) >= P.from && String(p.d) <= P.to).reduce((a, p) => a + (+p.sum || 0), 0) : 0;
+      const due = c.kind === "paid" && H.acct ? c.students.filter((s) => H.acct(c, s).due).length : 0;
+      rows.push({c, ci, A, les, att: n ? Math.round(k / n * 100) : 0, k, n, inc, due, nSt: c.students.length, top: A ? A.topics.length : null,
+        pct: A && A.total ? Math.round(A.last / A.total * 100) : null, sh: A ? A.offs.length + A.own.length : 0, late: !!(A && A.end && qR(4) && A.end > qR(4)[1])});
+    }
+    const k = rows.reduce((a, r) => a + r.k, 0), n = rows.reduce((a, r) => a + r.n, 0), wp = rows.filter((r) => r.pct != null);
+    const P = list.length ? qPer(list[0].c, q) : null;
+    return {rows, P, partial: !!P && P.to >= t, les: rows.reduce((a, r) => a + r.les, 0), st: rows.reduce((a, r) => a + r.nSt, 0), top: wp.reduce((a, r) => a + r.top, 0),
+      att: n ? Math.round(k / n * 100) : 0, inc: rows.reduce((a, r) => a + r.inc, 0), pct: wp.length ? Math.round(wp.reduce((a, r) => a + r.pct, 0) / wp.length) : null, paid: rows.some((r) => r.c.kind === "paid")};
+  }
+  const sp3 = (x) => String(Math.round(x || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  function allSummary(G) {
+    const P = G.P, out = [];
+    out.push(`${P.lab} (${H.dm(P.from)} – ${fullD(G.partial ? addD(H.today(), -1) : P.to)}): ${G.rows.length} ta guruhda jami ${G.st} nafar o'quvchi bilan ${G.les} ta dars o'tkazildi${G.top ? `, ${G.top} ta mavzu o'tildi` : ""}.`);
+    const t2 = `${G.pct != null ? `Yillik rejalar o'rtacha ${G.pct}% bajarildi.` : ""}${G.paid ? ` Pullik guruhlardan tushum: ${sp3(G.inc)} so'm.` : ""}`.trim(); if (t2) out.push(t2);
+    return out;
+  }
+  function allAdvice(G) {
+    const out = [];
+    const low = G.rows.filter((r) => r.les && r.att < 75); if (low.length) out.push(`${low.map((r) => `«${r.c.name}» (${r.att}%)`).join(", ")} — davomat 75% dan past; dars vaqti qulayligini va o'quvchilar sababini o'rganish kerak.`);
+    const late = G.rows.filter((r) => r.late); if (late.length) out.push(`${late.map((r) => `«${r.c.name}»`).join(", ")} — yillik reja o'quv yili oxirigacha yetmaydi; qo'shimcha dars kerak.`);
+    const np = G.rows.filter((r) => !has(r.c)); if (np.length) out.push(`${np.map((r) => `«${r.c.name}»`).join(", ")} — yillik mavzular rejasi kiritilmagan («Mavzular» bo'limida kiriting).`);
+    const due = G.rows.filter((r) => r.due); if (due.length) out.push(`To'lov kutilmoqda: ${due.map((r) => `«${r.c.name}» — ${r.due} nafar`).join(", ")}.`);
+    if (!out.length) out.push("Hamma guruhlarda reja va davomat yaxshi — shu tartibda davom ettirish tavsiya etiladi.");
+    return out;
+  }
+  function allChart(G) {
+    const rs = G.rows.filter((r) => r.les); if (!rs.length) return "";
+    const W = 680, rh = 18, Hh = rs.length * rh + 16, lx = 170, x = (v) => lx + (W - lx - 40) * v;
+    let g = `<line x1="${x(.75)}" x2="${x(.75)}" y1="0" y2="${Hh - 12}" stroke="#000" stroke-dasharray="3 3" stroke-width=".8"/><text x="${x(.75)}" y="${Hh - 2}" font-size="9" text-anchor="middle">75%</text>`;
+    rs.forEach((r, i) => { const v = r.att / 100, y = i * rh + 3;
+      g += `<text x="${lx - 6}" y="${y + 11}" font-size="10" text-anchor="end">${H.e(r.c.name.length > 28 ? r.c.name.slice(0, 27) + "…" : r.c.name)}</text><rect x="${lx}" y="${y}" width="${(x(v) - lx).toFixed(1)}" height="${rh - 6}" class="${v < .75 ? "c2" : "c1"}" fill="${v < .75 ? "#000" : "#9a9a9a"}" stroke="#000" stroke-width=".6"/><text x="${(x(v) + 4).toFixed(1)}" y="${y + 10}" font-size="10">${r.att}%</text>`; });
+    return `<svg class="g-a4ch" viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Guruhlar davomati">${g}</svg>`;
+  }
+  function allParts(G) {
+    const P = G.P, h0 = hdrS(), gh = (G.rows.find((r) => r.c.grh) || {c: {}}).c.grh || {}, h = {school: gh.org != null ? gh.org : h0.school, teacher: gh.tch != null ? gh.tch : h0.teacher}, mod = fancy();
+    const mln = (x) => x >= 1e6 ? [`${String(Math.round(x / 1e5) / 10).replace(".", ",")} mln`, "tushum, so'm"] : [sp3(x), "tushum, so'm"];
+    const tiles = [[G.rows.length, "guruh"], [G.st, "o'quvchi"], [G.les, "dars o'tkazildi"], [G.att + "%", "o'rtacha davomat"]].concat(G.paid ? [mln(G.inc)] : []);
+    const head = mod ? `<div class="g-a4band"><div class="g-a4bl"><small>${h.school ? H.e(h.school) : "Guruhlar bo'yicha"}</small><div class="g-a4t">Umumiy hisobot</div>
+        <div class="g-a4st">Barcha guruhlar · ${P.q ? P.lab + " · " : ""}${yearOf(P.from)} o'quv yili</div></div>${qBadge(P)}</div>
+      <div class="g-a4meta"><div><small>Davr</small><b>${dd(P.from)} – ${dd(P.to)}</b></div><div><small>Guruhlar</small><b>${G.rows.length} ta</b></div><div><small>O'quvchilar</small><b>${G.st} nafar</b></div><div><small>O'qituvchi</small><b>${h.teacher ? H.e(h.teacher) : "&nbsp;"}</b></div></div>
+      ${G.partial ? `<div class="g-a4warn">Davr hali tugamagan — ma'lumot ${dd(addD(H.today(), -1))} holatiga.</div>` : ""}
+      <div class="g-a4tiles" style="grid-template-columns:repeat(${tiles.length},1fr)">${tiles.map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join("")}</div>`
+      : `${h.school ? `<div class="g-a4sch">${H.e(h.school)}</div>` : ""}<div class="g-a4t">Umumiy hisobot</div><div class="g-a4st">Barcha guruhlar · ${P.q ? P.lab + " · " : ""}${yearOf(P.from)} o'quv yili</div>
+      <table class="g-a4info"><tr><td>Davr: <b>${dd(P.from)} – ${dd(P.to)}</b></td><td>O'qituvchi: <b>${h.teacher ? H.e(h.teacher) : "____________________"}</b></td></tr></table>
+      ${G.partial ? `<div class="g-a4warn">Davr hali tugamagan — ma'lumot ${dd(addD(H.today(), -1))} holatiga.</div>` : ""}
+      <table class="g-a4info">${tiles.map((x, i) => i % 2 ? "" : `<tr>${[tiles[i], tiles[i + 1]].map((y) => y ? `<td>${y[1][0].toUpperCase() + y[1].slice(1)}: <b>${y[0]}</b></td>` : "<td></td>").join("")}</tr>`).join("")}</table>`;
+    const ch = T.o.chart && fancy() ? `<div><div class="g-a4h">Guruhlar davomati</div>${allChart(G)}</div>` : "";
+    const rows = G.rows.map((r, i) => `<tr><td>${i + 1}</td><td class="l">${H.e(r.c.name)}<br><small>${r.c.kind === "paid" ? "Pullik" : "To'garak"} · ${H.e(H.sched(r.c))}</small></td><td>${r.nSt}</td><td>${r.les}</td><td>${r.top == null ? "—" : r.top}</td>
+      <td>${r.pct == null ? "<i>reja yo'q</i>" : `${r.pct}%${r.late ? "*" : ""}`}</td><td>${r.les ? (r.att < 75 ? `<b>${r.att}%</b>` : r.att + "%") : "—"}</td>${G.paid ? `<td>${r.c.kind === "paid" ? sp3(r.inc) : "—"}</td>` : ""}</tr>`);
+    const thead = (cont) => `<div class="g-a4h">Guruhlar${cont ? " (davomi)" : ""}</div><table class="g-a4tab g-a4all"><thead><tr><th>№</th><th class="l">Guruh</th><th>O'quvchi</th><th>Dars</th><th>Mavzu</th><th>Yillik reja</th><th>Davomat</th>${G.paid ? "<th>Tushum, so'm</th>" : ""}</tr></thead><tbody>`;
+    const tail = `${G.paid ? `</tbody><tfoot><tr><td></td><td class="l">Jami</td><td>${G.st}</td><td>${G.les}</td><td>${G.top || "—"}</td><td>${G.pct == null ? "—" : G.pct + "%"}</td><td>${G.att}%</td><td>${sp3(G.inc)}</td></tr></tfoot><tbody>` : ""}`;
+    const end = `${ch}${T.o.sum ? `<div class="g-a4h">Xulosa</div><div class="g-a4sum">${allSummary(G).map((x) => `<p>${H.e(x)}</p>`).join("")}</div>` : ""}${T.o.rec ? `<div class="g-a4h">Tavsiyalar</div><ol class="g-a4rec">${allAdvice(G).map((x) => `<li>${H.e(x)}</li>`).join("")}</ol>` : ""}
+      <div class="g-a4note">«Yillik reja» — o'tilgan darslar yillik mavzular rejasining necha foizi; * — reja o'quv yili oxirigacha yetmaydi; davomat 75% dan past bo'lsa qalin.</div>
+      ${T.o.sig ? `<div class="g-a4sig"><div><span>Mas'ul</span><i></i><small>(imzo)</small></div><div><span>F.I.Sh.</span><i>${h.teacher ? H.e(h.teacher) : ""}</i><small></small></div><div><span>Sana</span><i></i><small></small></div></div>` : ""}`;
+    return {head, rows: rows.length ? rows.concat(tail ? [tail] : []) : [`<tr><td colspan="8">Bu davrda dars o'tkazilgan guruh yo'q</td></tr>`], thead, tail: end, foot: (i, n) => `<div class="g-a4f"><span>Umumiy hisobot · ${P.lab}</span><span>${i} / ${n}</span></div>`};
+  }
+  function allHtml(list) {
+    const t = H.today(), c0 = (list[0] || {}).c;
+    const head = `<div class="g-head"><div class="g-t"><button class="g-back" type="button" data-home>‹ Guruhlar</button><h1>Umumiy hisobot</h1><div class="g-muted">Barcha faol guruhlar bo'yicha: darslar, mavzular, davomat${list.some((x) => x.c.kind === "paid") ? " va tushum" : ""}</div></div></div>`;
+    if (!c0) return head + `<div class="g-card g-muted">Hali guruh yo'q.</div>`;
+    if (!qPer(c0, 0)) return head + `<div class="g-card g-empty"><h2>Choraklar sanasi kiritilmagan</h2><div class="g-muted">«Sozlamalar»da o'quv yili choraklarini kiriting.</div></div>`;
+    // standart: yaqinda (21 kun ichida) tugagan chorak, bo'lmasa joriy chorak
+    if (AL.q == null) { const qs = [1, 2, 3, 4].filter((q) => qPer(c0, q)); AL.q = qs.filter((q) => qDone(c0, q) && addD(qPer(c0, q).end, 21) >= t).pop() || qs.filter((q) => qPer(c0, q).from <= t).pop() || 0; }
+    const G = allData(list, AL.q);
+    const pages = T.rv === "a4" ? paginate(allParts(G)) : null;
+    return head + `<div class="g-row"><div class="g-seg g-qseg g-qseg5" role="group" aria-label="Davr">${qChips(c0, AL.q).replace(/data-tpq=/g, "data-alq=")}</div></div>
+      <div class="g-row"><div class="g-seg" role="group" aria-label="Ko'rinish"><button type="button" data-tprv="scr" class="${T.rv !== "a4" ? "on" : ""}">Ekranda</button><button type="button" data-tprv="a4" class="${T.rv === "a4" ? "on" : ""}">A4 varaq</button></div></div>
+      ${pages ? `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span>${stSeg()}</div>
+        <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${(fancy() ? [["chart", "Davomat grafigi"]] : []).concat([["sum", "Xulosa"], ["rec", "Tavsiyalar"], ["sig", "Imzo joyi"]]).map(([k, l]) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${l}</button>`).join("")}</div></div></div>
+        <div class="g-a4w">${pages.map((x) => `<div class="g-a4s">${x}</div>`).join("")}</div><span class="g-muted" style="font-size:12.5px">A4 varaq: ${pages.length} bet.</span>`
+      : `<div class="g-card g-rep"><div class="g-rhead"><small>Umumiy hisobot</small><h2>${G.P.lab}</h2><span class="g-muted">${fullD(G.P.from)} – ${fullD(G.P.to)}${G.partial ? ` · <b class="g-rpart">davr hali tugamagan</b>` : ""}</span></div>
+        <div class="g-rkpi g-num"><div><b>${G.les}</b><span>dars o'tkazildi</span></div><div><b>${G.st}</b><span>o'quvchi</span></div><div><b>${G.att}%</b><span>davomat</span></div><div><b>${G.paid ? sp3(G.inc) : G.top}</b><span>${G.paid ? "tushum, so'm" : "mavzu o'tildi"}</span></div></div>
+        <div class="g-rsum"><h3>Xulosa</h3>${allSummary(G).map((x) => `<p>${H.e(x)}</p>`).join("")}</div>
+        <div class="g-allg">${G.rows.map((r) => `<button class="g-allc" type="button" data-allg="${r.ci}"><span class="g-allh"><b>${H.e(r.c.name)}</b>${r.c.kind === "paid" ? `<span class="g-pill p-acc">Pullik</span>` : `<span class="g-pill p-club">To'garak</span>`}</span>
+          <span class="g-allk g-num"><span><b>${r.les}</b> dars</span><span><b>${r.top == null ? "—" : r.top}</b> mavzu</span><span><b style="color:${r.les && r.att < 75 ? "var(--g-bad)" : "inherit"}">${r.les ? r.att + "%" : "—"}</b> davomat</span>${r.c.kind === "paid" ? `<span><b>${sp3(r.inc)}</b> so'm</span>` : ""}</span>
+          ${r.pct != null ? `<span class="g-tbar"><i style="width:${r.pct}%"></i></span><span class="g-muted" style="font-size:12px">yillik reja ${r.pct}%${r.late ? " — yil oxirigacha yetmaydi" : ""}</span>` : `<span class="g-muted" style="font-size:12px">yillik mavzular rejasi kiritilmagan</span>`}</button>`).join("")}</div>
+        <div class="g-rsum" style="background:var(--g-alt)"><h3>Tavsiyalar</h3>${allAdvice(G).map((x, i) => `<p>${i + 1}. ${H.e(x)}</p>`).join("")}</div></div>`}
+      <div class="g-row g-ract"><button class="g-btn pri" type="button" data-alprint>Chop etish (A4)</button><button class="g-btn" type="button" data-alsend>PDF — Telegram'ga</button><button class="g-btn" type="button" data-alcopy>Xulosa matnini nusxalash</button></div>`;
+  }
+  function bindAll(m, list, open) {
+    H.qa("[data-alq]", m).forEach((b) => b.onclick = () => { AL.q = +b.dataset.alq; H.draw(); });
+    H.qa("[data-tprv]", m).forEach((b) => b.onclick = () => { T.rv = b.dataset.tprv; H.draw(); });
+    H.qa("[data-tpst]", m).forEach((b) => b.onclick = () => { T.o.st = b.dataset.tpst; keepO(); H.draw(); });
+    H.qa("[data-tpo2]", m).forEach((b) => b.onclick = () => { const k = b.dataset.tpo2; T.o[k] = !T.o[k]; keepO(); H.draw(); });
+    H.qa("[data-allg]", m).forEach((b) => b.onclick = () => open(+b.dataset.allg));
+    const G = () => allData(list, AL.q), nm = () => `Umumiy hisobot ${qLab(AL.q)}`;
+    const pr = H.q("[data-alprint]", m); if (pr) pr.onclick = () => { if (typeof printDoc === "function") printDoc(`<div class="tpt g-a4print">${paginate(allParts(G())).join("")}</div>`, false, false, nm()); else H.toast("Chop etib bo'lmadi"); };
+    const cp = H.q("[data-alcopy]", m); if (cp) cp.onclick = () => copyTxt(allSummary(G()).concat(allAdvice(G()).map((x, i) => `${i + 1}. ${x}`)).join("\n"));
+    const sd = H.q("[data-alsend]", m); if (sd) sd.onclick = () => { if (typeof PTG === "undefined") { H.toast("PDF yuborib bo'lmadi"); return; }
+      PTG.run(() => PTG.pagesPdf([`<div class="tpt">${paginate(allParts(G())).join("")}</div>`], false), nm(), `📊 ${nm()}\n${allSummary(G())[0]}`, sd); };
+    fitA4(m);
+  }
+  // A4 ko'rinishini ekran kengligiga moslab kichraytirish
+  function fitA4(m) { H.qa(".g-a4s", m).forEach((w) => { const k = Math.min(1, w.clientWidth / 794), pg = w.firstElementChild; if (!pg) return; pg.style.transform = `scale(${k})`; w.style.height = Math.ceil(1123 * k) + "px"; }); }
+  function copyTxt(txt) { const done = () => H.toast("Xulosa nusxalandi — Telegram yoki Word ga qo'ying"); try { navigator.clipboard.writeText(txt).then(done, () => H.toast(txt)); } catch (err) { H.toast(txt); } }
+
   function bind(m, c) {
+    H.qa("[data-tpv]", m).forEach((b) => b.onclick = () => { T.view = b.dataset.tpv; H.draw(); });
+    H.qa("[data-tprep]", m).forEach((b) => b.onclick = () => { T.view = "rep"; T.rq = +b.dataset.tprep; H.draw(); });
+    H.qa("[data-tpq]", m).forEach((b) => b.onclick = () => { T.rq = +b.dataset.tpq; H.draw(); });
+    H.qa("[data-tprv]", m).forEach((b) => b.onclick = () => { T.rv = b.dataset.tprv; H.draw(); });
+    H.qa("[data-tpby]", m).forEach((b) => b.onclick = () => { T.o.by = b.dataset.tpby; keepO(); H.draw(); });
+    H.qa("[data-tpst]", m).forEach((b) => b.onclick = () => { T.o.st = b.dataset.tpst; keepO(); H.draw(); });
+    H.qa("[data-tpo2]", m).forEach((b) => b.onclick = () => { const k = b.dataset.tpo2; T.o[k] = !T.o[k]; keepO(); H.draw(); });
+    // sarlavha: yozib bo'lgach (change) saqlanadi — har harfda qayta chizilmaydi
+    [["#g-ro", "org"], ["#g-rt", "tch"]].forEach(([sel, k]) => { const i = H.q(sel, m); if (i) i.onchange = () => { c.grh = Object.assign({}, c.grh, {[k]: i.value.trim().slice(0, 120)}); H.save(); H.draw(); }; });
+    H.qa("[data-grh]", m).forEach((i) => i.onchange = () => { c.grh = Object.assign({}, c.grh, {[i.dataset.grh]: i.value.trim().slice(0, i.tagName === "TEXTAREA" ? 1500 : 160)}); H.save(); H.draw(); });
+    H.qa("[data-grhn]", m).forEach((i) => i.onchange = () => { const g = Object.assign({}, c.grh); g.nat = Object.assign({}, g.nat, {[i.dataset.grhn]: i.value.trim().slice(0, 1500)}); c.grh = g; H.save(); H.draw(); });
+    H.qa("[data-tpo3]", m).forEach((b) => b.onclick = () => { const k = b.dataset.tpo3; T.o[k] = T.o[k] === false; keepO(); H.draw(); });
+    H.qa("[data-tprk]", m).forEach((b) => b.onclick = () => { T.rk = b.dataset.tprk; H.draw(); });
+    const rs = H.q("#g-rsel", m); if (rs) rs.onchange = () => { T.rs = rs.value; H.draw(); };
+    H.qa("[data-rsn]", m).forEach((b) => b.onclick = () => { const i = c.students.findIndex((x) => x.id === T.rs), n = c.students.length; T.rs = c.students[(i + +b.dataset.rsn + n) % n].id; H.draw(); });
+    const pr = H.q("[data-tpprint]", m); if (pr) pr.onclick = () => { const C = cur(c); if (typeof printDoc === "function") printDoc(`<div class="tpt g-a4print">${pagesOf(C).join("")}</div>`, false, false, C.name); else H.toast("Chop etib bo'lmadi"); };
+    const pa = H.q("[data-tpall]", m); if (pa) pa.onclick = () => { if (typeof printDoc !== "function") return H.toast("Chop etib bo'lmadi");
+      printDoc(`<div class="tpt g-a4print">${c.students.map((s) => paginate(stParts(c, s, T.rq)).join("")).join("")}</div>`, false, false, `${c.name} ${qLab(T.rq)} o'quvchilar hisoboti`); };
+    fitA4(m);
+    const cp = H.q("[data-tpcopy]", m); if (cp) cp.onclick = () => copyTxt(cur(c).text().join("\n"));
+    const sd = H.q("[data-tpsend]", m); if (sd) sd.onclick = () => { if (typeof PTG === "undefined") { H.toast("PDF yuborib bo'lmadi"); return; }
+      const C = cur(c); PTG.run(() => PTG.pagesPdf([`<div class="tpt">${pagesOf(C).join("")}</div>`], false), C.name, `📘 ${C.name}\n${C.text()[1] || C.text()[0] || ""}`, sd); };
     H.qa("[data-tpl]", m).forEach((b) => b.onclick = () => planDialog(c));
     H.qa("[data-tpx]", m).forEach((b) => b.onclick = () => fromExcel(c, (txt) => planDialog(c, txt)));
     H.qa("[data-tpe]", m).forEach((b) => b.onclick = () => dayDialog(c, b.dataset.tpe));
     H.qa("[data-tpf]", m).forEach((b) => b.onclick = () => { T.flt = b.dataset.tpf; H.draw(); });
   }
-  return {init: (h) => { H = h; }, parse, layout, has, tabHtml, dayStrip, bind, todayLine, topicOf, _state: T};
+  return {init: (h) => { H = h; }, allHtml, bindAll, _all: AL, parse, layout, has, tabHtml, homeNote, repData, summary, qPer, freshQ, openRep: (q) => { T.view = "rep"; T.rq = q; }, dayStrip, bind, todayLine, topicOf, _state: T};
 })();
