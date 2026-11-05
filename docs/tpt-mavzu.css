@@ -310,3 +310,14 @@
 .tpt .g-a4p.nv.sm .g-a4sig span{color:#111;font-weight:600}
 .tpt .g-a4p.g-a4flow.nv.sm{border-left:1px solid var(--ln);box-shadow:none;padding-left:24px}
 @media (max-width:520px){.tpt .g-stseg{grid-template-columns:1fr 1fr}.tpt .g-a4p.g-a4flow.nv.sm{padding-left:14px}}
+/* «Bezaksiz»: hech qanday fon, rang va katta harfli bezaksiz — faqat matn va chegarali jadval */
+.tpt .g-a4p.pl .g-a4tab th{background:none;font-weight:700}
+.tpt .g-a4p.pl .g-a4h{text-transform:none;letter-spacing:0;font-size:1em}
+.tpt .g-a4p.pl .g-a4t{font-size:1.35em;letter-spacing:0}
+.tpt .g-a4p.pl .g-a4f{border-top:0}
+.tpt .g-a4p.pl .g-a4st2 tr.miss td{background:none!important}
+.tpt .g-a4p.pl .g-a4stu th:nth-child(5),.tpt .g-a4p.pl .g-a4stu td:nth-child(5){border-left:1px solid #000}
+.tpt .g-a4p.pl .g-a4sum{border:0;padding:0}
+.tpt .g-a4p.pl .g-a4warn{border:0;padding:0}
+.tpt .g-a4p.pl .g-a4all tfoot td{border-top:1px solid #000}
+.tpt .g-a4p.pl .g-a4rec{border:0;padding:0 0 0 1.6em}

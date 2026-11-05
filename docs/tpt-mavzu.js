@@ -285,10 +285,10 @@ const TPTM = (() => {
       <table class="g-a4info"><tr><td>Davr: <b>${dd(P.from)} – ${dd(P.to)}</b></td><td>Dars kunlari: <b>${H.e(H.sched(c))}</b></td></tr>
         <tr><td>O'quvchilar: <b>${A.nSt} nafar</b></td><td>O'qituvchi: <b>${h.teacher ? H.e(h.teacher) : "____________________"}</b></td></tr></table>
       ${A.partial ? `<div class="g-a4warn">Chorak hali tugamagan — ma'lumot ${dd(A.upto)} holatiga.</div>` : ""}
-      <table class="g-a4kpi"><tr><th>O'tkazilgan darslar</th><th>O'tilgan mavzular</th><th>Yillik reja bajarilishi</th><th>O'rtacha davomat</th></tr>
-        <tr><td>${A.rows.length}</td><td>${A.topics.length}</td><td>${pct}% <small>(${A.last}/${A.total} dars)</small></td><td>${A.att}%</td></tr></table>`;
+      <table class="g-a4info"><tr><td>O'tkazilgan darslar: <b>${A.rows.length}</b></td><td>O'tilgan mavzular: <b>${A.topics.length}</b></td></tr>
+        <tr><td>Yillik reja bajarilishi: <b>${pct}%</b> (${A.last}/${A.total} dars)</td><td>O'rtacha davomat: <b>${A.att}%</b></td></tr></table>`;
     const head = (mod ? headM : head0) + `
-      ${T.o.chart && A.rows.length > 1 ? `<div class="g-a4dyn"><div><div class="g-a4h">Darslardagi davomat</div>${chartSvg(A)}<div class="g-a4lg"><span><i class="b1"></i>75% va yuqori</span><span><i class="b2"></i>75% dan past</span><span><i class="b3"></i>rejadan tashqari</span></div></div>
+      ${T.o.chart && fancy() && A.rows.length > 1 ? `<div class="g-a4dyn"><div><div class="g-a4h">Darslardagi davomat</div>${chartSvg(A)}<div class="g-a4lg"><span><i class="b1"></i>75% va yuqori</span><span><i class="b2"></i>75% dan past</span><span><i class="b3"></i>rejadan tashqari</span></div></div>
         <div><div class="g-a4h">Oylar kesimida</div><table class="g-a4tab g-a4mo"><thead><tr><th class="l">Oy</th><th>Dars</th><th>Mavzu</th><th>Davomat</th></tr></thead><tbody>${A.months.map((x) => `<tr><td class="l">${H.MN[+x.m.slice(5) - 1]}</td><td>${x.n}</td><td>${x.t}</td><td>${x.att}%</td></tr>`).join("")}</tbody></table></div></div>` : ""}`;
     // «Mavzular bo'yicha»: bir mavzuning hamma darslari bitta qatorda (sanalari, soati, o'rtacha davomat)
     const groups = [];
@@ -343,7 +343,7 @@ const TPTM = (() => {
     const ck = (k, t) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${t}</button>`;
     return `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span>${stSeg()}</div>
       <div class="g-fld"><span class="g-lbl">Jadval</span><div class="g-seg"><button type="button" data-tpby="topic" class="${T.o.by === "topic" ? "on" : ""}">Mavzular bo'yicha</button><button type="button" data-tpby="day" class="${T.o.by !== "topic" ? "on" : ""}">Har bir dars</button></div></div>
-        <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${ck("chart", "Grafik va oylar")}${ck("stu", "O'quvchilar davomati")}${ck("sum", "Xulosa")}${ck("rec", "Tavsiyalar")}${ck("sig", "Imzo joyi")}</div></div>
+        <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${fancy() ? ck("chart", "Grafik va oylar") : ""}${ck("stu", "O'quvchilar davomati")}${ck("sum", "Xulosa")}${ck("rec", "Tavsiyalar")}${ck("sig", "Imzo joyi")}</div></div>
         <div class="g-frow g-a4hdr"><div class="g-fld"><label for="g-ro">Tashkilot (markaz, maktab) nomi</label><input id="g-ro" class="g-inp" value="${H.e(hdr.org)}" placeholder="Masalan: «Bilim» o'quv markazi"></div>
           <div class="g-fld"><label for="g-rt">O'qituvchi F.I.Sh.</label><input id="g-rt" class="g-inp" value="${H.e(hdr.tch)}" placeholder="Masalan: Otaboboyev A."></div></div></div>
       <div class="g-a4w">${ps.map((x) => `<div class="g-a4s">${x}</div>`).join("")}</div>
@@ -362,7 +362,7 @@ const TPTM = (() => {
   const meta = (pairs) => fancy() ? `<div class="g-a4meta">${pairs.map(([k, v]) => `<div><small>${k}</small><b>${v || "&nbsp;"}</b></div>`).join("")}</div>`
     : `<table class="g-a4info"><tr>${pairs.slice(0, 2).map(([k, v]) => `<td>${k}: <b>${v || "____________"}</b></td>`).join("")}</tr><tr>${pairs.slice(2).map(([k, v]) => `<td>${k}: <b>${v || "____________"}</b></td>`).join("")}</tr></table>`;
   const tilesH = (ts) => fancy() ? `<div class="g-a4tiles" style="grid-template-columns:repeat(${ts.length},1fr)">${ts.map(([v, l, bar]) => `<div class="${bar != null ? "w" : ""}"><b>${v}</b><span>${l}</span>${bar != null ? `<div class="g-a4bar"><i style="width:${bar}%"></i></div>` : ""}</div>`).join("")}</div>`
-    : `<table class="g-a4kpi"><tr>${ts.map(([, l]) => `<th>${l}</th>`).join("")}</tr><tr>${ts.map(([v]) => `<td>${v}</td>`).join("")}</tr></table>`;
+    : `<table class="g-a4info">${ts.map(([v, l], i) => i % 2 ? "" : `<tr>${[ts[i], ts[i + 1]].map((x) => x ? `<td>${x[1][0].toUpperCase() + x[1].slice(1)}: <b>${x[0]}</b></td>` : "<td></td>").join("")}</tr>`).join("")}</table>`;
   const sigH = (who) => `<div class="g-a4sig">${who.map(([a, b]) => `<div><span>${a}</span><i>${b ? H.e(b) : ""}</i><small>${b ? "" : "(imzo)"}</small></div>`).join("")}</div>`;
   const block = (t, items, ol) => items.length ? `<div class="g-a4h">${t}</div>${ol ? `<ol class="g-a4rec">${items.map((x) => `<li>${H.e(x)}</li>`).join("")}</ol>` : `<div class="g-a4sum">${items.map((x) => `<p>${H.e(x)}</p>`).join("")}</div>`}` : "";
 
@@ -394,7 +394,7 @@ const TPTM = (() => {
     const thead = () => `<div class="g-a4h">Choraklar kesimida</div><table class="g-a4tab g-a4yr"><thead><tr><th>Chorak</th><th>Davr</th><th>Holat</th><th>Darslar</th><th class="l">Darslar va mavzular</th><th>Surilgan</th><th>Davomat</th></tr></thead><tbody>`;
     const sum = [`${yearOf(Y.P.from)} o'quv yili: yillik rejadagi ${YD.total} darsdan ${YD.done} tasi (${pct}%) o'tildi, ${Y.topics.length} ta mavzu yakunlandi.`,
       YD.end ? `Joriy jadval bo'yicha reja ${fullD(YD.end)} da tugaydi${YD.q4 ? (YD.end > YD.q4[1] ? ` — o'quv yili oxiridan (${fullD(YD.q4[1])}) ${Math.round((H.pd(YD.end) - H.pd(YD.q4[1])) / 864e5)} kun kech` : ` — o'quv yili oxiridan (${fullD(YD.q4[1])}) oldin`) : ""}.` : "Reja kunlarga to'liq joylashmadi."];
-    const tail = (T.o.chart ? chart : "") + (T.o.sum ? block("Xulosa", sum) : "") + (T.o.rec ? block("Tavsiyalar", advice(c, Y), true) : "") + (T.o.sig ? sigH([["O'qituvchi", ""], ["F.I.Sh.", h.teacher], ["Sana", ""]]) : "");
+    const tail = (T.o.chart && fancy() ? chart : "") + (T.o.sum ? block("Xulosa", sum) : "") + (T.o.rec ? block("Tavsiyalar", advice(c, Y), true) : "") + (T.o.sig ? sigH([["O'qituvchi", ""], ["F.I.Sh.", h.teacher], ["Sana", ""]]) : "");
     return {head, rows, thead, tail, foot: (i, n) => `<div class="g-a4f"><span>«${H.e(c.name)}» · yillik mavzular hisoboti</span><span>${i} / ${n}</span></div>`};
   }
 
@@ -516,7 +516,7 @@ const TPTM = (() => {
       <div class="g-row g-strow"><div class="g-fld" style="flex:1;min-width:220px"><label for="g-rsel">O'quvchi</label><select id="g-rsel" class="g-inp">${c.students.map((x, i) => `<option value="${H.e(x.id)}" ${x === s ? "selected" : ""}>${i + 1}. ${H.e(x.name)}</option>`).join("")}</select></div>
         <button class="g-btn sm ghost" type="button" data-rsn="-1" aria-label="Oldingi o'quvchi">‹ Oldingi</button><button class="g-btn sm ghost" type="button" data-rsn="1" aria-label="Keyingi o'quvchi">Keyingi ›</button></div>` : "";
     if (isSt && qPer(c, T.rq).from > t) return top + `<div class="g-card g-muted">${qLab(T.rq)} hali boshlanmagan.</div>`;
-    const X = cur(c).X(), keys = [["sum", "Xulosa"], ["rec", isSt ? "Ota-onaga tavsiya" : "Tavsiyalar"], ["sig", "Imzo joyi"]].concat(isSt ? [] : [["chart", "Grafik"]]);
+    const X = cur(c).X(), keys = [["sum", "Xulosa"], ["rec", isSt ? "Ota-onaga tavsiya" : "Tavsiyalar"], ["sig", "Imzo joyi"]].concat(isSt || !fancy() ? [] : [["chart", "Grafik"]]);
     return top + `<div class="g-row"><div class="g-seg" role="group" aria-label="Ko'rinish"><button type="button" data-tprv="scr" class="${T.rv !== "a4" ? "on" : ""}">Ekranda</button><button type="button" data-tprv="a4" class="${T.rv === "a4" ? "on" : ""}">A4 varaq</button></div></div>
       ${T.rv === "a4" ? (() => { const ps = paginate(X); return optCard(c, keys) + `<div class="g-a4w">${ps.map((x) => `<div class="g-a4s">${x}</div>`).join("")}</div><span class="g-muted" style="font-size:12.5px">A4 varaq: ${ps.length} bet.</span>`; })() : `<div class="g-card g-a4fw">${flow(X)}</div>`}
       <div class="g-row g-ract"><button class="g-btn pri" type="button" data-tpprint>Chop etish (A4)</button>${isSt ? `<button class="g-btn" type="button" data-tpall>Hamma o'quvchilarni chop etish (${c.students.length} ta)</button>` : ""}<button class="g-btn" type="button" data-tpsend>PDF — Telegram'ga</button><button class="g-btn" type="button" data-tpcopy>Matnni nusxalash</button></div>`;
@@ -606,8 +606,8 @@ const TPTM = (() => {
       : `${h.school ? `<div class="g-a4sch">${H.e(h.school)}</div>` : ""}<div class="g-a4t">Umumiy hisobot</div><div class="g-a4st">Barcha guruhlar · ${P.q ? P.lab + " · " : ""}${yearOf(P.from)} o'quv yili</div>
       <table class="g-a4info"><tr><td>Davr: <b>${dd(P.from)} – ${dd(P.to)}</b></td><td>O'qituvchi: <b>${h.teacher ? H.e(h.teacher) : "____________________"}</b></td></tr></table>
       ${G.partial ? `<div class="g-a4warn">Davr hali tugamagan — ma'lumot ${dd(addD(H.today(), -1))} holatiga.</div>` : ""}
-      <table class="g-a4kpi"><tr>${tiles.map(([, l]) => `<th>${l}</th>`).join("")}</tr><tr>${tiles.map(([v]) => `<td>${v}</td>`).join("")}</tr></table>`;
-    const ch = T.o.chart ? `<div><div class="g-a4h">Guruhlar davomati</div>${allChart(G)}</div>` : "";
+      <table class="g-a4info">${tiles.map((x, i) => i % 2 ? "" : `<tr>${[tiles[i], tiles[i + 1]].map((y) => y ? `<td>${y[1][0].toUpperCase() + y[1].slice(1)}: <b>${y[0]}</b></td>` : "<td></td>").join("")}</tr>`).join("")}</table>`;
+    const ch = T.o.chart && fancy() ? `<div><div class="g-a4h">Guruhlar davomati</div>${allChart(G)}</div>` : "";
     const rows = G.rows.map((r, i) => `<tr><td>${i + 1}</td><td class="l">${H.e(r.c.name)}<br><small>${r.c.kind === "paid" ? "Pullik" : "To'garak"} · ${H.e(H.sched(r.c))}</small></td><td>${r.nSt}</td><td>${r.les}</td><td>${r.top == null ? "—" : r.top}</td>
       <td>${r.pct == null ? "<i>reja yo'q</i>" : `${r.pct}%${r.late ? "*" : ""}`}</td><td>${r.les ? (r.att < 75 ? `<b>${r.att}%</b>` : r.att + "%") : "—"}</td>${G.paid ? `<td>${r.c.kind === "paid" ? sp3(r.inc) : "—"}</td>` : ""}</tr>`);
     const thead = (cont) => `<div class="g-a4h">Guruhlar${cont ? " (davomi)" : ""}</div><table class="g-a4tab g-a4all"><thead><tr><th>№</th><th class="l">Guruh</th><th>O'quvchi</th><th>Dars</th><th>Mavzu</th><th>Yillik reja</th><th>Davomat</th>${G.paid ? "<th>Tushum, so'm</th>" : ""}</tr></thead><tbody>`;
@@ -629,7 +629,7 @@ const TPTM = (() => {
     return head + `<div class="g-row"><div class="g-seg g-qseg g-qseg5" role="group" aria-label="Davr">${qChips(c0, AL.q).replace(/data-tpq=/g, "data-alq=")}</div></div>
       <div class="g-row"><div class="g-seg" role="group" aria-label="Ko'rinish"><button type="button" data-tprv="scr" class="${T.rv !== "a4" ? "on" : ""}">Ekranda</button><button type="button" data-tprv="a4" class="${T.rv === "a4" ? "on" : ""}">A4 varaq</button></div></div>
       ${pages ? `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span>${stSeg()}</div>
-        <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${[["chart", "Davomat grafigi"], ["sum", "Xulosa"], ["rec", "Tavsiyalar"], ["sig", "Imzo joyi"]].map(([k, l]) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${l}</button>`).join("")}</div></div></div>
+        <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${(fancy() ? [["chart", "Davomat grafigi"]] : []).concat([["sum", "Xulosa"], ["rec", "Tavsiyalar"], ["sig", "Imzo joyi"]]).map(([k, l]) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${l}</button>`).join("")}</div></div></div>
         <div class="g-a4w">${pages.map((x) => `<div class="g-a4s">${x}</div>`).join("")}</div><span class="g-muted" style="font-size:12.5px">A4 varaq: ${pages.length} bet.</span>`
       : `<div class="g-card g-rep"><div class="g-rhead"><small>Umumiy hisobot</small><h2>${G.P.lab}</h2><span class="g-muted">${fullD(G.P.from)} – ${fullD(G.P.to)}${G.partial ? ` · <b class="g-rpart">davr hali tugamagan</b>` : ""}</span></div>
         <div class="g-rkpi g-num"><div><b>${G.les}</b><span>dars o'tkazildi</span></div><div><b>${G.st}</b><span>o'quvchi</span></div><div><b>${G.att}%</b><span>davomat</span></div><div><b>${G.paid ? sp3(G.inc) : G.top}</b><span>${G.paid ? "tushum, so'm" : "mavzu o'tildi"}</span></div></div>
