@@ -38,6 +38,8 @@ const TPTM = (() => {
   }
   const has = (c) => !!(c && c.gplan && c.gplan.topics && c.gplan.topics.length);
   const holi = (d) => { try { return typeof holidaySet === "function" && holidaySet(+d.slice(0, 4)).has(d); } catch (err) { return false; } };
+  // ta'til: choraklar sanasi kiritilgan bo'lsa, hech bir chorakka tushmagan kun (choraklar orasi, 1-chorakdan oldin, 4-chorakdan keyin)
+  const inBreak = (d) => { const qs = [1, 2, 3, 4].map((q) => qR(q)).filter(Boolean); return qs.length > 0 && !qs.some((r) => d >= r[0] && d <= r[1]); };
   // mavzular kunlarga: {map: {sana: {n, s?, own?, off?}}, rows: [{d, n, s}], end, total}
   function layout(c) {
     const p = c.gplan, sl = slots(p), top = c.gtop || {}, map = {}, rows = [];
@@ -46,7 +48,7 @@ const TPTM = (() => {
     const x = H.pd(start); let n = 0;
     for (let i = 0; i < 1100 && n < sl.length; i++, x.setDate(x.getDate() + 1)) {
       const d = H.iso(x), o = top[d];
-      const les = (H.isLesson(c, d) && !holi(d)) || H.cntOn(c, d) > 0;
+      const les = (H.isLesson(c, d) && !holi(d) && !(p.brk && inBreak(d))) || H.cntOn(c, d) > 0;
       if (o && o.off) { if (les || H.isLesson(c, d)) map[d] = {off: true}; continue; }
       if (!les && !(o && o.t)) continue;
       if (o && o.t) { map[d] = {own: o.t}; rows.push({d, own: o.t}); continue; }
@@ -91,7 +93,7 @@ const TPTM = (() => {
     }
     return `<div class="g-card g-tsum">
         <div class="g-row" style="flex-wrap:nowrap;align-items:flex-start"><div style="flex:1;min-width:0"><h2>Yillik mavzular</h2>
-          <div class="g-muted" style="font-size:13px">${c.gplan.topics.length} mavzu · ${L.total} dars · ${H.dm(c.gplan.start || t)} ${String(c.gplan.start || t).slice(0, 4)} dan</div></div>
+          <div class="g-muted" style="font-size:13px">${c.gplan.topics.length} mavzu · ${L.total} dars · ${H.dm(c.gplan.start || t)} ${String(c.gplan.start || t).slice(0, 4)} dan · ${c.gplan.brk ? "bayram va ta'tillarda dars yo'q" : "bayramlarda dars yo'q"}</div></div>
           <button class="g-btn sm" type="button" data-tpl>Tahrirlash</button></div>
         <div class="g-tbar"><i style="width:${pct}%"></i></div>
         <div class="g-row g-num" style="font-size:13px;gap:6px 14px"><span><b>${done}</b> / ${L.total} dars o'tildi</span><span class="g-muted">${left > 0 ? `${left} darsga kun yetmadi` : L.end ? `reja ${H.dm(L.end)} ${L.end.slice(0, 4)} da tugaydi` : ""}</span></div>
@@ -104,7 +106,7 @@ const TPTM = (() => {
 
   // reja oynasi: matn yoki Excel
   function planDialog(c, pre) {
-    const F = {text: pre != null ? pre : toText(c.gplan), start: c.gplan && ISO.test(String(c.gplan.start || "")) ? c.gplan.start : schoolStart()};
+    const F = {brk: !!(c.gplan && c.gplan.brk), text: pre != null ? pre : toText(c.gplan), start: c.gplan && ISO.test(String(c.gplan.start || "")) ? c.gplan.start : schoolStart()};
     const cnt = (txt) => { const p = parse(txt); return `${p.length} mavzu · ${p.reduce((a, x) => a + x.h, 0)} dars`; };
     const draw2 = () => H.openLayer(`<div class="g-dlg g-tdlg" role="dialog" aria-modal="true" aria-label="Yillik mavzular">${H.hdr("Yillik mavzular")}
       <div class="g-fld"><label for="g-tt">Mavzular — har qatorda bittasi</label>
@@ -113,17 +115,21 @@ const TPTM = (() => {
       <button class="g-btn" type="button" data-tpx>Excel fayldan yuklash</button>
       <div class="g-fld"><span class="g-lbl">Reja qaysi kundan boshlanadi</span>
         <div class="g-chips eq3"><button type="button" class="g-chip ${F.start === schoolStart() ? "on" : ""}" data-tps="${schoolStart()}">1-sentabr</button><button type="button" class="g-chip ${F.start === H.today() ? "on" : ""}" data-tps="${H.today()}">Bugundan</button><button type="button" class="g-chip ${F.start !== schoolStart() && F.start !== H.today() ? "on" : ""}" data-tpo>${F.start !== schoolStart() && F.start !== H.today() ? `${H.dm(F.start)}` : "Boshqa kun"}</button></div></div>
+      <div class="g-fld"><span class="g-lbl">Qaysi kunlarda to'garak o'tilmaydi</span>
+        <div class="g-seg g-brk" role="group" aria-label="Dars bo'lmaydigan kunlar"><button type="button" data-tpb="0" class="${F.brk ? "" : "on"}" aria-pressed="${!F.brk}">Faqat bayramlarda</button><button type="button" data-tpb="1" class="${F.brk ? "on" : ""}" aria-pressed="${F.brk}">Bayram va ta'tillarda</button></div>
+        <span class="g-muted" style="font-size:12.5px;line-height:1.4">${F.brk ? "Choraklar orasidagi ta'til kunlari ham o'tkazib yuboriladi (Sozlamalardagi chorak sanalari bo'yicha)." : "Bayram kunlari o'tkazib yuboriladi, ta'tilda ham to'garak davom etadi."} Shu kunlarda kimdir kelgan bo'lsa, dars hisoblanadi.</span></div>
       <div class="g-foot2"><button class="g-btn" type="button" data-x>Bekor qilish</button><button class="g-btn pri" type="button" data-save>Saqlash</button></div>
       ${has(c) ? `<button class="g-btn ghost dang" type="button" data-tpdel>Rejani o'chirish</button>` : ""}</div>`, true, (w) => {
       const ta = H.q("#g-tt", w);
       ta.oninput = () => { F.text = ta.value; H.q("#g-tc", w).textContent = cnt(ta.value); };
+      H.qa("[data-tpb]", w).forEach((b) => b.onclick = () => { F.text = ta.value; F.brk = b.dataset.tpb === "1"; draw2(); });
       H.qa("[data-tps]", w).forEach((b) => b.onclick = () => { F.text = ta.value; F.start = b.dataset.tps; draw2(); });
       H.q("[data-tpo]", w).onclick = () => { F.text = ta.value; H.dayPicker({title: "Reja boshlanadigan kun", cur: F.start, future: true, pick: (d) => { F.start = d; draw2(); }, back: draw2}); };
       H.q("[data-tpx]", w).onclick = () => { F.text = ta.value; fromExcel(c, (txt) => { F.text = txt; draw2(); }); };
       const dl = H.q("[data-tpdel]", w); if (dl) dl.onclick = () => H.confirmG("Rejani o'chirish", "Yillik mavzular rejasi va kunlarga yozilgan o'zgartirishlar o'chiriladi. Yo'qlama va to'lovlarga tegilmaydi.", "O'chirish", () => { delete c.gplan; delete c.gtop; H.save(); H.draw(); H.toast("Reja o'chirildi"); });
       H.q("[data-save]", w).onclick = () => {
         const topics = parse(ta.value); if (!topics.length) { H.toast("Kamida bitta mavzu yozing"); return; }
-        c.gplan = {topics, start: F.start}; H.save(); H.closeLayer(); H.draw();
+        c.gplan = Object.assign({topics, start: F.start}, F.brk ? {brk: true} : {}); H.save(); H.closeLayer(); H.draw();
         const L = layout(c); H.toast(`${topics.length} mavzu dars kunlariga qo'yildi${L.total - L.placed > 0 ? `, ${L.total - L.placed} tasiga kun yetmadi` : ""}`);
       };
     });

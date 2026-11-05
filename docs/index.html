@@ -290,7 +290,7 @@ function cleanClass(c) {
   // yillik mavzular (tpt-mavzu.js): c.gplan {topics: [{t, h}], start}, c.gtop {sana: {t} | {off: true}}
   { const p = c.gplan && typeof c.gplan === "object" ? c.gplan : null, tp = p && Array.isArray(p.topics) ? p.topics.filter((x) => x && typeof x === "object" && String(x.t ?? "").trim())
       .map((x) => ({t: String(x.t).trim().slice(0, 200), h: Math.max(1, Math.min(10, Math.trunc(num0(x.h)) || 1))})).slice(0, 600) : [];
-    if (tp.length) { c.gplan = {topics: tp}; if (ISO_D.test(String(p.start))) c.gplan.start = p.start; } else delete c.gplan; }
+    if (tp.length) { c.gplan = {topics: tp}; if (ISO_D.test(String(p.start))) c.gplan.start = p.start; if (p.brk === true) c.gplan.brk = true; } else delete c.gplan; }
   { const g = c.gtop && typeof c.gtop === "object" ? c.gtop : {}, o = {};
     for (const [d, v] of Object.entries(g)) { if (!ISO_D.test(d) || !v || typeof v !== "object") continue; if (v.off === true) o[d] = {off: true}; else if (String(v.t ?? "").trim()) o[d] = {t: String(v.t).trim().slice(0, 200)}; }
     if (Object.keys(o).length) c.gtop = o; else delete c.gtop; }
