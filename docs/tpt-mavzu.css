@@ -189,3 +189,15 @@
 .tpt .g-a4p.mod .g-a4sig i{border-bottom-color:#8a96a3}
 .tpt .g-a4p.mod .g-a4f{border-top:2px solid var(--a);color:var(--mu)!important}
 .tpt .g-a4p.mod .g-a4f span{color:var(--mu)!important}
+/* umumiy hisobot */
+.tpt .g-qseg{grid-template-columns:repeat(5,minmax(0,1fr));width:min(700px,100%)}
+.tpt .g-allg{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.tpt .g-allc{display:flex;flex-direction:column;gap:6px;text-align:left;border:1px solid var(--g-line);background:var(--g-base);border-radius:calc(12px*var(--rk,1));padding:12px 14px;box-shadow:var(--g-sh);color:var(--g-text)}
+.tpt .g-allc:hover{border-color:var(--g-acc)}
+.tpt .g-allh{display:flex;align-items:center;gap:8px}.tpt .g-allh b{flex:1;min-width:0;font-size:15px}
+.tpt .g-allk{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--g-muted)}.tpt .g-allk b{color:var(--g-text);font-size:15px}
+.tpt .g-a4all td small{font-size:.8em;color:#555}
+.tpt .g-a4all tfoot td{font-weight:700;border-top:1.5px solid #000}
+.tpt .g-a4p.mod .g-a4all tfoot td{background:var(--a2);border-top:0;color:#0a5a58!important}
+.tpt .g-a4p.mod .g-a4all td small{color:var(--mu)!important}
+@media (max-width:520px){.tpt .g-qseg button{font-size:13px;padding:6px 2px}.tpt .g-qseg button small{font-size:10px}}

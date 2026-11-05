@@ -173,11 +173,15 @@ const TPTM = (() => {
      1-chorak reja boshlanishidan (chorakdan oldin bo'lsa). Chorak tugagach (oxirgi kundan keyin) hisobot «tayyor» bo'ladi. */
   const qR = (q) => { try { return typeof qRange === "function" ? qRange(q) : null; } catch (err) { return null; } };
   const addD = (d, k) => { const x = H.pd(d); x.setDate(x.getDate() + k); return H.iso(x); };
+  // q = 0 — butun o'quv yili (1-chorak boshidan oxirgi chorak oxirigacha)
   function qPer(c, q) {
+    if (q === 0) { const qs = [1, 2, 3, 4].filter((x) => qR(x)); if (!qs.length) return null; const a = qPer(c, qs[0]), b = qR(qs[qs.length - 1]); return {q: 0, lab: "Butun o'quv yili", from: a.from, to: b[1], end: b[1]}; }
     const r = qR(q); if (!r) return null;
     const pv = q > 1 ? qR(q - 1) : null, st = c.gplan && ISO.test(String(c.gplan.start || "")) ? c.gplan.start : r[0];
-    return {q, from: pv ? addD(pv[1], 1) : st < r[0] ? st : r[0], to: r[1], end: r[1]};
+    return {q, lab: `${q}-chorak`, from: pv ? addD(pv[1], 1) : st < r[0] ? st : r[0], to: r[1], end: r[1]};
   }
+  const qLab = (q) => q ? `${q}-chorak` : "yillik";
+  const qBadge = (P) => P.q ? `<div class="g-a4qb"><b>${P.q}</b><span>chorak</span></div>` : `<div class="g-a4qb"><b>${yearOf(P.from).replace("–", "/").replace(/(\d\d)(\d\d)\/(\d\d)(\d\d)/, "$2/$4")}</b><span>o'quv yili</span></div>`;
   const qDone = (c, q) => { const p = qPer(c, q); return !!p && p.end < H.today(); };
   // shu kunlarda tugagan chorak (21 kun ichida), hisoboti hali ko'rilmagan
   function freshQ(c) {
@@ -197,7 +201,7 @@ const TPTM = (() => {
     const first = plan.length ? plan[0].n : 0;
     const sumK = rows.reduce((a, r) => a + r.k, 0), sumN = rows.reduce((a, r) => a + r.na, 0);
     const st = c.students.map((s) => { const ds = rows.filter((r) => H.inG(s, r.d)); const came = ds.filter((r) => (s.marks || {})[r.d] === "ot").length; return {name: s.name, all: ds.length, came, miss: ds.length - came}; }).filter((x) => x.all);
-    const nxt = qPer(c, q + 1), nrows = nxt ? L.rows.filter((r) => r.n && r.d >= nxt.from && r.d <= nxt.to) : L.rows.filter((r) => r.n && r.d > P.to);
+    const nxt = q ? qPer(c, q + 1) : null, nrows = nxt ? L.rows.filter((r) => r.n && r.d >= nxt.from && r.d <= nxt.to) : L.rows.filter((r) => r.n && r.d > P.to);
     const partial = !qDone(c, q);
     return {P, rows, offs, plan, own, topics, first, last, total: L.total, nTopics: c.gplan.topics.length, att: sumN ? Math.round(sumK / sumN * 100) : 0,
       miss: st.filter((x) => x.miss).sort((a, b) => b.miss - a.miss || a.name.localeCompare(b.name)).slice(0, 3),
@@ -208,7 +212,7 @@ const TPTM = (() => {
   // o'qituvchi uchun tayyor matn (xulosa) — ota-onalar guruhiga yoki ma'muriyatga
   function summary(c, A) {
     const sl = slots(c.gplan), P = A.P, out = [];
-    out.push(`«${c.name}» guruhi, ${P.q}-chorak (${H.dm(P.from)} – ${fullD(A.partial ? A.upto : P.to)}).`);
+    out.push(`«${c.name}» guruhi, ${P.lab.toLowerCase()} (${H.dm(P.from)} – ${fullD(A.partial ? A.upto : P.to)}).`);
     if (!A.rows.length) { out.push("Bu davrda dars o'tkazilmagan."); return out; }
     out.push(`${A.rows.length} ta dars o'tkazildi${A.own.length ? `, shundan ${A.own.length} tasi rejadan tashqari mavzu` : ""}. Yillik rejadagi ${A.total} darsdan ${A.first ? `${A.first}–${A.last}-darslar` : "hech biri"} o'tildi (${A.topics.length} ta mavzu); yillik reja ${Math.round(A.last / A.total * 100)}% bajarildi.`);
     const sh = A.offs.length + A.own.length;
@@ -245,7 +249,7 @@ const TPTM = (() => {
   function sheet(c, A) {
     const P = A.P, lines = summary(c, A);
     const list = A.rows.concat(A.offs.map((d) => ({d, off: true}))).sort((a, b) => a.d.localeCompare(b.d));
-    return `<div class="g-rhead"><small>O'tilgan mavzular hisoboti</small><h2>${H.e(c.name)} · ${P.q}-chorak</h2>
+    return `<div class="g-rhead"><small>O'tilgan mavzular hisoboti</small><h2>${H.e(c.name)} · ${P.lab}</h2>
         <span class="g-muted">${fullD(P.from)} – ${fullD(P.to)} · ${H.e(H.sched(c))} · ${A.nSt} o'quvchi${A.partial ? ` · <b class="g-rpart">chorak hali tugamagan, ${H.dm(A.upto)} gacha</b>` : ""}</span></div>
       <div class="g-rkpi g-num"><div><b>${A.rows.length}</b><span>dars o'tkazildi</span></div><div><b>${A.topics.length}</b><span>mavzu o'tildi</span></div>
         <div><b>${A.total ? Math.round(A.last / A.total * 100) : 0}%</b><span>yillik reja</span></div><div><b>${A.att}%</b><span>davomat</span></div></div>
@@ -267,13 +271,13 @@ const TPTM = (() => {
     const list = A.rows.concat(A.offs.map((d) => ({d, off: true}))).sort((a, b) => a.d.localeCompare(b.d));
     const pct = A.total ? Math.round(A.last / A.total * 100) : 0, mod = T.o.st !== "off";
     const headM = `<div class="g-a4band"><div class="g-a4bl"><small>${h.school ? H.e(h.school) : "O'quv guruhi hisoboti"}</small><div class="g-a4t">O'tilgan mavzular hisoboti</div>
-        <div class="g-a4st">«${H.e(c.name)}» guruhi · ${yearOf(P.from)} o'quv yili</div></div><div class="g-a4qb"><b>${P.q}</b><span>chorak</span></div></div>
+        <div class="g-a4st">«${H.e(c.name)}» guruhi · ${yearOf(P.from)} o'quv yili</div></div>${qBadge(P)}</div>
       <div class="g-a4meta"><div><small>Davr</small><b>${dd(P.from)} – ${dd(P.to)}</b></div><div><small>Dars kunlari</small><b>${H.e(H.sched(c))}</b></div><div><small>O'quvchilar</small><b>${A.nSt} nafar</b></div><div><small>O'qituvchi</small><b>${h.teacher ? H.e(h.teacher) : "&nbsp;"}</b></div></div>
       ${A.partial ? `<div class="g-a4warn">Chorak hali tugamagan — ma'lumot ${dd(A.upto)} holatiga.</div>` : ""}
       <div class="g-a4tiles"><div><b>${A.rows.length}</b><span>dars o'tkazildi</span></div><div><b>${A.topics.length}</b><span>mavzu o'tildi</span></div>
         <div class="w"><b>${pct}%</b><span>yillik reja · ${A.last}/${A.total} dars</span><div class="g-a4bar"><i style="width:${pct}%"></i></div></div><div><b>${A.att}%</b><span>o'rtacha davomat</span></div></div>`;
     const head0 = `${h.school ? `<div class="g-a4sch">${H.e(h.school)}</div>` : ""}<div class="g-a4t">O'tilgan mavzular hisoboti</div>
-      <div class="g-a4st">«${H.e(c.name)}» guruhi · ${P.q}-chorak · ${yearOf(P.from)} o'quv yili</div>
+      <div class="g-a4st">«${H.e(c.name)}» guruhi · ${P.lab} · ${yearOf(P.from)} o'quv yili</div>
       <table class="g-a4info"><tr><td>Davr: <b>${dd(P.from)} – ${dd(P.to)}</b></td><td>Dars kunlari: <b>${H.e(H.sched(c))}</b></td></tr>
         <tr><td>O'quvchilar: <b>${A.nSt} nafar</b></td><td>O'qituvchi: <b>${h.teacher ? H.e(h.teacher) : "____________________"}</b></td></tr></table>
       ${A.partial ? `<div class="g-a4warn">Chorak hali tugamagan — ma'lumot ${dd(A.upto)} holatiga.</div>` : ""}
@@ -304,11 +308,11 @@ const TPTM = (() => {
     const tail = `${T.o.stu ? stuH : ""}${T.o.sum ? `<div class="g-a4h">Xulosa</div><div class="g-a4sum">${lines.map((x) => `<p>${H.e(x)}</p>`).join("")}</div>` : ""}${T.o.rec ? `<div class="g-a4h">Tavsiyalar</div><ol class="g-a4rec">${advice(c, A).map((x) => `<li>${H.e(x)}</li>`).join("")}</ol>` : ""}
       <div class="g-a4note">* — rejadan tashqari mavzu${byT ? "; «Soat» — shu chorakda o'tilgan darslar (2/3 — mavzuning 3 darsidan 2 tasi)" : "; «Keldi» — darsga kelgan / guruhdagi o'quvchilar"}${T.o.stu && stu.length ? "; davomati 75% dan past o'quvchilar «*» bilan" : ""}.</div>
       ${T.o.sig ? "" : "<!--"}<div class="g-a4sig"><div><span>O'qituvchi</span><i></i><small>(imzo)</small></div><div><span>F.I.Sh.</span><i>${h.teacher ? H.e(h.teacher) : ""}</i><small></small></div><div><span>Sana</span><i></i><small></small></div></div>${T.o.sig ? "" : "-->"}`;
-    return {head, rows: byT ? groups.map(grpH) : list.map(rowH), thead, tail, foot: (i, n) => `<div class="g-a4f"><span>«${H.e(c.name)}» · ${P.q}-chorak · o'tilgan mavzular</span><span>${i} / ${n}</span></div>`};
+    return {head, rows: byT ? groups.map(grpH) : list.map(rowH), thead, tail, foot: (i, n) => `<div class="g-a4f"><span>«${H.e(c.name)}» · ${P.lab} · o'tilgan mavzular</span><span>${i} / ${n}</span></div>`};
   }
   let host = null;
-  function a4pages(c, A) {
-    const X = a4parts(c, A);
+  const a4pages = (c, A) => paginate(a4parts(c, A));
+  function paginate(X) {
     if (!host) { host = document.createElement("div"); host.className = "tpt g-a4host"; host.setAttribute("aria-hidden", "true"); }
     if (!host.isConnected) document.body.append(host);
     const page = (fs, body) => `<div class="bx-pg g-a4p ${T.o.st !== "off" ? "mod" : ""}" style="--fs:${fs}px"><div class="g-a4i">${body}</div></div>`;
@@ -343,17 +347,19 @@ const TPTM = (() => {
   }
   function printA4(c, q) {
     const ps = a4pages(c, repData(c, q));
-    if (typeof printDoc === "function") printDoc(`<div class="tpt g-a4print">${ps.join("")}</div>`, false, false, `${c.name} ${q}-chorak mavzular`);
+    if (typeof printDoc === "function") printDoc(`<div class="tpt g-a4print">${ps.join("")}</div>`, false, false, `${c.name} ${qLab(q)} mavzular`);
     else H.toast("Chop etib bo'lmadi");
   }
+  const qChips = (c, q) => { const t = H.today(); return [1, 2, 3, 4].filter((x) => qPer(c, x)).map((x) => { const P = qPer(c, x); return `<button type="button" data-tpq="${x}" class="${x === q ? "on" : ""}">${x}-chorak<small>${P.from > t ? "boshlanmagan" : qDone(c, x) ? "tugagan" : "davom etmoqda"}</small></button>`; }).join("")
+    + `<button type="button" data-tpq="0" class="${q === 0 ? "on" : ""}">Butun yil<small>${yearOf(qPer(c, 0).from)}</small></button>`; };
   function repHtml(c) {
     const qs = [1, 2, 3, 4].filter((q) => qPer(c, q)), t = H.today();
     if (!qs.length) return `<div class="g-card g-empty"><h2>Choraklar sanasi kiritilmagan</h2><div class="g-muted">Hisobot chorak bo'yicha tuziladi. «Sozlamalar»da o'quv yili choraklarining boshlanish va tugash sanalarini kiriting.</div></div>`;
-    if (!T.rq || !qs.includes(T.rq)) T.rq = qs.filter((q) => qPer(c, q).from <= t).pop() || qs[0];
+    if (T.rq == null || (T.rq && !qs.includes(T.rq))) T.rq = qs.filter((q) => qPer(c, q).from <= t).pop() || qs[0];
     const q = T.rq, A = repData(c, q);
-    if (qDone(c, q) && !(c.grep || {})[q]) { c.grep = Object.assign({}, c.grep, {[q]: {at: t}}); H.save(); }
-    return `<div class="g-row"><div class="g-seg g-qseg" role="group" aria-label="Chorak">${qs.map((x) => { const P = qPer(c, x); return `<button type="button" data-tpq="${x}" class="${x === q ? "on" : ""}">${x}-chorak<small>${P.from > t ? "boshlanmagan" : qDone(c, x) ? "tugagan" : "davom etmoqda"}</small></button>`; }).join("")}</div></div>
-      ${qPer(c, q).from > t ? `<div class="g-card g-muted">${q}-chorak hali boshlanmagan (${fullD(qPer(c, q).from)}).</div>` : `<div class="g-row"><div class="g-seg" role="group" aria-label="Ko'rinish"><button type="button" data-tprv="scr" class="${T.rv !== "a4" ? "on" : ""}">Ekranda</button><button type="button" data-tprv="a4" class="${T.rv === "a4" ? "on" : ""}">A4 varaq</button></div></div>
+    if (q && qDone(c, q) && !(c.grep || {})[q]) { c.grep = Object.assign({}, c.grep, {[q]: {at: t}}); H.save(); }
+    return `<div class="g-row"><div class="g-seg g-qseg" role="group" aria-label="Chorak">${qChips(c, q)}</div></div>
+      ${qPer(c, q).from > t ? `<div class="g-card g-muted">${qLab(q)} hali boshlanmagan (${fullD(qPer(c, q).from)}).</div>` : `<div class="g-row"><div class="g-seg" role="group" aria-label="Ko'rinish"><button type="button" data-tprv="scr" class="${T.rv !== "a4" ? "on" : ""}">Ekranda</button><button type="button" data-tprv="a4" class="${T.rv === "a4" ? "on" : ""}">A4 varaq</button></div></div>
       ${T.rv === "a4" ? a4view(c, A) : `<div class="g-card g-rep">${sheet(c, A)}</div>`}
       <div class="g-row g-ract"><button class="g-btn pri" type="button" data-tpprint>Chop etish (A4)</button><button class="g-btn" type="button" data-tpsend>PDF — Telegram'ga</button><button class="g-btn" type="button" data-tpcopy>Xulosa matnini nusxalash</button></div>`}`;
   }
@@ -369,6 +375,110 @@ const TPTM = (() => {
   function homeNote(list) {
     const f = fresh(list); if (!f.length) return "";
     return `<div class="g-note g-rnote"><b>${f[0].q}-chorak tugadi.</b> O'tilgan mavzular hisoboti tayyor: ${f.map((x) => `<button class="g-btn sm" type="button" data-tphome="${x.ci}|${x.q}">${H.e(x.c.name)}</button>`).join(" ")}</div>`;
+  }
+  /* ───────── umumiy hisobot: hamma guruhlar bir varaqda (chorak yoki butun yil) ───────── */
+  const AL = {q: null};
+  function allData(list, q) {
+    const t = H.today(), rows = [];
+    for (const {c, ci} of list) {
+      const P = qPer(c, q); if (!P || P.from > t) continue;
+      const upto = P.to < t ? P.to : addD(t, -1);
+      let A = null, les = 0, k = 0, n = 0;
+      if (has(c)) { A = repData(c, q); les = A.rows.length; k = A.rows.reduce((a, r) => a + r.k, 0); n = A.rows.reduce((a, r) => a + r.na, 0); }
+      else for (let d = P.from; d <= upto; d = addD(d, 1)) { const x = H.cntOn(c, d); if (x) { les++; k += x; n += H.actOn(c, d).length; } }
+      const inc = c.kind === "paid" ? c.students.flatMap((s) => s.pays || []).filter((p) => String(p.d) >= P.from && String(p.d) <= P.to).reduce((a, p) => a + (+p.sum || 0), 0) : 0;
+      const due = c.kind === "paid" && H.acct ? c.students.filter((s) => H.acct(c, s).due).length : 0;
+      rows.push({c, ci, A, les, att: n ? Math.round(k / n * 100) : 0, k, n, inc, due, nSt: c.students.length, top: A ? A.topics.length : null,
+        pct: A && A.total ? Math.round(A.last / A.total * 100) : null, sh: A ? A.offs.length + A.own.length : 0, late: !!(A && A.end && qR(4) && A.end > qR(4)[1])});
+    }
+    const k = rows.reduce((a, r) => a + r.k, 0), n = rows.reduce((a, r) => a + r.n, 0), wp = rows.filter((r) => r.pct != null);
+    const P = list.length ? qPer(list[0].c, q) : null;
+    return {rows, P, partial: !!P && P.to >= t, les: rows.reduce((a, r) => a + r.les, 0), st: rows.reduce((a, r) => a + r.nSt, 0), top: wp.reduce((a, r) => a + r.top, 0),
+      att: n ? Math.round(k / n * 100) : 0, inc: rows.reduce((a, r) => a + r.inc, 0), pct: wp.length ? Math.round(wp.reduce((a, r) => a + r.pct, 0) / wp.length) : null, paid: rows.some((r) => r.c.kind === "paid")};
+  }
+  const sp3 = (x) => String(Math.round(x || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  function allSummary(G) {
+    const P = G.P, out = [];
+    out.push(`${P.lab} (${H.dm(P.from)} – ${fullD(G.partial ? addD(H.today(), -1) : P.to)}): ${G.rows.length} ta guruhda jami ${G.st} nafar o'quvchi bilan ${G.les} ta dars o'tkazildi${G.top ? `, ${G.top} ta mavzu o'tildi` : ""}.`);
+    out.push(`O'rtacha davomat ${G.att}%${G.pct != null ? `, yillik rejalar o'rtacha ${G.pct}% bajarildi` : ""}.${G.paid ? ` Pullik guruhlardan tushum: ${sp3(G.inc)} so'm.` : ""}`);
+    const best = G.rows.filter((r) => r.les).sort((a, b) => b.att - a.att)[0]; if (best && G.rows.length > 1) out.push(`Davomati eng yuqori guruh — «${best.c.name}» (${best.att}%).`);
+    return out;
+  }
+  function allAdvice(G) {
+    const out = [];
+    const low = G.rows.filter((r) => r.les && r.att < 75); if (low.length) out.push(`${low.map((r) => `«${r.c.name}» (${r.att}%)`).join(", ")} — davomat 75% dan past; dars vaqti qulayligini va o'quvchilar sababini o'rganish kerak.`);
+    const late = G.rows.filter((r) => r.late); if (late.length) out.push(`${late.map((r) => `«${r.c.name}»`).join(", ")} — yillik reja o'quv yili oxirigacha yetmaydi; qo'shimcha dars kerak.`);
+    const np = G.rows.filter((r) => !has(r.c)); if (np.length) out.push(`${np.map((r) => `«${r.c.name}»`).join(", ")} — yillik mavzular rejasi kiritilmagan («Mavzular» bo'limida kiriting).`);
+    const due = G.rows.filter((r) => r.due); if (due.length) out.push(`To'lov kutilmoqda: ${due.map((r) => `«${r.c.name}» — ${r.due} nafar`).join(", ")}.`);
+    if (!out.length) out.push("Hamma guruhlarda reja va davomat yaxshi — shu tartibda davom ettirish tavsiya etiladi.");
+    return out;
+  }
+  function allChart(G) {
+    const rs = G.rows.filter((r) => r.les); if (!rs.length) return "";
+    const W = 680, rh = 18, Hh = rs.length * rh + 16, lx = 170, x = (v) => lx + (W - lx - 40) * v;
+    let g = `<line x1="${x(.75)}" x2="${x(.75)}" y1="0" y2="${Hh - 12}" stroke="#000" stroke-dasharray="3 3" stroke-width=".8"/><text x="${x(.75)}" y="${Hh - 2}" font-size="9" text-anchor="middle">75%</text>`;
+    rs.forEach((r, i) => { const v = r.att / 100, y = i * rh + 3;
+      g += `<text x="${lx - 6}" y="${y + 11}" font-size="10" text-anchor="end">${H.e(r.c.name.length > 28 ? r.c.name.slice(0, 27) + "…" : r.c.name)}</text><rect x="${lx}" y="${y}" width="${(x(v) - lx).toFixed(1)}" height="${rh - 6}" class="${v < .75 ? "c2" : "c1"}" fill="${v < .75 ? "#000" : "#9a9a9a"}" stroke="#000" stroke-width=".6"/><text x="${(x(v) + 4).toFixed(1)}" y="${y + 10}" font-size="10">${r.att}%</text>`; });
+    return `<svg class="g-a4ch" viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Guruhlar davomati">${g}</svg>`;
+  }
+  function allParts(G) {
+    const P = G.P, h0 = hdrS(), gh = (G.rows.find((r) => r.c.grh) || {c: {}}).c.grh || {}, h = {school: gh.org != null ? gh.org : h0.school, teacher: gh.tch != null ? gh.tch : h0.teacher}, mod = T.o.st !== "off";
+    const mln = (x) => x >= 1e6 ? [`${String(Math.round(x / 1e5) / 10).replace(".", ",")} mln`, "tushum, so'm"] : [sp3(x), "tushum, so'm"];
+    const tiles = [[G.rows.length, "guruh"], [G.st, "o'quvchi"], [G.les, "dars o'tkazildi"], [G.att + "%", "o'rtacha davomat"]].concat(G.paid ? [mln(G.inc)] : []);
+    const head = mod ? `<div class="g-a4band"><div class="g-a4bl"><small>${h.school ? H.e(h.school) : "Guruhlar bo'yicha"}</small><div class="g-a4t">Umumiy hisobot</div>
+        <div class="g-a4st">Barcha guruhlar · ${P.q ? P.lab + " · " : ""}${yearOf(P.from)} o'quv yili</div></div>${qBadge(P)}</div>
+      <div class="g-a4meta"><div><small>Davr</small><b>${dd(P.from)} – ${dd(P.to)}</b></div><div><small>Guruhlar</small><b>${G.rows.length} ta</b></div><div><small>O'quvchilar</small><b>${G.st} nafar</b></div><div><small>O'qituvchi</small><b>${h.teacher ? H.e(h.teacher) : "&nbsp;"}</b></div></div>
+      ${G.partial ? `<div class="g-a4warn">Davr hali tugamagan — ma'lumot ${dd(addD(H.today(), -1))} holatiga.</div>` : ""}
+      <div class="g-a4tiles" style="grid-template-columns:repeat(${tiles.length},1fr)">${tiles.map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join("")}</div>`
+      : `${h.school ? `<div class="g-a4sch">${H.e(h.school)}</div>` : ""}<div class="g-a4t">Umumiy hisobot</div><div class="g-a4st">Barcha guruhlar · ${P.q ? P.lab + " · " : ""}${yearOf(P.from)} o'quv yili</div>
+      <table class="g-a4info"><tr><td>Davr: <b>${dd(P.from)} – ${dd(P.to)}</b></td><td>O'qituvchi: <b>${h.teacher ? H.e(h.teacher) : "____________________"}</b></td></tr></table>
+      ${G.partial ? `<div class="g-a4warn">Davr hali tugamagan — ma'lumot ${dd(addD(H.today(), -1))} holatiga.</div>` : ""}
+      <table class="g-a4kpi"><tr>${tiles.map(([, l]) => `<th>${l}</th>`).join("")}</tr><tr>${tiles.map(([v]) => `<td>${v}</td>`).join("")}</tr></table>`;
+    const ch = T.o.chart ? `<div><div class="g-a4h">Guruhlar davomati</div>${allChart(G)}</div>` : "";
+    const rows = G.rows.map((r, i) => `<tr><td>${i + 1}</td><td class="l">${H.e(r.c.name)}<br><small>${r.c.kind === "paid" ? "Pullik" : "To'garak"} · ${H.e(H.sched(r.c))}</small></td><td>${r.nSt}</td><td>${r.les}</td><td>${r.top == null ? "—" : r.top}</td>
+      <td>${r.pct == null ? "<i>reja yo'q</i>" : `${r.pct}%${r.late ? "*" : ""}`}</td><td>${r.les ? (r.att < 75 ? `<b>${r.att}%</b>` : r.att + "%") : "—"}</td>${G.paid ? `<td>${r.c.kind === "paid" ? sp3(r.inc) : "—"}</td>` : ""}</tr>`);
+    const thead = (cont) => `<div class="g-a4h">Guruhlar${cont ? " (davomi)" : ""}</div><table class="g-a4tab g-a4all"><thead><tr><th>№</th><th class="l">Guruh</th><th>O'quvchi</th><th>Dars</th><th>Mavzu</th><th>Yillik reja</th><th>Davomat</th>${G.paid ? "<th>Tushum, so'm</th>" : ""}</tr></thead><tbody>`;
+    const tail = `${G.paid ? `</tbody><tfoot><tr><td></td><td class="l">Jami</td><td>${G.st}</td><td>${G.les}</td><td>${G.top || "—"}</td><td>${G.pct == null ? "—" : G.pct + "%"}</td><td>${G.att}%</td><td>${sp3(G.inc)}</td></tr></tfoot><tbody>` : ""}`;
+    const end = `${ch}${T.o.sum ? `<div class="g-a4h">Xulosa</div><div class="g-a4sum">${allSummary(G).map((x) => `<p>${H.e(x)}</p>`).join("")}</div>` : ""}${T.o.rec ? `<div class="g-a4h">Tavsiyalar</div><ol class="g-a4rec">${allAdvice(G).map((x) => `<li>${H.e(x)}</li>`).join("")}</ol>` : ""}
+      <div class="g-a4note">«Yillik reja» — o'tilgan darslar yillik mavzular rejasining necha foizi; * — reja o'quv yili oxirigacha yetmaydi; davomat 75% dan past bo'lsa qalin.</div>
+      ${T.o.sig ? `<div class="g-a4sig"><div><span>Mas'ul</span><i></i><small>(imzo)</small></div><div><span>F.I.Sh.</span><i>${h.teacher ? H.e(h.teacher) : ""}</i><small></small></div><div><span>Sana</span><i></i><small></small></div></div>` : ""}`;
+    return {head, rows: rows.length ? rows.concat(tail ? [tail] : []) : [`<tr><td colspan="8">Bu davrda dars o'tkazilgan guruh yo'q</td></tr>`], thead, tail: end, foot: (i, n) => `<div class="g-a4f"><span>Umumiy hisobot · ${P.lab}</span><span>${i} / ${n}</span></div>`};
+  }
+  function allHtml(list) {
+    const t = H.today(), c0 = (list[0] || {}).c;
+    const head = `<div class="g-head"><div class="g-t"><button class="g-back" type="button" data-home>‹ Guruhlar</button><h1>Umumiy hisobot</h1><div class="g-muted">Barcha faol guruhlar bo'yicha: darslar, mavzular, davomat${list.some((x) => x.c.kind === "paid") ? " va tushum" : ""}</div></div></div>`;
+    if (!c0) return head + `<div class="g-card g-muted">Hali guruh yo'q.</div>`;
+    if (!qPer(c0, 0)) return head + `<div class="g-card g-empty"><h2>Choraklar sanasi kiritilmagan</h2><div class="g-muted">«Sozlamalar»da o'quv yili choraklarini kiriting.</div></div>`;
+    // standart: yaqinda (21 kun ichida) tugagan chorak, bo'lmasa joriy chorak
+    if (AL.q == null) { const qs = [1, 2, 3, 4].filter((q) => qPer(c0, q)); AL.q = qs.filter((q) => qDone(c0, q) && addD(qPer(c0, q).end, 21) >= t).pop() || qs.filter((q) => qPer(c0, q).from <= t).pop() || 0; }
+    const G = allData(list, AL.q);
+    const pages = T.rv === "a4" ? paginate(allParts(G)) : null;
+    return head + `<div class="g-row"><div class="g-seg g-qseg g-qseg5" role="group" aria-label="Davr">${qChips(c0, AL.q).replace(/data-tpq=/g, "data-alq=")}</div></div>
+      <div class="g-row"><div class="g-seg" role="group" aria-label="Ko'rinish"><button type="button" data-tprv="scr" class="${T.rv !== "a4" ? "on" : ""}">Ekranda</button><button type="button" data-tprv="a4" class="${T.rv === "a4" ? "on" : ""}">A4 varaq</button></div></div>
+      ${pages ? `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Dizayn</span><div class="g-seg"><button type="button" data-tpst="mod" class="${T.o.st !== "off" ? "on" : ""}">Zamonaviy</button><button type="button" data-tpst="off" class="${T.o.st === "off" ? "on" : ""}">Rasmiy (oq-qora)</button></div></div>
+        <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${[["chart", "Davomat grafigi"], ["sum", "Xulosa"], ["rec", "Tavsiyalar"], ["sig", "Imzo joyi"]].map(([k, l]) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${l}</button>`).join("")}</div></div></div>
+        <div class="g-a4w">${pages.map((x) => `<div class="g-a4s">${x}</div>`).join("")}</div><span class="g-muted" style="font-size:12.5px">A4 varaq: ${pages.length} bet.</span>`
+      : `<div class="g-card g-rep"><div class="g-rhead"><small>Umumiy hisobot</small><h2>${G.P.lab}</h2><span class="g-muted">${fullD(G.P.from)} – ${fullD(G.P.to)}${G.partial ? ` · <b class="g-rpart">davr hali tugamagan</b>` : ""}</span></div>
+        <div class="g-rkpi g-num"><div><b>${G.les}</b><span>dars o'tkazildi</span></div><div><b>${G.st}</b><span>o'quvchi</span></div><div><b>${G.att}%</b><span>davomat</span></div><div><b>${G.paid ? sp3(G.inc) : G.top}</b><span>${G.paid ? "tushum, so'm" : "mavzu o'tildi"}</span></div></div>
+        <div class="g-rsum"><h3>Xulosa</h3>${allSummary(G).map((x) => `<p>${H.e(x)}</p>`).join("")}</div>
+        <div class="g-allg">${G.rows.map((r) => `<button class="g-allc" type="button" data-allg="${r.ci}"><span class="g-allh"><b>${H.e(r.c.name)}</b>${r.c.kind === "paid" ? `<span class="g-pill p-acc">Pullik</span>` : `<span class="g-pill p-club">To'garak</span>`}</span>
+          <span class="g-allk g-num"><span><b>${r.les}</b> dars</span><span><b>${r.top == null ? "—" : r.top}</b> mavzu</span><span><b style="color:${r.les && r.att < 75 ? "var(--g-bad)" : "inherit"}">${r.les ? r.att + "%" : "—"}</b> davomat</span>${r.c.kind === "paid" ? `<span><b>${sp3(r.inc)}</b> so'm</span>` : ""}</span>
+          ${r.pct != null ? `<span class="g-tbar"><i style="width:${r.pct}%"></i></span><span class="g-muted" style="font-size:12px">yillik reja ${r.pct}%${r.late ? " — yil oxirigacha yetmaydi" : ""}</span>` : `<span class="g-muted" style="font-size:12px">yillik mavzular rejasi kiritilmagan</span>`}</button>`).join("")}</div>
+        <div class="g-rsum" style="background:var(--g-alt)"><h3>Tavsiyalar</h3>${allAdvice(G).map((x, i) => `<p>${i + 1}. ${H.e(x)}</p>`).join("")}</div></div>`}
+      <div class="g-row g-ract"><button class="g-btn pri" type="button" data-alprint>Chop etish (A4)</button><button class="g-btn" type="button" data-alsend>PDF — Telegram'ga</button><button class="g-btn" type="button" data-alcopy>Xulosa matnini nusxalash</button></div>`;
+  }
+  function bindAll(m, list, open) {
+    H.qa("[data-alq]", m).forEach((b) => b.onclick = () => { AL.q = +b.dataset.alq; H.draw(); });
+    H.qa("[data-tprv]", m).forEach((b) => b.onclick = () => { T.rv = b.dataset.tprv; H.draw(); });
+    H.qa("[data-tpst]", m).forEach((b) => b.onclick = () => { T.o.st = b.dataset.tpst; keepO(); H.draw(); });
+    H.qa("[data-tpo2]", m).forEach((b) => b.onclick = () => { const k = b.dataset.tpo2; T.o[k] = !T.o[k]; keepO(); H.draw(); });
+    H.qa("[data-allg]", m).forEach((b) => b.onclick = () => open(+b.dataset.allg));
+    const G = () => allData(list, AL.q), nm = () => `Umumiy hisobot ${qLab(AL.q)}`;
+    const pr = H.q("[data-alprint]", m); if (pr) pr.onclick = () => { if (typeof printDoc === "function") printDoc(`<div class="tpt g-a4print">${paginate(allParts(G())).join("")}</div>`, false, false, nm()); else H.toast("Chop etib bo'lmadi"); };
+    const cp = H.q("[data-alcopy]", m); if (cp) cp.onclick = () => copyTxt(allSummary(G()).concat(allAdvice(G()).map((x, i) => `${i + 1}. ${x}`)).join("\n"));
+    const sd = H.q("[data-alsend]", m); if (sd) sd.onclick = () => { if (typeof PTG === "undefined") { H.toast("PDF yuborib bo'lmadi"); return; }
+      PTG.run(() => PTG.pagesPdf([`<div class="tpt">${paginate(allParts(G())).join("")}</div>`], false), nm(), `📊 ${nm()}\n${allSummary(G())[0]}`, sd); };
+    fitA4(m);
   }
   const pdfPages = (c, q) => [`<div class="tpt">${a4pages(c, repData(c, q)).join("")}</div>`];
   // A4 ko'rinishini ekran kengligiga moslab kichraytirish
@@ -389,11 +499,11 @@ const TPTM = (() => {
     fitA4(m);
     const cp = H.q("[data-tpcopy]", m); if (cp) cp.onclick = () => copyTxt(summary(c, repData(c, T.rq)).join("\n"));
     const sd = H.q("[data-tpsend]", m); if (sd) sd.onclick = () => { const q = T.rq; if (typeof PTG === "undefined") { H.toast("PDF yuborib bo'lmadi"); return; }
-      PTG.run(() => PTG.pagesPdf(pdfPages(c, q), false), `${c.name} ${q}-chorak mavzular`, `📘 ${c.name}: ${q}-chorak — o'tilgan mavzular\n${summary(c, repData(c, q))[1] || ""}`, sd); };
+      PTG.run(() => PTG.pagesPdf(pdfPages(c, q), false), `${c.name} ${qLab(q)} mavzular`, `📘 ${c.name}: ${qLab(q)} — o'tilgan mavzular\n${summary(c, repData(c, q))[1] || ""}`, sd); };
     H.qa("[data-tpl]", m).forEach((b) => b.onclick = () => planDialog(c));
     H.qa("[data-tpx]", m).forEach((b) => b.onclick = () => fromExcel(c, (txt) => planDialog(c, txt)));
     H.qa("[data-tpe]", m).forEach((b) => b.onclick = () => dayDialog(c, b.dataset.tpe));
     H.qa("[data-tpf]", m).forEach((b) => b.onclick = () => { T.flt = b.dataset.tpf; H.draw(); });
   }
-  return {init: (h) => { H = h; }, parse, layout, has, tabHtml, homeNote, repData, summary, qPer, freshQ, openRep: (q) => { T.view = "rep"; T.rq = q; }, dayStrip, bind, todayLine, topicOf, _state: T};
+  return {init: (h) => { H = h; }, allHtml, bindAll, _all: AL, parse, layout, has, tabHtml, homeNote, repData, summary, qPer, freshQ, openRep: (q) => { T.view = "rep"; T.rq = q; }, dayStrip, bind, todayLine, topicOf, _state: T};
 })();
