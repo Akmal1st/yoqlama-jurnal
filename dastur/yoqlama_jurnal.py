@@ -10105,7 +10105,8 @@ class EmkSession:
         pg.wait_for_load_state("networkidle")
         if self.on_login_page():
             raise RuntimeError("Sessiya tugagan — «Kirish» tugmasini bosing.")
-        classes = pg.evaluate(_EMK_CLASSES_JS)
+        classes = catalog_from_html(pg.content(), pg.url) or pg.evaluate(_EMK_CLASSES_JS)
+        classes = [c for c in classes if c.get("journals")]
         if not classes:
             raise RuntimeError("«Mening sinflarim» sahifasida sinflar topilmadi.")
         self.save_state()
@@ -10239,6 +10240,92 @@ class _EmkForms(_HP):
     def handle_data(self, d):
         if self._a is not None:
             self._a["text"] += d
+
+
+def catalog_from_state(html):
+    """Yangi «Mening sinflarim» sahifasi: sinflar havolalar emas, skript ichidagi JSON da
+    (window.__TEACHERV2__INITIAL__STATE__ = {groups: {"groups": [{name, redirectUrl, journal: [{subjectName, journalUrl}]}]}})."""
+    i = html.find("__TEACHERV2__INITIAL__STATE__")
+    m = re.compile(r"[\"']?groups[\"']?\s*:\s*\{").search(html, i) if i >= 0 else None
+    if not m:
+        return []
+    try:
+        data, _ = json.JSONDecoder().raw_decode(html, m.end() - 1)
+    except ValueError:
+        return []
+    groups = data.get("groups") if isinstance(data, dict) else None
+    out, by_name, seen = [], {}, set()
+    for g in groups if isinstance(groups, list) else []:
+        if not isinstance(g, dict) or not str(g.get("name") or "").strip():
+            continue
+        name = re.sub(r"\s+", " ", str(g["name"])).strip()
+        cur = by_name.get(name)                               # bir sinf ikki marta kelsa (sinf rahbari + fan o'qituvchisi) — bitta
+        if cur is None:
+            cur = by_name[name] = {"name": name, "url": str(g.get("redirectUrl") or ""), "journals": []}
+            out.append(cur)
+        for j in g.get("journal") or []:
+            if not isinstance(j, dict):
+                continue
+            mm = re.search(r"https?://[^/]+/journal/school/\d+/group/\d+/subject/\d+", str(j.get("journalUrl") or ""))
+            if mm and mm.group(0) not in seen:
+                seen.add(mm.group(0))
+                subj = str(j.get("subjectName") or "").strip() + (f" ({j['subgroupName']})" if j.get("subgroupName") else "")
+                cur["journals"].append({"subject": subj, "url": mm.group(0)})
+    return out
+
+
+_CLS_NAME = re.compile(r"^\d{1,2}\s*[-–—]?\s*[^\W\d_]", re.U)
+
+
+def catalog_from_links(links, base, root_only=False):
+    """Eski «Mening sinflarim» (havolalar bilan): sinf — `/v2/class?class=ID` havolasi, jurnal — `/journal/…/group/ID/…`.
+    Jurnal sinfga sahifadagi tartib bo'yicha emas, guruh ID si bo'yicha biriktiriladi: bir sinfning bir nechta havolasi
+    (rasm, «Fayllar» — `&view=files`, sinf rahbari menyusi) yangi «sinf» ochmaydi va nomini buzmaydi."""
+    out, by_id, last = [], {}, None
+    for a in links:
+        if root_only and not a.get("root"):
+            continue
+        href = _up.urljoin(base, a["href"])
+        text = re.sub(r"\s+", " ", a.get("text") or "").strip()
+        if "/v2/class?" in href:
+            cid = (_up.parse_qs(_up.urlparse(href).query).get("class") or [""])[0]
+            if not cid:
+                continue
+            cur = by_id.get(cid)
+            if cur is None:
+                cur = by_id[cid] = {"name": "", "url": href.split("&")[0], "journals": [], "_id": cid}
+                out.append(cur)
+            if text and (not cur["name"] or (_CLS_NAME.match(text) and not _CLS_NAME.match(cur["name"]))):
+                cur["name"] = text[:40]
+            last = cur
+            continue
+        m = re.search(r"/journal/school/\d+/group/(\d+)/subject/\d+", href)
+        if not m:
+            continue
+        cur = by_id.get(m.group(1)) or last
+        if cur is None:
+            cur = by_id[m.group(1)] = {"name": "", "url": "", "journals": [], "_id": m.group(1)}
+            out.append(cur)
+        url = href[:m.end()]
+        if not any(j["url"] == url for c in out for j in c["journals"]):
+            cur["journals"].append({"subject": re.sub(r"\s+", " ", a.get("title") or text).strip(), "url": url})
+    res = []
+    for c in out:
+        c.pop("_id", None)
+        if c["journals"] and c["name"]:
+            res.append(c)
+    return res
+
+
+def catalog_from_html(html, base=EMK_URLS["myclasses"]):
+    """«Mening sinflarim» sahifasidan sinflar va jurnallar: avval skript ichidagi JSON (yangi sahifa — aniq manba),
+    bo'lmasa havolalar (eski sahifa, #ContentPanelTeacher ichidagisi)."""
+    out = [c for c in catalog_from_state(html) if c["journals"]]
+    if out:
+        return out
+    fp = _EmkForms()
+    fp.feed(html)
+    return catalog_from_links(fp.links, base, fp.has_root)
 
 
 class EmkHttp:
@@ -10382,18 +10469,7 @@ class EmkHttp:
         st, final, html = self.req(EMK_URLS["myclasses"])
         if self.is_login(final, html):
             raise RuntimeError("Sessiya tugagan — «Kirish» tugmasini bosing.")
-        fp = _EmkForms()
-        fp.feed(html)
-        out, cur = [], None
-        for a in fp.links:
-            if fp.has_root and not a["root"]:
-                continue
-            href = _up.urljoin(final, a["href"])
-            if "/v2/class?class=" in href:
-                cur = {"name": a["text"].strip(), "url": href, "journals": []}
-                out.append(cur)
-            elif cur is not None and re.search(r"/journal/school/\d+/group/\d+/subject/\d+", href):
-                cur["journals"].append({"subject": (a["title"] or a["text"]).strip(), "url": href})
+        out = catalog_from_html(html, final)
         if not out:
             raise EmkFallback("Sinflar HTML ichida topilmadi")
         self.save_state()

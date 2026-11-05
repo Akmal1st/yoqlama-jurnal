@@ -185,6 +185,61 @@ test("emaktab.uz saytidan xatcho'p orqali import", async () => {
   } finally { await browser.close(); }
 });
 
+test("emaktab: yangi «Mening sinflarim» (sinflar JSON ichida) — 36 va 18 o'quvchili sinflar", async () => {
+  const {readFile} = await import("node:fs/promises");
+  const XLSX = (await import("xlsx")).default;
+  const docs = fileURLToPath(new URL("../docs/", import.meta.url));
+  const xlsOf = (cls, subj, n) => {
+    const rows = [[`Sinf: ${cls} 2026/2027`], [`Fan: ${subj}`], [], ["№", "F.I.Sh.", "Sentabr", null, "Oktabr"], [null, null, 2, 9, 7]];
+    for (let i = 1; i <= n; i++) rows.push([i, `O'quvchi ${cls} ${String(i).padStart(2, "0")}`, 5 + (i % 5), i % 7 ? 8 : "н", 9]);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), subj);
+    return XLSX.write(wb, {type: "buffer", bookType: "xls"});
+  };
+  const XLS = {22: xlsOf("6-A", "Matematika", 36), 23: xlsOf("9-A", "Algebra", 18)};
+  const groups = [
+    {name: "6-A", redirectUrl: "https://schools.emaktab.uz/v2/class?class=22", journal: [{subjectName: "Matematika", subgroupName: null, journalUrl: "https://emaktab.uz/journal/school/11/group/22/subject/33?periodId=77"}]},
+    {name: "9-A", redirectUrl: "https://schools.emaktab.uz/v2/class?class=23", journal: [{subjectName: "Algebra", subgroupName: null, journalUrl: "https://emaktab.uz/journal/school/11/group/23/subject/34?periodId=78"}]},
+    {name: "11-B", redirectUrl: "https://schools.emaktab.uz/v2/class?class=24", journal: []}];
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const ctx = await browser.newContext({serviceWorkers: "block"});
+    const asked = [];
+    await ctx.route("https://app.test/**", async (r) => {
+      const p = new URL(r.request().url()).pathname.slice(1) || "index.html";
+      try { r.fulfill({body: await readFile(docs + p), contentType: p.endsWith(".html") ? "text/html" : p.endsWith(".js") ? "text/javascript" : undefined}); } catch { r.fulfill({status: 404}); }
+    });
+    await ctx.route("https://emaktab.uz/**", (r) => { asked.push("X" + new URL(r.request().url()).pathname); r.fulfill({status: 404}); });   // boshqa manzil: o'qib bo'lmaydi
+    await ctx.route("https://schools.emaktab.uz/**", (r) => {
+      const u = new URL(r.request().url()); asked.push(u.pathname + u.search);
+      // sarlavhada bitta sinf havolasi bor — u JSON dagi ro'yxatni to'smasligi kerak
+      if (u.pathname === "/v2/myclasses") return r.fulfill({contentType: "text/html", body: `<html><body><a href="/v2/class?class=99">Mening sinfim</a><div id="teacher-root-v2"></div>
+        <script>window.__TEACHERV2__INITIAL__STATE__ = {
+            groups: ${JSON.stringify({groups})},
+            other: {}
+        };</script></body></html>`});
+      if (u.pathname === "/journal/school/11/group/22/subject/33") return r.fulfill({contentType: "text/html", body: `<script>window.__JOURNAL__INITIAL__STATE__ = {"journalHeader":{"currentPeriodId":77}};</script>`});
+      if (u.pathname === "/v2/excel") { const b = XLS[u.searchParams.get("group")]; return b ? r.fulfill({contentType: "application/vnd.ms-excel", body: b}) : r.fulfill({status: 404}); }
+      return r.fulfill({status: 404});
+    });
+    const app = await ctx.newPage(); const errors = []; app.on("pageerror", (e) => errors.push(e.message));
+    await app.goto("https://app.test/");
+    const code = await app.evaluate(() => emkCode());
+    const emk = await ctx.newPage(); await emk.goto("https://schools.emaktab.uz/v2/myclasses");
+    const [pop] = await Promise.all([ctx.waitForEvent("page"), emk.evaluate(code)]);
+    pop.on("pageerror", (e) => errors.push(e.message));
+    await pop.click(".modal [data-ok]", {timeout: 20000});
+    await pop.waitForSelector("text=Import yakunlandi");
+    // 6-A: jurnal sahifasi schools.emaktab.uz dan o'qildi; 9-A: jurnal sahifasi yo'q — havoladagi periodId (78) olindi
+    assert.ok(asked.includes("/v2/excel?action=gjsxls&school=11&group=22&subgroup=0&subject=33&period=77"), asked.join(" "));
+    assert.ok(asked.includes("/v2/excel?action=gjsxls&school=11&group=23&subgroup=0&subject=34&period=78"), asked.join(" "));
+    assert.ok(!asked.some((a) => a.includes("class=99") || a.includes("group=24")));
+    const cls = await pop.evaluate(() => D.classes.map((c) => [c.name, c.subject, c.students.length]));
+    assert.deepEqual(cls, [["6-A", "Matematika", 36], ["9-A", "Algebra", 18]]);
+    await emk.waitForSelector("text=2 ta jurnal yuborildi");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
 test("BSB/CHSB: kech qolgan (KQ) o'quvchiga ball qo'yish", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
