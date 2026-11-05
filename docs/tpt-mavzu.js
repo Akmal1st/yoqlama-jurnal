@@ -10,7 +10,9 @@
 const TPTM = (() => {
   let H = null; // guruhlar.js yordamchilari
   const ISO = /^\d{4}-\d\d-\d\d$/;
-  const T = {flt: "next", view: "plan", rq: 0, rv: "scr"};
+  const T = {flt: "next", view: "plan", rq: 0, rv: "scr", o: {by: "topic", stu: true, sum: true, sig: true}};
+  try { Object.assign(T.o, JSON.parse(localStorage.getItem("yoqlama_tptrep")) || {}); } catch (err) { /* sozlama yo'q */ }
+  const keepO = () => { try { localStorage.setItem("yoqlama_tptrep", JSON.stringify(T.o)); } catch (err) { /* saqlanmadi */ } };
 
   function parse(text) {
     const out = [];
@@ -199,7 +201,7 @@ const TPTM = (() => {
     const partial = !qDone(c, q);
     return {P, rows, offs, plan, own, topics, first, last, total: L.total, nTopics: c.gplan.topics.length, att: sumN ? Math.round(sumK / sumN * 100) : 0,
       miss: st.filter((x) => x.miss).sort((a, b) => b.miss - a.miss || a.name.localeCompare(b.name)).slice(0, 3),
-      full: st.filter((x) => !x.miss).length, nSt: st.length, nrows, partial, upto};
+      full: st.filter((x) => !x.miss).length, nSt: st.length, stu: st, nrows, partial, upto};
   }
   // o'qituvchi uchun tayyor matn (xulosa) — ota-onalar guruhiga yoki ma'muriyatga
   function summary(c, A) {
@@ -244,12 +246,29 @@ const TPTM = (() => {
       ${A.partial ? `<div class="g-a4warn">Chorak hali tugamagan — ma'lumot ${dd(A.upto)} holatiga.</div>` : ""}
       <table class="g-a4kpi"><tr><th>O'tkazilgan darslar</th><th>O'tilgan mavzular</th><th>Yillik reja bajarilishi</th><th>O'rtacha davomat</th></tr>
         <tr><td>${A.rows.length}</td><td>${A.topics.length}</td><td>${A.total ? Math.round(A.last / A.total * 100) : 0}% <small>(${A.last}/${A.total} dars)</small></td><td>${A.att}%</td></tr></table>`;
+    // «Mavzular bo'yicha»: bir mavzuning hamma darslari bitta qatorda (sanalari, soati, o'rtacha davomat)
+    const groups = [];
+    for (const r of list) {
+      if (r.off) { groups.push({off: true, ds: [r.d]}); continue; }
+      const key = r.own ? "own|" + r.own : "p|" + r.s.i, g = groups.find((x) => x.key === key);
+      if (g) { g.ds.push(r.d); g.k += r.k; g.na += r.na; } else groups.push({key, n: r.n ? r.s.i + 1 : 0, t: r.own || r.s.t, own: !!r.own, h: r.s ? r.s.h : 1, ds: [r.d], k: r.k, na: r.na});
+    }
+    const dShort = (d) => `${d.slice(8, 10)}.${d.slice(5, 7)}`;
+    const grpH = (g) => g.off ? `<tr class="off"><td>—</td><td class="l" colspan="2">Dars bo'lmadi — mavzu keyingi darsga surildi</td><td>${g.ds.map(dShort).join(", ")}</td><td></td><td></td></tr>`
+      : `<tr><td>${g.own ? "*" : g.n}</td><td class="l" colspan="2">${H.e(g.t)}${g.own ? " <i>(rejadan tashqari)</i>" : ""}</td><td>${g.ds.map(dShort).join(", ")}</td><td>${g.ds.length}${!g.own && g.h > 1 && g.ds.length < g.h ? `/${g.h}` : ""}</td><td>${g.na ? Math.round(g.k / g.na * 100) + "%" : ""}</td></tr>`;
+    // o'quvchilar davomati: ikki ustunli ro'yxat
+    const stu = A.stu, half = Math.ceil(stu.length / 2), pc = (x) => x.all ? Math.round(x.came / x.all * 100) : 0;
+    const stCell = (x, i) => x ? `<td>${i + 1}</td><td class="l">${H.e(x.name)}</td><td>${x.came}/${x.all}</td><td>${pc(x) < 75 ? `<b>${pc(x)}%*</b>` : pc(x) + "%"}</td>` : `<td></td><td></td><td></td><td></td>`;
+    const stuH = stu.length ? `<div class="g-a4h">O'quvchilar davomati</div><table class="g-a4tab g-a4stu"><colgroup>${'<col style="width:5%"><col style="width:27%"><col style="width:10%"><col style="width:8%">'.repeat(2)}</colgroup><thead><tr><th>№</th><th class="l">F.I.Sh.</th><th>Keldi</th><th>%</th><th>№</th><th class="l">F.I.Sh.</th><th>Keldi</th><th>%</th></tr></thead><tbody>${
+      Array.from({length: half}, (_, i) => `<tr>${stCell(stu[i], i)}${stCell(stu[i + half], i + half)}</tr>`).join("")}</tbody></table>` : "";
     const rowH = (r) => `<tr class="${r.off ? "off" : ""}"><td>${r.n || (r.off ? "—" : "*")}</td><td>${dd(r.d)}</td><td>${H.WDS[H.wdOf(r.d)]}</td><td class="l">${r.off ? "Dars bo'lmadi (mavzu keyingi darsga surildi)" : r.own ? `${H.e(r.own)} <i>(rejadan tashqari)</i>` : H.e(sTxt(r.s))}</td><td>${r.off ? "" : `${r.k}/${r.na}`}</td></tr>`;
-    const thead = (cont) => `<div class="g-a4h">Darslar va mavzular${cont ? " (davomi)" : ""}</div><table class="g-a4tab"><thead><tr><th>№</th><th>Sana</th><th>Kun</th><th class="l">Mavzu</th><th>Keldi</th></tr></thead><tbody>`;
-    const tail = `<div class="g-a4h">Xulosa</div><div class="g-a4sum">${lines.map((x) => `<p>${H.e(x)}</p>`).join("")}</div>
-      <div class="g-a4note">* — rejadan tashqari mavzu; «Keldi» — darsga kelgan / guruhdagi o'quvchilar.</div>
-      <div class="g-a4sig"><div><span>O'qituvchi</span><i></i><small>(imzo)</small></div><div><span>F.I.Sh.</span><i>${h.teacher ? H.e(h.teacher) : ""}</i><small></small></div><div><span>Sana</span><i></i><small></small></div></div>`;
-    return {head, rows: list.map(rowH), thead, tail, foot: (i, n) => `<div class="g-a4f"><span>«${H.e(c.name)}» · ${P.q}-chorak · o'tilgan mavzular</span><span>${i} / ${n}</span></div>`};
+    const byT = T.o.by === "topic";
+    const thead = (cont) => byT ? `<div class="g-a4h">O'tilgan mavzular${cont ? " (davomi)" : ""}</div><table class="g-a4tab"><thead><tr><th>№</th><th class="l" colspan="2">Mavzu</th><th>Dars sanalari</th><th>Soat</th><th>Davomat</th></tr></thead><tbody>`
+      : `<div class="g-a4h">Darslar va mavzular${cont ? " (davomi)" : ""}</div><table class="g-a4tab"><thead><tr><th>№</th><th>Sana</th><th>Kun</th><th class="l">Mavzu</th><th>Keldi</th></tr></thead><tbody>`;
+    const tail = `${T.o.stu ? stuH : ""}${T.o.sum ? `<div class="g-a4h">Xulosa</div><div class="g-a4sum">${lines.map((x) => `<p>${H.e(x)}</p>`).join("")}</div>` : ""}
+      <div class="g-a4note">* — rejadan tashqari mavzu${byT ? "; «Soat» — shu chorakda o'tilgan darslar (2/3 — mavzuning 3 darsidan 2 tasi)" : "; «Keldi» — darsga kelgan / guruhdagi o'quvchilar"}${T.o.stu && stu.length ? "; davomati 75% dan past o'quvchilar «*» bilan" : ""}.</div>
+      ${T.o.sig ? "" : "<!--"}<div class="g-a4sig"><div><span>O'qituvchi</span><i></i><small>(imzo)</small></div><div><span>F.I.Sh.</span><i>${h.teacher ? H.e(h.teacher) : ""}</i><small></small></div><div><span>Sana</span><i></i><small></small></div></div>${T.o.sig ? "" : "-->"}`;
+    return {head, rows: byT ? groups.map(grpH) : list.map(rowH), thead, tail, foot: (i, n) => `<div class="g-a4f"><span>«${H.e(c.name)}» · ${P.q}-chorak · o'tilgan mavzular</span><span>${i} / ${n}</span></div>`};
   }
   let host = null;
   function a4pages(c, A) {
@@ -276,7 +295,10 @@ const TPTM = (() => {
   }
   function a4view(c, A) {
     const ps = a4pages(c, A);
-    return `<div class="g-a4w">${ps.map((x) => `<div class="g-a4s">${x}</div>`).join("")}</div>
+    const ck = (k, t) => `<button type="button" class="g-chip ${T.o[k] ? "on" : ""}" data-tpo2="${k}" aria-pressed="${!!T.o[k]}">${T.o[k] ? "✓ " : ""}${t}</button>`;
+    return `<div class="g-card g-a4opt"><div class="g-fld"><span class="g-lbl">Jadval</span><div class="g-seg"><button type="button" data-tpby="topic" class="${T.o.by === "topic" ? "on" : ""}">Mavzular bo'yicha</button><button type="button" data-tpby="day" class="${T.o.by !== "topic" ? "on" : ""}">Har bir dars</button></div></div>
+        <div class="g-fld"><span class="g-lbl">Varaqqa qo'shish</span><div class="g-chips">${ck("stu", "O'quvchilar davomati")}${ck("sum", "Xulosa")}${ck("sig", "Imzo joyi")}</div></div></div>
+      <div class="g-a4w">${ps.map((x) => `<div class="g-a4s">${x}</div>`).join("")}</div>
       <span class="g-muted" style="font-size:12.5px">A4 varaq: ${ps.length} bet. «Chop etish» bosilganda xuddi shunday chiqadi; «PDF — Telegram'ga» ham shu varaqni yuboradi.</span>`;
   }
   function printA4(c, q) {
@@ -318,6 +340,8 @@ const TPTM = (() => {
     H.qa("[data-tprep]", m).forEach((b) => b.onclick = () => { T.view = "rep"; T.rq = +b.dataset.tprep; H.draw(); });
     H.qa("[data-tpq]", m).forEach((b) => b.onclick = () => { T.rq = +b.dataset.tpq; H.draw(); });
     H.qa("[data-tprv]", m).forEach((b) => b.onclick = () => { T.rv = b.dataset.tprv; H.draw(); });
+    H.qa("[data-tpby]", m).forEach((b) => b.onclick = () => { T.o.by = b.dataset.tpby; keepO(); H.draw(); });
+    H.qa("[data-tpo2]", m).forEach((b) => b.onclick = () => { const k = b.dataset.tpo2; T.o[k] = !T.o[k]; keepO(); H.draw(); });
     const pr = H.q("[data-tpprint]", m); if (pr) pr.onclick = () => printA4(c, T.rq);
     fitA4(m);
     const cp = H.q("[data-tpcopy]", m); if (cp) cp.onclick = () => copyTxt(summary(c, repData(c, T.rq)).join("\n"));

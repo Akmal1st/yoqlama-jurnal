@@ -121,3 +121,11 @@
   #pdoc .bx-pg.g-a4p{width:auto;height:271mm;padding:0;box-shadow:none;break-after:page;page-break-after:always}
   #pdoc .bx-pg.g-a4p:last-child{break-after:auto;page-break-after:auto}
 }
+.tpt .g-a4opt{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;padding:12px 16px}
+.tpt .g-a4opt .g-fld{width:auto}
+.tpt .g-a4opt .g-chip{min-height:36px;padding:6px 12px}
+.tpt .g-a4stu{table-layout:fixed}
+.tpt .g-a4stu .l{width:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tpt .g-a4stu td,.tpt .g-a4stu th{padding:.12em .25em;overflow:hidden}
+.tpt .g-a4stu th:nth-child(5),.tpt .g-a4stu td:nth-child(5){border-left:2px solid #000}
+@media (max-width:520px){.tpt .g-a4opt .g-fld{width:100%}.tpt .g-a4opt .g-seg{display:grid;grid-template-columns:1fr 1fr}}
