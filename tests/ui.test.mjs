@@ -219,13 +219,13 @@ for (const kind of ["json", "cc"]) test(`emaktab: «Mening sinflarim» (${kind})
             groups: ${JSON.stringify({groups})},
             other: {}
         };</script></body></html>` : `<html><body><div id="content"><h2>Mening sinflarim (2026/2027)</h2><div class="col23 first">
-        <div id="ContentPanelMyClasses" class="panel gray"><div class="rounded"><div class="c1"></div><div class="cc"><a href="/v2/class?class=99">11-V</a></div><div class="c3"></div></div></div>
+        <div id="ContentPanelMyClasses" class="panel gray"><div class="rounded"><div class="c1"></div><div class="cc"><a href="/v2/class?class=99">11-V</a>
+          <a href="/v2/class?class=23">9-A</a><a href="https://schools.emaktab.uz/journals/?school=11&group=23&subject=34&period=78">Algebra</a></div><div class="c3"></div></div></div>
         <div id="ContentPanelTeacher" class="panel gray"><div class="rounded"><div class="c1"><a href="/v2/class?class=98">Menyu</a></div><div class="cc">
           <a href="/v2/class?class=22"><img src="g.png"></a><a href="/v2/class?class=22">6-A</a>
           <a href="https://schools.emaktab.uz/journals/?school=11&group=22&subject=33&period77&subgroup=0&tab=planning">Rejalashtirish</a>
           <a href="https://emaktab.uz/journal/school/11/group/22/subject/33?periodId=77" title="Matematika">Matematika</a>
-          <a href="/v2/class?class=23">9-A</a><a href="/v2/class?class=22&view=files">Fayllar</a>
-          <a href="https://schools.emaktab.uz/journals/?school=11&group=23&subject=34&period=78">Algebra</a>
+          <a href="/v2/class?class=22&view=files">Fayllar</a>
         </div><div class="c3"></div></div></div></div></div></body></html>`});
       if (u.pathname === "/journal/school/11/group/22/subject/33") return r.fulfill({contentType: "text/html", body: `<script>window.__JOURNAL__INITIAL__STATE__ = {"journalHeader":{"currentPeriodId":77}};</script>`});
       if (u.pathname === "/v2/excel") { const b = XLS[u.searchParams.get("group")]; return b ? r.fulfill({contentType: "application/vnd.ms-excel", body: b}) : r.fulfill({status: 404}); }
