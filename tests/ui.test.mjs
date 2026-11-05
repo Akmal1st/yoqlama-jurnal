@@ -663,6 +663,7 @@ test("jurnal: telefonda sinf ☰ ro'yxatdan tanlanadi", async () => {
   try {
     const page = await browser.newPage({viewport: {width: 390, height: 844}});
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // 1-chorak ichidagi kun: chorak arxivi (arxiv.js) qulflamasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
@@ -946,6 +947,7 @@ test("Hisobotlar va BSB/CHSB tahlili: PDF hisobot Telegram'ga (soxta bot API)", 
           pdf: i >= 0 && j > i ? buf.subarray(i, j + 5) : null}); }
       return route.fulfill({status: 200, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: JSON.stringify({ok: true, result: {message_id: 1}})});
     });
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // 1-chorak ichidagi kun: chorak arxivi (arxiv.js) qulflamasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
