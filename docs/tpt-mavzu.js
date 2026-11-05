@@ -10,7 +10,7 @@
 const TPTM = (() => {
   let H = null; // guruhlar.js yordamchilari
   const ISO = /^\d{4}-\d\d-\d\d$/;
-  const T = {flt: "next"};
+  const T = {flt: "next", view: "plan", rq: 0};
 
   function parse(text) {
     const out = [];
@@ -61,7 +61,7 @@ const TPTM = (() => {
     return `<div class="g-tpc ${m.off ? "off" : m.own ? "own" : ""}"><span class="g-tpn g-num">${lab}${m.n ? ` / ${L.total}` : ""}</span><span class="g-tpt">${txt}</span><button class="g-btn sm ghost" type="button" data-tpe="${d}" aria-label="Mavzuni o'zgartirish">✎</button></div>`;
   }
   // «Mavzular» bo'limi
-  function tabHtml(c) {
+  function planHtml(c) {
     if (!has(c)) return `<div class="g-card g-empty"><h2>Yillik mavzular rejasi kiritilmagan</h2>
       <div class="g-muted">Mavzularni bir marta kiriting — ular guruhning dars kunlariga (${H.e(H.sched(c))}) tartib bilan o'zi qo'yiladi. Har kuni Yo'qlamada shu kun mavzusi ko'rinadi.</div>
       <div class="g-row" style="justify-content:center"><button class="g-btn pri" type="button" data-tpl>＋ Mavzularni kiritish</button><button class="g-btn" type="button" data-tpx>Excel'dan yuklash</button></div></div>`;
@@ -166,11 +166,105 @@ const TPTM = (() => {
   function todayLine(c) { if (!has(c)) return ""; const m = layout(c).map[H.today()]; return m && m.s ? `${m.n}. ${sTxt(m.s)}` : m && m.own ? m.own : ""; }
   function topicOf(c, d) { if (!has(c)) return ""; const m = layout(c).map[d]; return m ? m.off ? "Dars bo'lmadi" : m.own ? m.own : `${m.n}. ${sTxt(m.s)}` : ""; }
 
+  /* ───────── chorak hisoboti: o'tilgan mavzular ─────────
+     Chorak davri TPT uchun: oldingi chorak tugagan kundan keyin — shu chorak oxirigacha (ta'tildagi darslar keyingi chorakka kiradi);
+     1-chorak reja boshlanishidan (chorakdan oldin bo'lsa). Chorak tugagach (oxirgi kundan keyin) hisobot «tayyor» bo'ladi. */
+  const qR = (q) => { try { return typeof qRange === "function" ? qRange(q) : null; } catch (err) { return null; } };
+  const addD = (d, k) => { const x = H.pd(d); x.setDate(x.getDate() + k); return H.iso(x); };
+  function qPer(c, q) {
+    const r = qR(q); if (!r) return null;
+    const pv = q > 1 ? qR(q - 1) : null, st = c.gplan && ISO.test(String(c.gplan.start || "")) ? c.gplan.start : r[0];
+    return {q, from: pv ? addD(pv[1], 1) : st < r[0] ? st : r[0], to: r[1], end: r[1]};
+  }
+  const qDone = (c, q) => { const p = qPer(c, q); return !!p && p.end < H.today(); };
+  // shu kunlarda tugagan chorak (21 kun ichida), hisoboti hali ko'rilmagan
+  function freshQ(c) {
+    if (!has(c)) return 0; const t = H.today();
+    for (let q = 4; q >= 1; q--) { const p = qPer(c, q); if (p && p.end < t && addD(p.end, 21) >= t) return (c.grep || {})[q] ? 0 : q; }
+    return 0;
+  }
+  const fullD = (d) => `${H.dm(d)} ${d.slice(0, 4)}`;
+  function repData(c, q) {
+    const P = qPer(c, q); if (!P) return null;
+    const L = layout(c), t = H.today(), upto = P.to < t ? P.to : addD(t, -1);
+    const inP = (d) => d >= P.from && d <= upto;
+    const rows = L.rows.filter((r) => inP(r.d)).map((r) => { const na = H.actOn(c, r.d).length, k = H.cntOn(c, r.d); return Object.assign({}, r, {k, na}); });
+    const offs = Object.keys(L.map).filter((d) => L.map[d].off && inP(d)).sort();
+    const plan = rows.filter((r) => r.n), own = rows.filter((r) => r.own);
+    const topics = [...new Set(plan.map((r) => r.s.i))], last = plan.length ? plan[plan.length - 1].n : (L.rows.filter((r) => r.n && r.d < P.from).pop() || {}).n || 0;
+    const first = plan.length ? plan[0].n : 0;
+    const sumK = rows.reduce((a, r) => a + r.k, 0), sumN = rows.reduce((a, r) => a + r.na, 0);
+    const st = c.students.map((s) => { const ds = rows.filter((r) => H.inG(s, r.d)); const came = ds.filter((r) => (s.marks || {})[r.d] === "ot").length; return {name: s.name, all: ds.length, came, miss: ds.length - came}; }).filter((x) => x.all);
+    const nxt = qPer(c, q + 1), nrows = nxt ? L.rows.filter((r) => r.n && r.d >= nxt.from && r.d <= nxt.to) : L.rows.filter((r) => r.n && r.d > P.to);
+    const partial = !qDone(c, q);
+    return {P, rows, offs, plan, own, topics, first, last, total: L.total, nTopics: c.gplan.topics.length, att: sumN ? Math.round(sumK / sumN * 100) : 0,
+      miss: st.filter((x) => x.miss).sort((a, b) => b.miss - a.miss || a.name.localeCompare(b.name)).slice(0, 3),
+      full: st.filter((x) => !x.miss).length, nSt: st.length, nrows, partial, upto};
+  }
+  // o'qituvchi uchun tayyor matn (xulosa) — ota-onalar guruhiga yoki ma'muriyatga
+  function summary(c, A) {
+    const sl = slots(c.gplan), P = A.P, out = [];
+    out.push(`«${c.name}» guruhi, ${P.q}-chorak (${H.dm(P.from)} – ${fullD(A.partial ? A.upto : P.to)}).`);
+    if (!A.rows.length) { out.push("Bu davrda dars o'tkazilmagan."); return out; }
+    out.push(`${A.rows.length} ta dars o'tkazildi${A.own.length ? `, shundan ${A.own.length} tasi rejadan tashqari mavzu` : ""}. Yillik rejadagi ${A.total} darsdan ${A.first ? `${A.first}–${A.last}-darslar` : "hech biri"} o'tildi (${A.topics.length} ta mavzu); yillik reja ${Math.round(A.last / A.total * 100)}% bajarildi.`);
+    const sh = A.offs.length + A.own.length;
+    out.push(sh ? `${A.offs.length ? `${A.offs.length} kun dars bo'lmadi (${A.offs.map(H.dm).join(", ")})` : ""}${A.offs.length && A.own.length ? ", " : ""}${A.own.length ? `${A.own.length} darsda boshqa mavzu o'tildi` : ""} — reja ${sh} darsga surildi.` : "Darslar reja bo'yicha, kechikishsiz o'tildi.");
+    out.push(`O'rtacha davomat ${A.att}%. ${A.full ? `${A.full} o'quvchi birorta ham darsni qoldirmadi.` : ""}${A.miss.length ? ` Ko'p qoldirganlar: ${A.miss.map((x) => `${x.name} (${x.miss})`).join(", ")}.` : ""}`.trim());
+    if (A.nrows.length) { const a = A.nrows[0], b = A.nrows[A.nrows.length - 1]; out.push(`Keyingi chorakda ${A.nrows.length} ta dars rejalashtirilgan: «${a.s.t}» dan «${b.s.t}» gacha.`); }
+    else if (A.last >= sl.length) out.push("Yillik reja to'liq bajarildi.");
+    return out;
+  }
+  function sheet(c, A) {
+    const P = A.P, lines = summary(c, A);
+    const list = A.rows.concat(A.offs.map((d) => ({d, off: true}))).sort((a, b) => a.d.localeCompare(b.d));
+    return `<div class="g-rhead"><small>O'tilgan mavzular hisoboti</small><h2>${H.e(c.name)} · ${P.q}-chorak</h2>
+        <span class="g-muted">${fullD(P.from)} – ${fullD(P.to)} · ${H.e(H.sched(c))} · ${A.nSt} o'quvchi${A.partial ? ` · <b class="g-rpart">chorak hali tugamagan, ${H.dm(A.upto)} gacha</b>` : ""}</span></div>
+      <div class="g-rkpi g-num"><div><b>${A.rows.length}</b><span>dars o'tkazildi</span></div><div><b>${A.topics.length}</b><span>mavzu o'tildi</span></div>
+        <div><b>${A.total ? Math.round(A.last / A.total * 100) : 0}%</b><span>yillik reja</span></div><div><b>${A.att}%</b><span>davomat</span></div></div>
+      <div class="g-rsum"><h3>Xulosa</h3>${lines.map((x) => `<p>${H.e(x)}</p>`).join("")}</div>
+      <div class="g-rtw"><table class="g-rtab"><thead><tr><th>№</th><th>Sana</th><th class="l">Mavzu</th><th>Keldi</th></tr></thead>
+        <tbody>${list.map((r) => `<tr class="${r.off ? "off" : r.own ? "own" : ""}"><td class="g-num">${r.n || (r.off ? "—" : "＊")}</td><td class="g-num">${+r.d.slice(8, 10)}.${r.d.slice(5, 7)} <small>${H.WDS[H.wdOf(r.d)]}</small></td>
+          <td class="l">${r.off ? "Dars bo'lmadi" : r.own ? `${H.e(r.own)} <small>(rejadan tashqari)</small>` : H.e(sTxt(r.s))}</td><td class="g-num">${r.off ? "" : `${r.k}/${r.na}`}</td></tr>`).join("") || `<tr><td colspan="4">Bu davrda dars yo'q</td></tr>`}</tbody></table></div>
+      ${A.nrows.length ? `<div class="g-rnext"><h3>Keyingi chorak rejasi</h3><span>${A.nrows.length} dars · ${A.nrows[0].n}–${A.nrows[A.nrows.length - 1].n}-darslar: ${H.e(A.nrows[0].s.t)} … ${H.e(A.nrows[A.nrows.length - 1].s.t)}</span></div>` : ""}
+      <div class="g-rsig"><span>O'qituvchi: ____________________</span><span>${fullD(H.today())}</span></div>`;
+  }
+  function repHtml(c) {
+    const qs = [1, 2, 3, 4].filter((q) => qPer(c, q)), t = H.today();
+    if (!qs.length) return `<div class="g-card g-empty"><h2>Choraklar sanasi kiritilmagan</h2><div class="g-muted">Hisobot chorak bo'yicha tuziladi. «Sozlamalar»da o'quv yili choraklarining boshlanish va tugash sanalarini kiriting.</div></div>`;
+    if (!T.rq || !qs.includes(T.rq)) T.rq = qs.filter((q) => qPer(c, q).from <= t).pop() || qs[0];
+    const q = T.rq, A = repData(c, q);
+    if (qDone(c, q) && !(c.grep || {})[q]) { c.grep = Object.assign({}, c.grep, {[q]: {at: t}}); H.save(); }
+    return `<div class="g-row"><div class="g-seg g-qseg" role="group" aria-label="Chorak">${qs.map((x) => { const P = qPer(c, x); return `<button type="button" data-tpq="${x}" class="${x === q ? "on" : ""}">${x}-chorak<small>${P.from > t ? "boshlanmagan" : qDone(c, x) ? "tugagan" : "davom etmoqda"}</small></button>`; }).join("")}</div></div>
+      ${qPer(c, q).from > t ? `<div class="g-card g-muted">${q}-chorak hali boshlanmagan (${fullD(qPer(c, q).from)}).</div>` : `<div class="g-card g-rep">${sheet(c, A)}</div>
+      <div class="g-row g-ract"><button class="g-btn pri" type="button" data-tpsend>PDF — Telegram'ga</button><button class="g-btn" type="button" data-tpcopy>Xulosa matnini nusxalash</button></div>`}`;
+  }
+  function tabHtml(c) {
+    if (!has(c)) return planHtml(c);
+    const fq = freshQ(c);
+    return `${fq && T.view !== "rep" ? `<div class="g-note g-rnote"><b>${fq}-chorak tugadi.</b> O'tilgan mavzular bo'yicha hisobot tayyor. <button class="g-btn sm pri" type="button" data-tprep="${fq}">Hisobotni ko'rish</button></div>` : ""}
+      <div class="g-row"><div class="g-seg"><button type="button" data-tpv="plan" class="${T.view !== "rep" ? "on" : ""}">Reja</button><button type="button" data-tpv="rep" class="${T.view === "rep" ? "on" : ""}">Chorak hisoboti</button></div></div>
+      ${T.view === "rep" ? repHtml(c) : planHtml(c)}`;
+  }
+  // bosh sahifa: tugagan chorak hisoboti tayyor bo'lgan guruhlar
+  const fresh = (list) => list.map((x) => ({ci: x.ci, c: x.c, q: freshQ(x.c)})).filter((x) => x.q);
+  function homeNote(list) {
+    const f = fresh(list); if (!f.length) return "";
+    return `<div class="g-note g-rnote"><b>${f[0].q}-chorak tugadi.</b> O'tilgan mavzular hisoboti tayyor: ${f.map((x) => `<button class="g-btn sm" type="button" data-tphome="${x.ci}|${x.q}">${H.e(x.c.name)}</button>`).join(" ")}</div>`;
+  }
+  const pdfPage = (c, q) => `<div class="tpt"><div class="bx-pg g-rpg">${sheet(c, repData(c, q))}</div></div>`;
+  function copyTxt(txt) { const done = () => H.toast("Xulosa nusxalandi — Telegram yoki Word ga qo'ying"); try { navigator.clipboard.writeText(txt).then(done, () => H.toast(txt)); } catch (err) { H.toast(txt); } }
+
   function bind(m, c) {
+    H.qa("[data-tpv]", m).forEach((b) => b.onclick = () => { T.view = b.dataset.tpv; H.draw(); });
+    H.qa("[data-tprep]", m).forEach((b) => b.onclick = () => { T.view = "rep"; T.rq = +b.dataset.tprep; H.draw(); });
+    H.qa("[data-tpq]", m).forEach((b) => b.onclick = () => { T.rq = +b.dataset.tpq; H.draw(); });
+    const cp = H.q("[data-tpcopy]", m); if (cp) cp.onclick = () => copyTxt(summary(c, repData(c, T.rq)).join("\n"));
+    const sd = H.q("[data-tpsend]", m); if (sd) sd.onclick = () => { const q = T.rq; if (typeof PTG === "undefined") { H.toast("PDF yuborib bo'lmadi"); return; }
+      PTG.run(() => PTG.pagesPdf([pdfPage(c, q)], false), `${c.name} ${q}-chorak mavzular`, `📘 ${c.name}: ${q}-chorak — o'tilgan mavzular\n${summary(c, repData(c, q))[1] || ""}`, sd); };
     H.qa("[data-tpl]", m).forEach((b) => b.onclick = () => planDialog(c));
     H.qa("[data-tpx]", m).forEach((b) => b.onclick = () => fromExcel(c, (txt) => planDialog(c, txt)));
     H.qa("[data-tpe]", m).forEach((b) => b.onclick = () => dayDialog(c, b.dataset.tpe));
     H.qa("[data-tpf]", m).forEach((b) => b.onclick = () => { T.flt = b.dataset.tpf; H.draw(); });
   }
-  return {init: (h) => { H = h; }, parse, layout, has, tabHtml, dayStrip, bind, todayLine, topicOf, _state: T};
+  return {init: (h) => { H = h; }, parse, layout, has, tabHtml, homeNote, repData, summary, qPer, freshQ, openRep: (q) => { T.view = "rep"; T.rq = q; }, dayStrip, bind, todayLine, topicOf, _state: T};
 })();

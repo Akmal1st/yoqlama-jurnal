@@ -46,3 +46,45 @@
   .tpt .g-tabs{align-self:stretch}
   .tpt .g-tabs button{flex:1 1 auto;padding:8px 6px;font-size:13.5px}
 }
+/* chorak hisoboti */
+.tpt .g-rnote{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;color:var(--g-text)}
+.tpt .g-rnote .g-btn{margin-left:auto}
+.tpt .g-qseg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:min(560px,100%)}
+.tpt .g-qseg button{display:flex;flex-direction:column;align-items:center;line-height:1.25;padding:6px 4px}
+.tpt .g-qseg button small{font-size:11px;font-weight:600;opacity:.8}
+.tpt .g-rep{display:flex;flex-direction:column;gap:14px}
+.tpt .g-rhead{display:flex;flex-direction:column;gap:2px}
+.tpt .g-rhead small{font-size:11.5px;font-weight:700;color:var(--g-acc);text-transform:uppercase;letter-spacing:.05em}
+.tpt .g-rhead h2{font-size:19px}
+.tpt .g-rhead .g-muted{font-size:13px}
+.tpt .g-rpart{color:var(--g-warn)}
+.tpt .g-rkpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.tpt .g-rkpi>div{background:var(--g-alt);border:1px solid var(--g-line);border-radius:calc(10px*var(--rk,1));padding:8px 10px;display:flex;flex-direction:column}
+.tpt .g-rkpi b{font-size:20px;font-weight:800;line-height:1.2}
+.tpt .g-rkpi span{font-size:12px;color:var(--g-muted);font-weight:600}
+.tpt .g-rsum{background:var(--g-acc-soft);border-radius:calc(10px*var(--rk,1));padding:10px 14px;display:flex;flex-direction:column;gap:4px}
+.tpt .g-rsum p{margin:0;line-height:1.5;font-size:14px}
+.tpt .g-rep h3,.tpt .g-rpg h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--g-muted)}
+.tpt .g-rtw{overflow-x:auto}
+.tpt .g-rtab{width:100%;border-collapse:collapse;font-size:13.5px}
+.tpt .g-rtab th{font-size:12px;color:var(--g-muted);font-weight:700;text-align:center;padding:6px 6px;border-bottom:1px solid var(--g-line)}
+.tpt .g-rtab td{padding:6px 6px;border-bottom:1px solid var(--g-line);text-align:center;white-space:nowrap}
+.tpt .g-rtab .l{text-align:left;white-space:normal;width:100%}
+.tpt .g-rtab small{color:var(--g-muted);font-size:11px}
+.tpt .g-rtab tr.off td{color:var(--g-muted);font-style:italic}
+.tpt .g-rtab tr.own .l small{color:var(--g-club)}
+.tpt .g-rnext{display:flex;flex-direction:column;gap:2px;font-size:13.5px}
+.tpt .g-rsig{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--g-muted);padding-top:6px}
+.tpt .g-ract .g-btn{flex:1 1 220px}
+@media (max-width:520px){
+  .tpt .g-rkpi{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tpt .g-rtab{font-size:13px}
+  .tpt .g-rtab td,.tpt .g-rtab th{padding:6px 4px}
+}
+/* PDF varag'i (A4) — har doim och rangda */
+.tpt .bx-pg.g-rpg{height:auto;min-height:1120px;gap:12px;--g-text:#111;--g-muted:#555;--g-line:#c9cfd8;--g-alt:#f4f6f8;--g-acc:#0a706e;--g-acc-soft:#eaf5f4;--g-warn:#a15c07;--g-club:#6d4fd3}
+.tpt .bx-pg.g-rpg .g-rhead h2{font-size:17pt;color:#111}
+.tpt .bx-pg.g-rpg table{font-size:9.5pt}
+.tpt .bx-pg.g-rpg td,.tpt .bx-pg.g-rpg th{border:0;border-bottom:1px solid #c9cfd8;padding:3px 5px}
+.tpt .bx-pg.g-rpg .g-rsum p{font-size:10pt}
+.tpt .bx-pg.g-rpg .g-rsig{margin-top:auto;padding-top:24px;font-size:10pt}
