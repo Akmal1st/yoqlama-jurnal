@@ -218,3 +218,56 @@ def test_new_login_page(tmp_path, monkeypatch):
     assert len(imgs) == 1 and len(imgs[0]) == 36 and ui.asked == [PNG]
     dbg = (tmp_path / "debug_login.html").read_text(encoding="utf-8")
     assert "soxta_login" not in dbg and "soxta_parol" not in dbg       # login/parol nosozlik fayliga yozilmaydi
+
+
+def test_catalog_state_preferred_over_stray_links():
+    """Yangi sahifada sarlavhadagi bitta sinf havolasi (sinf rahbari menyusi) JSON dagi ro'yxatni to'sib qo'ymasin;
+    bir sinf ikki marta kelsa — bitta, bir jurnal ikki marta — bitta, jurnalsiz sinf — chiqmaydi."""
+    html = """<a href="https://schools.emaktab.uz/v2/class?class=31">Mening sinfim</a><script>
+        window.__TEACHERV2__INITIAL__STATE__ = {
+            "groups": {"groups":[
+              {"name":" 6-A ","redirectUrl":"u1","journal":[{"subjectName":"Matematika","journalUrl":"https://emaktab.uz/journal/school/1/group/25/subject/16?periodId=9"}]},
+              {"name":"6-A","redirectUrl":"u1","journal":[{"subjectName":"Matematika","journalUrl":"https://emaktab.uz/journal/school/1/group/25/subject/16?periodId=9"},
+                                                         {"subjectName":"Geometriya","journalUrl":"https://emaktab.uz/journal/school/1/group/25/subject/17"}]},
+              {"name":"11-B","redirectUrl":"u2","journal":[]}]}};</script>"""
+    out = EH.catalog_from_html(html)
+    assert [(c["name"], [j["subject"] for j in c["journals"]]) for c in out] == [("6-A", ["Matematika", "Geometriya"])]
+
+
+def test_catalog_links_grouped_by_class_id():
+    """Eski sahifa (havolalar): sinfning rasm/«Fayllar» havolalari yangi sinf ochmaydi va nomini buzmaydi,
+    jurnal o'z sinfiga guruh ID si bo'yicha tushadi, #ContentPanelTeacher tashqarisidagi havolalar olinmaydi."""
+    html = """<a href="/v2/class?class=9">Boshqa menyu</a><div id="ContentPanelTeacher">
+      <a href="/v2/class?class=1"><img src="x.png"></a><a href="/v2/class?class=1">7-B</a>
+      <a href="/v2/class?class=2">9-A</a><a href="/v2/class?class=1&view=files">Fayllar</a>
+      <a href="/v2/journal/school/11/group/2/subject/33" title="Algebra">Algebra</a>
+      <a href="/v2/journal/school/11/group/1/subject/34?periodId=5" title="Matematika">Matematika</a>
+      <a href="/v2/class?class=3">Sinf sahifasi</a><a href="/v2/class?class=3">10-V</a>
+      <a href="/v2/journal/school/11/group/3/subject/35">Fizika</a></div>"""
+    out = EH.catalog_from_html(html, "https://schools.emaktab.uz/v2/myclasses")
+    assert [(c["name"], [(j["subject"], j["url"][-12:]) for j in c["journals"]]) for c in out] == [
+        ("7-B", [("Matematika", "1/subject/34")]), ("9-A", [("Algebra", "2/subject/33")]), ("10-V", [("Fizika", "3/subject/35")])]
+
+
+def test_catalog_subgroup_name():
+    """Guruhga bo'lingan fan: nomiga guruh qo'shiladi, havoladagi ?periodId olib tashlanadi."""
+    html = """<script>window.__TEACHERV2__INITIAL__STATE__ = {
+        groups: {"groups":[{"name":"9-D","journal":[{"subjectName":"Algebra","subgroupName":"2-guruh","journalUrl":"https://emaktab.uz/journal/school/1/group/7/subject/8?periodId=3"}]}]}};</script>"""
+    assert EH.catalog_from_html(html) == [{"name": "9-D", "url": "", "journals": [
+        {"subject": "Algebra (2-guruh)", "url": "https://emaktab.uz/journal/school/1/group/7/subject/8"}]}]
+
+
+def test_catalog_links_query_form():
+    """Eski sahifa (#ContentPanelTeacher .cc): jurnal havolasi …/journals/?school=&group=&subject= ko'rinishida ham bo'ladi;
+    «Rejalashtirish» havolasi bilan bir jurnal ikki marta olinmaydi."""
+    html = """<div id="ContentPanelTeacher" class="panel gray"><div class="rounded"><div class="c1"></div><div class="cc">
+      <a href="/v2/class?class=5">8-B</a>
+      <a href="https://schools.emaktab.uz/journals/?school=1&group=5&subject=7&period2&subgroup=0&tab=planning">Rejalashtirish</a>
+      <a href="https://emaktab.uz/journal/school/1/group/5/subject/7?periodId=2">Informatika</a>
+      <a href="https://schools.emaktab.uz/journals/?school=1&group=5&subject=8">Fizika</a>
+      <a href="https://schools.emaktab.uz/v2/excel?action=gjsxls&school=1&group=5&subject=9">Excel</a>
+      </div><div class="c3"></div></div></div>"""
+    out = EH.catalog_from_html(html, "https://schools.emaktab.uz/v2/myclasses")
+    assert out == [{"name": "8-B", "url": "https://schools.emaktab.uz/v2/class?class=5", "journals": [
+        {"subject": "Informatika", "url": "https://emaktab.uz/journal/school/1/group/5/subject/7"},
+        {"subject": "Fizika", "url": "https://emaktab.uz/journal/school/1/group/5/subject/8"}]}]
