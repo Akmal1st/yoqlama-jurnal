@@ -121,5 +121,13 @@ test("havola: Telegram xabari kechikib qayta ishlansa ham eskirmaydi (xabar vaqt
     S.ctx.tick();
     assert.ok(S.log.some((x) => x.m === "sendMessage" && x.p.chat_id === T2 && /Havola eskirgan/.test(x.p.text)));
   } finally { vm.runInContext("Date.now = this.__now", S.ctx); }
-  assert.equal(S.get({}).v, 3); assert.equal(S.get({}).tick, true);
+  assert.equal(S.get({}).v, 4); assert.equal(S.get({}).tick, true);
+});
+
+test("eski Cloudflare webhook'i qolgan bo'lsa (409), server uni o'zi o'chiradi va xabarni oladi", () => {
+  const S = mk(), t = "tN1234567890abcdefXY";
+  S.hook.url = "https://jurnal-bot.example.workers.dev/tg";
+  S.post({a: "new", t, d: ""}); start(S, T1, t);
+  assert.equal(S.get({a: "link", t}).st, "ok");
+  assert.equal(S.hook.url, "");
 });

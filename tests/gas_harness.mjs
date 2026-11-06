@@ -9,7 +9,7 @@ const signed = (buf) => [...buf].map((b) => (b > 127 ? b - 256 : b));
 export function makeGas({token = "TOK", admins = "100", secret = "sir", bot = "YoqlamaJurnalbot"} = {}) {
   const props = new Map([["BOT_TOKEN", token], ["ADMIN_IDS", admins], ["SETUP_SECRET", secret]]);
   const updates = [], log = [], triggers = [], files = {}, sent = {}, pins = {};
-  let uid = 1;
+  let uid = 1; const hook = {url: ""};
   const tgResult = (m, p, raw) => {
     if (m === "getUpdates") return updates.filter((u) => u.update_id >= Number(p.offset || 0));
     if (m === "getMe") return {id: 1, username: bot};
@@ -44,6 +44,8 @@ export function makeGas({token = "TOK", admins = "100", secret = "sir", bot = "Y
       if (opt.contentType === "application/json") p = JSON.parse(opt.payload);
       else for (const [k, v] of Object.entries(opt.payload || {})) p[k] = v && v.blob ? {size: v.size, type: v.type, name: v.name} : v;
       log.push({m: m[2], p});
+      if (m[2] === "getUpdates" && hook.url) return {getResponseCode: () => 409, getContentText: () => JSON.stringify({ok: false, error_code: 409, description: "Conflict: can't use getUpdates method while webhook is active"})};
+      if (m[2] === "deleteWebhook") hook.url = "";
       const result = tgResult(m[2], p, raw);
       return {getResponseCode: () => 200, getContentText: () => JSON.stringify({ok: true, result})};
     }},
@@ -51,7 +53,7 @@ export function makeGas({token = "TOK", admins = "100", secret = "sir", bot = "Y
   const ctx = vm.createContext(G);
   vm.runInContext(CODE, ctx, {filename: "Code.gs"});
   return {
-    ctx, log, props, triggers, pins,
+    ctx, log, props, triggers, pins, hook,
     push(u) { u.update_id = 1000 + uid++; updates.push(u); },
     get: (params) => JSON.parse(ctx.doGet({parameter: params}).t),
     post: (obj) => JSON.parse(ctx.doPost({postData: {contents: typeof obj === "string" ? obj : JSON.stringify(obj)}}).t),
