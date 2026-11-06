@@ -2324,6 +2324,7 @@ test("Jurnal tagida: bugungi dars bo'yicha sinf ma'lumoti kartasi", async () => 
   try {
     const page = await browser.newPage({viewport: {width: 1280, height: 800}});
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // chorak ichidagi kun: tugagan chorak qulflanib, karta yashirinmasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
