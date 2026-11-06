@@ -8,7 +8,7 @@
 const TGU = (() => {
   // Server manzili — o'rnatilgach shu yerga yoziladi (bot-server/gas/README.md). Bo'sh bo'lsa, tugma ko'rinmaydi.
   const URL0 = "https://script.google.com/macros/s/AKfycbz_EGihc8U9obxKnzagUUTK3E8PHi0gynhybl9izr6DJRNgZ5hibZjqn4uQWDaoV7mZ/exec", BOT0 = "YoqlamaJurnalbot";
-  const PEND_MS = 15 * 60e3, STEP = 2000;
+  const PEND_MS = 40 * 60e3, STEP = 2000;
   const url = () => { try { return localStorage.getItem("yoqlama_tgu_url") || URL0; } catch (e) { return URL0; } };
   const on = () => !!url();
   const gas = () => /^https:\/\/script\.google(usercontent)?\.com\//.test(url());

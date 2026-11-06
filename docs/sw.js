@@ -1,5 +1,5 @@
 /* Yo'qlama jurnali — oflayn ishlash uchun kesh. Ilova yangilanganda VERSION ni oshiring. */
-const VERSION = "jurnal-v175";
+const VERSION = "jurnal-v176";
 const CORE = ["./", "./index.html", "./app.css", "./guruhlar.css", "./tpt-mavzu.css", "./tpt-mavzu.js", "./tpt-tema.css", "./dizayn.css", "./dizayn.js", "./hisobotlar.css", "./hisobotlar.js", "./bosh-varaq.css", "./bosh-varaq.js", "./davomat.css", "./davomat.js", "./bsb-eksport.css", "./bsb-eksport.js", "./bugun.css", "./bajarish.css", "./bugun.js", "./bugun-arxiv.css", "./bugun-arxiv.js", "./sozlamalar.css", "./sozlamalar.js", "./mezon.css", "./mezon.js", "./kunlik.css", "./kunlik.js", "./pdf-tg.js", "./tg-umumiy.js", "./arxiv.css", "./arxiv.js", "./guruhlar.js", "./vendor/manrope-latin.woff2", "./vendor/manrope-latin-ext.woff2", "./vendor/bootstrap-5.3.3.css", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png", "./icon-maskable.png", "./natija.html"];
 // Excel kutubxonasi katta (~1 MB) va kam o'zgaradi: alohida keshda turadi, ilova versiyasi oshganda qayta yuklanmaydi
 const XLSX_PATH = "./vendor/xlsx-0.20.3.full.min.js";

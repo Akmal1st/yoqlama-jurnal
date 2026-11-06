@@ -11,7 +11,7 @@
 
 const API = "https://api.telegram.org";
 const APP_URL = "https://akmal1st.github.io/yoqlama-jurnal/";
-const LINK_TTL = 10 * 60;   // soniya: /go dan keyin «Boshlash» uchun vaqt
+const LINK_TTL = 30 * 60;   // soniya: /go dan keyin «Boshlash» uchun vaqt (xabar yuborilgan vaqti bo'yicha)
 const T_RE = /^[A-Za-z0-9_-]{16,64}$/;
 // ilova chaqira oladigan Bot API usullari; «own» — faqat o'z chatiga (guruhga emas)
 const METHODS = {sendMessage: 0, sendPhoto: 0, sendDocument: 0, pinChatMessage: 0, unpinChatMessage: 0, deleteMessage: 0,
@@ -133,12 +133,12 @@ async function toAdmins(env, text, kb) { for (const a of admins(env)) await say(
 const who = (u, dev) => `${esc(u.name)}${u.uname ? ` (@${esc(u.uname)})` : ""}\nTelegram ID: <code>${u.id}</code>${dev ? ` · ${esc(dev)}` : ""}`;
 const welcome = (isAuto) => `${isAuto ? "✅ Ilova ulandi!" : "✅ Admin tasdiqladi. Ilova ulandi!"}\nEndi zaxiralar, kunlik hisobot rasmlari va PDF hisobotlar shu yerga keladi.`;
 
-async function onStart(env, from, t) {
+async function onStart(env, from, t, sent) {
   const uid = from.id, name = fullName(from), uname = from.username || "";
   const old = await one(env, "SELECT * FROM users WHERE id = ?", uid);
   if (old && old.st === "blocked") return say(env, uid, "⛔ Admin sizga bu botdan foydalanishga ruxsat bermagan.");
   const l = t && T_RE.test(t) ? await one(env, "SELECT * FROM links WHERE t = ?", t) : null;
-  if (!l || now() - l.at > LINK_TTL || l.st !== "new") {
+  if (!l || (sent || now()) - l.at > LINK_TTL || l.st !== "new") {
     if (old && old.st === "ok") return say(env, uid, "Siz allaqachon ulangansiz. Yangi qurilmani ulash uchun shu qurilmadagi ilovada «Sozlamalar → Ma'lumotlar → ✈️ Telegram'ni ulash» tugmasini bosing.", {reply_markup: APP_BTN});
     return say(env, uid, t ? "⌛ Havola eskirgan. Ilovada «✈️ Telegram'ni ulash» tugmasini qayta bosing."
       : "Assalomu alaykum! Bu «Yo'qlama jurnali» boti.\nUlash uchun ilovada «Sozlamalar → Ma'lumotlar → ✈️ Telegram'ni ulash» tugmasini bosing.", {reply_markup: APP_BTN});
@@ -216,7 +216,7 @@ async function onMessage(env, m) {
   if (!m.from || !m.chat || m.chat.type !== "private" || typeof m.text !== "string") return;
   const id = m.from.id, text = m.text.trim(), adm = isAdmin(env, id);
   const s = text.match(/^\/start(?:@\w+)?(?:\s+(\S+))?$/);
-  if (s) { await onStart(env, m.from, s[1] || ""); if (adm) await say(env, id, "Siz adminsiz. Pastdagi tugmalar faqat sizga ko'rinadi.", {reply_markup: await ADMIN_KB(env)}); return; }
+  if (s) { await onStart(env, m.from, s[1] || "", m.date); if (adm) await say(env, id, "Siz adminsiz. Pastdagi tugmalar faqat sizga ko'rinadi.", {reply_markup: await ADMIN_KB(env)}); return; }
   if (adm && text === "👥 O'qituvchilar") return usersList(env, id);
   if (adm && text === "📈 Holat") return status(env, id);
   if (adm && (text === "🔒 Tasdiq bilan" || text === "🟢 Tasdiqsiz ulanish")) {
