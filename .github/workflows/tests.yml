@@ -27,7 +27,7 @@ jobs:
       - name: Web ilova = golden.json
         run: node --test tests/web.test.mjs
       - name: Umumiy Telegram bot serveri (bot-server/worker.js)
-        run: node --test tests/bot_server.test.mjs
+        run: node --test tests/bot_server.test.mjs tests/gas_server.test.mjs
 
   brauzer:
     name: Web ilova brauzerda (kompyuter va telefon ekrani)

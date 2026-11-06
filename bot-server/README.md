@@ -1,5 +1,8 @@
 # Umumiy Telegram bot serveri
 
+> **O'zbekistonda `workers.dev` VPN'siz ochilmaydi** — Google Apps Script varianti: [gas/README.md](gas/README.md).
+> Quyidagi Cloudflare varianti domen ulangan yoki VPN ishlatiladigan joylar uchun qoldi.
+
 Hamma o'qituvchilar bitta botdan foydalanadi. O'qituvchi ilovada **«✈️ Telegram'ni ulash»** tugmasini bosadi, Telegram ochiladi
 va ilova o'zi ulanadi. Bot tokeni faqat shu serverda turadi, ilovada va saytda ko'rinmaydi.
 

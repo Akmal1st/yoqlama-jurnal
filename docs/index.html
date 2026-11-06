@@ -4960,9 +4960,10 @@ const djb = (t) => { let x = 5381; for (let i = 0; i < t.length; i++) x = (x * 3
 // ba'zi tarmoqlarda u o'tmay «Telegram'ga ulanib bo'lmadi» chiqardi
 // Umumiy bot ulangan bo'lsa (tgCfg().key), so'rov Cloudflare serveriga boradi: u kalitni tekshirib, Telegram'ga uzatadi (tg-umumiy.js)
 async function tgApi(method, params, token = tgCfg().token) {
-  const body = params instanceof FormData ? params : new URLSearchParams(Object.entries(params || {}).map(([k, v]) => [k, typeof v === "object" ? JSON.stringify(v) : String(v)]));
+  let body = params instanceof FormData ? params : new URLSearchParams(Object.entries(params || {}).map(([k, v]) => [k, typeof v === "object" ? JSON.stringify(v) : String(v)]));
   const key = !token && tgCfg().key;
-  if (key) { body.delete("_k"); body.append("_k", key); }
+  if (key && TGU.gas()) body = await TGU.pack(method, body, key);   // Google serveri: JSON matn
+  else if (key) { body.delete("_k"); body.append("_k", key); }
   const url = key ? TGU.api(method) : `https://api.telegram.org/bot${token}/${method}`;
   for (let k = 0; ; k++) {
     const r = await tgFetch(url, {method: "POST", body});
