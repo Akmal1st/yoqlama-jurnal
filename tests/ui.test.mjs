@@ -4,6 +4,8 @@ import {test} from "node:test";
 import assert from "node:assert/strict";
 import {fileURLToPath} from "node:url";
 import {chromium} from "playwright";
+import {DatabaseSync} from "node:sqlite";
+import botServer from "../bot-server/worker.js";
 
 const APP = new URL("../docs/index.html", import.meta.url).href;
 const FIXTURE = fileURLToPath(new URL("fixtures/journal.json", import.meta.url));
@@ -3390,3 +3392,106 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
     } finally { await browser.close(); }
   });
 }
+
+// Umumiy bot (tg-umumiy.js + bot-server/worker.js): ilova haqiqiy server kodi orqali ishlaydi — server Node'da (D1 = node:sqlite),
+// Telegram soxta. Bitta tugma bilan ulanish, zaxira, ota-onalar guruhi va kunlik hisobot (36 va 18 o'quvchili sinflar).
+test("Umumiy Telegram bot: bitta tugma bilan ulanish, zaxira va kunlik hisobot server orqali (36 va 18 o'quvchi)", async () => {
+  const db = new DatabaseSync(":memory:");
+  const stmt = (sql, a = []) => ({bind: (...b) => stmt(sql, b), first: async () => db.prepare(sql).get(...a) ?? null,
+    all: async () => ({results: db.prepare(sql).all(...a)}), run: async () => { db.prepare(sql).run(...a); return {}; }});
+  const env = {BOT_TOKEN: "TOK", ADMIN_IDS: "100", SETUP_SECRET: "sir", DB: {prepare: (sql) => stmt(sql)}};
+  const TEACHER = 4242, tgLog = [], realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opt = {}) => {   // serverdan Telegram'ga ketgan so'rovlar
+    const m = String(url).match(/\/botTOK\/(\w+)$/); assert.ok(m, "server faqat Telegram'ga murojaat qiladi: " + url);
+    let p = {};
+    if (opt.body instanceof FormData) for (const [k, v] of opt.body) p[k] = typeof v === "string" ? v : {size: v.size, type: v.type};
+    else if (opt.body) p = JSON.parse(opt.body);
+    tgLog.push({m: m[1], p});
+    const result = m[1] === "getMe" ? {id: 1, username: "MaktabJurnalBot"} : m[1] === "getChat" ? {id: TEACHER}
+      : m[1] === "sendPhoto" ? {message_id: tgLog.length, photo: [{file_id: "s"}, {file_id: "PH" + tgLog.length}]} : {message_id: tgLog.length};
+    return new Response(JSON.stringify({ok: true, result}));
+  };
+  const call = (path, init) => botServer.fetch(new Request("https://bot.test" + path, init), env);
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    assert.equal((await call("/setup?s=sir")).status, 200);
+    const secret = tgLog.find((x) => x.m === "setWebhook").p.secret_token;
+    const hook = (u) => call("/tg", {method: "POST", headers: {"X-Telegram-Bot-Api-Secret-Token": secret}, body: JSON.stringify(u)});
+    const ctx = await browser.newContext({viewport: {width: 390, height: 844}});
+    await ctx.addInitScript(() => localStorage.setItem("yoqlama_tgu_url", "https://bot.test"));
+    const direct = [], goTo = [];
+    await ctx.route("https://api.telegram.org/**", (rt) => { direct.push(rt.request().url()); return rt.abort(); });
+    await ctx.route("https://t.me/**", (rt) => rt.fulfill({status: 200, contentType: "text/html", body: "<p>Telegram</p>"}));
+    await ctx.route("https://bot.test/**", async (rt) => {
+      const rq = rt.request(), init = {method: rq.method(), headers: rq.headers()}, b = rq.postDataBuffer();
+      if (b && rq.method() !== "GET") init.body = b;
+      const res = await botServer.fetch(new Request(rq.url(), init), env);
+      if (res.status === 302) goTo.push(res.headers.get("location"));   // Playwright yo'naltirishni oynada kuzatmaydi — manzilni tekshiramiz
+      return rt.fulfill({status: res.status, headers: Object.fromEntries(res.headers), body: Buffer.from(await res.arrayBuffer())});
+    });
+    const page = await ctx.newPage();
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    // ikki sinf: 36 va 18 o'quvchi, bugun ikkalasida dars o'tgan
+    await page.evaluate(() => {
+      const t = todayIso(); D.settings.method_weekday = null;
+      for (const x of D.classes) x.dates = x.dates.filter((d) => d !== t);
+      const CL = D.classes.filter((c) => !isGrp(c)).slice(0, 2);
+      CL.forEach((c, ci) => {
+        const n = ci ? 18 : 36; c.extra_x = [];
+        while (c.students.length < n) c.students.push(Object.assign(JSON.parse(JSON.stringify(c.students[0])), {name: "Qo'shimcha O'quvchi " + c.students.length}));
+        c.students.length = n;
+        c.dates.push(t); c.dates.sort(); c.lessons[t] = {topic: "Mavzu " + ci, hw: ""};
+        c.students.forEach((s, i) => { s.marks[t] = i === 1 ? "s" : String(5 + (i % 5)); });
+      });
+      const wd = (new Date().getDay() + 6) % 7, days = Array.from({length: 6}, () => ["", ""]);
+      if (wd < 6) days[wd] = CL.map(ckey);
+      D.web.schedule = {bells: [["00:00", "00:01"], ["00:01", "00:02"]], days}; save();
+    });
+    await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="5"]');
+    // bitta tugma: Telegram oynasi ochiladi (server havolani yozib, t.me ga yo'naltiradi)
+    await Promise.all([page.waitForEvent("popup"), page.click('[data-a="tguon"]')]);
+    await page.waitForFunction(() => !!tgCfg().pend);
+    for (let i = 0; i < 50 && !goTo.length; i++) await page.waitForTimeout(100);
+    assert.match(goTo[0] || "", /^https:\/\/t\.me\/MaktabJurnalBot\?start=[\w-]{16,}$/);
+    const t = new URL(goTo[0]).searchParams.get("start");
+    assert.equal(t, await page.evaluate(() => tgCfg().pend.t));
+    await page.waitForSelector("text=Boshlash");
+    // o'qituvchi Telegram'da «Boshlash» bosadi
+    await hook({message: {from: {id: TEACHER, first_name: "Dilnoza", last_name: "Karimova"}, chat: {id: TEACHER, type: "private"}, text: "/start " + t}});
+    await page.bringToFront();
+    await page.waitForFunction(() => !!tgCfg().key && tgOn(), null, {timeout: 15000});
+    await page.waitForFunction(() => !!tgCfg().last, null, {timeout: 15000});
+    const cfg = await page.evaluate(() => tgCfg());
+    assert.equal(cfg.chat, TEACHER); assert.equal(cfg.bot, "MaktabJurnalBot"); assert.equal(cfg.token, undefined, "ilovada token yo'q");
+    const doc = tgLog.find((x) => x.m === "sendDocument");
+    assert.equal(doc.p.chat_id, String(TEACHER)); assert.equal(doc.p._k, undefined); assert.ok(doc.p.document.size > 1000, "zaxira fayli serverdan o'tdi");
+    assert.ok(tgLog.some((x) => x.m === "pinChatMessage"));
+    assert.ok(tgLog.some((x) => x.m === "sendMessage" && x.p.chat_id === 100 && /Yangi o'qituvchi ulandi/.test(x.p.text)), "admin'ga xabar");
+    await page.waitForSelector("text=umumiy bot");
+    // ota-onalar guruhi: o'qituvchi botni guruhga qo'shadi — server biladi, ilova «Guruhlarni topish» bilan oladi
+    await hook({my_chat_member: {chat: {id: -100777, type: "supergroup", title: "36 talik sinf ota-onalari"}, from: {id: TEACHER}, new_chat_member: {status: "member", user: {id: 1}}}});
+    await page.click('[data-kra="grp"]');
+    assert.ok(await page.$('.modal a[href="https://t.me/MaktabJurnalBot?startgroup=jurnal"]'));
+    await page.click(".modal [data-f]");
+    await page.waitForSelector(".modal option:has-text('36 talik sinf ota-onalari')", {state: "attached"});
+    await page.selectOption('.modal [data-krg="0"]', "-100777"); await page.click(".modal [data-x]");
+    const n0 = tgLog.length;
+    await page.click('[data-kra="on"]');
+    await page.waitForFunction(() => KUN.cfg().day === todayIso() && KUN.cfg().sent.length === 2, null, {timeout: 20000});
+    const ph = tgLog.slice(n0).filter((x) => x.m === "sendPhoto");
+    assert.equal(ph.length, 3, JSON.stringify(ph.map((x) => x.p.chat_id)));   // ikki sinf o'qituvchiga + 36 talik guruhga
+    assert.equal(ph.filter((x) => x.p.chat_id === String(TEACHER)).length, 2);
+    assert.ok(ph.every((x) => x.p.chat_id !== String(TEACHER) || x.p.photo.type === "image/png"));
+    const g = ph.find((x) => x.p.chat_id === "-100777"); assert.match(g.p.photo, /^PH\d+$/, "guruhga tayyor rasm qayta yuklanmaydi");
+    assert.ok(ph.some((x) => /36/.test(x.p.caption)) && ph.some((x) => /18/.test(x.p.caption)), ph.map((x) => x.p.caption).join(" | "));
+    // admin bloklasa — ilova tushunarli xato oladi
+    await hook({callback_query: {id: "q", from: {id: 100}, data: "bl:" + TEACHER}});
+    await page.click('[data-a="tgsend"]');
+    await page.waitForFunction(() => /qayta ulang/.test(document.querySelector(".toast")?.textContent || ""));
+    assert.deepEqual(direct, [], "ilova api.telegram.org ga to'g'ridan-to'g'ri murojaat qilmadi");
+    assert.deepEqual(errors, []);
+  } finally { globalThis.fetch = realFetch; await browser.close(); }
+});

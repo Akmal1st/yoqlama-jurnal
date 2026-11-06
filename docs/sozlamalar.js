@@ -131,7 +131,8 @@ const SZL = (() => {
     const bst = `<div class="sz-bst"><div class="sz-bt ${age === null || age > 7 ? "w" : ""}"><small>💾 Fayl</small><b>${age === null ? "Olinmagan" : age ? `${age} kun oldin` : "Bugun ✓"}</b></div>
       <div class="sz-bt ${on ? "" : "n"}"><small>✈️ Telegram</small><b>${on ? (l ? `${lt.slice(0, 5)} ✓` : "Ulangan") : "Ulanmagan"}</b></div>
       <div class="sz-bt ${IDB.db ? "" : "w"}"><small>🕒 Kunlik nusxa</small><b>${IDB.db ? `${SNAP_DAYS} kun ✓` : "Ishlamayapti"}</b></div></div>`;
-    const z = row("tg", "✈️ Telegram'ga avtomatik zaxira", on ? `Ulangan: @${esc(c.bot || "bot")} · oxirgi zaxira: ${lt}. Boshqa qurilmada ham shu botni ulasangiz, ma'lumotlar ular orasida almashinadi.`
+    const z = (!on && typeof TGU !== "undefined" && TGU.on()) ? TGU.offRow(row) : row("tg", "✈️ Telegram'ga avtomatik zaxira", on && c.key ? `Ulangan: @${esc(c.bot || "bot")} (umumiy bot) · oxirgi zaxira: ${lt}. Boshqa qurilmada ham «✈️ Telegram'ni ulash»ni bossangiz, ma'lumotlar ular orasida almashinadi.`
+        : on ? `Ulangan: @${esc(c.bot || "bot")} · oxirgi zaxira: ${lt}. Boshqa qurilmada ham shu botni ulasangiz, ma'lumotlar ular orasida almashinadi.`
         : "Ma'lumotlar har kuni o'zingizning Telegram botingizga fayl bo'lib boradi. Telefon yo'qolsa yoki brauzer tozalansa ham jurnal saqlanib qoladi.",
         on ? `<button class="btn btn-sm btn-primary" data-a="tgsend">📤 Yuborish</button><button class="btn btn-sm" data-a="tgload">📥 Yuklash</button><button class="btn btn-sm" data-a="tgoff">Uzish</button>` : `<button class="btn btn-sm btn-primary" data-a="tgon">🔗 Ulash</button>`, on ? "wide" : "") +
       (on ? row("tgp", "🔐 Zaxirani parol bilan shifrlash", c.pass ? "Yoqilgan. Boshqa qurilmada yuklashda shu parol so'raladi. Parolni unutsangiz, shifrlangan zaxirani ochib bo'lmaydi."
