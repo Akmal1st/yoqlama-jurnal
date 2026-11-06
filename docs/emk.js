@@ -33,6 +33,8 @@
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "emaktab_jurnallar.json"; document.body.append(a); a.click(); a.remove();
   };
   const get = async (u) => { const r = await fetch(u, {credentials: "include"}); if (!r.ok) throw new Error("HTTP " + r.status); return r; };
+  // sahifa tahlili (sinflar ro'yxati, jurnal holati) — emkLib(): ilovaning o'zidan importda ham shu kod ishlatiladi
+  const {jsonAt, state, catalog} = (function emkLib() {
   // html[k] === "{" dan boshlangan JSON obyektini o'qiydi (qavslar sanaladi, satr ichidagilari hisobga olinmaydi)
   const jsonAt = (html, k) => {
     if (k < 0 || html[k] !== "{") return null;
@@ -88,6 +90,8 @@
     for (const [c, subject, href] of pend) push(c.name, subject, href);
     return jobs;
   };
+  return {jsonAt, state, jref, catalog};
+})();
   (async () => {
     say("Sinflar ro'yxati o'qilmoqda…");
     const r0 = await get("/v2/myclasses");

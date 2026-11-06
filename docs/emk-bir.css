@@ -28,3 +28,16 @@ html[data-theme="dark"] .ek-ri>span.ek-w{color:#f5b454}
 .ek-note{font-size:12.5px;color:var(--muted)}
 .ek-acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 @media (max-width:820px){.ek-acts .btn{flex:1 1 140px}}
+
+/* ilovaning o'zidan import (emk-server.js): hisob, rasmdagi kod, jarayon */
+.ek-form{display:flex;flex-direction:column;gap:10px}
+.ek-form label{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:13px}
+.ek-safe{display:flex;gap:8px;font-size:12.5px;color:var(--muted);background:var(--alt);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+.ek-safe b{color:var(--text)}
+.ek-cap{width:180px;max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fff;align-self:flex-start}
+.ek-alt{align-self:center;font-size:13px;border:0!important;background:none!important;box-shadow:none!important;color:var(--acc)!important;text-decoration:underline}
+.ek-prog{height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
+.ek-prog i{display:block;height:100%;width:0;background:var(--acc);transition:width .35s}
+.ek-sh .ek-sub{white-space:pre-line}
+.ek-acc{display:flex;align-items:center;gap:10px;padding:10px 12px;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){.ek-prog i{transition:none}}

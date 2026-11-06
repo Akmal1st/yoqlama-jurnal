@@ -59,6 +59,7 @@
 <script src="tg-umumiy.js"></script>
 <script src="arxiv.js"></script>
 <script src="emk-bir.js"></script>
+<script src="emk-server.js"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
@@ -3779,45 +3780,9 @@ async function expandFiles(files) {
 // tasdiq oynasisiz import, natija va «Bekor qilish» — emk-bir.js (Akmal, 2026-11-06)
 function importEmaktabFiles(files, opts) { return EMK1.run(files, opts || {}); }
 
-/* ───────── emaktab.uz saytidan to'g'ridan-to'g'ri (xatcho'p) ─────────
-   Brauzer bu ilovaga emaktab.uz ga o'zi kirishga ruxsat bermaydi. Shuning uchun o'qituvchi emaktab'ga kirgan holda
-   xatcho'pni bosadi: emkGrab() emaktab sahifasining ichida ishlaydi, Excel jurnallarni o'sha yerdan oladi va
-   postMessage bilan shu ilovaga yuboradi. Login/parol hech qayerga uzatilmaydi.
-   Bir bosishda (Akmal, 2026-11-06): schools.emaktab.uz ning istalgan sahifasida ishlaydi, chorak so'ralmaydi — joriy chorak va
-   ilovada hali yo'q oldingi choraklar olinadi (ilova «jurnal-ready» javobida qaysi choraklari borligini aytadi), ilova oynasi
-   ochilmasa bitta «Ilovaga yuborish» tugmasi chiqadi, ish tugagach oyna o'zi yopiladi. */
-function emkGrab() {
-  const APP = "__APP__", AO = new URL(APP).origin;
-  const box = document.createElement("div");
-  box.style.cssText = "position:fixed;top:12px;right:12px;z-index:2147483647;background:#fffdf8;color:#1b2a2f;border:2px solid #0b6f79;border-radius:14px;padding:12px 16px;font:15px/1.4 serif;max-width:360px;box-shadow:0 10px 30px rgba(0,0,0,.25);white-space:pre-line";
-  const say = (t) => { box.textContent = "📒 Yo'qlama jurnali\n" + t; };
-  document.body.appendChild(box);
-  if (location.hostname !== "schools.emaktab.uz") {
-    if (/(^|\.)emaktab\.uz$/.test(location.hostname) && !/^login\./.test(location.hostname)) {
-      say("eMaktab sahifasi ochilmoqda… Ochilgach, xatcho'pni yana bir bor bosing."); location.href = "https://schools.emaktab.uz/v2/myclasses";
-    } else say("Avval emaktab.uz ga kiring, so'ng xatcho'pni bosing.");
-    setTimeout(() => box.remove(), 8000); return;
-  }
-  // ilova javobi: {type: "jurnal-ready", have: [{n: sinf, s: fan, q: [jurnalda belgisi bor choraklar]}]} (have — eski ilovada yo'q)
-  let ready = false, have = null;
-  addEventListener("message", (e) => { if (e.origin === AO && e.data && e.data.type === "jurnal-ready") { ready = true; if (Array.isArray(e.data.have)) have = e.data.have; } });
-  const ping = (w) => { try { w.postMessage({type: "emaktab-ping"}, AO); } catch (e) {} };
-  const waitApp = async (w, ms, need) => { for (let t = 0; t < ms / 200 && !(ready && (!need || have)) && !w.closed; t++) { ping(w); await new Promise((r) => setTimeout(r, 200)); } };
-  // ilova oynasi ochilmasa ham (qalqib chiquvchi oyna to'silgan, telefon) oxirida «Ilovaga yuborish» tugmasi chiqadi
-  let w = null; try { w = window.open(APP + "#emaktab", "yoqlama_jurnal"); } catch (e) { w = null; }
-  const btns = (opts) => new Promise((res) => {
-    const row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-top:10px";
-    opts.forEach(([k, l], i) => { const b = document.createElement("button"); b.textContent = l; b.dataset.emk = k;
-      b.style.cssText = `font:inherit;font-size:14px;padding:8px 12px;border-radius:9px;border:1px solid #0b6f79;cursor:pointer;background:${i ? "#fff;color:#0b6f79" : "#0b6f79;color:#fff"}`;
-      b.onclick = () => { row.remove(); res(k); }; row.append(b); });
-    box.append(row);
-  });
-  const b64 = (buf) => { const u = new Uint8Array(buf); let x = ""; for (let i = 0; i < u.length; i += 32768) x += String.fromCharCode.apply(null, u.subarray(i, i + 32768)); return btoa(x); };
-  const saveFile = (files) => {
-    const blob = new Blob([JSON.stringify({type: "emaktab-bundle", v: 1, files: files.map((f) => ({name: f.name, b64: b64(f.data)}))})], {type: "application/json"});
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "emaktab_jurnallar.json"; document.body.append(a); a.click(); a.remove();
-  };
-  const get = async (u) => { const r = await fetch(u, {credentials: "include"}); if (!r.ok) throw new Error("HTTP " + r.status); return r; };
+/* eMaktab sahifalarini o'qish: xatcho'p (emkGrab) va ilovaning o'zidan import (emk-server.js) uchun umumiy.
+   emkGrab ichiga matn bo'lib qo'yiladi (emkCode, tests/make_emk.mjs), shuning uchun tashqi nomlarga tayanmaydi. */
+function emkLib() {
   // html[k] === "{" dan boshlangan JSON obyektini o'qiydi (qavslar sanaladi, satr ichidagilari hisobga olinmaydi)
   const jsonAt = (html, k) => {
     if (k < 0 || html[k] !== "{") return null;
@@ -3873,6 +3838,49 @@ function emkGrab() {
     for (const [c, subject, href] of pend) push(c.name, subject, href);
     return jobs;
   };
+  return {jsonAt, state, jref, catalog};
+}
+/* ───────── emaktab.uz saytidan to'g'ridan-to'g'ri (xatcho'p) ─────────
+   Brauzer bu ilovaga emaktab.uz ga o'zi kirishga ruxsat bermaydi. Shuning uchun o'qituvchi emaktab'ga kirgan holda
+   xatcho'pni bosadi: emkGrab() emaktab sahifasining ichida ishlaydi, Excel jurnallarni o'sha yerdan oladi va
+   postMessage bilan shu ilovaga yuboradi. Login/parol hech qayerga uzatilmaydi.
+   Bir bosishda (Akmal, 2026-11-06): schools.emaktab.uz ning istalgan sahifasida ishlaydi, chorak so'ralmaydi — joriy chorak va
+   ilovada hali yo'q oldingi choraklar olinadi (ilova «jurnal-ready» javobida qaysi choraklari borligini aytadi), ilova oynasi
+   ochilmasa bitta «Ilovaga yuborish» tugmasi chiqadi, ish tugagach oyna o'zi yopiladi. */
+function emkGrab() {
+  const APP = "__APP__", AO = new URL(APP).origin;
+  const box = document.createElement("div");
+  box.style.cssText = "position:fixed;top:12px;right:12px;z-index:2147483647;background:#fffdf8;color:#1b2a2f;border:2px solid #0b6f79;border-radius:14px;padding:12px 16px;font:15px/1.4 serif;max-width:360px;box-shadow:0 10px 30px rgba(0,0,0,.25);white-space:pre-line";
+  const say = (t) => { box.textContent = "📒 Yo'qlama jurnali\n" + t; };
+  document.body.appendChild(box);
+  if (location.hostname !== "schools.emaktab.uz") {
+    if (/(^|\.)emaktab\.uz$/.test(location.hostname) && !/^login\./.test(location.hostname)) {
+      say("eMaktab sahifasi ochilmoqda… Ochilgach, xatcho'pni yana bir bor bosing."); location.href = "https://schools.emaktab.uz/v2/myclasses";
+    } else say("Avval emaktab.uz ga kiring, so'ng xatcho'pni bosing.");
+    setTimeout(() => box.remove(), 8000); return;
+  }
+  // ilova javobi: {type: "jurnal-ready", have: [{n: sinf, s: fan, q: [jurnalda belgisi bor choraklar]}]} (have — eski ilovada yo'q)
+  let ready = false, have = null;
+  addEventListener("message", (e) => { if (e.origin === AO && e.data && e.data.type === "jurnal-ready") { ready = true; if (Array.isArray(e.data.have)) have = e.data.have; } });
+  const ping = (w) => { try { w.postMessage({type: "emaktab-ping"}, AO); } catch (e) {} };
+  const waitApp = async (w, ms, need) => { for (let t = 0; t < ms / 200 && !(ready && (!need || have)) && !w.closed; t++) { ping(w); await new Promise((r) => setTimeout(r, 200)); } };
+  // ilova oynasi ochilmasa ham (qalqib chiquvchi oyna to'silgan, telefon) oxirida «Ilovaga yuborish» tugmasi chiqadi
+  let w = null; try { w = window.open(APP + "#emaktab", "yoqlama_jurnal"); } catch (e) { w = null; }
+  const btns = (opts) => new Promise((res) => {
+    const row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-top:10px";
+    opts.forEach(([k, l], i) => { const b = document.createElement("button"); b.textContent = l; b.dataset.emk = k;
+      b.style.cssText = `font:inherit;font-size:14px;padding:8px 12px;border-radius:9px;border:1px solid #0b6f79;cursor:pointer;background:${i ? "#fff;color:#0b6f79" : "#0b6f79;color:#fff"}`;
+      b.onclick = () => { row.remove(); res(k); }; row.append(b); });
+    box.append(row);
+  });
+  const b64 = (buf) => { const u = new Uint8Array(buf); let x = ""; for (let i = 0; i < u.length; i += 32768) x += String.fromCharCode.apply(null, u.subarray(i, i + 32768)); return btoa(x); };
+  const saveFile = (files) => {
+    const blob = new Blob([JSON.stringify({type: "emaktab-bundle", v: 1, files: files.map((f) => ({name: f.name, b64: b64(f.data)}))})], {type: "application/json"});
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "emaktab_jurnallar.json"; document.body.append(a); a.click(); a.remove();
+  };
+  const get = async (u) => { const r = await fetch(u, {credentials: "include"}); if (!r.ok) throw new Error("HTTP " + r.status); return r; };
+  // sahifa tahlili (sinflar ro'yxati, jurnal holati) — emkLib(): ilovaning o'zidan importda ham shu kod ishlatiladi
+  const {jsonAt, state, catalog} = (__EMKLIB__)();
   (async () => {
     say("Sinflar ro'yxati o'qilmoqda…");
     const r0 = await get("/v2/myclasses");
@@ -3933,7 +3941,7 @@ function emkGrab() {
   })().catch((e) => say("✗ " + e.message));
 }
 const appUrl = () => location.origin + location.pathname.replace(/index\.html$/, "");
-const emkCode = () => `(${emkGrab.toString().replace("__APP__", appUrl())})()`;
+const emkCode = () => `(${emkGrab.toString().replace("__APP__", appUrl()).replace("__EMKLIB__", () => emkLib.toString())})()`;
 // xatcho'p manzili: kodlangan (telefon manzil maydoni qator o'tkazishni o'chiradi — «//» izohlar qolgan kodni yutib yuborardi)
 // kompyuter xatcho'pi ham har bosilganda eng yangi kodni saytdagi emk.js dan yuklaydi — ilova yangilansa xatcho'pni qayta qo'shish
 // shart emas (Akmal, 2026-11-05). emk.js yuklanmasa (internet yo'q, sayt to'sib qo'ysa) ichidagi zaxira nusxa ishlaydi.
@@ -4007,13 +4015,19 @@ function emkDialog(tab = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)
       <div>• xatcho'p saqlagan <b>emaktab_jurnallar.json</b> fayli;<br>• emaktab'dan yuklab olingan <b>«Fan jurnali» Excel</b> fayllari (.xls / .xlsx).</div>
       <div><button class="btn btn-primary" data-pick>📂 Fayllarni tanlash</button></div>
       <div class="muted">Kompyuterda fayllarni ilova oynasiga sichqoncha bilan sudrab tashlasangiz ham bo'ladi.</div></div>`};
+  const srv = typeof EMKS !== "undefined" && EMKS.on();
   modal(`<h2>emaktab.uz saytidan import</h2>
+    ${srv ? `<div class="card ek-acc"><span class="ek-ic" aria-hidden="true">e</span><span class="ek-tx"><b>Ilovaning o'zidan</b><small>${EMKS.linked() ? `Hisob ulangan: ${esc(EMKS.user())}` : "Login va parol bilan, xatcho'psiz — telefonda ham"}</small></span>
+      ${EMKS.linked() ? `<button class="btn btn-sm" data-ekun>Uzish</button>` : ""}<button class="btn btn-sm btn-primary" data-eksync>🔄 Yangilash</button></div>
+      <div class="muted">Yoki xatcho'p orqali:</div>` : ""}
     ${web ? "" : `<div class="card warnbox">Xatcho'p va konsol usuli faqat ilova saytdan ochilganda ishlaydi: <b>https://akmal1st.github.io/yoqlama-jurnal/</b></div>`}
     <div class="muted">Ilova emaktab.uz ga o'zi kira olmaydi (brauzer ruxsat bermaydi), shuning uchun jurnallarni emaktab sahifasining o'zida turib olamiz. Login va parol hech qayerga yuborilmaydi.</div>
     <div class="seg tabs">${T.map(([k, n]) => `<button class="${k === tab ? "on" : ""}" data-et="${k}">${n}</button>`).join("")}</div>
     ${body[tab]}
     <div class="hrow"><span class="sp"></span><button class="btn" data-x>Yopish</button></div>`, (mm, close) => {
     const bm = $("#emkbm", mm); if (bm) bm.href = emkBookmark();
+    const es = $("[data-eksync]", mm); if (es) es.onclick = () => { close(); EMKS.sync(); };
+    const eu = $("[data-ekun]", mm); if (eu) eu.onclick = () => { EMKS.unlink(); close(); emkDialog(tab); };
     $("[data-x]", mm).onclick = () => close();
     mm.querySelectorAll("[data-et]").forEach((b) => b.onclick = () => { close(); emkDialog(b.dataset.et); });
     // nusxalab bo'lmasa — kodni maydonda ko'rsatamiz, qo'lda belgilab nusxalanadi

@@ -3580,6 +3580,110 @@ test("Umumiy Telegram bot: bitta tugma bilan ulanish, zaxira va kunlik hisobot s
 });
 
 // Google Apps Script serveri (bot-server/gas/Code.gs): Cloudflare workers.dev O'zbekistonda VPN'siz ochilmadi.
+// Ilovaning o'zidan eMaktab importi: ilova → Google serveri (Node'da) → soxta emaktab.uz. Kirish, rasmdagi kod, seans, 36 va 18 o'quvchi
+test("eMaktab: ilovaning o'zidan import — login, rasmdagi kod, seans saqlanadi, parol saqlanmaydi (36 va 18 o'quvchi)", async () => {
+  const XLSX = (await import("xlsx")).default;
+  const xlsOf = (cls, subj, n) => { const rows = [[`Sinf: ${cls} 2026/2027`], [`Fan: ${subj}`], [], ["№", "F.I.Sh.", "Noyabr"], [null, null, 4]];
+    for (let i = 1; i <= n; i++) rows.push([i, `O'quvchi ${cls} ${String(i).padStart(2, "0")}`, 5 + (i % 5)]);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), subj); return XLSX.write(wb, {type: "buffer", bookType: "xls"}); };
+  const XLS = {22: xlsOf("6-A", "Matematika", 36), 23: xlsOf("9-A", "Algebra", 18)};
+  const PNG = Buffer.from("89504e470d0a1a0a0000000d4948445200000001000000010806000000" + "1f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082", "hex");
+  const loginPage = `<html><body><form action="/login" method="post"><input name="login" type="text"><input name="password" type="text" class="password">
+    <input type="hidden" name="Captcha.Id" value=""><input name="Captcha.Input" type="text"><img class="captcha__image" alt="captcha image"><button type="submit">Kirish</button></form>
+    <script>var c = JSON.parse('\\x7b\\x22imagePart\\x22:\\x22https:\\/\\/login.emaktab.uz\\/captcha\\/true\\/\\x22\\x7d');</script></body></html>`;
+  const st = {valid: new Set(), guid: "", posts: []};
+  const ok = (opt) => st.valid.has(((opt.headers || {}).Cookie || "").match(/sess=(\w+)/)?.[1]);
+  const G = makeGas({emk: (url, opt) => {
+    const u = new URL(url);
+    if (u.host === "login.emaktab.uz" && u.pathname === "/") return {status: 200, headers: {"Content-Type": "text/html; charset=utf-8", "Set-Cookie": "lg=1; path=/"}, body: loginPage};
+    if (u.host === "login.emaktab.uz" && u.pathname.startsWith("/captcha/true/")) { st.guid = u.pathname.split("/").pop(); return {status: 200, headers: {"Content-Type": "image/png"}, body: PNG}; }
+    if (u.host === "login.emaktab.uz" && u.pathname === "/login") {
+      const f = Object.fromEntries(new URLSearchParams(opt.payload)); st.posts.push(f);
+      if (f.login !== "akmal" || f.password !== "maxfiy123" || !f["Captcha.Input"]) return {status: 200, headers: {"Content-Type": "text/html"}, body: loginPage};
+      if (f["Captcha.Input"] !== "4827" || f["Captcha.Id"] !== st.guid) return {status: 200, headers: {"Content-Type": "text/html"}, body: loginPage};
+      const sid = "s" + st.valid.size; st.valid.add(sid);
+      return {status: 302, headers: {Location: "https://schools.emaktab.uz/v2/myclasses", "Set-Cookie": [`sess=${sid}; domain=.emaktab.uz; path=/; HttpOnly`]}};
+    }
+    if (!ok(opt)) return {status: 302, headers: {Location: "https://login.emaktab.uz/"}};
+    if (u.pathname === "/v2/myclasses") return {status: 200, headers: {"Content-Type": "text/html"}, body: `<html><body><script>window.__TEACHERV2__INITIAL__STATE__ = {"groups": {"groups": ${JSON.stringify([
+      {name: "6-A", journal: [{subjectName: "Matematika", journalUrl: "https://emaktab.uz/journal/school/11/group/22/subject/33?periodId=77"}]},
+      {name: "9-A", journal: [{subjectName: "Algebra", journalUrl: "https://emaktab.uz/journal/school/11/group/23/subject/34?periodId=78"}]}])}}};</script><form action="/logout"></form></body></html>`};
+    if (u.pathname.startsWith("/journal/")) return {status: 200, headers: {"Content-Type": "text/html"}, body: `<script>window.__JOURNAL__INITIAL__STATE__ = {"journalHeader":{"currentPeriodId":${u.pathname.includes("/22/") ? 77 : 78}}};</script>`};
+    if (u.pathname === "/v2/excel") return {status: 200, headers: {"Content-Type": "application/vnd.ms-excel"}, body: XLS[u.searchParams.get("group")]};
+    return {status: 404, headers: {}, body: ""};
+  }});
+  const GAS = "https://script.google.com/macros/s/TEST/exec";
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const vp of [{width: 390, height: 844}, {width: 1280, height: 800}]) {
+      st.valid.clear(); st.posts.length = 0; G.log.length = 0;
+      const ctx = await browser.newContext({viewport: vp});
+      await ctx.addInitScript((u) => localStorage.setItem("yoqlama_tgu_url", u), GAS);
+      const direct = [];
+      await ctx.route(/emaktab\.uz/, (rt) => { direct.push(rt.request().url()); return rt.abort(); });   // ilova eMaktab'ga o'zi bormaydi
+      await ctx.route("https://script.google.com/**", (rt) => { const rq = rt.request();
+        return rt.fulfill({status: 200, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: G.handle(rq.method(), rq.url(), rq.postData())}); });
+      const page = await ctx.newPage(); const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.goto(APP);
+      await page.evaluate(() => { D = normalize({classes: [{name: "5-B", subject: "Tarix", dates: [], students: [{name: "Ali", marks: {}}]}]}); save(); go("today"); });
+      assert.match(await page.textContent(".ek-sync"), /Hisob ulanmagan/);
+      await page.click("[data-ekgo]");
+      await page.fill("#eku", "akmal"); await page.fill("#ekp", "maxfiy123"); await page.click("#ekf [type=submit]");
+      // birinchi urinish kodsiz, eMaktab sahifani qaytardi → rasmdagi kod so'raladi
+      await page.waitForSelector("img.ek-cap");
+      assert.match(await page.getAttribute("img.ek-cap", "src"), /^data:image\/png;base64,/);
+      await page.fill("#ekci", "4827"); await page.click("#ekc [type=submit]");
+      await page.waitForSelector("text=eMaktab'dan yangilandi", {timeout: 20000});
+      assert.deepEqual(await page.evaluate(() => D.classes.filter((c) => c.name !== "5-B").map((c) => [c.name, c.subject, c.students.length])), [["6-A", "Matematika", 36], ["9-A", "Algebra", 18]]);
+      assert.equal(st.posts.length, 2); assert.ok(!st.posts[0]["Captcha.Input"]); assert.equal(st.posts[1]["Captcha.Id"], st.guid);
+      assert.deepEqual(direct, []);
+      // parol hech qayerda saqlanmaydi; kirish kaliti faqat alohida kalitda (jurnal ma'lumoti va zaxirada yo'q)
+      const store = await page.evaluate(() => JSON.stringify(Object.fromEntries(Object.entries(localStorage))));
+      assert.ok(!store.includes("maxfiy123"), "parol saqlanmagan");
+      assert.ok(!JSON.stringify(await page.evaluate(() => D)).includes("sess="), "jurnalda cookie yo'q");
+      assert.equal(await page.evaluate(() => EMKS.user()), "akmal");
+      assert.ok(![...G.props.keys()].some((k) => /emk|sess/i.test(k)), "server hech narsa saqlamaydi");
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      // ikkinchi marta: parol so'ralmaydi
+      await page.click(".modal.ek-res [data-x]"); await page.evaluate(() => go("today"));
+      await page.click("[data-ekgo]");
+      await page.waitForSelector(".modal.ek-res", {timeout: 20000});
+      assert.equal(st.posts.length, 2, "qayta kirilmadi");
+      assert.equal(await page.locator("#ekp").count(), 0);
+      // seans eskirdi → parol qayta so'raladi (login oldindan yozilgan)
+      await page.click(".modal.ek-res [data-x]"); await page.evaluate(() => go("today"));
+      st.valid.clear();
+      await page.click("[data-ekgo]");
+      await page.waitForSelector("text=Kirish muddati tugagan");
+      assert.equal(await page.inputValue("#eku"), "akmal");
+      await page.click(".modal.ek-sh [data-x]");
+      // Uzish: kirish kaliti o'chadi
+      await page.evaluate(() => emkDialog("pc"));
+      await page.click(".modal [data-ekun]");
+      assert.equal(await page.evaluate(() => [EMKS.linked(), localStorage.getItem("yoqlama_emk_sess")]).then((x) => JSON.stringify(x)), "[false,null]");
+      assert.deepEqual(errors, []);
+      await ctx.close();
+    }
+  } finally { await browser.close(); }
+});
+
+test("eMaktab: server kodi eski bo'lsa (404), xatcho'p yo'riqnomasi ochiladi", async () => {
+  const GAS = "https://script.google.com/macros/s/TEST/exec";
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const ctx = await browser.newContext();
+    await ctx.addInitScript((u) => localStorage.setItem("yoqlama_tgu_url", u), GAS);
+    await ctx.route("https://script.google.com/**", (rt) => rt.fulfill({status: 200, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: JSON.stringify({ok: false, error_code: 404, description: "topilmadi"})}));
+    const page = await ctx.newPage(); const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    await page.evaluate(() => { D = normalize({classes: [{name: "5-B", subject: "Tarix", dates: [], students: []}]}); save(); go("today"); });
+    await page.click("[data-ekgo]");
+    await page.waitForSelector(".modal [data-et]");
+    assert.equal(await page.locator("#ekp").count(), 0, "parol so'ralmaydi");   // emaktab yo'riqnomasi (Kompyuter/Telefon/Fayl)
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
 // Ilova → Google serveri (Node'da, GAS xizmatlari soxta) → soxta Telegram. So'rovlar JSON, fayllar base64.
 test("Umumiy bot (Google serveri): bitta tugma, zaxira fayli, guruh va kunlik hisobot (36 va 18 o'quvchi)", async () => {
   const G = makeGas({bot: "YoqlamaJurnalbot"}), TEACHER = 4242, GAS = "https://script.google.com/macros/s/TEST/exec";

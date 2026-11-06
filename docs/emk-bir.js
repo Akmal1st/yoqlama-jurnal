@@ -24,12 +24,14 @@ const EMK1 = (() => {
     if (!D.classes.length || D.classes.every((c) => isGrp(c))) return "";
     const at = D.web.emk_at, fresh = at && Date.now() - new Date(at) < 3600000;
     return `<section class="card ek-sync${tel ? " tel" : ""}"><span class="ek-ic" aria-hidden="true">e</span>
-      <span class="ek-tx"><b>eMaktab</b><small class="${fresh ? "ok" : ""}">${fresh ? `✓ Yangilandi: ${ago(at)}${D.web.emk_n ? ` · ${D.web.emk_n} jurnal` : ""}` : `Oxirgi yangilash: ${ago(at)}`}</small></span>
+      <span class="ek-tx"><b>eMaktab</b><small class="${fresh ? "ok" : ""}">${fresh ? `✓ Yangilandi: ${ago(at)}${D.web.emk_n ? ` · ${D.web.emk_n} jurnal` : ""}` : (typeof EMKS !== "undefined" && EMKS.on() && !EMKS.linked() && !at ? "Hisob ulanmagan" : `Oxirgi yangilash: ${ago(at)}`)}</small></span>
       <button class="btn btn-primary ek-go" data-ekgo>🔄 eMaktab'dan yangilash</button></section>`;
   }
   function bind(m) { m.querySelectorAll("[data-ekgo]").forEach((b) => b.onclick = start); }
-  // xatcho'p qo'shilgan bo'lsa — eMaktab ochiladi, u yerda xatcho'p bosiladi; hali qo'shilmagan bo'lsa — yo'riqnoma
+  // ilovaning o'zidan (server orqali, emk-server.js) — asosiy yo'l (Akmal, 2026-11-06). Server bo'lmasa: xatcho'p qo'shilgan bo'lsa —
+  // eMaktab ochiladi, u yerda xatcho'p bosiladi; hali qo'shilmagan bo'lsa — yo'riqnoma
   function start() {
+    if (typeof EMKS !== "undefined" && EMKS.on()) { EMKS.sync(); return; }
     if (!D.web.emk_bm) { emkDialog(); return; }
     let w = null; try { w = window.open("https://schools.emaktab.uz/v2/myclasses", "emaktab"); } catch (e) { w = null; }
     if (!w) { toast("eMaktab oynasi ochilmadi — emaktab.uz ni o'zingiz oching va «📒 Jurnal» xatcho'pini bosing"); return; }
