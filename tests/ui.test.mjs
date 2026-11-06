@@ -2336,6 +2336,9 @@ test("Bugun: arxivlangan chorak — xulosa bloki, Kartalar | Reyting (bugun-arxi
       const n = await page.evaluate(() => D.classes.filter((c) => !isGrp(c) && c.students.length).length);
       assert.equal(await page.locator(".ba-kt").count(), n);
       assert.equal(await page.locator(".clsstat").count(), 0);
+      // 🏆/⚠ ikonka matn yonida turadi (ikon.js span'i "span{flex:1}" bilan cho'zilmasin)
+      for (const g of await page.evaluate(() => [...document.querySelectorAll(".ba-h button")].map((bt) => { const i = bt.querySelector(".bi").getBoundingClientRect(), t = bt.querySelector("span:not(.bi):not(.bi-t)").getBoundingClientRect(); return [i.width, t.left - i.right]; })))
+        assert.ok(g[0] < 30 && g[1] < 16, `ikonka ${g}`);
       await page.click("[data-baxv=r]");
       assert.equal(await page.locator(".ba-rr").count(), n);
       await page.click("[data-baxm=att]");

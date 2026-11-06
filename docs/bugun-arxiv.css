@@ -11,7 +11,7 @@ html[data-theme="dark"] .bn{--ba-lock-s:#221d3d}
 .ba-k .ba-bad{color:var(--danger)}
 .ba-h{display:flex;flex-direction:column;gap:6px;margin-top:10px}
 .ba-h button{display:flex;gap:8px;align-items:center;font:inherit;font-size:13px;color:var(--text);background:var(--base);border:0;border-radius:10px;padding:7px 10px;cursor:pointer;text-align:left}
-.ba-h button span{flex:1}
+.ba-h button>span:not(.bi){flex:1}
 .ba-a{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .ba-a .btn{flex-shrink:0;min-width:max-content}
 .ba-c{background:var(--base);border-radius:12px;padding:12px 12px 8px;display:flex;flex-direction:column;gap:6px}
