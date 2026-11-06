@@ -3104,6 +3104,10 @@ test("chorak arxivi: tugagan chorak qulflanadi, vaqtincha ochiladi, «Bugun» es
       await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
       await page.waitForSelector(".ax-today");
       assert.match(await page.textContent(".ax-today"), /1-chorak 29\.10 da tugadi/);
+      // tekshiruv ro'yxati: kompyuterda jadval, telefonda kartochkalar; raqam — «qo'yilgan / jami»
+      const chk = vp.width > 820 ? ".ax-ctbl" : ".ax-cpl";
+      if (await page.locator(".ax-today [data-axfix]").count()) { assert.ok(await page.isVisible(chk)); assert.match(await page.textContent(chk), /\d+ \/ \d+/); }
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "yonga chiqmaydi");
       assert.equal(await page.evaluate(() => ARX.lockedQ(1)), false);
       const d0 = await page.evaluate(() => { D.web.past = "all"; D.settings.protect.enabled = false; const c = D.classes[0]; return c.dates.find((d) => d < "2026-10-29" && !isNoLesson(c, d) && !c.students[0].marks[d]); });
       assert.equal(await page.evaluate((d) => putMark(D.classes[0], 0, d, "7"), d0), true, "muddat ichida o'zgartirish mumkin");

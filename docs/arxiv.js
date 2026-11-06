@@ -160,6 +160,20 @@ const ARX = (() => {
       return {c, ci, noF, noS};
     });
   }
+  /* kamchiligi bor sinflar: kompyuterda jadval, telefonda kartochkalar (arxiv-tekshir.css) — «qo'yilgan / jami» va chiziq
+     (Akmal tasdiqlagan maket, 2026-11-06: oldingi «32 o'quvchida chorak bahosi yo'q · …» qatori o'qishga noqulay edi) */
+  function meter(miss, n, cap) {
+    const has = n - miss, pct = n ? Math.round((has / n) * 100) : 0, cls = !miss ? "ok" : has * 2 < n ? "bad" : "";
+    return `<div class="ax-m2 ${cls}">${cap ? `<small>${cap}</small>` : ""}<span>${miss ? `${has} <em>/ ${n}</em>` : "✓ hammasi"}</span><div class="ax-mb"><i style="width:${pct}%"></i></div></div>`;
+  }
+  function chkList(bad, q) {
+    const btn = (g) => `<button class="btn btn-sm${g.noF ? " btn-primary" : ""}" data-axfix="${g.ci}|${q}">${g.noF ? "Qo'yish" : "Kiritish"}</button>`;
+    const n = (g) => g.c.students.length;
+    return `<table class="ax-ctbl"><thead><tr><th>Sinf</th><th>Chorak bahosi</th><th>BSB/CHSB ballari</th><th></th></tr></thead><tbody>
+      ${bad.map((g) => `<tr><td class="ax-cn"><b>${esc(label(g.c))}</b><small>${n(g)} o'quvchi</small></td><td>${meter(g.noF, n(g))}</td><td>${meter(g.noS, n(g))}</td><td class="ax-ca">${btn(g)}</td></tr>`).join("")}</tbody></table>
+      <div class="ax-cpl">${bad.map((g) => `<div class="ax-cp"><div class="ax-cph"><b>${esc(label(g.c))}</b><small>${n(g)} o'q.</small>${btn(g)}</div>
+        <div class="ax-cpg">${meter(g.noF, n(g), "Chorak bahosi")}${meter(g.noS, n(g), "BSB/CHSB")}</div></div>`).join("")}</div>`;
+  }
   function todayCard(tel) {
     const q = pending(); if (!q) return "";
     const r = qRange(q), left = days(todayIso(), due(q)), G = gaps(q), bad = G.filter((g) => g.noF || g.noS), ok = G.filter((g) => !g.noF && !g.noS);
@@ -168,8 +182,9 @@ const ARX = (() => {
         <div class="ax-acts"><button class="btn btn-sm btn-primary" data-axnow="${q}">🗄 Hozir arxivlash</button><button class="btn btn-sm" data-axpage="${q}">Batafsil</button></div></div>
         <div class="ax-cd"><b>${left}</b><small>kun</small></div></div>
       <div class="ax-chk"><div class="ax-chh"><b>Arxivlashdan oldin tekshiring</b>${bad.length ? `<span class="ax-chip warn">${bad.length} ta sinfda kamchilik</span>` : `<span class="ax-chip ok">✓ Tayyor</span>`}</div>
-        ${ok.length ? `<div class="ax-ci"><span class="ax-d ok">✓</span><span class="ax-ct">${ok.map((g) => esc(label(g.c))).join(", ")} — chorak baholari qo'yilgan</span></div>` : ""}
-        ${bad.map((g) => `<div class="ax-ci"><span class="ax-d w">!</span><span class="ax-ct"><b>${esc(label(g.c))}</b> · ${[g.noF ? `${g.noF} o'quvchida chorak bahosi yo'q` : "", g.noS ? `${g.noS} o'quvchida BSB/CHSB balli yo'q` : ""].filter(Boolean).join(" · ")}</span><button class="btn btn-sm" data-axfix="${g.ci}|${q}">${g.noF ? "Qo'yish" : "Kiritish"}</button></div>`).join("")}
+        ${bad.length ? chkList(bad, q) : ""}
+        ${ok.length ? `<div class="ax-okl">✓ ${ok.map((g) => esc(label(g.c))).join(", ")}: hammasi qo'yilgan</div>` : ""}
+        ${bad.length ? `<div class="ax-leg">Raqam: qo'yilganlar / jami o'quvchi. Qizil: yarmidan kami qo'yilgan.</div>` : ""}
       </div></section>`;
   }
 
