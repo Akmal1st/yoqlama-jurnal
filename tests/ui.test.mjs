@@ -3461,6 +3461,10 @@ test("Umumiy Telegram bot: bitta tugma bilan ulanish, zaxira va kunlik hisobot s
     const t = new URL(goTo[0]).searchParams.get("start");
     assert.equal(t, await page.evaluate(() => tgCfg().pend.t));
     await page.waitForSelector("text=Boshlash");
+    // server ochilmasa (provayder to'sgan) — «ulanmoqda» da qotmaydi, ogohlantirish chiqadi; ochilganda davom etadi
+    await ctx.route("https://bot.test/link/**", (rt) => rt.abort("connectionrefused"));
+    await page.waitForSelector("text=Serverga ulanib bo'lmadi", {timeout: 15000});
+    await ctx.unroute("https://bot.test/link/**");
     // o'qituvchi Telegram'da «Boshlash» bosadi
     await hook({message: {from: {id: TEACHER, first_name: "Dilnoza", last_name: "Karimova"}, chat: {id: TEACHER, type: "private"}, text: "/start " + t}});
     await page.bringToFront();

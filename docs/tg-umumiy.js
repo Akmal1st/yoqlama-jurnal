@@ -30,13 +30,14 @@ const TGU = (() => {
   }
   function cancel() { tgSet({pend: null}); render(); }
 
-  let timer = 0, busy = false;
+  let timer = 0, busy = false, fails = 0;   // fails — server ketma-ket ochilmagan urinishlar (provayder to'sishi mumkin)
   async function check() {
     const p = pend(); if (!p) { if (tgCfg().pend) { tgSet({pend: null}); render(); } return false; }
     if (busy || navigator.onLine === false) return true;
     busy = true;
     try {
       const r = await (await fetch(`${url()}/link/${p.t}`, {cache: "no-store"})).json();
+      if (fails >= 3) { fails = 0; render(); } else fails = 0;
       if (r.st === "ok") {
         tgSet({key: r.key, chat: r.chat, bot: r.bot, mode: "shared", token: undefined, pend: null, hash: "", seen: 0});
         TG_NEW = null; render(); toast("✈️ Telegram ulandi — birinchi zaxira yuborilmoqda");
@@ -45,7 +46,7 @@ const TGU = (() => {
       }
       if (r.st === "wait" && !p.wait) { tgSet({pend: Object.assign(p, {wait: true})}); render(); }
       if (r.st === "no") { tgSet({pend: null}); render(); toast("Admin so'rovni rad etdi"); return false; }
-    } catch (e) { /* tarmoq — keyingi urinishda */ }
+    } catch (e) { if (++fails === 3) render(); }   // tarmoq — keyingi urinishda; 3 martadan keyin ogohlantiramiz
     finally { busy = false; }
     return true;
   }
@@ -61,7 +62,7 @@ const TGU = (() => {
   // Sozlamalar → Ma'lumotlar: «Telegram» qatori (ulanmagan holat)
   function offRow(row) {
     const p = pend();
-    if (p) return row("tg", "✈️ Telegram", p.wait ? `<span class="sz-warn-t">Admin tasdig'i kutilmoqda.</span> Tasdiqlangach ilova o'zi ulanadi, ilovani yopsangiz ham bo'ladi.`
+    if (p) return row("tg", "✈️ Telegram", fails >= 3 ? `<span class="sz-warn-t">Serverga ulanib bo'lmadi.</span> Internet provayderingiz uni to'sayotgan bo'lishi mumkin — VPN yoqib qayta urinib ko'ring. Ilova urinishda davom etadi.` : p.wait ? `<span class="sz-warn-t">Admin tasdig'i kutilmoqda.</span> Tasdiqlangach ilova o'zi ulanadi, ilovani yopsangiz ham bo'ladi.`
         : "Telegram ochildi. Bot birinchi marta ochilayotgan bo'lsa, Telegram pastda «Boshlash» tugmasini ko'rsatadi — uni bosing. Ilova o'zi ulanadi.",
       `<button class="btn btn-sm" data-a="tguon">↻ Qayta ochish</button><button class="btn btn-sm" data-a="tgucancel">Bekor qilish</button>`, "wide");
     return row("tg", "✈️ Telegram", "Bitta tugma: Telegram ochiladi va ilova o'zi ulanadi. Zaxira, kunlik hisobot rasmlari va PDF hisobotlar shu botga keladi. Telefon yo'qolsa ham jurnal saqlanib qoladi.",
