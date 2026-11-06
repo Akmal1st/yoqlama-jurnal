@@ -35,5 +35,6 @@
 }
 @media (prefers-reduced-motion:reduce){.alf-sec .alf-tg::after{transition:none}}
 /* yon paneldagi tezkor tugma */
-.side .alf-chip{display:flex;align-items:center;gap:8px;justify-content:flex-start}
+.side .alf-chip{display:flex;align-items:center;gap:6px;justify-content:center}
+.side .alf-chip .lbl{flex:none}
 .side .alf-chip .bi{color:var(--acc)}
