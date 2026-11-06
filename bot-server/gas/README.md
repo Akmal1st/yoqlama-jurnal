@@ -25,6 +25,7 @@ Bot allaqachon bor bo'lsa (@YoqlamaJurnalbot), 1-qadamni o'tkazib yuboring.
    Oxirida **Web app URL** chiqadi: `https://script.google.com/macros/s/…/exec` — nusxa oling.
 5. **Ishga tushirish.** Brauzerda oching: `<Web app URL>?a=setup&s=<SETUP_SECRET>`
    Javobda `"ok":true` va bot nomi chiqsa — tayyor. Bu qadam har daqiqalik triggerni ham o'zi qo'shadi.
+   Manzilning o'zi ochilganda `"v"` (kod versiyasi) va `"tick":true` (trigger bor) ko'rinadi.
 6. **Ilovaga ulash.** Web app URL ni Claude'ga yuboring — u `docs/tg-umumiy.js` dagi `URL0` ga yoziladi.
 
 > Cloudflare'da ham shu bot ulangan bo'lsa, u endi kerak emas: 5-qadam Telegram webhook'ini o'chiradi.

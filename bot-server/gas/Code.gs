@@ -11,7 +11,7 @@
    Script Properties (qo'lda kiritiladi): BOT_TOKEN, ADMIN_IDS ("123,456"), SETUP_SECRET.  Yo'riqnoma: bot-server/gas/README.md */
 
 var APP_URL = "https://akmal1st.github.io/yoqlama-jurnal/";
-var VER = 3;   // kod versiyasi: manzil ochilganda ko'rinadi — Apps Script'da yangilangani shu bilan tekshiriladi
+var VER = 4;   // kod versiyasi: manzil ochilganda ko'rinadi — Apps Script'da yangilangani shu bilan tekshiriladi
 var LINK_TTL = 30 * 60;   // soniya: tugma bosilgandan «Boshlash» xabarigacha (xabar vaqti bo'yicha, serverga yetib kelish vaqti emas)
 var T_RE = /^[A-Za-z0-9_-]{16,64}$/;
 var METHODS = {sendMessage: 0, sendPhoto: 0, sendDocument: 0, pinChatMessage: 0, unpinChatMessage: 0, deleteMessage: 0,
@@ -100,7 +100,10 @@ function processUpdates_() {
   if (!lock.tryLock(8000)) return;
   try {
     var off = Number(env_("c:off") || 0);
-    var r = tg_("getUpdates", {offset: off, timeout: 0, limit: 100, allowed_updates: ["message", "callback_query", "my_chat_member"]});
+    var q = {offset: off, timeout: 0, limit: 100, allowed_updates: ["message", "callback_query", "my_chat_member"]};
+    var r = tg_("getUpdates", q);
+    // 409: botda boshqa server (masalan, eski Cloudflare) webhook'i turibdi — xabarlar u yerga ketadi. O'chirib, qayta olamiz
+    if (r.error_code === 409) { tg_("deleteWebhook", {drop_pending_updates: false}); r = tg_("getUpdates", q); }
     (r.result || []).forEach(function (up) {
       P_().setProperty("c:off", String(up.update_id + 1));
       try {
