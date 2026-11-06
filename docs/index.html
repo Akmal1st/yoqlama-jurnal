@@ -30,6 +30,7 @@
 <link rel="stylesheet" href="kunlik.css">
 <link rel="stylesheet" href="arxiv.css">
 <link rel="stylesheet" href="ikon.css">
+<link rel="stylesheet" href="emk-bir.css">
 </head>
 <body>
 <div class="app" id="app">
@@ -54,6 +55,7 @@
 <script src="pdf-tg.js"></script>
 <script src="tg-umumiy.js"></script>
 <script src="arxiv.js"></script>
+<script src="emk-bir.js"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
@@ -3769,49 +3771,16 @@ async function expandFiles(files) {
   }
   return out;
 }
-async function importEmaktabFiles(files) {
-    toast("Fayl o'qilmoqda…");
-    let found = [];
-    try { files = await expandFiles(files); for (const file of files) found = found.concat(await readEmaktabFile(file)); }
-    catch (e) { toast("Faylni o'qib bo'lmadi: " + e.message); return; }
-    if (!found.length) { toast("Faylda emaktab «Fan jurnali» topilmadi (\"Sinf:\" qatori yo'q)"); return; }
-    const ok = await modal(`<h2>emaktab'dan import</h2><div class="muted">Faylda ${found.length} ta jurnal topildi:</div>
-      ${found.map((x, i) => { const [ex] = findClass(x.name, x.subject); return `<label class="hrow" style="gap:8px"><input type="checkbox" data-i="${i}" checked style="width:20px;height:20px">
-        <span class="sp"><b>${esc(x.name)}${x.subject ? " · " + esc(x.subject) : ""}</b> — ${x.students.length} o'quvchi, ${x.dates.length} kun${x.works.length ? `, ${x.works.length} summativ ish` : ""}${x.quarter ? `, ${x.quarter.q}-chorak` : ""}
-        <span class="muted">${ex ? "→ mavjud jurnalga qo'shiladi" : "→ yangi sinf"}</span></span></label>`; }).join("")}
-      <div class="muted">Mavjud jurnalda fayl qamrab olgan sanalardagi kundalik baholar va yo'qlama fayldagisi bilan <b>to'liq almashtiriladi</b>: faylda yo'q belgilar o'chiriladi. BSB/CHSB ballari o'zgarmaydi (faqat bo'sh kataklar to'ldiriladi).</div>
-      <div class="hrow"><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn btn-primary" data-ok>Import qilish</button></div>`, (mm, close) => {
-      $("[data-x]", mm).onclick = () => close(null);
-      $("[data-ok]", mm).onclick = () => close({pick: [...mm.querySelectorAll("[data-i]")].filter((x) => x.checked).map((x) => +x.dataset.i)});
-    });
-    if (!ok || !ok.pick.length) return;
-    if (ok.pick.some((i) => findClass(found[i].name, found[i].subject)[0]) && isLocked() && !await unlock()) return;
-    const reps = ok.pick.map((i) => mergeImport(found[i], true)); autoDates(); save();
-    S.ci = Math.max(0, D.classes.findIndex((c) => label(c) === reps[0].name));
-    modal(`<h2>Import yakunlandi</h2>${reps.map((r) => `<div class="card vcol" style="gap:4px;padding:12px 14px"><b>${esc(r.name)}${r.created ? " (yangi sinf)" : ""}</b>
-      <div>Yangi kunlar: ${r.new_dates.length} · yangi o'quvchilar: ${r.new_students.length} · topilgan: ${r.matched}</div>
-      <div>Qo'yilgan belgilar: ${r.filled}${r.replaced ? ` · almashtirildi: ${r.replaced}` : ""}${r.removed ? ` · o'chirildi: ${r.removed}` : ""}${r.kept ? ` · jurnaldagisi qoldirildi: ${r.kept}` : ""}${r.same ? ` · bir xil: ${r.same}` : ""}</div>
-      ${r.new_works || r.s_filled ? `<div>Summativ ishlar: +${r.new_works} · ballar: ${r.s_filled}</div>` : ""}
-      ${r.inactive ? `<div class="muted">Faylda bor, lekin faolsiz: ${esc(r.inactive.join(", "))} — baholari saqlandi, jurnalda ko'rinmaydi</div>` : ""}
-      ${r.quarter_new ? `<div>${r.quarter_new}-chorak sanalari fayldan olindi</div>` : ""}
-      ${r.arx ? `<div>🔒 Arxivdagi chorak: ${r.arx} ta belgi o'zgartirilmadi</div>` : ""}
-      ${r.absent.length ? `<div class="muted">Faylda yo'q o'quvchilar: ${esc(r.absent.slice(0, 8).join(", "))}${r.absent.length > 8 ? "…" : ""}</div>
-        <div><button class="btn btn-sm" data-absent="${esc(r.name)}">⏸ Faylda yo'q ${r.absent.length} ta o'quvchini faolsizlantirish…</button></div>` : ""}
-      ${Object.keys(r.skipped).length ? `<div class="muted">O'qilmagan qiymatlar: ${esc(Object.entries(r.skipped).map(([k, v]) => `«${k}» ×${v}`).join(", "))}</div>` : ""}</div>`).join("")}
-      <div class="hrow"><span class="sp"></span><button class="btn btn-primary" data-x>Jurnalni ochish</button></div>`, (mm, close) => {
-      $("[data-x]", mm).onclick = () => close();
-      mm.querySelectorAll("[data-absent]").forEach((b) => b.onclick = () => {
-        const r = reps.find((x) => x.name === b.dataset.absent), ci = D.classes.findIndex((c) => label(c) === r.name);
-        close("rm"); S.ci = ci; S.jpage = "j"; go("journal");
-        studentsDialog(ci, r.absent, "Belgilanganlar emaktab faylida yo'q (boshqa sinfga o'tgan yoki maktabdan ketgan bo'lishi mumkin).");
-      });
-    }).then((v) => { if (v !== "rm") { S.jpage = "j"; go("journal"); } });
-}
+// tasdiq oynasisiz import, natija va «Bekor qilish» — emk-bir.js (Akmal, 2026-11-06)
+function importEmaktabFiles(files, opts) { return EMK1.run(files, opts || {}); }
 
 /* ───────── emaktab.uz saytidan to'g'ridan-to'g'ri (xatcho'p) ─────────
    Brauzer bu ilovaga emaktab.uz ga o'zi kirishga ruxsat bermaydi. Shuning uchun o'qituvchi emaktab'ga kirgan holda
    xatcho'pni bosadi: emkGrab() emaktab sahifasining ichida ishlaydi, Excel jurnallarni o'sha yerdan oladi va
-   postMessage bilan shu ilovaga yuboradi. Login/parol hech qayerga uzatilmaydi. */
+   postMessage bilan shu ilovaga yuboradi. Login/parol hech qayerga uzatilmaydi.
+   Bir bosishda (Akmal, 2026-11-06): schools.emaktab.uz ning istalgan sahifasida ishlaydi, chorak so'ralmaydi — joriy chorak va
+   ilovada hali yo'q oldingi choraklar olinadi (ilova «jurnal-ready» javobida qaysi choraklari borligini aytadi), ilova oynasi
+   ochilmasa bitta «Ilovaga yuborish» tugmasi chiqadi, ish tugagach oyna o'zi yopiladi. */
 function emkGrab() {
   const APP = "__APP__", AO = new URL(APP).origin;
   const box = document.createElement("div");
@@ -3819,13 +3788,17 @@ function emkGrab() {
   const say = (t) => { box.textContent = "📒 Yo'qlama jurnali\n" + t; };
   document.body.appendChild(box);
   if (location.hostname !== "schools.emaktab.uz") {
-    say("emaktab.uz ga kiring va «Sinflarim» sahifasida shu tugmani yana bosing.");
-    if (confirm("Yo'qlama jurnali: «Sinflarim» sahifasi ochilsinmi? Ochilgach, tugmani yana bir bor bosing.")) location.href = "https://schools.emaktab.uz/v2/myclasses";
+    if (/(^|\.)emaktab\.uz$/.test(location.hostname) && !/^login\./.test(location.hostname)) {
+      say("eMaktab sahifasi ochilmoqda… Ochilgach, xatcho'pni yana bir bor bosing."); location.href = "https://schools.emaktab.uz/v2/myclasses";
+    } else say("Avval emaktab.uz ga kiring, so'ng xatcho'pni bosing.");
     setTimeout(() => box.remove(), 8000); return;
   }
-  let ready = false;
-  addEventListener("message", (e) => { if (e.origin === AO && e.data && e.data.type === "jurnal-ready") ready = true; });
-  // ilova oynasi ochilmasa ham (qalqib chiquvchi oyna to'silgan, telefon) jurnallar faylga saqlab beriladi
+  // ilova javobi: {type: "jurnal-ready", have: [{n: sinf, s: fan, q: [jurnalda belgisi bor choraklar]}]} (have — eski ilovada yo'q)
+  let ready = false, have = null;
+  addEventListener("message", (e) => { if (e.origin === AO && e.data && e.data.type === "jurnal-ready") { ready = true; if (Array.isArray(e.data.have)) have = e.data.have; } });
+  const ping = (w) => { try { w.postMessage({type: "emaktab-ping"}, AO); } catch (e) {} };
+  const waitApp = async (w, ms, need) => { for (let t = 0; t < ms / 200 && !(ready && (!need || have)) && !w.closed; t++) { ping(w); await new Promise((r) => setTimeout(r, 200)); } };
+  // ilova oynasi ochilmasa ham (qalqib chiquvchi oyna to'silgan, telefon) oxirida «Ilovaga yuborish» tugmasi chiqadi
   let w = null; try { w = window.open(APP + "#emaktab", "yoqlama_jurnal"); } catch (e) { w = null; }
   const btns = (opts) => new Promise((res) => {
     const row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-top:10px";
@@ -3909,12 +3882,11 @@ function emkGrab() {
       try { return state(await (await get(u)).text()); }
       catch (e) { const p = new URL(u); if (p.origin === location.origin) return null; try { return state(await (await get(location.origin + p.pathname)).text()); } catch (e2) { return null; } }
     };
-    const first = await journal(jobs[0].url), fp = first && first.journalHeader ? perOf(first.journalHeader) : {ps: []};
-    let all = false;
-    if (fp.cur && fp.ps.some((p) => p.number < fp.cur.number)) {
-      say(`${jobs.length} ta jurnal topildi. Qaysi chorak(lar) olinsin?`);
-      all = await btns([["cur", `Joriy chorak (${fp.cur.name})`], ["all", "Yil boshidan (barcha choraklar)"]]) === "all";
-    }
+    const first = await journal(jobs[0].url);
+    // ilovada qaysi choraklar bor — jurnal o'shandan bilinadi; ilova javob bermasa hamma choraklar olinadi (ilova keraksizini o'zi tashlaydi)
+    if (w) await waitApp(w, 4000, true);
+    const nk = (t) => String(t || "").toLowerCase().replace(/\(.*?\)/g, "").replace(/[^\p{L}\p{N}]/gu, "");
+    const hasQ = (jb) => { if (!have) return null; const x = have.find((h) => nk(h.n) === nk(jb.cls) && nk(h.s) === nk(jb.subject)); return x ? x.q || [] : null; };
     const files = [], errs = [];
     for (const [n, jb] of jobs.entries()) {
       say(`Jurnallar yuklanmoqda: ${n + 1} / ${jobs.length}\n${jb.cls} · ${jb.subject}`);
@@ -3922,28 +3894,37 @@ function emkGrab() {
         const st = n ? await journal(jb.url) : first, hd = (st && st.journalHeader) || (jb.pid ? {currentPeriodId: jb.pid} : null);
         if (!hd) throw new Error("chorak topilmadi");
         const [, school, group, subject] = jb.url.match(/\/school\/(\d+)\/group\/(\d+)\/subject\/(\d+)/);
-        const {ps, cur} = perOf(hd), want = all && cur ? ps.filter((p) => p.number <= cur.number).sort((a, b) => a.number - b.number) : [{id: hd.currentPeriodId, name: ""}];
+        // chorak raqami — tartib bo'yicha (emaktabda number 0 dan ham boshlanadi); joriy chorak doim, oldingilari — ilovada yo'q bo'lsa
+        const {ps, cur} = perOf(hd), ord = [...ps].sort((a, b) => a.number - b.number), hq = hasQ(jb);
+        const want = cur ? ord.filter((p, i) => p.number < cur.number ? !(hq && hq.includes(i + 1)) : p.id === cur.id) : [{id: hd.currentPeriodId, name: ""}];
         for (const p of want) {
           const x = await get(`/v2/excel?action=gjsxls&school=${school}&group=${group}&subgroup=0&subject=${subject}&period=${p.id}`);
           if (/html/i.test(x.headers.get("content-type") || "")) throw new Error("Excel o'rniga sahifa keldi");
-          files.push({name: `${jb.cls}_${jb.subject}${p.name ? "_" + p.name : ""}.xls`, data: await x.arrayBuffer()});
+          files.push({name: `${jb.cls}_${jb.subject}${p.name && want.length > 1 ? "_" + p.name : ""}.xls`, data: await x.arrayBuffer()});
         }
       } catch (e) { errs.push(`${jb.cls} · ${jb.subject}: ${e.message}`); }
     }
     if (!files.length) throw new Error("Hech bir jurnal yuklanmadi.\n" + errs.join("\n"));
     const bad = errs.length ? `\nYuklanmadi:\n${errs.join("\n")}` : "";
-    if (w) { say("Jurnal ilovasiga yuborilmoqda…"); for (let t = 0; !ready && t < 75; t++) await new Promise((r) => setTimeout(r, 200)); }
-    if (w && ready && !w.closed) {
+    const send = () => {
       w.postMessage({type: "emaktab-files", files}, AO);
-      say(`✓ ${files.length} ta jurnal yuborildi — Jurnal oynasida tasdiqlang.` + bad);
+      say(`✓ ${files.length} ta jurnal yuborildi.\nNatija Jurnal ilovasida.` + bad);
       try { w.focus(); } catch (e) {}
-      if (await btns([["ok", "Yopish"], ["save", "💾 Faylga ham saqlash"]]) === "save") saveFile(files);
-      box.remove(); return;
+      if (!bad) setTimeout(() => box.remove(), 4000);
+      else btns([["ok", "Yopish"]]).then(() => box.remove());
+    };
+    if (w && !w.closed) { say("Jurnal ilovasiga yuborilmoqda…"); await waitApp(w, 15000); }
+    if (w && ready && !w.closed) { send(); return; }
+    // ilova oynasi ochilmadi (qalqib chiquvchi oyna to'silgan) — tugma bosilsa brauzer ruxsat beradi; zaxira: faylga saqlash
+    for (;;) {
+      say(`✓ ${files.length} ta jurnal olindi. Ilovaga yuborish uchun tugmani bosing.` + bad);
+      const k = await btns([["open", "📒 Ilovaga yuborish"], ["save", "💾 Faylga saqlash"], ["x", "Bekor qilish"]]);
+      if (k === "x") { box.remove(); return; }
+      if (k === "save") { saveFile(files); say("✓ «emaktab_jurnallar.json» saqlandi (Yuklab olinganlar papkasi). Endi uni Jurnal ilovasida «eMaktab'dan import» → «Fayl orqali» bo'limida tanlang."); return; }
+      ready = false; try { w = window.open(APP + "#emaktab", "yoqlama_jurnal"); } catch (e) { w = null; }
+      if (w) { say("Jurnal ilovasiga yuborilmoqda…"); await waitApp(w, 15000); }
+      if (w && ready && !w.closed) { send(); return; }
     }
-    // ilova oynasi yo'q — fayl orqali
-    say(`✓ ${files.length} ta jurnal olindi, lekin Jurnal ilovasi oynasi ochilmadi.\nFaylga saqlang, so'ng ilovada «emaktab'dan import» → «Fayl orqali» bo'limida shu faylni tanlang.` + bad);
-    if (await btns([["save", "💾 Faylga saqlash"], ["x", "Bekor qilish"]]) === "save") { saveFile(files); say("✓ «emaktab_jurnallar.json» saqlandi (Yuklab olinganlar papkasi). Endi uni Jurnal ilovasida tanlang."); }
-    else box.remove();
   })().catch((e) => say("✗ " + e.message));
 }
 const appUrl = () => location.origin + location.pathname.replace(/index\.html$/, "");
@@ -4005,17 +3986,17 @@ function emkDialog(tab = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)
     pc: `<div class="vcol" style="gap:10px">
       <div><b>1-usul · xatcho'p.</b> Quyidagi tugmani sichqoncha bilan brauzerning <b>xatcho'plar paneliga</b> sudrab olib boring (panel ko'rinmasa: Ctrl+Shift+B).</div>
       <div><a class="btn btn-primary" id="emkbm" href="#" onclick="return false" draggable="true">📒 emaktab → Jurnal</a></div>
-      <div>So'ng emaktab.uz ga kiring, <b>«Sinflarim»</b> sahifasini oching va xatcho'pni bosing. Joriy chorak yoki yil boshidan barcha choraklarni tanlaysiz — jurnallar shu ilovaga keladi.</div>
+      <div>Keyin har safar: emaktab.uz ga kirgan holda <b>istalgan sahifada</b> xatcho'pni bir marta bosing. Joriy chorak (va ilovada hali yo'q oldingi choraklar) o'zi olinadi, jurnallar shu ilovada darhol yangilanadi.</div>
       <div class="muted">Xatcho'p har bosilganda eng yangi kodni o'zi yuklaydi — ilova yangilanganda uni qayta qo'shish shart emas. (5-noyabrdan oldin qo'shilgan xatcho'pni bir marta o'chirib, qaytadan qo'shing.)</div>
-      <div><b>2-usul · konsol</b> (xatcho'p qo'yib bo'lmasa). emaktab'da «Sinflarim» sahifasida <b>F12</b> ni bosing → <b>Console</b> bo'limi → kodni qo'yib <b>Enter</b>. (Brauzer «allow pasting» deb yozishni so'rasa — yozing.)</div>
+      <div><b>2-usul · konsol</b> (xatcho'p qo'yib bo'lmasa). emaktab'da istalgan sahifada <b>F12</b> ni bosing → <b>Console</b> bo'limi → kodni qo'yib <b>Enter</b>. (Brauzer «allow pasting» deb yozishni so'rasa — yozing.)</div>
       <div><button class="btn" data-copyc>📋 Konsol uchun kodni nusxalash</button></div></div>`,
     phone: `<div class="vcol" style="gap:10px">
       <div><b>1.</b> «Kodni nusxalash»ni bosing.</div><div><button class="btn btn-primary" data-copy>📋 Kodni nusxalash</button></div>
       <textarea id="emkta" readonly rows="4" style="display:none;width:100%;font:12px monospace"></textarea>
       <div><b>2.</b> Istalgan sahifani xatcho'pga qo'shing (☆), xatcho'pni tahrirlang: nomini <b>emaktab</b> deb, manzildagi hamma narsani o'chirib, nusxalangan kodni qo'ying va saqlang.</div>
       <div class="muted">Kod qisqa (bir necha qator) — to'liq qismi bosilganda internetdan yuklanadi. Eski xatcho'p ishlamagan bo'lsa, uni o'chirib, kodni qaytadan nusxalang.</div>
-      <div><b>3.</b> emaktab.uz da «Sinflarim»ni oching, manzil qatoriga <b>emaktab</b> deb yozing va ro'yxatdan ⭐ xatcho'pni tanlang.</div>
-      <div class="muted">Telefon yangi oynani ochmasa, xatcho'p «💾 Faylga saqlash» tugmasini ko'rsatadi: faylni saqlab, keyin shu oynaning «Fayl orqali» bo'limidan yuklaysiz.</div></div>`,
+      <div><b>3.</b> emaktab.uz ga kirgan holda (istalgan sahifada) manzil qatoriga <b>emaktab</b> deb yozing va ro'yxatdan ⭐ xatcho'pni tanlang.</div>
+      <div class="muted">Telefon yangi oynani o'zi ochmasa, xatcho'p «📒 Ilovaga yuborish» tugmasini ko'rsatadi — uni bosing. Zaxira: «💾 Faylga saqlash», keyin shu oynaning «Fayl orqali» bo'limi.</div></div>`,
     file: `<div class="vcol" style="gap:10px">
       <div>Quyidagilardan birini tanlang (bir nechtasini birga ham bo'ladi):</div>
       <div>• xatcho'p saqlagan <b>emaktab_jurnallar.json</b> fayli;<br>• emaktab'dan yuklab olingan <b>«Fan jurnali» Excel</b> fayllari (.xls / .xlsx).</div>
@@ -4051,11 +4032,16 @@ const EMK_ORIGIN = /^https:\/\/([a-z0-9-]+\.)*emaktab\.uz$/;
 function emkReady() { if (location.hash === "#emaktab" && window.opener) try { window.opener.postMessage({type: "jurnal-ready"}, "*"); } catch (e) {} }
 window.addEventListener("hashchange", emkReady);
 window.addEventListener("message", (e) => {
-  if (!EMK_ORIGIN.test(e.origin) || !e.data || e.data.type !== "emaktab-files") return;
+  if (!EMK_ORIGIN.test(e.origin) || !e.data) return;
+  // xatcho'p so'raydi: ilova tayyormi va qaysi choraklar jurnalda bor (faqat emaktab saytiga javob beriladi)
+  if (e.data.type === "emaktab-ping") { try { e.source.postMessage({type: "jurnal-ready", have: D ? EMK1.have() : []}, e.origin); } catch (err) {} return; }
+  if (e.data.type !== "emaktab-files") return;
   if (location.hash === "#emaktab") history.replaceState(null, "", location.pathname + location.search);
   const files = (e.data.files || []).map((f) => new File([f.data], f.name || "emaktab.xls"));
-  if (files.length) importEmaktabFiles(files);
+  if (files.length) { if (D) { D.web.emk_bm = 1; } importEmaktabFiles(files, {auto: true}); }
 });
+// xatcho'p ilovani shu nom bilan ochadi — eMaktab'ni ilovadan ochgan bo'lsangiz, yangi oyna emas, shu oyna ishlatiladi
+try { if (!window.name) window.name = "yoqlama_jurnal"; } catch (e) {}
 
 /* ───────── o'quvchi kartochkasi (to'liq) ───────── */
 function growthData(c, s, rng) {
