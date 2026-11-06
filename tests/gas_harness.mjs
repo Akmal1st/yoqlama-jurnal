@@ -6,7 +6,8 @@ import {createHash, randomUUID} from "node:crypto";
 const CODE = readFileSync(new URL("../bot-server/gas/Code.gs", import.meta.url), "utf8");
 const signed = (buf) => [...buf].map((b) => (b > 127 ? b - 256 : b));
 
-export function makeGas({token = "TOK", admins = "100", secret = "sir", bot = "YoqlamaJurnalbot"} = {}) {
+// emk(url, opt) → {status, headers, body} — soxta emaktab.uz (ilovaning o'zidan import sinovlari uchun)
+export function makeGas({token = "TOK", admins = "100", secret = "sir", bot = "YoqlamaJurnalbot", emk = null} = {}) {
   const props = new Map([["BOT_TOKEN", token], ["ADMIN_IDS", admins], ["SETUP_SECRET", secret]]);
   const updates = [], log = [], triggers = [], files = {}, sent = {}, pins = {};
   let uid = 1; const hook = {url: ""};
@@ -30,12 +31,19 @@ export function makeGas({token = "TOK", admins = "100", secret = "sir", bot = "Y
       computeDigest: (_a, s) => signed(createHash("sha256").update(String(s), "utf8").digest()),
       getUuid: () => randomUUID(),
       base64Decode: (b) => signed(Buffer.from(b, "base64")),
+      base64Encode: (b) => Buffer.from(b.map((x) => (x + 256) % 256)).toString("base64"),
       newBlob: (bytes, type, name) => ({blob: true, size: bytes.length, type, name, bytes: Buffer.from(bytes.map((b) => (b + 256) % 256))}),
     },
     ContentService: {MimeType: {JSON: "json"}, createTextOutput: (t) => ({t, setMimeType() { return this; }})},
     LockService: {getScriptLock: () => ({tryLock: () => true, releaseLock() {}})},
     ScriptApp: {getProjectTriggers: () => triggers, newTrigger: (fn) => ({timeBased: () => ({everyMinutes: () => ({create: () => triggers.push({getHandlerFunction: () => fn})})})})},
     UrlFetchApp: {fetch: (url, opt = {}) => {
+      if (/^https:\/\/([a-z0-9-]+\.)*emaktab\.uz\//.test(String(url))) {
+        if (!emk) throw new Error("emaktab soxtasi yo'q");
+        log.push({m: "emk", p: {url, method: opt.method, payload: opt.payload, cookie: (opt.headers || {}).Cookie, redirects: opt.followRedirects}});
+        const r = emk(String(url), opt), body = Buffer.isBuffer(r.body) ? r.body : Buffer.from(String(r.body || ""), "utf8");
+        return {getResponseCode: () => r.status || 200, getAllHeaders: () => r.headers || {}, getContentText: () => body.toString("utf8"), getContent: () => signed(body)};
+      }
       const fm = String(url).match(/^https:\/\/api\.telegram\.org\/file\/bot([^/]+)\/documents\/(\w+)$/);
       if (fm) { log.push({m: "file", p: {id: fm[2]}}); const b = fm[1] === token && files[fm[2]]; return {getResponseCode: () => (b ? 200 : 404), getContentText: () => (b ? b.toString("utf8") : "")}; }
       const m = String(url).match(/\/bot([^/]+)\/(\w+)$/);

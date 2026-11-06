@@ -7,7 +7,9 @@ const docs = new URL("../docs/", import.meta.url);
 export function emkJs(html = readFileSync(new URL("index.html", docs), "utf8")) {
   const i = html.indexOf("\nfunction emkGrab() {"), j = html.indexOf("\n}\n", i);
   if (i < 0 || j < 0) throw new Error("emkGrab topilmadi");
-  const src = html.slice(i + 1, j + 2);
+  const k = html.indexOf("\nfunction emkLib() {"), l = html.indexOf("\n}\n", k);
+  if (k < 0 || l < 0) throw new Error("emkLib topilmadi");
+  const src = html.slice(i + 1, j + 2).replace("__EMKLIB__", () => html.slice(k + 1, l + 2).trim());
   if (!src.includes('"__APP__"')) throw new Error("__APP__ topilmadi");
   return `// Avtomatik yaratilgan: node tests/make_emk.mjs (manba — docs/index.html dagi emkGrab). Qo'lda o'zgartirmang.
 (function () {

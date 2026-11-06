@@ -121,7 +121,7 @@ test("havola: Telegram xabari kechikib qayta ishlansa ham eskirmaydi (xabar vaqt
     S.ctx.tick();
     assert.ok(S.log.some((x) => x.m === "sendMessage" && x.p.chat_id === T2 && /Havola eskirgan/.test(x.p.text)));
   } finally { vm.runInContext("Date.now = this.__now", S.ctx); }
-  assert.equal(S.get({}).v, 4); assert.equal(S.get({}).tick, true);
+  assert.equal(S.get({}).v, 5); assert.equal(S.get({}).tick, true);
 });
 
 test("eski Cloudflare webhook'i qolgan bo'lsa (409), server uni o'zi o'chiradi va xabarni oladi", () => {
@@ -130,4 +130,22 @@ test("eski Cloudflare webhook'i qolgan bo'lsa (409), server uni o'zi o'chiradi v
   S.post({a: "new", t, d: ""}); start(S, T1, t);
   assert.equal(S.get({a: "link", t}).st, "ok");
   assert.equal(S.hook.url, "");
+});
+
+test("eMaktab: server faqat emaktab.uz so'rovlarini uzatadi, cookie va qayta yo'naltirish ilovaga qaytadi", () => {
+  const S = makeGas({emk: (url, opt) => {
+    if (url === "https://login.emaktab.uz/") return {status: 302, headers: {Location: "/login", "Set-Cookie": ["a=1; path=/", "b=2; domain=.emaktab.uz"]}};
+    if (url.endsWith("/excel")) return {status: 200, headers: {"content-type": "application/vnd.ms-excel"}, body: Buffer.from([0xd0, 0xcf, 0x11, 0xe0])};
+    return {status: 200, headers: {"Content-Type": "text/html"}, body: `<p>${opt.method} ${opt.payload || ""}</p>`};
+  }});
+  const r = S.post({a: "emk", r: [{u: "https://login.emaktab.uz/"}, {u: "https://schools.emaktab.uz/v2/excel", bin: 1},
+    {u: "https://login.emaktab.uz/login", m: "post", d: "login=x&password=y", c: "a=1"}, {u: "https://evil.example/emaktab.uz/"}, {u: "http://emaktab.uz/"}]}).r;
+  assert.equal(r[0].s, 302); assert.equal(r[0].l, "/login"); assert.deepEqual(r[0].c, ["a=1; path=/", "b=2; domain=.emaktab.uz"]);
+  assert.equal(r[1].b, Buffer.from([0xd0, 0xcf, 0x11, 0xe0]).toString("base64"));
+  assert.match(r[2].b, /post login=x&password=y/);
+  assert.equal(r[3].e, "faqat emaktab.uz"); assert.equal(r[4].e, "faqat emaktab.uz");
+  const calls = S.log.filter((x) => x.m === "emk");
+  assert.equal(calls.length, 3); assert.equal(calls[2].p.cookie, "a=1"); assert.ok(calls.every((x) => x.p.redirects === false));
+  assert.equal(S.get({}).v, 5);
+  assert.ok(![...S.props.keys()].some((k) => /emk|pass|cook/i.test(k)), "hech narsa saqlanmaydi");
 });
