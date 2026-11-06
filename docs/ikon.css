@@ -1,0 +1,5 @@
+/* Bootstrap Icons — emojilar o'rniga (ikon.js) */
+.bi-on .bi{display:inline-block;line-height:1;vertical-align:-.125em}
+.bi-on .bi-gold{color:#f5b301}.bi-on .bi-ok{color:#2e9e4f}.bi-on .bi-bad{color:#d64545}
+.bi-on .bn-srch::before,.bi-on .sz-srch::before{content:"\f52a";font-family:bootstrap-icons;line-height:1}
+.bi-on .bi-t{display:inline-block;width:0;height:0;overflow:hidden;opacity:0;font-size:0;vertical-align:top}
