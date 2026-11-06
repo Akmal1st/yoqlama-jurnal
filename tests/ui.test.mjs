@@ -3452,6 +3452,7 @@ test("Umumiy Telegram bot: bitta tugma bilan ulanish, zaxira va kunlik hisobot s
       D.web.schedule = {bells: [["00:00", "00:01"], ["00:01", "00:02"]], days}; save();
     });
     await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="5"]');
+    assert.ok(await page.$("[data-a=snaps]") && await page.$("[data-a=exp]"), "ulanmagan holatda ham boshqa zaxira qatorlari bor");
     // bitta tugma: Telegram oynasi ochiladi (server havolani yozib, t.me ga yo'naltiradi)
     await Promise.all([page.waitForEvent("popup"), page.click('[data-a="tguon"]')]);
     await page.waitForFunction(() => !!tgCfg().pend);
