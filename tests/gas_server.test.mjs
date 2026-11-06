@@ -1,6 +1,7 @@
 // Umumiy bot — Google Apps Script serveri (bot-server/gas/Code.gs): ulanish, ruxsatlar, admin, guruhlar.
 import test from "node:test";
 import assert from "node:assert/strict";
+import vm from "node:vm";
 import {makeGas} from "./gas_harness.mjs";
 
 const ADMIN = 100, T1 = 200, T2 = 300;
@@ -101,4 +102,24 @@ test("zaxira faylini server o'qib beradi: faqat o'z chatidagi qadalgan hujjat", 
   assert.equal(api(S, key, "backupFile", {file_id: "-"}).error_code, 404, "boshqa file_id — yo'q");
   assert.equal(api(S, key2, "backupFile", {file_id: m.document.file_id}).error_code, 404, "boshqa o'qituvchi o'qiy olmaydi");
   assert.ok(!S.log.some((x) => x.m === "getChat" && x.p.chat_id !== T1 && x.p.chat_id !== T2));
+});
+
+test("havola: Telegram xabari kechikib qayta ishlansa ham eskirmaydi (xabar vaqti hisoblanadi)", () => {
+  const S = mk(), t = "tL1234567890abcdefXY", real = Date.now, clock = (ms) => vm.runInContext(`Date.now = () => ${ms}`, S.ctx);
+  vm.runInContext("this.__now = Date.now", S.ctx);
+  try {
+    const t0 = real(); S.post({a: "new", t, d: "Chrome · Android"});
+    // «Boshlash» 1 daqiqadan keyin bosildi, server esa xabarni 25 daqiqadan keyin oldi (telefonda brauzer fonda, trigger yo'q)
+    S.push({message: {from: {id: T1, first_name: "Dilnoza"}, chat: {id: T1, type: "private"}, date: Math.floor(t0 / 1000) + 60, text: "/start " + t}});
+    clock(t0 + 25 * 60e3);
+    const r = S.get({a: "link", t});
+    assert.equal(r.st, "ok", JSON.stringify(r));
+    // 31 daqiqadan keyin bosilgan «Boshlash» — eskirgan
+    const t2 = "tM1234567890abcdefXY"; S.post({a: "new", t: t2, d: ""});
+    S.push({message: {from: {id: T2, first_name: "Ali"}, chat: {id: T2, type: "private"}, date: Math.floor((t0 + 25 * 60e3) / 1000) + 31 * 60, text: "/start " + t2}});
+    clock(t0 + 57 * 60e3);
+    S.ctx.tick();
+    assert.ok(S.log.some((x) => x.m === "sendMessage" && x.p.chat_id === T2 && /Havola eskirgan/.test(x.p.text)));
+  } finally { vm.runInContext("Date.now = this.__now", S.ctx); }
+  assert.equal(S.get({}).v, 3); assert.equal(S.get({}).tick, true);
 });

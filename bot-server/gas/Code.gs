@@ -11,7 +11,8 @@
    Script Properties (qo'lda kiritiladi): BOT_TOKEN, ADMIN_IDS ("123,456"), SETUP_SECRET.  Yo'riqnoma: bot-server/gas/README.md */
 
 var APP_URL = "https://akmal1st.github.io/yoqlama-jurnal/";
-var LINK_TTL = 10 * 60;
+var VER = 3;   // kod versiyasi: manzil ochilganda ko'rinadi — Apps Script'da yangilangani shu bilan tekshiriladi
+var LINK_TTL = 30 * 60;   // soniya: tugma bosilgandan «Boshlash» xabarigacha (xabar vaqti bo'yicha, serverga yetib kelish vaqti emas)
 var T_RE = /^[A-Za-z0-9_-]{16,64}$/;
 var METHODS = {sendMessage: 0, sendPhoto: 0, sendDocument: 0, pinChatMessage: 0, unpinChatMessage: 0, deleteMessage: 0,
   deleteMessages: "own", editMessageReplyMarkup: "own", getChat: "own", getMe: "none", myGroups: "none", backupFile: "none"};
@@ -61,7 +62,8 @@ function doGet(e) {
   try {
     if (p.a === "link") return out_(pollLink_(String(p.t || "")));
     if (p.a === "setup") return out_(setup_(String(p.s || "")));
-    return out_({ok: true, name: "Yo'qlama jurnali boti", bot: bot_()});
+    var tick = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === "tick"; });
+    return out_({ok: true, name: "Yo'qlama jurnali boti", bot: bot_(), v: VER, tick: tick});
   } catch (err) { console.error(err && err.stack || err); return fail_(500, "Server xatosi: " + (err && err.message || err)); }
 }
 function doPost(e) {
@@ -83,7 +85,7 @@ function setup_(s) {
   var has = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === "tick"; });
   if (!has) ScriptApp.newTrigger("tick").timeBased().everyMinutes(1).create();
   processUpdates_();
-  return {ok: true, bot: me.result.username, admins: admins_(), trigger: "har daqiqada"};
+  return {ok: true, bot: me.result.username, admins: admins_(), trigger: "har daqiqada", v: VER};
 }
 
 // har daqiqada: admin tugmalari, guruhlar, eski havolalarni tozalash
@@ -169,13 +171,14 @@ function backupFile_(u, p) {
 }
 
 /* ───────── Telegram yangilanishlari ───────── */
-function onStart_(from, t) {
+// sent — Telegram xabari yuborilgan vaqt: server xabarni kechikib olsa ham (telefonda brauzer fonda to'xtaydi, trigger daqiqada bir) havola eskirmaydi
+function onStart_(from, t, sent) {
   var uid = from.id, name = fullName_(from), uname = from.username || "";
   var old = get_("u:" + uid);
   if (old && old.st === "blocked") return say_(uid, "⛔ Admin sizga bu botdan foydalanishga ruxsat bermagan.");
   var l = null;
   if (t && T_RE.test(t)) { l = get_("l:" + t); if (!l) { l = {st: "new", dev: "", at: now_()}; } }   // ilova «new» ni yuborib ulgurmagan bo'lsa ham
-  if (!l || now_() - l.at > LINK_TTL || l.st !== "new") {
+  if (!l || (sent || now_()) - l.at > LINK_TTL || l.st !== "new") {
     if (old && old.st === "ok") return say_(uid, "Siz allaqachon ulangansiz. Yangi qurilmani ulash uchun shu qurilmadagi ilovada «Sozlamalar → Ma'lumotlar → ✈️ Telegram'ni ulash» tugmasini bosing.", {reply_markup: APP_BTN});
     return say_(uid, t ? "⌛ Havola eskirgan. Ilovada «✈️ Telegram'ni ulash» tugmasini qayta bosing."
       : "Assalomu alaykum! Bu «Yo'qlama jurnali» boti.\nUlash uchun ilovada «Sozlamalar → Ma'lumotlar → ✈️ Telegram'ni ulash» tugmasini bosing.", {reply_markup: APP_BTN});
@@ -184,11 +187,11 @@ function onStart_(from, t) {
   set_("u:" + uid, {id: uid, name: name, uname: uname, st: ok ? "ok" : (old && old.st === "ok" ? "ok" : "wait"), at: (old && old.at) || now_()});
   var u = {id: uid, name: name, uname: uname};
   if (ok) {
-    l.uid = uid; l.st = "ok"; l.k = issueKey_(uid, l.dev); set_("l:" + t, l);
+    l.uid = uid; l.st = "ok"; l.k = issueKey_(uid, l.dev); l.at = now_(); set_("l:" + t, l);
     say_(uid, welcome_(true));
     if (!isAdmin_(uid)) toAdmins_((old ? "📱 Yangi qurilma ulandi" : "🆕 Yangi o'qituvchi ulandi") + "\n" + who_(u, l.dev), {inline_keyboard: [[{text: "🚫 Bloklash", callback_data: "bl:" + uid}]]});
   } else {
-    l.uid = uid; l.st = "wait"; set_("l:" + t, l);
+    l.uid = uid; l.st = "wait"; l.at = now_(); set_("l:" + t, l);
     say_(uid, "📨 So'rovingiz admin'ga yuborildi. Tasdiqlangach ilova o'zi ulanadi.");
     toAdmins_("🆕 <b>Yangi o'qituvchi</b>\n" + who_(u, l.dev), {inline_keyboard: [[{text: "✅ Tasdiqlash", callback_data: "ok:" + uid}, {text: "❌ Rad etish", callback_data: "no:" + uid}]]});
   }
@@ -219,12 +222,12 @@ function onCallback_(q) {
   var setSt = function (st) { u.st = st; set_("u:" + uid, u); };
   if (act === "ok") {
     setSt("ok");
-    all_("l:").forEach(function (x) { if (x[1].uid === uid && x[1].st === "wait") { x[1].st = "ok"; x[1].k = issueKey_(uid, x[1].dev); set_(x[0], x[1]); } });
+    all_("l:").forEach(function (x) { if (x[1].uid === uid && x[1].st === "wait") { x[1].st = "ok"; x[1].k = issueKey_(uid, x[1].dev); x[1].at = now_(); set_(x[0], x[1]); } });
     say_(uid, welcome_(false)); mark("✅ " + u.name + " tasdiqlandi"); return answer("Tasdiqlandi");
   }
   if (act === "no") {
     setSt("blocked");
-    all_("l:").forEach(function (x) { if (x[1].uid === uid && x[1].st === "wait") { x[1].st = "no"; set_(x[0], x[1]); } });
+    all_("l:").forEach(function (x) { if (x[1].uid === uid && x[1].st === "wait") { x[1].st = "no"; x[1].at = now_(); set_(x[0], x[1]); } });
     say_(uid, "❌ Admin so'rovingizni rad etdi. Savol bo'lsa, maktab adminiga murojaat qiling."); mark("❌ " + u.name + " rad etildi"); return answer("Rad etildi");
   }
   if (act === "bl") { setSt("blocked"); delKeys_(uid); say_(uid, "⛔ Admin ulanishingizni to'xtatdi. Ilova endi bu botga yubormaydi."); mark("🚫 " + u.name + " bloklandi"); return answer("Bloklandi"); }
@@ -254,7 +257,7 @@ function onMessage_(m) {
   if (!m.from || !m.chat || m.chat.type !== "private" || typeof m.text !== "string") return;
   var id = m.from.id, text = m.text.trim(), adm = isAdmin_(id);
   var s = text.match(/^\/start(?:@\w+)?(?:\s+(\S+))?$/);
-  if (s) { onStart_(m.from, s[1] || ""); if (adm) say_(id, "Siz adminsiz. Pastdagi tugmalar faqat sizga ko'rinadi. Tugmalar 1 daqiqagacha kechikib javob berishi mumkin.", {reply_markup: adminKb_()}); return; }
+  if (s) { onStart_(m.from, s[1] || "", m.date); if (adm) say_(id, "Siz adminsiz. Pastdagi tugmalar faqat sizga ko'rinadi. Tugmalar 1 daqiqagacha kechikib javob berishi mumkin.", {reply_markup: adminKb_()}); return; }
   if (adm && text === "👥 O'qituvchilar") return usersList_(id);
   if (adm && text === "📈 Holat") return status_(id);
   if (adm && (text === "🔒 Tasdiq bilan" || text === "🟢 Tasdiqsiz ulanish")) {
