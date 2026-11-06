@@ -237,10 +237,13 @@ const KUN = (() => {
       m.querySelectorAll("[data-krg]").forEach((s) => s.onchange = () => { const g = cfg().grp, c = CL[+s.dataset.krg], v = s.value;
         if (v) g[ckey(c)] = found.concat(Object.values(g)).find((x) => String(x.id) === v); else delete g[ckey(c)]; setCfg({grp: g}); });
     };
+    const sh = !!tgCfg().key, bot = esc(tgCfg().bot || "botingiz");   // sh — umumiy bot: guruhlarni server biladi (tg-umumiy.js)
     return modal(`<h2>Ota-onalar guruhlari</h2>
       <ol class="vcol" style="gap:6px;padding-left:20px;margin:4px 0">
-        <li>Telegram'da sinfning ota-onalar guruhini oching va <b>@${esc(tgCfg().bot || "botingiz")}</b> ni guruhga a'zo qilib qo'shing.</li>
-        <li>Guruhga istalgan xabar yozing, so'ng shu yerda «Guruhlarni topish» ni bosing.</li>
+        ${sh ? `<li><a class="btn btn-sm btn-primary" href="https://t.me/${bot}?startgroup=jurnal" target="_blank" rel="noopener">➕ Botni guruhga qo'shish</a> — Telegram'da sinfning ota-onalar guruhini tanlang.</li>
+        <li>Shu yerga qaytib «Guruhlarni topish» ni bosing.</li>`
+        : `<li>Telegram'da sinfning ota-onalar guruhini oching va <b>@${bot}</b> ni guruhga a'zo qilib qo'shing.</li>
+        <li>Guruhga istalgan xabar yozing, so'ng shu yerda «Guruhlarni topish» ni bosing.</li>`}
         <li>Har sinf yonida uning guruhini tanlang.</li></ol>
       <div class="muted">Guruhdagi hamma ota-ona butun sinf jadvalini (baholar va izohlar bilan) ko'radi.</div>
       <div id="krgl" class="vcol" style="gap:8px"></div>
@@ -248,10 +251,13 @@ const KUN = (() => {
       draw(m); $("[data-x]", m).onclick = () => { close(); render(); };
       $("[data-f]", m).onclick = async () => {
         try {
+          if (sh) found = (await tgApi("myGroups", {})).map((g) => ({id: g.id, t: g.title || String(g.id)}));
+          else {
           const ups = await tgApi("getUpdates", {allowed_updates: ["message", "my_chat_member"]});
           const chats = ups.map((u) => (u.message || u.my_chat_member || {}).chat).filter((ch) => ch && (ch.type === "group" || ch.type === "supergroup"));
           found = chats.filter((ch, i) => chats.findIndex((x) => x.id === ch.id) === i).map((ch) => ({id: ch.id, t: ch.title || String(ch.id)}));
-          draw(m); toast(found.length ? `${found.length} ta guruh topildi — sinflarga biriktiring` : "Guruh topilmadi: botni guruhga qo'shib, guruhga xabar yozing va qayta urinib ko'ring");
+          }
+          draw(m); toast(found.length ? `${found.length} ta guruh topildi — sinflarga biriktiring` : sh ? "Guruh topilmadi: «➕ Botni guruhga qo'shish» orqali qo'shing va qayta urinib ko'ring" : "Guruh topilmadi: botni guruhga qo'shib, guruhga xabar yozing va qayta urinib ko'ring");
         } catch (e) { toast(/conflict|terminated/i.test(e.message) ? "Bu bot boshqa dasturda ishlab turibdi (kompyuterdagi bot) — guruhni topish uchun uni vaqtincha to'xtating" : tgErrTxt(e)); }
       };
     });

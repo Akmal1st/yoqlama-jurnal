@@ -49,6 +49,7 @@
 <script src="mezon.js"></script>
 <script src="kunlik.js"></script>
 <script src="pdf-tg.js"></script>
+<script src="tg-umumiy.js"></script>
 <script src="arxiv.js"></script>
 <script>
 "use strict";
@@ -4951,16 +4952,20 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 const TG_KEY = "yoqlama_tg", TG_GAP = 2 * 36e5;
 function tgCfg() { try { return JSON.parse(localStorage.getItem(TG_KEY)) || {}; } catch (e) { return {}; } }
 function tgSet(p) { const c = Object.assign(tgCfg(), p); try { localStorage.setItem(TG_KEY, JSON.stringify(c)); } catch (e) {} return c; }
-const tgOn = () => { const c = tgCfg(); return !!(c.token && c.chat); };
+const tgOn = () => { const c = tgCfg(); return !!((c.token || c.key) && c.chat); };   // key — umumiy bot (tg-umumiy.js)
 function tgDev() { let c = tgCfg(); if (!c.dev) c = tgSet({dev: Math.random().toString(36).slice(2, 8)}); return c.dev; }
 const tgAge = () => { const l = tgCfg().last; return tgOn() && l ? Math.floor((Date.now() - Date.parse(l)) / 864e5) : null; };
 const djb = (t) => { let x = 5381; for (let i = 0; i < t.length; i++) x = (x * 33 ^ t.charCodeAt(i)) >>> 0; return x.toString(36) + t.length; };
 // Bot API so'rovi «oddiy» ko'rinishda (form yoki FormData): JSON sarlavhasi brauzerni avval OPTIONS so'rovini yuborishga majbur qilardi,
 // ba'zi tarmoqlarda u o'tmay «Telegram'ga ulanib bo'lmadi» chiqardi
+// Umumiy bot ulangan bo'lsa (tgCfg().key), so'rov Cloudflare serveriga boradi: u kalitni tekshirib, Telegram'ga uzatadi (tg-umumiy.js)
 async function tgApi(method, params, token = tgCfg().token) {
   const body = params instanceof FormData ? params : new URLSearchParams(Object.entries(params || {}).map(([k, v]) => [k, typeof v === "object" ? JSON.stringify(v) : String(v)]));
+  const key = !token && tgCfg().key;
+  if (key) { body.delete("_k"); body.append("_k", key); }
+  const url = key ? TGU.api(method) : `https://api.telegram.org/bot${token}/${method}`;
   for (let k = 0; ; k++) {
-    const r = await tgFetch(`https://api.telegram.org/bot${token}/${method}`, {method: "POST", body});
+    const r = await tgFetch(url, {method: "POST", body});
     const j = await r.json().catch(() => ({}));
     if (j.ok) return j.result;
     // ko'p xabar ketma-ket ketganda Telegram «biroz kuting» deydi — kutib, qayta yuboramiz
@@ -4981,7 +4986,7 @@ async function tgFetch(url, opt = {}, ms = 25000) {
 async function tgNetErr(e) {
   if (navigator.onLine === false) return Object.assign(new Error("Internet yo'q — ulanib, qayta urinib ko'ring"), {net: "off"});
   let reach = false;
-  try { await fetch("https://api.telegram.org/", {mode: "no-cors", cache: "no-store"}); reach = true; } catch (x) { /* server ochilmadi */ }
+  try { await fetch(tgCfg().key ? TGU.url() + "/" : "https://api.telegram.org/", {mode: "no-cors", cache: "no-store"}); reach = true; } catch (x) { /* server ochilmadi */ }
   if (reach) return Object.assign(new Error("Telegram serveri ochildi, lekin brauzer javobni qabul qilmadi — sahifani yangilab, qayta urinib ko'ring"), {net: "cors"});
   return Object.assign(new Error(e && e.name === "AbortError" ? "Telegram javob bermadi (vaqt tugadi) — internet sekin yoki Telegram tarmog'ingizda to'silgan. VPN yoqib, qayta urinib ko'ring"
     : "Telegram serveriga ulanib bo'lmadi — internetni tekshiring. Telegram ilovasi VPN bilan ishlasa, brauzerda ham VPN yoqing"), {net: "down"});
@@ -5048,7 +5053,7 @@ async function tgReadParts(ids) {
 }
 const tgPartIds = (pm) => (((pm.caption || "").match(/#d([\d.]+)/) || [])[1] || "").split(".").filter(Boolean).map(Number);
 async function tgBackup(force) {
-  const c = tgCfg(); if (!c.token || !c.chat || tgBusy) return false;
+  const c = tgCfg(); if (!tgOn() || tgBusy) return false;
   const hash = djbData();
   if (!force && c.hash === hash) return false;
   tgBusy = true;
@@ -5080,6 +5085,7 @@ async function tgPull(pm) {
   let data;
   if (ids.length && typeof DecompressionStream !== "undefined") data = await tgReadParts(ids);
   else {
+    if (tgCfg().key) throw new Error("Bu zaxirani yuklab bo'lmadi — uni yuborgan qurilmada «📤 Yuborish»ni bosing, so'ng shu yerda qayta urinib ko'ring");
     const f = await tgApi("getFile", {file_id: pm.document.file_id});
     try { data = await (await tgFetch(`https://api.telegram.org/file/bot${tgCfg().token}/${f.file_path}`)).json(); }
     catch (e) { if (e.net === "cors") throw Object.assign(new Error("Bu zaxira eski usulda yuborilgan — brauzer uni o'qiy olmaydi. Uni yuborgan qurilmada ilovani yangilab, «Sozlamalar → Ma'lumotlar → 📤 Hozir yuborish»ni bosing, so'ng shu yerda qayta yuklang. Yoki botdagi faylni telefonga saqlab, «Fayldan yuklash» orqali oching"), {net: "file"}); throw e; }
@@ -5149,6 +5155,8 @@ async function tgAction(a) {
       if (!await confirmBox("Shifrlashni o'chirish", "Keyingi zaxiralar shifrlanmagan holda yuboriladi.", "O'chirish")) return;
       const c = tgCfg(); delete c.pass; localStorage.setItem(TG_KEY, JSON.stringify(c)); await tgBackup(true); render(); toast("Shifrlash o'chirildi");
     }
+    else if (a === "tguon") TGU.connect();   // await'siz: oyna bosish paytida ochilishi kerak
+    else if (a === "tgucancel") TGU.cancel();
     else if (a === "tgsend") { toast("Yuborilmoqda…"); await tgBackup(true); TG_NEW = null; render(); toast("Zaxira Telegram'ga yuborildi"); }
     else if (a === "tgload" || a === "tgnew") {
       const pm = a === "tgnew" ? TG_NEW : await tgPinned();
