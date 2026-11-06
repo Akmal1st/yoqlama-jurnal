@@ -1060,7 +1060,9 @@ test("Hisobotlar va BSB/CHSB tahlili: PDF hisobot Telegram'ga (soxta bot API)", 
     await page.click(".tabbar [data-go=reports]"); await page.click("[data-tgpdf]:visible");
     await page.waitForSelector(".modal >> text=Telegram ulanmagan"); await page.click(".modal [data-x]").catch(() => {});
     await page.evaluate(() => { document.querySelectorAll(".modal").forEach((m) => m.remove()); tgSet({token: "123456789:AAHabcdefghijklmnopqrstuvwxyz", chat: 777, bot: "sinf_test_bot"}); });
-    const pdfPages = (b) => (b.toString("latin1").match(/\/Type \/Page /g) || []).length;
+    const pdfPages = (b) => (b.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length;
+    // haqiqiy (vektor) PDF: shrift ichida, matn tanlanadi (ToUnicode), sahifa butunicha rasm emas
+    const vector = (b) => { const t = b.toString("latin1"); return /\/FontFile2/.test(t) && /\/ToUnicode/.test(t) && !/\/DCTDecode/.test(t); };
     for (const kind of ["cls", "att", "sum", "par"]) {
       await page.evaluate((k) => { S.rep = Object.assign(S.rep || {}, {kind: k}); render(); }, kind);
       const n = docs.length; await page.click("[data-tgpdf]:visible");
@@ -1068,6 +1070,7 @@ test("Hisobotlar va BSB/CHSB tahlili: PDF hisobot Telegram'ga (soxta bot API)", 
       await page.waitForFunction(() => !document.querySelector("[data-tgpdf]:disabled"));
       assert.equal(docs.length, n + 1, kind); const d = docs[n];
       assert.ok(d.pdf && d.pdf.subarray(0, 5).toString() === "%PDF-" && pdfPages(d.pdf) >= 1, `${kind}: PDF`);
+      assert.ok(vector(d.pdf), `${kind}: vektor PDF (matnli), rasm emas`);
       assert.ok(d.name.endsWith(".pdf") && d.cap.startsWith("📄"), `${kind}: ${d.name} ${d.cap}`);
       // panel o'z holiga qaytadi
       assert.equal(await page.evaluate(() => document.body.classList.contains("pmeas") || !!document.querySelector(".pdfx")), false);
@@ -1083,6 +1086,7 @@ test("Hisobotlar va BSB/CHSB tahlili: PDF hisobot Telegram'ga (soxta bot API)", 
     await page.waitForFunction(() => !document.querySelector(".ptg-box"));
     const b = docs[docs.length - 1]; assert.equal(docs.length, 5);
     assert.ok(b.pdf && pdfPages(b.pdf) >= 1 && b.cap.startsWith("📄"), b.cap);
+    assert.ok(vector(b.pdf), "BSB: vektor PDF");
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });

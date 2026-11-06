@@ -3,7 +3,7 @@
    • ekran: «Yangi» tanlansa butun hujjatdagi matn (va title/placeholder/aria-label) MutationObserver bilan o'giriladi;
      input/textarea qiymatlari va contenteditable tegilmaydi (foydalanuvchi yozayotgan ma'lumot), .alf-keep ichi ham;
    • eksport (sozlamada «Eksport fayllari» yoqilgan bo'lsa): Excel ichidagi matn va varaq nomlari, fayl nomlari (Excel, CSV, PDF, rasm),
-     chop etish va PDF/rasm (ekrandan olinadi). O'chirilgan bo'lsa — chop etish/rasmga olish paytida matn vaqtincha hozirgi alifboga qaytadi;
+     chop etish, vektor PDF va rasm (ekrandan olinadi). O'chirilgan bo'lsa — chop etish/PDF/rasm paytida matn vaqtincha hozirgi alifboga qaytadi;
    • Telegram («Telegram xabarlari»): bot xabarlari va izohlari, fayl nomlari, Telegram/SMS havolalari va «nusxalash» matnlari.
    Zaxira (.json) va zaxira xabarlari hech qachon o'girilmaydi.
    Sozlama: D.web.alf = {m: "y" | "h", exp: true, tg: true}. Asosiy skriptdan OLDIN ulanadi; render() ichida ALF.sync() chaqiriladi. */
@@ -188,6 +188,8 @@ const ALF = (() => {
     wrap("loadXlsx", (o) => function (...a) { return Promise.resolve(o.apply(this, a)).then(patchX); });
     wrap("printDoc", (o) => function (html, land, fit, fname, ...r) { return o.call(this, html, land, fit, typeof fname === "string" ? ex(fname) : fname, ...r); });
     if (window.XLSX) patchX(window.XLSX);
+    // vektor PDF (pdf-tg.js) varaq matnini ekrandan o'qiydi: eksport o'chiq bo'lsa — o'qish paytida hozirgi alifbo
+    if (typeof PTG !== "undefined") for (const f of ["reportPdf", "pagesPdf"]) if (typeof PTG[f] === "function" && !PTG[f].__alf) { const o = PTG[f]; PTG[f] = function (...a) { return plain(() => o.apply(this, a)); }; PTG[f].__alf = 1; }
     if (typeof PTG !== "undefined" && PTG.send && !PTG.send.__alf) { const o = PTG.send; PTG.send = function (blob, name, caption) { return o.call(this, blob, ex(name), caption); }; PTG.send.__alf = 1; }
     try {
       const cb = navigator.clipboard;
