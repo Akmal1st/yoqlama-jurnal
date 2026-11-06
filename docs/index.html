@@ -32,6 +32,7 @@
 <link rel="stylesheet" href="arxiv-tekshir.css">
 <link rel="stylesheet" href="ikon.css">
 <link rel="stylesheet" href="emk-bir.css">
+<link rel="stylesheet" href="boshlash.css">
 <link rel="stylesheet" href="alifbo.css">
 </head>
 <body>
@@ -60,6 +61,7 @@
 <script src="arxiv.js"></script>
 <script src="emk-bir.js"></script>
 <script src="emk-server.js"></script>
+<script src="boshlash.js"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
@@ -1704,22 +1706,9 @@ function pageToday(m) {
   if (!D.classes.some((c) => !isGrp(c))) { let sub = longDate(t); if (q) sub += ` · ${q}-chorak, ${Math.floor((pdate(t) - pdate(qRange(q)[0])) / 6048e5) + 1}-hafta`; m.innerHTML = welcome(sub); bindWelcome(m); return; }
   BGN.page(m);
 }
-function welcome(sub) {
-  return `<div class="vcol" style="gap:18px;max-width:640px"><span class="muted">${sub}</span><span class="tag">XUSH KELIBSIZ</span>
-    <h1>Sinflaringizni qanday qo'shamiz?</h1>
-    <p class="muted" style="margin:0">Ma'lumotlar faqat shu brauzerda saqlanadi — internet kerak emas. Vaqti-vaqti bilan «Sozlamalar → Ma'lumotlar»dan faylga saqlab qo'ying.</p>
-    <button class="opt" data-w="import"><b>Kompyuterdagi dasturdan ko'chirish · tavsiya</b>Yo'qlama jurnali papkasidagi <code>journal.json</code> faylini tanlang — hamma sinflar, baholar va sozlamalar o'tadi.</button>
-    <button class="opt" data-w="emk"><b>emaktab.uz saytidan</b>emaktab'ga kirgan holda bitta bosishda barcha sinflar jurnali keladi.</button>
-    <button class="opt" data-w="xls"><b>emaktab'dan (Excel)</b>emaktab'dan yuklab olingan «Fan jurnali» .xls / .xlsx fayli — o'quvchilar, baholar va yo'qlama.</button>
-    <button class="opt" data-w="hand"><b>Qo'lda</b>Sinf nomini yozib, o'quvchilar ro'yxatini nusxalab qo'yasiz.</button>
-    <button class="opt" data-w="demo"><b>Namuna bilan sinab ko'rish</b>Bitta to'qima sinf bilan dastur qanday ishlashini ko'ring (keyin o'chirib tashlash mumkin).</button></div>`;
-}
-function bindWelcome(m) {
-  m.querySelectorAll("[data-w]").forEach((b) => b.onclick = () => {
-    const w = b.dataset.w;
-    if (w === "import") importJson(); else if (w === "xls") importExcel(); else if (w === "emk") emkDialog(); else if (w === "hand") addClassDialog(); else makeDemo();
-  });
-}
+// ilk ochilish («Sinflaringizni qanday qo'shamiz?») — alohida faylda: boshlash.js / boshlash.css (tasdiqlangan maket, 2026-11-06)
+function welcome(sub) { return BSH.html(sub); }
+function bindWelcome(m) { BSH.bind(m); }
 
 /* ───────── 2. Jurnal ───────── */
 function visDates(c) { const [lo, hi] = vRange(); return c.dates.filter((d) => lo <= d && d <= hi); }
@@ -2586,10 +2575,13 @@ function exportJson() {
   D.web.exported = new Date().toISOString(); save();
   const t = new Date(); download(`journal_${iso(t)}_${pad(t.getHours())}${pad(t.getMinutes())}.json`, JSON.stringify(D, null, 1));
 }
-function importJson() {
+// any=true — ilk ochilishdagi «Fayldan»: journal.json, zaxira yoki eMaktab Excel; turi o'zi aniqlanadi (boshlash.js)
+function importJson(any) {
   const f = $("#file"); f.value = "";
+  f.accept = any ? ".json,.xls,.xlsx,application/json,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : ".json,application/json"; f.multiple = !!any;
   f.onchange = async () => {
-    const file = f.files[0]; if (!file) return;
+    const all = [...f.files], file = all[0]; if (!file) return;
+    if (all.some((x) => !/\.json$/i.test(x.name)) || all.length > 1) { importEmaktabFiles(all, {}); return; }
     try {
       let data = JSON.parse(await file.text());
       data = await openSealed(data);
