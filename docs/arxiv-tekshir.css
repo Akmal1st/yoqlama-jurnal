@@ -1,0 +1,32 @@
+/* «Bugun» → chorak tugadi kartasi: «Arxivlashdan oldin tekshiring» ro'yxati — tasdiqlangan maket (Akmal, 2026-11-06).
+   Kompyuterda jadval (Sinf · Chorak bahosi · BSB/CHSB ballari), telefonda har sinf kartochka; raqam — qo'yilgan / jami. Kod: arxiv.js chkList */
+.ax-ctbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.ax-ctbl th{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);background:none}
+.ax-ctbl td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle;background:none}
+.ax-ctbl tr:last-child td{border-bottom:0}
+.ax-cn b{font-weight:800}
+.ax-cn small{display:block;color:var(--muted);font-size:12px}
+.ax-ca{text-align:right;width:1%}
+.ax-m2{display:flex;flex-direction:column;gap:3px;min-width:96px}
+.ax-m2 small{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.ax-m2 span{font-variant-numeric:tabular-nums;font-weight:700}
+.ax-m2 span em{font-style:normal;color:var(--muted);font-weight:600}
+.ax-m2.bad span{color:var(--danger)}
+.ax-m2.ok span{color:var(--ok)}
+.ax-mb{height:5px;border-radius:99px;background:var(--soft);overflow:hidden}
+.ax-mb i{display:block;height:100%;background:var(--ax-warn)}
+.ax-m2.ok .ax-mb i{background:var(--ok)}
+.ax-m2.bad .ax-mb i{background:var(--danger)}
+.ax-okl{padding:9px 0 2px;color:var(--ok);font-weight:700;font-size:13px;border-top:1px solid var(--line);margin-top:2px}
+.ax-leg{font-size:12px;color:var(--muted);padding:6px 0 4px}
+.ax-cpl{display:none}
+@media (max-width:820px){
+  .ax-ctbl{display:none}
+  .ax-cpl{display:flex;flex-direction:column}
+  .ax-cp{border-top:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:8px}
+  .ax-cph{display:flex;align-items:center;gap:8px}
+  .ax-cph b{flex:1;font-weight:800;min-width:0}
+  .ax-cph small{color:var(--muted);font-size:12px;font-weight:600}
+  .ax-cpg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .ax-cpg .ax-m2{min-width:0}
+}
