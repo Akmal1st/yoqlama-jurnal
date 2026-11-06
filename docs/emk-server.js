@@ -86,6 +86,14 @@ const EMKS = (() => {
     const cap = [...texts, ...outside].find((n) => n !== us && /captcha|code|kod|answer|sum|number|digit/i.test(n)) || texts.find((n) => n !== us) || null;
     return {action: new URL(action || url, url).href, data, pw, us, cap, img: img ? new URL(img, url).href : null};
   }
+  // nosozlikni topish uchun: eMaktab qanday sahifa qaytardi (parol yoki cookie yo'q — faqat holat, manzil, sarlavha, hajm)
+  function diag(r) {
+    const t = (String(r.b || "").match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1];
+    let u = r.url; try { const x = new URL(r.url); u = x.host + x.pathname; } catch (e) { /* */ }
+    return `Javob: ${r.s} · ${u}${t ? ` · «${t.replace(/\s+/g, " ").trim().slice(0, 60)}»` : ""} · ${Math.round(String(r.b || "").length / 1024)} KB`;
+  }
+  const blocked = (r) => r.s === 403 || r.s === 451 || r.s === 429 || r.s >= 500
+    || /access denied|forbidden|blocked|cloudflare|ddos|captcha-delivery|доступ (запрещ|огранич)|ruxsat yo'q/i.test(String(r.b || "").slice(0, 20000).replace(/<script[\s\S]*?<\/script>/gi, ""));
   const enc = (o) => Object.entries(o).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&");
   async function login(user, pass) {
     S = {u: user, c: []};
@@ -93,7 +101,12 @@ const EMKS = (() => {
     for (let attempt = 1; attempt <= 4; attempt++) {
       if (!isLogin(r.url, r.b)) { store(S); return true; }
       const f = parseForm(r.b, r.url);
-      if (!f || !f.pw || !f.us) throw new Error("eMaktab kirish sahifasi o'zgargan (login maydoni topilmadi). Hozircha xatcho'p usulidan foydalaning.");
+      if (!f || !f.pw || !f.us) {
+        // parol yuborilgandan keyin oraliq sahifa (forma yo'q) — tizimga kirilganmi, «Sinflarim» orqali tekshiramiz
+        if (attempt > 1) { const m = await req(U.my); if (m.s < 400 && !isLogin(m.url, m.b)) { store(S); return true; } }
+        if (blocked(r)) throw new Error(`eMaktab Google serveridan kelgan so'rovni to'sib qo'ydi (chet el manzili bo'lishi mumkin). Hozircha xatcho'p usulidan foydalaning.\n${diag(r)}`);
+        throw new Error(`eMaktab kirish sahifasida login maydoni topilmadi${attempt > 1 ? " (parol yuborilgandan keyin)" : ""}. Hozircha xatcho'p usulidan foydalaning.\n${diag(r)}`);
+      }
       f.data[f.us] = user; f.data[f.pw] = pass;
       if (attempt > 1) {
         if (!(f.cap && f.img)) throw new Error("Login yoki parol noto'g'ri.");
