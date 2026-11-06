@@ -3667,6 +3667,35 @@ test("eMaktab: ilovaning o'zidan import — login, rasmdagi kod, seans saqlanadi
   } finally { await browser.close(); }
 });
 
+test("eMaktab: kirish sahifasi kutilmagan bo'lsa, xato oynasida nima qaytgani ko'rinadi (to'siq / formasiz sahifa)", async () => {
+  const GAS = "https://script.google.com/macros/s/TEST/exec";
+  const cases = [
+    {page: {status: 403, headers: {"Content-Type": "text/html"}, body: "<html><head><title>Access denied | login.emaktab.uz</title></head><body>Cloudflare</body></html>"}, re: /to'sib qo'ydi[\s\S]*Javob: 403 · login\.emaktab\.uz\/ · «Access denied/},
+    {page: {status: 200, headers: {"Content-Type": "text/html"}, body: "<html><head><title>eMaktab</title></head><body><div id=root></div><script src=app.js></script></body></html>"}, re: /login maydoni topilmadi\.[\s\S]*Javob: 200 · login\.emaktab\.uz\/ · «eMaktab»/},
+  ];
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const c of cases) {
+      const G = makeGas({emk: (url) => new URL(url).host === "login.emaktab.uz" ? c.page : {status: 302, headers: {Location: "https://login.emaktab.uz/"}}});
+      const ctx = await browser.newContext({viewport: {width: 390, height: 844}});
+      await ctx.addInitScript((u) => localStorage.setItem("yoqlama_tgu_url", u), GAS);
+      await ctx.route("https://script.google.com/**", (rt) => { const rq = rt.request();
+        return rt.fulfill({status: 200, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: G.handle(rq.method(), rq.url(), rq.postData())}); });
+      const page = await ctx.newPage(); const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.goto(APP);
+      await page.evaluate(() => { D = normalize({classes: [{name: "5-B", subject: "Tarix", dates: [], students: []}]}); save(); go("today"); });
+      await page.click("[data-ekgo]");
+      await page.fill("#eku", "akmal"); await page.fill("#ekp", "maxfiy123"); await page.click("#ekf [type=submit]");
+      await page.waitForSelector("text=eMaktab'dan olib bo'lmadi", {timeout: 20000});
+      const msg = await page.textContent(".modal.ek-sh .ek-sub");
+      assert.match(msg, c.re); assert.ok(!msg.includes("maxfiy123"));
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      assert.deepEqual(errors, []);
+      await ctx.close();
+    }
+  } finally { await browser.close(); }
+});
+
 test("Ilk ochilish: 2 ta karta va 2 ta havola; «Fayldan» eMaktab Excel'ini ham qabul qiladi (36 va 18 o'quvchi)", async () => {
   const XLSX = (await import("xlsx")).default;
   const xlsOf = (cls, subj, n) => { const rows = [[`Sinf: ${cls} 2026/2027`], [`Fan: ${subj}`], [], ["№", "F.I.Sh.", "Noyabr"], [null, null, 4]];
