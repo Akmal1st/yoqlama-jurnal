@@ -53,7 +53,8 @@ Bloklangan o'qituvchining hamma qurilmalaridagi kalitlari darhol bekor bo'ladi.
 | `GET /setup?s=…` | admin (bir marta) | jadvallar, webhook, bot buyruqlari |
 
 Ruxsat etilgan usullar: `sendMessage`, `sendPhoto`, `sendDocument`, `pinChatMessage`, `unpinChatMessage`, `deleteMessage`,
-`deleteMessages`, `editMessageReplyMarkup`, `getChat` (faqat o'z chati), `getMe`, `myGroups` (o'qituvchi qo'shgan guruhlar).
+`deleteMessages`, `editMessageReplyMarkup`, `getChat` (faqat o'z chati), `getMe`, `myGroups` (o'qituvchi qo'shgan guruhlar),
+`backupFile` (o'z chatida qadalgan zaxira faylining matni — brauzer Telegram fayl manzilini o'qiy olmaydi).
 
 Bepul Cloudflare cheklovlari (kuniga 100 000 so'rov, D1 da 100 000 yozuv) yuzlab o'qituvchiga yetadi.
 

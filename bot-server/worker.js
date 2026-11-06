@@ -15,7 +15,7 @@ const LINK_TTL = 10 * 60;   // soniya: /go dan keyin «Boshlash» uchun vaqt
 const T_RE = /^[A-Za-z0-9_-]{16,64}$/;
 // ilova chaqira oladigan Bot API usullari; «own» — faqat o'z chatiga (guruhga emas)
 const METHODS = {sendMessage: 0, sendPhoto: 0, sendDocument: 0, pinChatMessage: 0, unpinChatMessage: 0, deleteMessage: 0,
-  deleteMessages: "own", editMessageReplyMarkup: "own", getChat: "own", getMe: "none", myGroups: "none"};
+  deleteMessages: "own", editMessageReplyMarkup: "own", getChat: "own", getMe: "none", myGroups: "none", backupFile: "none"};
 const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, uname TEXT, st TEXT NOT NULL, at INTEGER)",
   "CREATE TABLE IF NOT EXISTS keys (h TEXT PRIMARY KEY, uid INTEGER NOT NULL, dev TEXT, at INTEGER)",
@@ -101,6 +101,7 @@ async function relay(req, env, method) {
   if (u.st !== "ok") return fail(403, "Admin tasdig'i kutilmoqda");
   const kind = METHODS[method];
   if (method === "myGroups") return json({ok: true, result: (await all(env, "SELECT id, title FROM groups WHERE uid = ? ORDER BY title", u.id))});
+  if (method === "backupFile") return json(await backupFile(env, u, String(fd.get("file_id") || "")));
   if (kind !== "none") {
     const chat = String(fd.get("chat_id") || "");
     if (chat !== String(u.id)) {
@@ -110,6 +111,18 @@ async function relay(req, env, method) {
   }
   const r = await fetch(`${API}/bot${env.BOT_TOKEN}/${method}`, {method: "POST", body: fd});
   return new Response(await r.text(), {status: r.status, headers: Object.assign({"Content-Type": "application/json; charset=utf-8"}, CORS)});
+}
+
+// o'z chatidagi qadalgan zaxira faylini o'qib berish (brauzer fayl manzilini CORS sababli o'qiy olmaydi) — gas/Code.gs dagi backupFile_ bilan bir xil
+async function backupFile(env, u, fid) {
+  const ch = await tg(env, "getChat", {chat_id: u.id}), pm = ch.ok && ch.result && ch.result.pinned_message, d = pm && pm.document;
+  if (!d) return {ok: false, error_code: 404, description: "Qadalgan zaxira topilmadi"};
+  if (fid && fid !== d.file_id && fid !== d.file_unique_id) return {ok: false, error_code: 404, description: "Zaxira yangilangan — qayta urinib ko'ring"};
+  const f = await tg(env, "getFile", {file_id: d.file_id});
+  if (!f.ok || !f.result.file_path) return {ok: false, error_code: 502, description: f.description || "Faylni olib bo'lmadi"};
+  const r = await fetch(`${API}/file/bot${env.BOT_TOKEN}/${f.result.file_path}`);
+  if (!r.ok) return {ok: false, error_code: 502, description: "Faylni yuklab bo'lmadi"};
+  return {ok: true, result: {message_id: pm.message_id, text: await r.text()}};
 }
 
 /* ───────── Telegram webhook ───────── */

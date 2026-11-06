@@ -14,7 +14,7 @@ var APP_URL = "https://akmal1st.github.io/yoqlama-jurnal/";
 var LINK_TTL = 10 * 60;
 var T_RE = /^[A-Za-z0-9_-]{16,64}$/;
 var METHODS = {sendMessage: 0, sendPhoto: 0, sendDocument: 0, pinChatMessage: 0, unpinChatMessage: 0, deleteMessage: 0,
-  deleteMessages: "own", editMessageReplyMarkup: "own", getChat: "own", getMe: "none", myGroups: "none"};
+  deleteMessages: "own", editMessageReplyMarkup: "own", getChat: "own", getMe: "none", myGroups: "none", backupFile: "none"};
 
 /* ───────── yordamchilar ───────── */
 function P_() { return PropertiesService.getScriptProperties(); }
@@ -136,6 +136,7 @@ function relay_(b) {
   if (u.st !== "ok") return fail_(403, "Admin tasdig'i kutilmoqda");
   var p = b.p || {}, kind = METHODS[m];
   if (m === "myGroups") { processUpdates_(); return out_({ok: true, result: get_("g:" + u.id) || []}); }
+  if (m === "backupFile") return out_(backupFile_(u, p));
   if (kind !== "none") {
     var chat = String(p.chat_id || "");
     if (chat !== String(u.id)) {
@@ -151,6 +152,20 @@ function relay_(b) {
   if (!files && !Object.keys(payload).length) opt = {method: "post", muteHttpExceptions: true};
   var r = UrlFetchApp.fetch("https://api.telegram.org/bot" + env_("BOT_TOKEN") + "/" + m, opt);
   return ContentService.createTextOutput(r.getContentText()).setMimeType(ContentService.MimeType.JSON);
+}
+
+// O'qituvchining o'z chatida qadalgan zaxira faylini o'qib berish. Brauzer api.telegram.org/file/… ni o'qiy olmaydi (CORS),
+// shuning uchun avval zaxira chatga siqilgan matn bo'laklari («📦1/11 H4sI…») bo'lib ham borardi. Endi server faylni o'zi o'qiydi.
+// Faqat o'z chatidagi qadalgan hujjat: begona file_id bilan boshqa faylni o'qib bo'lmaydi.
+function backupFile_(u, p) {
+  var ch = tg_("getChat", {chat_id: u.id}), pm = ch.ok && ch.result && ch.result.pinned_message, d = pm && pm.document;
+  if (!d) return {ok: false, error_code: 404, description: "Qadalgan zaxira topilmadi"};
+  if (p.file_id && String(p.file_id) !== d.file_id && String(p.file_id) !== d.file_unique_id) return {ok: false, error_code: 404, description: "Zaxira yangilangan — qayta urinib ko'ring"};
+  var f = tg_("getFile", {file_id: d.file_id});
+  if (!f.ok || !f.result.file_path) return {ok: false, error_code: 502, description: f.description || "Faylni olib bo'lmadi"};
+  var r = UrlFetchApp.fetch("https://api.telegram.org/file/bot" + env_("BOT_TOKEN") + "/" + f.result.file_path, {muteHttpExceptions: true});
+  if (r.getResponseCode() !== 200) return {ok: false, error_code: 502, description: "Faylni yuklab bo'lmadi"};
+  return {ok: true, result: {message_id: pm.message_id, text: r.getContentText("UTF-8")}};
 }
 
 /* ───────── Telegram yangilanishlari ───────── */
