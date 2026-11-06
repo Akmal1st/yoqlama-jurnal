@@ -1,6 +1,6 @@
 /* Emojilar o'rniga Bootstrap Icons (vendor/bootstrap-icons-1.11.3.css).
    Kodda emojilar qoladi (Telegram, Excel, nusxalash matnlarida kerak), ekranga chiqqanda esa
-   DOM'dagi matn ichidagi emoji <i class="bi …"> ikonkaga almashtiriladi. Kiritish maydonlari,
+   DOM'dagi matn ichidagi emoji <span class="bi …"> ikonkaga almashtiriladi. Kiritish maydonlari,
    textarea, <option>, contenteditable va .noicon ichiga tegilmaydi. */
 const IKON = (() => {
   const M = {
@@ -26,13 +26,13 @@ const IKON = (() => {
   const SKIP = new Set(["TEXTAREA", "INPUT", "SELECT", "OPTION", "SCRIPT", "STYLE", "TITLE", "CANVAS", "svg"]);
   let on = true;
   try { on = localStorage.getItem("yoqlama_emoji") !== "1"; } catch (e) {}
-  const html = (ch) => `<i class="bi bi-${M[ch]}${COL[ch] ? " " + COL[ch] : ""}" aria-hidden="true"></i>`;
+  const html = (ch, m = ch) => `<span class="bi bi-${M[ch]}${COL[ch] ? " " + COL[ch] : ""}" aria-hidden="true"><span class="bi-t">${m}</span></span>`;
   // matndagi emojilarni ikonka HTML'iga almashtiradi (matn esc qilingan bo'lishi kerak)
-  const str = (s) => String(s).replace(RE, (m, ch) => html(ch));
+  const str = (s) => String(s).replace(RE, (m, ch) => html(ch, m));
   const strip = (s) => String(s).replace(RE, "").replace(/^\s+/, "");
   function skip(el) {
     for (let e = el; e && e.nodeType === 1; e = e.parentElement) {
-      if (SKIP.has(e.nodeName) || e.isContentEditable || e.classList.contains("noicon")) return true;
+      if (SKIP.has(e.nodeName) || e.isContentEditable || e.classList.contains("noicon") || e.classList.contains("bi-t")) return true;
     }
     return false;
   }
@@ -41,7 +41,9 @@ const IKON = (() => {
     const f = document.createDocumentFragment(); let last = 0;
     s.replace(RE, (m, ch, i) => {
       if (i > last) f.appendChild(document.createTextNode(s.slice(last, i)));
-      const ic = document.createElement("i"); ic.className = `bi bi-${M[ch]}${COL[ch] ? " " + COL[ch] : ""}`; ic.setAttribute("aria-hidden", "true");
+      const ic = document.createElement("span"); ic.className = `bi bi-${M[ch]}${COL[ch] ? " " + COL[ch] : ""}`; ic.setAttribute("aria-hidden", "true");
+      // asl emoji ko'rinmas holda ichida qoladi: textContent, nusxa va testlar o'zgarmaydi
+      const h = document.createElement("span"); h.className = "bi-t"; h.textContent = m; ic.appendChild(h);
       f.appendChild(ic); last = i + m.length; return m;
     });
     if (last < s.length) f.appendChild(document.createTextNode(s.slice(last)));
@@ -58,7 +60,7 @@ const IKON = (() => {
     if (root.nodeType === 1) attrs(root);
     const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null), todo = [];
     for (let n = w.nextNode(); n; n = w.nextNode()) {
-      if (n.nodeType === 3) { if (TEST.test(n.nodeValue)) todo.push(n); } else if (n.placeholder || n.nodeName === "OPTION") attrs(n);
+      if (n.nodeType === 3) { if (TEST.test(n.nodeValue) && !n.parentElement?.classList.contains("bi-t")) todo.push(n); } else if (n.placeholder || n.nodeName === "OPTION") attrs(n);
     }
     todo.forEach(node);
   }
