@@ -6,6 +6,7 @@ import {fileURLToPath} from "node:url";
 import {chromium} from "playwright";
 import {DatabaseSync} from "node:sqlite";
 import botServer from "../bot-server/worker.js";
+import {makeGas} from "./gas_harness.mjs";
 
 const APP = new URL("../docs/index.html", import.meta.url).href;
 const FIXTURE = fileURLToPath(new URL("fixtures/journal.json", import.meta.url));
@@ -3500,4 +3501,78 @@ test("Umumiy Telegram bot: bitta tugma bilan ulanish, zaxira va kunlik hisobot s
     assert.deepEqual(direct, [], "ilova api.telegram.org ga to'g'ridan-to'g'ri murojaat qilmadi");
     assert.deepEqual(errors, []);
   } finally { globalThis.fetch = realFetch; await browser.close(); }
+});
+
+// Google Apps Script serveri (bot-server/gas/Code.gs): Cloudflare workers.dev O'zbekistonda VPN'siz ochilmadi.
+// Ilova → Google serveri (Node'da, GAS xizmatlari soxta) → soxta Telegram. So'rovlar JSON, fayllar base64.
+test("Umumiy bot (Google serveri): bitta tugma, zaxira fayli, guruh va kunlik hisobot (36 va 18 o'quvchi)", async () => {
+  const G = makeGas({bot: "YoqlamaJurnalbot"}), TEACHER = 4242, GAS = "https://script.google.com/macros/s/TEST/exec";
+  assert.equal(G.get({a: "setup", s: "sir"}).ok, true);
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const ctx = await browser.newContext({viewport: {width: 390, height: 844}});
+    await ctx.addInitScript((u) => localStorage.setItem("yoqlama_tgu_url", u), GAS);
+    const direct = [], tme = [], preflight = [];
+    await ctx.route("https://api.telegram.org/**", (rt) => { direct.push(rt.request().url()); return rt.abort(); });
+    await ctx.route("https://t.me/**", (rt) => { tme.push(rt.request().url()); return rt.fulfill({status: 200, contentType: "text/html", body: "<p>Telegram</p>"}); });
+    await ctx.route("https://script.google.com/**", (rt) => {
+      const rq = rt.request();
+      if (rq.method() === "OPTIONS") { preflight.push(rq.url()); return rt.fulfill({status: 405}); }   // Apps Script OPTIONS ga javob bermaydi
+      return rt.fulfill({status: 200, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: G.handle(rq.method(), rq.url(), rq.postData())});
+    });
+    const page = await ctx.newPage();
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await page.evaluate(() => {
+      const t = todayIso(); D.settings.method_weekday = null;
+      for (const x of D.classes) x.dates = x.dates.filter((d) => d !== t);
+      const CL = D.classes.filter((c) => !isGrp(c)).slice(0, 2);
+      CL.forEach((c, ci) => {
+        const n = ci ? 18 : 36; c.extra_x = [];
+        while (c.students.length < n) c.students.push(Object.assign(JSON.parse(JSON.stringify(c.students[0])), {name: "Qo'shimcha O'quvchi " + c.students.length}));
+        c.students.length = n; c.dates.push(t); c.dates.sort(); c.lessons[t] = {topic: "Mavzu " + ci, hw: ""};
+        c.students.forEach((s, i) => { s.marks[t] = i === 1 ? "s" : String(5 + (i % 5)); });
+      });
+      const wd = (new Date().getDay() + 6) % 7, days = Array.from({length: 6}, () => ["", ""]);
+      if (wd < 6) days[wd] = CL.map(ckey);
+      D.web.schedule = {bells: [["00:00", "00:01"], ["00:01", "00:02"]], days}; save();
+    });
+    await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="5"]');
+    // bitta tugma: to'g'ridan-to'g'ri t.me/<bot>?start=<t> ochiladi
+    await Promise.all([page.waitForEvent("popup"), page.click('[data-a="tguon"]')]);
+    const t = await page.evaluate(() => tgCfg().pend.t);
+    for (let i = 0; i < 30 && !tme.length; i++) await page.waitForTimeout(100);
+    assert.equal(tme[0], `https://t.me/YoqlamaJurnalbot?start=${t}`);
+    await page.waitForSelector("text=Boshlash");
+    G.push({message: {from: {id: TEACHER, first_name: "Dilnoza", last_name: "Karimova"}, chat: {id: TEACHER, type: "private"}, text: "/start " + t}});
+    await page.bringToFront();
+    await page.waitForFunction(() => !!tgCfg().last, null, {timeout: 20000});
+    const cfg = await page.evaluate(() => tgCfg());
+    assert.equal(cfg.chat, TEACHER); assert.equal(cfg.token, undefined);
+    const doc = G.log.find((x) => x.m === "sendDocument");
+    assert.equal(doc.p.chat_id, String(TEACHER)); assert.equal(doc.p.document.type, "application/json"); assert.ok(doc.p.document.size > 1000, "zaxira fayli base64 orqali butun yetdi");
+    assert.ok(G.log.some((x) => x.m === "pinChatMessage"));
+    assert.ok(G.log.some((x) => x.m === "sendMessage" && x.p.chat_id === 100 && /Chrome/.test(x.p.text)), "admin'ga qurilma nomi bilan");
+    await page.waitForSelector("text=umumiy bot");
+    // ota-onalar guruhi
+    G.push({my_chat_member: {chat: {id: -100777, type: "supergroup", title: "36 talik sinf ota-onalari"}, from: {id: TEACHER}, new_chat_member: {status: "member", user: {id: 1}}}});
+    await page.click('[data-kra="grp"]');
+    assert.ok(await page.$('.modal a[href="https://t.me/YoqlamaJurnalbot?startgroup=jurnal"]'));
+    await page.click(".modal [data-f]");
+    await page.waitForSelector(".modal option:has-text('36 talik sinf ota-onalari')", {state: "attached"});
+    await page.selectOption('.modal [data-krg="0"]', "-100777"); await page.click(".modal [data-x]");
+    const n0 = G.log.length;
+    await page.click('[data-kra="on"]');
+    await page.waitForFunction(() => KUN.cfg().day === todayIso() && KUN.cfg().sent.length === 2, null, {timeout: 20000});
+    const ph = G.log.slice(n0).filter((x) => x.m === "sendPhoto");
+    assert.equal(ph.length, 3, JSON.stringify(ph.map((x) => x.p.chat_id)));
+    assert.ok(ph.filter((x) => x.p.chat_id === String(TEACHER)).every((x) => x.p.photo.type === "image/png" && x.p.photo.size > 5000));
+    assert.match(ph.find((x) => x.p.chat_id === "-100777").p.photo, /^PH\d+$/);
+    assert.ok(ph.some((x) => /36/.test(x.p.caption)) && ph.some((x) => /18/.test(x.p.caption)));
+    assert.deepEqual(preflight, [], "brauzer OPTIONS so'rovi yubormadi (Apps Script unga javob bermaydi)");
+    assert.deepEqual(direct, []);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
 });
