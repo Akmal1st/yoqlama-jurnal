@@ -38,3 +38,6 @@
 .side .alf-chip{display:flex;align-items:center;gap:6px;justify-content:center}
 .side .alf-chip .lbl{flex:none}
 .side .alf-chip .bi{color:var(--acc)}
+/* kunduzgi va tungi rejimda boshqa tugmalardan ajralib turadi: asosiy rangning yengil foni va chizig'i */
+.side .btn.alf-chip{background:color-mix(in srgb,var(--acc) 24%,var(--base));border-color:var(--acc);color:var(--text);font-weight:700}
+.side .btn.alf-chip:hover{background:color-mix(in srgb,var(--acc) 34%,var(--base))}
