@@ -48,6 +48,7 @@ kechikib javob beradi. O'qituvchi ulanayotganda esa ilova har 2 soniyada so'rayd
 | `POST {a:"new", t, d}` | ilova (tugma bosilganda) | ulanish havolasini va qurilma nomini yozadi; Telegram `t.me/<bot>?start=<t>` bilan ochiladi |
 | `GET ?a=link&t=…` | ilova (har 2 soniyada) | yangi xabarlarni oladi (`/start <t>`), holatni qaytaradi; kalit bir marta beriladi |
 | `POST {a:"api", k, m, p, f}` | ilova | kalitni va `chat_id` ni tekshirib Telegram'ga uzatadi; fayllar `f` da base64 |
+| `POST {a:"api", k, m:"backupFile"}` | ilova (boshqa qurilmada tiklash) | o'z chatidagi qadalgan zaxira faylini o'qib beradi — shu sabab chatga «📦1/11 H4sI…» matn bo'laklari yuborilmaydi |
 | `GET ?a=setup&s=…` | admin, bir marta | webhook'ni o'chiradi, buyruqlar, har daqiqalik `tick` trigger |
 | `tick()` | trigger, har daqiqada | admin tugmalari, guruhga qo'shilish, eski havolalarni tozalash |
 

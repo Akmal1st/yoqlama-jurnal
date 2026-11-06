@@ -147,3 +147,22 @@ test("bir o'qituvchi ikki qurilma: ikkala kalit ham ishlaydi", async () => {
   for (const k of [a.key, b.key]) assert.equal((await S.api("sendMessage", {_k: k, chat_id: String(T1), text: "x"})).status, 200);
   assert.ok(sent.some((x) => x.p.chat_id === ADMIN && /Yangi qurilma/.test(x.p.text || "")));
 });
+
+test("zaxira faylini server o'qib beradi: faqat o'z chatidagi qadalgan hujjat", async () => {
+  const S = await mk();
+  const {key} = await S.connect(T1, "tK1234567890abcdefXY");
+  const json = '{"classes":[{"name":"7-A"}]}', base = globalThis.fetch;
+  let pinned = null;
+  globalThis.fetch = async (url, opt) => {
+    if (String(url) === "https://api.telegram.org/file/botTOKEN/documents/f1.json") return new Response(json);
+    const m = String(url).match(/\/(getChat|getFile)$/);
+    if (m) { const p = JSON.parse(opt.body); sent.push({method: m[1], p}); return new Response(JSON.stringify({ok: true, result: m[1] === "getChat" ? Object.assign({id: p.chat_id}, pinned ? {pinned_message: pinned} : {}) : {file_path: "documents/f1.json"}})); }
+    return base(url, opt);
+  };
+  assert.equal((await (await S.api("backupFile", {_k: key, file_id: "-"})).json()).error_code, 404);
+  pinned = {message_id: 9, document: {file_id: "FID", file_unique_id: "UID"}};
+  const r = await (await S.api("backupFile", {_k: key, file_id: "FID"})).json();
+  assert.equal(r.ok, true); assert.equal(r.result.text, json); assert.equal(r.result.message_id, 9);
+  assert.equal((await (await S.api("backupFile", {_k: key, file_id: "BOSHQA"})).json()).error_code, 404);
+  assert.equal(sent.filter((x) => x.method === "getChat").every((x) => x.p.chat_id === T1), true, "faqat o'z chati");
+});

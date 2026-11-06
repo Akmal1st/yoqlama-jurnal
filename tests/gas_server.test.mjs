@@ -88,3 +88,17 @@ test("admin: bloklash, Tasdiq bilan rejimi, ro'yxat va holat", () => {
   S.props.set("l:eskiHavola1234567890", JSON.stringify({st: "new", at: 1})); S.ctx.tick();
   assert.equal(S.props.has("l:eskiHavola1234567890"), false);
 });
+
+test("zaxira faylini server o'qib beradi: faqat o'z chatidagi qadalgan hujjat", () => {
+  const S = mk();
+  const {key} = connect(S, T1, "tG1234567890abcdefXY"), {key: key2} = connect(S, T2, "tH1234567890abcdefXY");
+  assert.equal(api(S, key, "backupFile", {file_id: "-"}).error_code, 404, "hali qadalgan zaxira yo'q");
+  const json = JSON.stringify({classes: [{name: "7-A", students: [{name: "Ali Valiyev"}]}]});
+  const m = api(S, key, "sendDocument", {chat_id: String(T1)}, {document: {n: "j.json", t: "application/json", b: Buffer.from(json).toString("base64")}}).result;
+  api(S, key, "pinChatMessage", {chat_id: String(T1), message_id: String(m.message_id)});
+  const r = api(S, key, "backupFile", {file_id: m.document.file_id});
+  assert.equal(r.ok, true); assert.equal(r.result.text, json); assert.equal(r.result.message_id, m.message_id);
+  assert.equal(api(S, key, "backupFile", {file_id: "-"}).error_code, 404, "boshqa file_id — yo'q");
+  assert.equal(api(S, key2, "backupFile", {file_id: m.document.file_id}).error_code, 404, "boshqa o'qituvchi o'qiy olmaydi");
+  assert.ok(!S.log.some((x) => x.m === "getChat" && x.p.chat_id !== T1 && x.p.chat_id !== T2));
+});

@@ -4995,7 +4995,8 @@ async function tgNetErr(e) {
 const tgErrTxt = (e) => e.net ? e.message : "Telegram: " + e.message;
 let TG_NEW = null, tgBusy = false; // TG_NEW — boshqa qurilmadan kelgan yangiroq zaxira (Bugun sahifasida taklif qilinadi)
 // Telegram fayl manzili (api.telegram.org/file/…) brauzerga CORS ruxsatini bermaydi — faylni qaytarib o'qib bo'lmaydi.
-// Shuning uchun zaxira yana siqilgan matn bo'laklari bo'lib xabar sifatida ham boradi; bot API usullari esa CORS bilan ishlaydi.
+// Shuning uchun o'z botida zaxira yana siqilgan matn bo'laklari bo'lib xabar sifatida ham boradi; bot API usullari esa CORS bilan ishlaydi.
+// Umumiy botda bo'laklar kerak emas: server faylni o'zi o'qib beradi (backupFile).
 const TG_PART = 4000, TG_MAXP = 60;
 const b64u = (u8) => { let t = ""; for (let i = 0; i < u8.length; i += 0x8000) t += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(t).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
 const unb64u = (t) => { const b = atob(t.replace(/-/g, "+").replace(/_/g, "/")), u8 = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u8[i] = b.charCodeAt(i); return u8; };
@@ -5033,22 +5034,38 @@ async function openSealed(d) {
   throw new Error("Parol noto'g'ri — zaxira yuklanmadi");
 }
 const tgBtn = () => ({inline_keyboard: [[{text: "📒 Ilovani ochish", url: `https://akmal1st.github.io/yoqlama-jurnal/#${Date.now().toString(36)}`}]]});
+// Umumiy bot serveri qadalgan zaxira faylini o'zi o'qib bera oladimi (backupFile usuli; eski server o'rnatilgan bo'lsa — yo'q).
+// Shunda matn bo'laklari umuman yuborilmaydi: chatda faqat zaxira fayli qoladi (Akmal, 2026-11-06: «📦1/11 H4sI…» xabarlari tushunarsiz).
+let TG_FSRV = null;
+async function tgSrvFile() {
+  if (!tgCfg().key) return false;
+  if (tgCfg().fsrv) return true;
+  if (TG_FSRV !== null) return TG_FSRV;
+  try { await tgApi("backupFile", {file_id: "-"}); TG_FSRV = true; }
+  catch (e) { if (e.net) return false; TG_FSRV = !/ruxsat yo'q/.test(e.message); }
+  if (TG_FSRV) tgSet({fsrv: 1});
+  return TG_FSRV;
+}
+// Bo'laklar yig'iq (bosilganda ochiladigan) iqtibos ichida boradi: chatda har biri bitta qisqa qator bo'lib ko'rinadi
 async function tgSendParts(chat, json) {
   if (typeof CompressionStream === "undefined") return [];
+  if (await tgSrvFile()) return [];
   const z = b64u(await gzipTxt(json)), n = Math.ceil(z.length / TG_PART), ids = [];
   if (n > TG_MAXP) return [];
   for (let i = 0; i < n; i++) {
-    const m = await tgApi("sendMessage", {chat_id: chat, text: `📦${i + 1}/${n} ${z.slice(i * TG_PART, (i + 1) * TG_PART)}`, disable_notification: true, reply_markup: tgBtn()});
+    const m = await tgApi("sendMessage", {chat_id: chat, parse_mode: "HTML", text: `📦 Zaxira nusxasi ${i + 1}/${n} — boshqa qurilmada tiklash uchun. O'chirmang, keyingi zaxirada o'zi o'chadi.\n<blockquote expandable>${z.slice(i * TG_PART, (i + 1) * TG_PART)}</blockquote>`, disable_notification: true, reply_markup: tgBtn()});
     ids.push(m.message_id);
   }
   return ids;
 }
+// bo'lak matnidan ma'lumot qismi: yangi usulda oxirgi qatorda, eski usulda («📦1/11 H4sI…») birinchi bo'shliqdan keyin
+const tgPartData = (t) => { t = String(t || "").replace(/<[^>]*>/g, "").trim(); const i = t.lastIndexOf("\n"); return i >= 0 ? t.slice(i + 1).trim() : t.slice(t.indexOf(" ") + 1); };
 // o'z xabarining matnini qaytarib olish: tugmani yangilash (editMessageReplyMarkup) butun xabarni qaytaradi
 async function tgReadParts(ids) {
   const chat = tgCfg().chat, out = [];
   for (let i = 0; i < ids.length; i += 5) {
     const ms = await Promise.all(ids.slice(i, i + 5).map((id) => tgApi("editMessageReplyMarkup", {chat_id: chat, message_id: id, reply_markup: tgBtn()})));
-    for (const m of ms) { const t = m.text || ""; out.push(t.slice(t.indexOf(" ") + 1)); }
+    for (const m of ms) out.push(tgPartData(m.text));
   }
   return JSON.parse(await gunzipTxt(unb64u(out.join(""))));
 }
@@ -5084,7 +5101,8 @@ function djbData() { const w = D.web.saved; delete D.web.saved; const h = djb(JS
 async function tgPull(pm) {
   const ids = tgPartIds(pm);
   let data;
-  if (ids.length && typeof DecompressionStream !== "undefined") data = await tgReadParts(ids);
+  if (await tgSrvFile()) data = JSON.parse((await tgApi("backupFile", {file_id: pm.document.file_id})).text);
+  else if (ids.length && typeof DecompressionStream !== "undefined") data = await tgReadParts(ids);
   else {
     if (tgCfg().key) throw new Error("Bu zaxirani yuklab bo'lmadi — uni yuborgan qurilmada «📤 Yuborish»ni bosing, so'ng shu yerda qayta urinib ko'ring");
     const f = await tgApi("getFile", {file_id: pm.document.file_id});

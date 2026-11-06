@@ -3478,6 +3478,8 @@ test("Umumiy Telegram bot: bitta tugma bilan ulanish, zaxira va kunlik hisobot s
     assert.ok(tgLog.some((x) => x.m === "pinChatMessage"));
     assert.ok(tgLog.some((x) => x.m === "sendMessage" && x.p.chat_id === 100 && /Yangi o'qituvchi ulandi/.test(x.p.text)), "admin'ga xabar");
     await page.waitForSelector("text=umumiy bot");
+    // zaxira chatga «📦1/11 H4sI…» bo'laklari bo'lib bormaydi — server faylni o'zi o'qib beradi
+    assert.ok(!tgLog.some((x) => x.m === "sendMessage" && /📦/.test(x.p.text || "")), "matn bo'laklari yuborilmadi");
     // ota-onalar guruhi: o'qituvchi botni guruhga qo'shadi — server biladi, ilova «Guruhlarni topish» bilan oladi
     await hook({my_chat_member: {chat: {id: -100777, type: "supergroup", title: "36 talik sinf ota-onalari"}, from: {id: TEACHER}, new_chat_member: {status: "member", user: {id: 1}}}});
     await page.click('[data-kra="grp"]');
@@ -3556,6 +3558,11 @@ test("Umumiy bot (Google serveri): bitta tugma, zaxira fayli, guruh va kunlik hi
     assert.ok(G.log.some((x) => x.m === "pinChatMessage"));
     assert.ok(G.log.some((x) => x.m === "sendMessage" && x.p.chat_id === 100 && /Chrome/.test(x.p.text)), "admin'ga qurilma nomi bilan");
     await page.waitForSelector("text=umumiy bot");
+    // zaxira chatga «📦1/11 H4sI…» bo'laklari bo'lib bormaydi — server faylni o'zi o'qib beradi
+    assert.ok(!G.log.some((x) => x.m === "sendMessage" && /📦/.test(x.p.text || "")), "matn bo'laklari yuborilmadi");
+    assert.equal(await page.evaluate(() => tgCfg().fsrv), 1);
+    const cnt = await page.evaluate(async () => { const n = D.classes.length; D.classes.pop(); await tgPull(await tgPinned()); return [n, D.classes.length]; });
+    assert.equal(cnt[0], cnt[1], "zaxira serverdan o'qib tiklandi");
     // ota-onalar guruhi
     G.push({my_chat_member: {chat: {id: -100777, type: "supergroup", title: "36 talik sinf ota-onalari"}, from: {id: TEACHER}, new_chat_member: {status: "member", user: {id: 1}}}});
     await page.click('[data-kra="grp"]');
