@@ -147,7 +147,8 @@ const DZN = (() => {
           <label class="sl"><span class="sll"><b>Zichlik</b><output>${DENS[z.dens][0]}</output></span><span class="slr"><span class="trk"><input type="range" data-dz-r="dens" min="0" max="2" step="1" value="${z.dens}" aria-label="Zichlik"><span class="ticks"><i>Keng · telefon</i><i class="st">Oddiy · standart</i><i>Ixcham · jadval</i></span></span></span></label>
           <label class="sl"><span class="sll"><b>Burchaklar</b><output>${z.rad} px</output></span><span class="slr"><i class="rq" style="border-radius:0"></i><span class="trk"><input type="range" data-dz-r="rad" min="0" max="20" step="2" value="${z.rad}" aria-label="Burchaklar"><span class="ticks"><i>To'g'ri</i><i class="st">14 px standart</i><i>Yumaloq</i></span></span><i class="rq" style="border-radius:9px"></i></span></label></div>`) +
         grp("Yozuv turi", "Ekran, hisobot va chop etishda", `<div class="radios fl">${Object.entries(FONTS).map(([k, x]) => fr(k, x[0], x[1], x[2])).join("")}${cf ? fr("custom", cf, "Kompyuterdan", `"${cf}",system-ui`) : ""}
-          <button class="rd" data-dz-sysfont="1"><i class="rdo" style="visibility:hidden"></i><span><b>🖥 Kompyuterdagi shriftlar…</b><small>O'rnatilgan istalgan shrift</small></span></button></div>`);
+          <button class="rd" data-dz-sysfont="1"><i class="rdo" style="visibility:hidden"></i><span><b>🖥 Kompyuterdagi shriftlar…</b><small>O'rnatilgan istalgan shrift</small></span></button></div>`) +
+        (typeof ALF !== "undefined" ? ALF.body() : "");
     } else {
       const lay = (k) => `<span class="lay ${k}"><i></i></span>`;
       html = grp("Asosiy menyu joyi", "Bugun, Jurnal, Guruhlar…", `<div class="dzgrid g3">${[["left", "Chapda", "Yon panel"], ["top", "Tepada", "Qator"], ["bottom", "Pastda", "Tabbar"]].map(([k, n, s]) => opt("nav", k, z.nav === k, `${lay(k)}<b>${n}</b><small>${s}</small>`, k === BTNS.nav)).join("")}</div>
@@ -182,6 +183,7 @@ const DZN = (() => {
       r.onchange = () => commit((o) => { o[k] = +r.value; });
     });
     const pk = m.querySelector("#dzpick"); if (pk) pk.onchange = () => commit((o) => { o.hue = pk.value; });
+    if (typeof ALF !== "undefined") ALF.bind(m);
     m.querySelectorAll("[data-dz-sysfont]").forEach((b) => b.onclick = () => { if (typeof fontDialog === "function") fontDialog(); });
     m.querySelectorAll("[data-dz-undo]").forEach((b) => b.onclick = () => { const s0 = hist.pop(); if (!s0) return; D.web.dz = clean(JSON.parse(s0), D.web); save(); render(); flash(); });
     m.querySelectorAll("[data-dz-reset]").forEach((b) => b.onclick = () => commit((o) => { Object.assign(o, S.dztab === "btn" ? JSON.parse(JSON.stringify(BTNS)) : Object.assign({}, LOOK, {force: false})); }));

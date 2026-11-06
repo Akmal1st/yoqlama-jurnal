@@ -32,6 +32,7 @@
 <link rel="stylesheet" href="arxiv-tekshir.css">
 <link rel="stylesheet" href="ikon.css">
 <link rel="stylesheet" href="emk-bir.css">
+<link rel="stylesheet" href="alifbo.css">
 </head>
 <body>
 <div class="app" id="app">
@@ -40,6 +41,7 @@
   <nav class="tabbar" id="tabbar"></nav>
 </div>
 <input type="file" id="file" accept=".json,application/json" class="hide">
+<script src="alifbo.js"></script>
 <script src="ikon.js"></script>
 <script src="tpt-mavzu.js"></script>
 <script src="guruhlar.js"></script>
@@ -1503,7 +1505,7 @@ function renderNav() {
   const one = Object.fromEntries(NAV.map(([k, t]) => [k, `<button class="nav ${cur === k ? "on" : ""}" data-go="${k}" title="${t}">${ICONS[k]}<span class="lbl">${t}</span></button>`]));
   const navs = DZN.navList().map((k) => k === "help" ? hb : one[k] || "").join("");
   $("#side").innerHTML = `<div class="logo"><b>Y</b><span>Yo'qlama jurnali<small>web</small></span></div><button class="btn btn-sm cmdb" data-cmdk title="Qidirish va buyruqlar (Ctrl+K)">🔍<span class="lbl">Qidirish</span><kbd>Ctrl K</kbd></button>${navs}${sideView()}<div class="grow"></div>
-    <div class="sbot"><button class="btn btn-sm sidet" data-sidet title="${sideMin() ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}" aria-label="${sideMin() ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}">${sideMin() ? "»" : "« Yig'ish"}</button>
+    <div class="sbot">${ALF.chip(sideMin())}<button class="btn btn-sm sidet" data-sidet title="${sideMin() ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}" aria-label="${sideMin() ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}">${sideMin() ? "»" : "« Yig'ish"}</button>
     <button class="btn btn-sm" data-lock title="Qo'yilgan baholar himoyasi: ${lockTxt.slice(2)}">${sideMin() ? lockTxt.slice(0, 2) : lockTxt}</button></div>`;
   $("#tabbar").innerHTML = navs;
   document.querySelectorAll("[data-go]").forEach((b) => b.onclick = () => {
@@ -1516,6 +1518,7 @@ function renderNav() {
   document.querySelectorAll("[data-help]").forEach((b) => b.onclick = () => helpDialog());
   document.querySelectorAll("[data-cmdk]").forEach((b) => b.onclick = () => cmdPalette());
   const lb = $("[data-lock]"); if (lb) lb.onclick = toggleLock;
+  document.querySelectorAll("[data-alf-chip]").forEach((b) => b.onclick = () => ALF.toggle());
   $("[data-sidet]").onclick = () => { D.web.sidemin = !D.web.sidemin; save(); render(); };
   $("#side").querySelectorAll("[data-ci]").forEach((b) => b.onclick = () => pickClass(+b.dataset.ci));
   const q = $("#side .csq"); if (q) q.oninput = () => { const v = normName(q.value); $("#side").querySelectorAll(".cg").forEach((g) => g.hidden = !!v && !g.dataset.cg.includes(v)); };
@@ -1529,6 +1532,7 @@ function cmdItems() {
   it.push({ic: "＋", t: "Yangi sinf qo'shish", s: "Amal", run: () => addClassDialog()},
     {ic: "💾", t: "Faylga saqlash (zaxira)", s: "Amal", run: () => exportJson()},
     {ic: "🌓", t: "Kunduzgi / tungi rejim", s: "Amal", run: () => DZN.toggleNight()},
+    {ic: "🔤", t: "Alifbo: hozirgi / yangi", s: "Amal", run: () => ALF.toggle()},
     {ic: "⌨", t: "Tezkor tugmalar ro'yxati", s: "?", run: () => keysDialog()},
     {ic: "❔", t: "Yordam — shu sahifa", s: "Amal", run: () => helpDialog()});
   if (UNDO.length) it.push({ic: "↶", t: "Oxirgi o'zgarishni bekor qilish", s: "Ctrl+Z", run: undoLast});
@@ -1662,7 +1666,7 @@ function labelTables(root) {
 function render() {
   // eski guruh jurnallari ma'lumotda saqlanadi, lekin hech qayerda ochilmaydi
   if (isGrp(D.classes[S.ci])) { const r = D.classes.findIndex((c) => !isGrp(c)); if (r >= 0) S.ci = r; }
-  EPOCH++; clearPrintDoc(); applyTheme(); ARX.tick(); renderNav(); document.querySelectorAll(".bpop").forEach((x) => x.remove());
+  EPOCH++; clearPrintDoc(); applyTheme(); ALF.sync(); ARX.tick(); renderNav(); document.querySelectorAll(".bpop").forEach((x) => x.remove());
   const m = $("#main");
   // Guruhlar (to'garak va pullik ta'lim) — alohida faylda: guruhlar.js / guruhlar.css
   document.body.classList.toggle("tpt-on", S.page === "groups"); if (S.page !== "groups" && typeof TPT !== "undefined") TPT.leave(); if (typeof HSB !== "undefined") HSB.leave();
