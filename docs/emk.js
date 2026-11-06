@@ -8,13 +8,17 @@
   const say = (t) => { box.textContent = "📒 Yo'qlama jurnali\n" + t; };
   document.body.appendChild(box);
   if (location.hostname !== "schools.emaktab.uz") {
-    say("emaktab.uz ga kiring va «Sinflarim» sahifasida shu tugmani yana bosing.");
-    if (confirm("Yo'qlama jurnali: «Sinflarim» sahifasi ochilsinmi? Ochilgach, tugmani yana bir bor bosing.")) location.href = "https://schools.emaktab.uz/v2/myclasses";
+    if (/(^|\.)emaktab\.uz$/.test(location.hostname) && !/^login\./.test(location.hostname)) {
+      say("eMaktab sahifasi ochilmoqda… Ochilgach, xatcho'pni yana bir bor bosing."); location.href = "https://schools.emaktab.uz/v2/myclasses";
+    } else say("Avval emaktab.uz ga kiring, so'ng xatcho'pni bosing.");
     setTimeout(() => box.remove(), 8000); return;
   }
-  let ready = false;
-  addEventListener("message", (e) => { if (e.origin === AO && e.data && e.data.type === "jurnal-ready") ready = true; });
-  // ilova oynasi ochilmasa ham (qalqib chiquvchi oyna to'silgan, telefon) jurnallar faylga saqlab beriladi
+  // ilova javobi: {type: "jurnal-ready", have: [{n: sinf, s: fan, q: [jurnalda belgisi bor choraklar]}]} (have — eski ilovada yo'q)
+  let ready = false, have = null;
+  addEventListener("message", (e) => { if (e.origin === AO && e.data && e.data.type === "jurnal-ready") { ready = true; if (Array.isArray(e.data.have)) have = e.data.have; } });
+  const ping = (w) => { try { w.postMessage({type: "emaktab-ping"}, AO); } catch (e) {} };
+  const waitApp = async (w, ms, need) => { for (let t = 0; t < ms / 200 && !(ready && (!need || have)) && !w.closed; t++) { ping(w); await new Promise((r) => setTimeout(r, 200)); } };
+  // ilova oynasi ochilmasa ham (qalqib chiquvchi oyna to'silgan, telefon) oxirida «Ilovaga yuborish» tugmasi chiqadi
   let w = null; try { w = window.open(APP + "#emaktab", "yoqlama_jurnal"); } catch (e) { w = null; }
   const btns = (opts) => new Promise((res) => {
     const row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-top:10px";
@@ -98,12 +102,11 @@
       try { return state(await (await get(u)).text()); }
       catch (e) { const p = new URL(u); if (p.origin === location.origin) return null; try { return state(await (await get(location.origin + p.pathname)).text()); } catch (e2) { return null; } }
     };
-    const first = await journal(jobs[0].url), fp = first && first.journalHeader ? perOf(first.journalHeader) : {ps: []};
-    let all = false;
-    if (fp.cur && fp.ps.some((p) => p.number < fp.cur.number)) {
-      say(`${jobs.length} ta jurnal topildi. Qaysi chorak(lar) olinsin?`);
-      all = await btns([["cur", `Joriy chorak (${fp.cur.name})`], ["all", "Yil boshidan (barcha choraklar)"]]) === "all";
-    }
+    const first = await journal(jobs[0].url);
+    // ilovada qaysi choraklar bor — jurnal o'shandan bilinadi; ilova javob bermasa hamma choraklar olinadi (ilova keraksizini o'zi tashlaydi)
+    if (w) await waitApp(w, 4000, true);
+    const nk = (t) => String(t || "").toLowerCase().replace(/\(.*?\)/g, "").replace(/[^\p{L}\p{N}]/gu, "");
+    const hasQ = (jb) => { if (!have) return null; const x = have.find((h) => nk(h.n) === nk(jb.cls) && nk(h.s) === nk(jb.subject)); return x ? x.q || [] : null; };
     const files = [], errs = [];
     for (const [n, jb] of jobs.entries()) {
       say(`Jurnallar yuklanmoqda: ${n + 1} / ${jobs.length}\n${jb.cls} · ${jb.subject}`);
@@ -111,28 +114,37 @@
         const st = n ? await journal(jb.url) : first, hd = (st && st.journalHeader) || (jb.pid ? {currentPeriodId: jb.pid} : null);
         if (!hd) throw new Error("chorak topilmadi");
         const [, school, group, subject] = jb.url.match(/\/school\/(\d+)\/group\/(\d+)\/subject\/(\d+)/);
-        const {ps, cur} = perOf(hd), want = all && cur ? ps.filter((p) => p.number <= cur.number).sort((a, b) => a.number - b.number) : [{id: hd.currentPeriodId, name: ""}];
+        // chorak raqami — tartib bo'yicha (emaktabda number 0 dan ham boshlanadi); joriy chorak doim, oldingilari — ilovada yo'q bo'lsa
+        const {ps, cur} = perOf(hd), ord = [...ps].sort((a, b) => a.number - b.number), hq = hasQ(jb);
+        const want = cur ? ord.filter((p, i) => p.number < cur.number ? !(hq && hq.includes(i + 1)) : p.id === cur.id) : [{id: hd.currentPeriodId, name: ""}];
         for (const p of want) {
           const x = await get(`/v2/excel?action=gjsxls&school=${school}&group=${group}&subgroup=0&subject=${subject}&period=${p.id}`);
           if (/html/i.test(x.headers.get("content-type") || "")) throw new Error("Excel o'rniga sahifa keldi");
-          files.push({name: `${jb.cls}_${jb.subject}${p.name ? "_" + p.name : ""}.xls`, data: await x.arrayBuffer()});
+          files.push({name: `${jb.cls}_${jb.subject}${p.name && want.length > 1 ? "_" + p.name : ""}.xls`, data: await x.arrayBuffer()});
         }
       } catch (e) { errs.push(`${jb.cls} · ${jb.subject}: ${e.message}`); }
     }
     if (!files.length) throw new Error("Hech bir jurnal yuklanmadi.\n" + errs.join("\n"));
     const bad = errs.length ? `\nYuklanmadi:\n${errs.join("\n")}` : "";
-    if (w) { say("Jurnal ilovasiga yuborilmoqda…"); for (let t = 0; !ready && t < 75; t++) await new Promise((r) => setTimeout(r, 200)); }
-    if (w && ready && !w.closed) {
+    const send = () => {
       w.postMessage({type: "emaktab-files", files}, AO);
-      say(`✓ ${files.length} ta jurnal yuborildi — Jurnal oynasida tasdiqlang.` + bad);
+      say(`✓ ${files.length} ta jurnal yuborildi.\nNatija Jurnal ilovasida.` + bad);
       try { w.focus(); } catch (e) {}
-      if (await btns([["ok", "Yopish"], ["save", "💾 Faylga ham saqlash"]]) === "save") saveFile(files);
-      box.remove(); return;
+      if (!bad) setTimeout(() => box.remove(), 4000);
+      else btns([["ok", "Yopish"]]).then(() => box.remove());
+    };
+    if (w && !w.closed) { say("Jurnal ilovasiga yuborilmoqda…"); await waitApp(w, 15000); }
+    if (w && ready && !w.closed) { send(); return; }
+    // ilova oynasi ochilmadi (qalqib chiquvchi oyna to'silgan) — tugma bosilsa brauzer ruxsat beradi; zaxira: faylga saqlash
+    for (;;) {
+      say(`✓ ${files.length} ta jurnal olindi. Ilovaga yuborish uchun tugmani bosing.` + bad);
+      const k = await btns([["open", "📒 Ilovaga yuborish"], ["save", "💾 Faylga saqlash"], ["x", "Bekor qilish"]]);
+      if (k === "x") { box.remove(); return; }
+      if (k === "save") { saveFile(files); say("✓ «emaktab_jurnallar.json» saqlandi (Yuklab olinganlar papkasi). Endi uni Jurnal ilovasida «eMaktab'dan import» → «Fayl orqali» bo'limida tanlang."); return; }
+      ready = false; try { w = window.open(APP + "#emaktab", "yoqlama_jurnal"); } catch (e) { w = null; }
+      if (w) { say("Jurnal ilovasiga yuborilmoqda…"); await waitApp(w, 15000); }
+      if (w && ready && !w.closed) { send(); return; }
     }
-    // ilova oynasi yo'q — fayl orqali
-    say(`✓ ${files.length} ta jurnal olindi, lekin Jurnal ilovasi oynasi ochilmadi.\nFaylga saqlang, so'ng ilovada «emaktab'dan import» → «Fayl orqali» bo'limida shu faylni tanlang.` + bad);
-    if (await btns([["save", "💾 Faylga saqlash"], ["x", "Bekor qilish"]]) === "save") { saveFile(files); say("✓ «emaktab_jurnallar.json» saqlandi (Yuklab olinganlar papkasi). Endi uni Jurnal ilovasida tanlang."); }
-    else box.remove();
   })().catch((e) => say("✗ " + e.message));
 })();
 })();

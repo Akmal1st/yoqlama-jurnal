@@ -176,8 +176,7 @@ test("emaktab.uz saytidan xatcho'p orqali import", async () => {
     const emk = await ctx.newPage(); await emk.goto("https://schools.emaktab.uz/v2/myclasses");
     const [pop] = await Promise.all([ctx.waitForEvent("page"), emk.evaluate(code)]);
     pop.on("pageerror", (e) => errors.push(e.message));
-    await pop.click(".modal [data-ok]", {timeout: 20000});
-    await pop.waitForSelector("text=Import yakunlandi");
+    await pop.waitForSelector("text=eMaktab'dan yangilandi", {timeout: 20000});   // tasdiq oynasi yo'q — darhol import
     assert.ok(asked.includes("/v2/excel?action=gjsxls&school=11&group=22&subgroup=0&subject=33&period=77"), asked.join(" "));
     assert.ok(!asked.some((a) => a.includes("class=9")));
     const cls = await pop.evaluate(() => D.classes.map((c) => [c.name, c.students.length]));
@@ -240,8 +239,7 @@ for (const kind of ["json", "cc"]) test(`emaktab: «Mening sinflarim» (${kind})
     const emk = await ctx.newPage(); await emk.goto("https://schools.emaktab.uz/v2/myclasses");
     const [pop] = await Promise.all([ctx.waitForEvent("page"), emk.evaluate(code)]);
     pop.on("pageerror", (e) => errors.push(e.message));
-    await pop.click(".modal [data-ok]", {timeout: 20000});
-    await pop.waitForSelector("text=Import yakunlandi");
+    await pop.waitForSelector("text=eMaktab'dan yangilandi", {timeout: 20000});   // tasdiq oynasi yo'q — darhol import
     // 6-A: jurnal sahifasi schools.emaktab.uz dan o'qildi; 9-A: jurnal sahifasi yo'q — havoladagi periodId (78) olindi
     assert.ok(asked.includes("/v2/excel?action=gjsxls&school=11&group=22&subgroup=0&subject=33&period=77"), asked.join(" "));
     assert.ok(asked.includes("/v2/excel?action=gjsxls&school=11&group=23&subgroup=0&subject=34&period=78"), asked.join(" "));
@@ -249,6 +247,16 @@ for (const kind of ["json", "cc"]) test(`emaktab: «Mening sinflarim» (${kind})
     const cls = await pop.evaluate(() => D.classes.map((c) => [c.name, c.subject, c.students.length]));
     assert.deepEqual(cls, [["6-A", "Matematika", 36], ["9-A", "Algebra", 18]]);
     await emk.waitForSelector("text=2 ta jurnal yuborildi");
+    // natija oynasi: ikkala jurnal (36 va 18 o'quvchi); «Bugun» kartasi yangilangan vaqtni ko'rsatadi; «Bekor qilish» — avvalgi holat
+    const res = await pop.textContent(".modal.ek-res");
+    assert.match(res, /36 o'quvchi/); assert.match(res, /18 o'quvchi/);
+    await pop.click(".modal.ek-res [data-x]");
+    await pop.evaluate(() => go("today"));
+    assert.match(await pop.textContent(".ek-sync"), /Yangilandi: hozirgina · 2 jurnal/);
+    assert.equal(await pop.evaluate(() => D.web.emk_bm), 1);
+    await pop.evaluate(() => EMK1.revert());
+    assert.equal(await pop.evaluate(() => D.classes.length), 0);
+    await emk.waitForSelector("text=2 ta jurnal yuborildi", {state: "detached", timeout: 8000});   // emaktab oynasi o'zi yopiladi
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
@@ -2022,7 +2030,8 @@ test("emaktab: yil boshidan barcha choraklar, ilova oynasi ochilmasa — fayl or
     const loader = await app.evaluate(() => emkLoader());
     assert.ok(loader.length < 600, `telefon xatcho'pi qisqa bo'lishi kerak: ${loader.length}`);
     await emk.evaluate(decodeURIComponent(loader.slice(11)));
-    await emk.click('[data-emk="all"]');
+    // chorak so'ralmaydi: ilova javob bermadi — joriy va oldingi choraklar olinadi; oyna ochilmadi — «Ilovaga yuborish» / «Faylga saqlash»
+    await emk.waitForSelector('[data-emk="open"]', {timeout: 20000});
     const [dl] = await Promise.all([emk.waitForEvent("download"), emk.click('[data-emk="save"]')]);
     assert.equal(dl.suggestedFilename(), "emaktab_jurnallar.json");
     assert.ok(asked.includes("/v2/excel?action=gjsxls&school=11&group=22&subgroup=0&subject=33&period=77"));
@@ -2034,8 +2043,7 @@ test("emaktab: yil boshidan barcha choraklar, ilova oynasi ochilmasa — fayl or
     await app.evaluate(() => { emkDialog("file"); });
     const [ch] = await Promise.all([app.waitForEvent("filechooser"), app.click(".modal [data-pick]")]);
     await ch.setFiles({name: "emaktab_jurnallar.json", mimeType: "application/json", buffer: await readFile(path)});
-    await app.click(".modal [data-ok]", {timeout: 20000});
-    await app.waitForSelector("text=Import yakunlandi");
+    await app.waitForSelector("text=eMaktab'dan yangilandi", {timeout: 20000});
     assert.deepEqual(await app.evaluate(() => D.classes.map((c) => c.name)), ["7-B"]);
     // dialog: uchta bo'lim
     await app.evaluate(() => { document.querySelectorAll(".modal").forEach((x) => x.remove()); emkDialog("pc"); });
@@ -2047,6 +2055,61 @@ test("emaktab: yil boshidan barcha choraklar, ilova oynasi ochilmasa — fayl or
     const bmk = await app.inputValue(".modal #emkta");
     assert.ok(bmk.startsWith("javascript:") && !/[\r\n\s]/.test(bmk) && bmk.length < 600, "bir qatorli, qisqa");
     assert.equal(await app.evaluate((u) => { try { new Function(decodeURIComponent(u.slice(11).replace(/\n/g, ""))); return "ok"; } catch (e) { return e.message; } }, bmk), "ok");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("emaktab: ilovada bor oldingi chorak qayta olinmaydi, bekor qilish ishlaydi", async () => {
+  const {readFile} = await import("node:fs/promises");
+  const XLSX = (await import("xlsx")).default;
+  const docs = fileURLToPath(new URL("../docs/", import.meta.url));
+  const xls = (n) => { const rows = [["Sinf: 7-B 2026/2027"], ["Fan: Matematika"], [], ["№", "F.I.Sh.", "Noyabr"], [null, null, 4]];
+    for (let i = 1; i <= n; i++) rows.push([i, `O'quvchi ${String(i).padStart(2, "0")}`, 5 + (i % 5)]);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "Matematika"); return XLSX.write(wb, {type: "buffer", bookType: "xls"}); };
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const ctx = await browser.newContext({serviceWorkers: "block"});
+    const asked = [];
+    await ctx.route("https://app.test/**", async (r) => {
+      const p = new URL(r.request().url()).pathname.slice(1) || "index.html";
+      try { r.fulfill({body: await readFile(docs + p), contentType: p.endsWith(".html") ? "text/html" : p.endsWith(".js") ? "text/javascript" : undefined}); } catch { r.fulfill({status: 404}); }
+    });
+    const hdr = {currentPeriodId: 78, currentGroupId: 5, periods: {5: {periods: [{id: 77, number: 0, name: "I chorak"}, {id: 78, number: 1, name: "II chorak"}]}}};
+    await ctx.route("https://schools.emaktab.uz/**", (r) => {
+      const u = new URL(r.request().url()); asked.push(u.pathname + u.search);
+      if (u.pathname === "/v2/userfeed") return r.fulfill({contentType: "text/html", body: "<html><body>lenta</body></html>"});
+      if (u.pathname === "/v2/myclasses") return r.fulfill({contentType: "text/html", body: `<div id="ContentPanelTeacher"><a href="/v2/class?class=1">7-B</a><a href="/v2/journal/school/11/group/22/subject/33" title="Matematika">Matematika</a></div>`});
+      if (u.pathname.startsWith("/v2/journal/")) return r.fulfill({contentType: "text/html", body: `<script>window.__JOURNAL__INITIAL__STATE__ = ${JSON.stringify({journalHeader: hdr})};</script>`});
+      if (u.pathname === "/v2/excel") return r.fulfill({contentType: "application/vnd.ms-excel", body: xls(u.searchParams.get("period") === "78" ? 36 : 18)});
+      return r.fulfill({status: 404});
+    });
+    const app = await ctx.newPage(); const errors = []; app.on("pageerror", (e) => errors.push(e.message));
+    await app.goto("https://app.test/");
+    // ilovada 7-B · Matematika bor, 1-chorakda belgisi bor
+    await app.evaluate(() => {
+      D = normalize({classes: [{name: "7-B", subject: "Matematika", dates: ["2026-09-10"], students: [{name: "O'quvchi 01", marks: {"2026-09-10": "5"}}]}],
+        settings: {quarters: [["2026-09-02", "2026-10-31"], ["2026-11-09", "2026-12-27"], ["2027-01-11", "2027-03-20"], ["2027-03-30", "2027-05-25"]]}});
+      save();
+    });
+    assert.deepEqual(await app.evaluate(() => EMK1.have()), [{n: "7-B", s: "Matematika", q: [1]}]);
+    const code = await app.evaluate(() => emkCode());
+    const emk = await ctx.newPage(); emk.on("pageerror", (e) => errors.push(e.message));
+    await emk.goto("https://schools.emaktab.uz/v2/userfeed");   // «Sinflarim» emas — istalgan sahifa
+    const [pop] = await Promise.all([ctx.waitForEvent("page"), emk.evaluate(code)]);
+    pop.on("pageerror", (e) => errors.push(e.message));
+    await pop.waitForSelector("text=eMaktab'dan yangilandi", {timeout: 20000});
+    assert.ok(asked.some((a) => a.includes("period=78")), asked.join(" "));
+    assert.ok(!asked.some((a) => a.includes("period=77")), "1-chorak ilovada bor — qayta olinmaydi");
+    assert.equal(await pop.evaluate(() => D.classes[0].students.length), 36);
+    // telefon kengligida natija oynasi yonga chiqmaydi
+    await pop.setViewportSize({width: 390, height: 844});
+    assert.ok(await pop.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await pop.click(".modal.ek-res [data-ekundo]");
+    assert.equal(await pop.evaluate(() => D.classes[0].students.length), 1);
+    // ilovadagi oldingi chorak fayli tashlanadi (fayl orqali kelganda ham joriy chorak doim olinadi)
+    const pq = await pop.evaluate(() => { const x = (n, d) => ({name: "7-B", subject: "Matematika", dates: [d], students: []});
+      const r = EMK1.pickQuarters([x(0, "2026-09-10"), x(0, "2026-11-12")]); return [r.out.map((y) => y.dates[0]), r.skip.length]; });
+    assert.deepEqual(pq, [["2026-11-12"], 1]);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });

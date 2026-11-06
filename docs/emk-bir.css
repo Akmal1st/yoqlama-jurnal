@@ -1,0 +1,30 @@
+/* eMaktab importi bir bosishda — «Bugun» kartasi va natija oynasi (tasdiqlangan maket, Akmal 2026-11-06). Kod: emk-bir.js */
+.ek-sync{display:flex;align-items:center;gap:12px;padding:12px 14px;flex-wrap:wrap}
+.ek-ic{width:38px;height:38px;border-radius:11px;background:color-mix(in srgb,#2f6fc0 14%,var(--base));color:#2f6fc0;display:grid;place-items:center;font-weight:800;font-size:17px;flex:none}
+html[data-theme="dark"] .ek-ic{color:#7fb0ef}
+.ek-tx{flex:1 1 150px;display:flex;flex-direction:column;min-width:0}
+.ek-tx b{font-weight:800}
+.ek-tx small{font-size:12.5px;color:var(--muted)}
+.ek-tx small.ok{color:var(--ok);font-weight:700}
+.ek-go{white-space:nowrap}
+.ek-sync.tel .ek-go{flex:1 1 100%}
+
+.ek-res-in{display:flex;flex-direction:column;gap:10px}
+.ek-rh{display:flex;align-items:center;gap:8px}
+.ek-rh h2{margin:0;font-size:18px;font-weight:800}
+.ek-ok{width:26px;height:26px;border-radius:99px;background:color-mix(in srgb,var(--ok) 15%,var(--base));color:var(--ok);display:grid;place-items:center;font-size:14px;font-weight:800;flex:none}
+.ek-sub{color:var(--muted);font-size:13px;margin-top:-6px}
+.ek-list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.ek-ri{padding:9px 12px;display:flex;flex-direction:column;gap:2px}
+.ek-ri+.ek-ri,.ek-more .ek-ri,.ek-list>.ek-more{border-top:1px solid var(--line)}
+.ek-more{display:flex;flex-direction:column}
+.ek-more[hidden]{display:none}
+.ek-ri b{font-weight:800}
+.ek-ri>span{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ek-ri>span.ek-w{color:#a15c07;font-weight:700}
+html[data-theme="dark"] .ek-ri>span.ek-w{color:#f5b454}
+.ek-ra{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.ek-new{font-size:11px;font-weight:800;padding:1px 7px;border-radius:99px;background:var(--acc-soft);color:var(--acc);vertical-align:2px}
+.ek-note{font-size:12.5px;color:var(--muted)}
+.ek-acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:820px){.ek-acts .btn{flex:1 1 140px}}
