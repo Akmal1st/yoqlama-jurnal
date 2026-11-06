@@ -3657,3 +3657,48 @@ test("Umumiy bot (Google serveri): bitta tugma, zaxira fayli, guruh va kunlik hi
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Alifbo: yangi alifbo ekran, Excel va Telegram'da, ma'lumot o'zgarmaydi (alifbo.js)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const viewport of [{width: 1440, height: 900}, {width: 390, height: 844}]) {
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message)); page.on("dialog", (d) => d.accept());
+      await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      // 36 va 18 o'quvchi bilan
+      await page.evaluate(() => { const add = (c, n) => { const b = c.students; for (let i = 0; b.length < n; i++) b.push({...JSON.parse(JSON.stringify(b[i % 14])), name: `Shodmonov Cho'lpon ${i}`}); }; add(D.classes[0], 36); add(D.classes[1], 18); save(); render(); });
+      await page.click(`${viewport.width < 800 ? ".tabbar" : ".side"} [data-go=settings]`); await page.click('[data-sec="3"]');
+      await page.click('[data-alf-m="y"]');
+      assert.deepEqual(await page.evaluate(() => D.web.alf), {m: "y", exp: true, tg: true});
+      for (const ci of [0, 1]) {
+        await page.evaluate((i) => { S.ci = i; go("journal"); }, ci);
+        await page.waitForFunction(() => document.querySelector("#main").textContent.includes("Şodmonov Çölpon 1"));
+        const t = await page.evaluate(() => document.querySelector("#main").textContent);
+        assert.ok(!/Shodmonov|Cho'lpon/.test(t), "ekranda eski alifbo qoldi");
+      }
+      // saqlangan ma'lumot hozirgi alifboda qoladi
+      assert.equal(await page.evaluate(() => D.classes[0].students[20].name.startsWith("Shodmonov Cho'lpon")), true);
+      assert.equal(await page.evaluate(() => ALF.yangi("O'g'il Gʻani shaxmat CHSB Chrome ma'lumot")), "Öğil Ğani şaxmat ÇSB Chrome ma'lumot");
+      // Excel ichi va Telegram izohi
+      const [xl, tgb] = await page.evaluate(async () => {
+        const X = await loadXlsx(), wb = X.utils.book_new(); X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet([["F.I.Sh.", "O'zlashtirish"]]), "2-chorak");
+        ALF.convBook(wb); const fd = new FormData(); fd.append("caption", "O'rtacha"); fd.append("document", new Blob(["{}"]), "zaxira.json");
+        let got = null; const of = window.tgFetch; window.tgFetch = async (u, o) => { got = [...o.body.entries()].map(([k, v]) => typeof v === "string" ? v : v.name); return {json: async () => ({ok: true, result: {}})}; };
+        try { await tgApi("sendDocument", fd, "T"); } finally { window.tgFetch = of; }
+        return [[wb.SheetNames[0], wb.Sheets[wb.SheetNames[0]].A1.v, wb.Sheets[wb.SheetNames[0]].B1.v], got];
+      });
+      assert.deepEqual(xl, ["2-çorak", "F.I.Ş.", "Özlaştiriş"]);
+      assert.deepEqual(tgb, ["Örtaça", "zaxira.json"]);
+      // qaytarish
+      await page.evaluate(() => { D.web.alf.m = "h"; save(); render(); });
+      assert.ok((await page.evaluate(() => document.querySelector("#main").textContent)).includes("Shodmonov Cho'lpon 1"));
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});
