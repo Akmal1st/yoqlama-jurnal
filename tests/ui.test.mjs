@@ -3667,6 +3667,33 @@ test("eMaktab: ilovaning o'zidan import — login, rasmdagi kod, seans saqlanadi
   } finally { await browser.close(); }
 });
 
+test("Ilk ochilish: 2 ta karta va 2 ta havola; «Fayldan» eMaktab Excel'ini ham qabul qiladi (36 va 18 o'quvchi)", async () => {
+  const XLSX = (await import("xlsx")).default;
+  const xlsOf = (cls, subj, n) => { const rows = [[`Sinf: ${cls} 2026/2027`], [`Fan: ${subj}`], [], ["№", "F.I.Sh.", "Noyabr"], [null, null, 4]];
+    for (let i = 1; i <= n; i++) rows.push([i, `O'quvchi ${String(i).padStart(2, "0")}`, 5 + (i % 5)]);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), subj); return XLSX.write(wb, {type: "buffer", bookType: "xls"}); };
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const vp of [{width: 390, height: 844}, {width: 1280, height: 800}]) {
+      const page = await browser.newPage({viewport: vp}); const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.goto(APP);
+      assert.equal(await page.locator(".bs [data-w]").count(), 4);
+      assert.deepEqual(await page.$$eval(".bs [data-w]", (b) => b.map((x) => x.dataset.w)), ["emk", "import", "hand", "demo"]);
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      const [ch] = await Promise.all([page.waitForEvent("filechooser"), page.click(".bs [data-w=import]")]);
+      assert.ok(ch.isMultiple());
+      await ch.setFiles([{name: "6-A.xls", mimeType: "application/vnd.ms-excel", buffer: xlsOf("6-A", "Matematika", 36)}, {name: "9-A.xls", mimeType: "application/vnd.ms-excel", buffer: xlsOf("9-A", "Algebra", 18)}]);
+      await page.waitForSelector("text=eMaktab'dan yangilandi", {timeout: 20000});
+      assert.deepEqual(await page.evaluate(() => D.classes.map((c) => [c.name, c.students.length])), [["6-A", 36], ["9-A", 18]]);
+      // oddiy zaxira tiklash: faqat .json
+      await page.evaluate(() => importJson());
+      assert.equal(await page.evaluate(() => [$("#file").accept, $("#file").multiple].join("|")), ".json,application/json|false");
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});
+
 test("eMaktab: server kodi eski bo'lsa (404), xatcho'p yo'riqnomasi ochiladi", async () => {
   const GAS = "https://script.google.com/macros/s/TEST/exec";
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
