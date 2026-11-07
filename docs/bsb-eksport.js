@@ -199,8 +199,9 @@ const BXP = (() => {
     el.className = "bx-print"; el.innerHTML = R.pages.join(""); document.body.classList.add("pdoc");
     let st = document.getElementById("pdoc-css"); if (!st) { st = document.createElement("style"); st.id = "pdoc-css"; document.head.append(st); }
     st.textContent = `@media print{@page{size:A4 ${R.land ? "landscape" : "portrait"};margin:0}}`;
+    // varaq faqat chop etish oynasi yopilgach («afterprint») tozalanadi: telefonda printer uzoq qidirilsa ham varaq yo'qolmaydi
     const old = document.title, back = () => { document.title = old; window.removeEventListener("afterprint", back); el.className = ""; };
-    document.title = X.file; window.addEventListener("afterprint", back); setTimeout(back, 120000);
+    document.title = X.file; window.addEventListener("afterprint", back); setTimeout(() => { document.title = old; }, 120000);
     window.print();
   }
 
