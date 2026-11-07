@@ -3742,12 +3742,14 @@ test("eMaktab: kirish sahifasi kutilmagan bo'lsa, xato oynasida nima qaytgani ko
   const GAS = "https://script.google.com/macros/s/TEST/exec";
   const cases = [
     {page: {status: 403, headers: {"Content-Type": "text/html"}, body: "<html><head><title>Access denied | login.emaktab.uz</title></head><body>Cloudflare</body></html>"}, re: /to'sib qo'ydi[\s\S]*Javob: 403 · login\.emaktab\.uz\/ · «Access denied/},
+    {page: {status: 500, headers: {"Content-Type": "text/html"}, body: "<html><head><title>Ошибка на сервере (500)</title></head><body>Ошибка</body></html>"}, re: /serverining o'zida xato \(500\)[\s\S]*Javob: 500 · login\.emaktab\.uz\/ · «Ошибка на сервере/, tries: 3},
     {page: {status: 200, headers: {"Content-Type": "text/html"}, body: "<html><head><title>eMaktab</title></head><body><div id=root></div><script src=app.js></script></body></html>"}, re: /login maydoni topilmadi\.[\s\S]*Javob: 200 · login\.emaktab\.uz\/ · «eMaktab»/},
   ];
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     for (const c of cases) {
-      const G = makeGas({emk: (url) => new URL(url).host === "login.emaktab.uz" ? c.page : {status: 302, headers: {Location: "https://login.emaktab.uz/"}}});
+      let n = 0;
+      const G = makeGas({emk: (url) => new URL(url).host === "login.emaktab.uz" ? (n++, c.page) : {status: 302, headers: {Location: "https://login.emaktab.uz/"}}});
       const ctx = await browser.newContext({viewport: {width: 390, height: 844}});
       await ctx.addInitScript((u) => localStorage.setItem("yoqlama_tgu_url", u), GAS);
       await ctx.route("https://script.google.com/**", (rt) => { const rq = rt.request();
@@ -3760,8 +3762,9 @@ test("eMaktab: kirish sahifasi kutilmagan bo'lsa, xato oynasida nima qaytgani ko
       await page.waitForSelector("text=eMaktab'dan olib bo'lmadi", {timeout: 20000});
       const msg = await page.textContent(".modal.ek-sh .ek-sub");
       assert.match(msg, c.re); assert.ok(!msg.includes("maxfiy123"));
+      if (c.tries) assert.equal(n, c.tries, "500 — ikki marta qayta so'raldi");
       // «Sahifani saqlash»: eMaktab sahifasi faylga (login/parol qiymatlarisiz)
-      if (c.page.status === 403) { assert.equal(await page.locator(".modal.ek-sh [data-pg]").count(), 0); await ctx.close(); continue; }
+      if (c.page.status !== 200) { assert.equal(await page.locator(".modal.ek-sh [data-pg]").count(), 0); await ctx.close(); continue; }
       const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".modal.ek-sh [data-pg]")]);
       const html = (await import("node:fs")).readFileSync(await dl.path(), "utf8");
       assert.match(dl.suggestedFilename(), /^emaktab-sahifa-\d+\.html$/); assert.match(html, /login\.emaktab\.uz/); assert.ok(!html.includes("maxfiy123"));

@@ -45,9 +45,11 @@ const EMKS = (() => {
   }
   // qayta yo'naltirishlar shu yerda kuzatiladi (cookie har qadamda yangilanadi)
   async function req(url, {post = null, bin = false, ref = ""} = {}) {
-    for (let k = 0; k < 10; k++) {
+    for (let k = 0, again = 0; k < 10; k++) {
       const [x] = await call([{u: url, m: post ? "post" : "get", d: post || "", c: cookieFor(url), ref, bin: bin ? 1 : 0}]);
       if (!x || x.e) throw new Error(`eMaktab'ga ulanib bo'lmadi: ${(x && x.e) || "javob yo'q"}`);
+      // eMaktab ba'zan vaqtincha 500/502/503 qaytaradi (Akmal, 2026-11-07: «Ошибка на сервере (500)») — GET ikki marta qayta so'raladi
+      if (x.s >= 500 && !post && again < 2) { again++; k--; await new Promise((ok) => setTimeout(ok, 1500 * again)); continue; }
       setCookies(x.c, url);
       if (x.s >= 300 && x.s < 400 && x.l) { ref = url; url = new URL(x.l, url).href; if (x.s !== 307 && x.s !== 308) post = null; continue; }
       return {s: x.s, url, b: x.b, t: x.t || ""};
@@ -111,7 +113,7 @@ const EMKS = (() => {
   const scrub = (r) => `<!-- ${r.s} ${r.url} -->\n` + String(r.b || "")
     .replace(/<input[^>]*>/gi, (t) => /name=["']?(login|user\w*|pass\w*|parol)["'\s>]|type=["']?password/i.test(t) ? t.replace(/value=("[^"]*"|'[^']*'|[^\s>]*)/i, 'value=""') : t)
     .replace(/((?:\\x22|")(?:login|password|userName|parol)(?:\\x22|")\s*(?::|\\x3a)\s*(?:\\x22|"))((?:(?!\\x22)[^"])*)/gi, "$1");
-  const blocked = (r) => r.s === 403 || r.s === 451 || r.s === 429 || r.s >= 500
+  const blocked = (r) => r.s === 403 || r.s === 451 || r.s === 429
     || /access denied|forbidden|blocked|cloudflare|ddos|captcha-delivery|доступ (запрещ|огранич)|ruxsat yo'q/i.test(String(r.b || "").slice(0, 20000).replace(/<script[\s\S]*?<\/script>/gi, ""));
   /* ───────── ikki bosqichli tasdiqlash (login.emaktab.uz/login/2fa-verification) ─────────
      Kod sahifasi JavaScript bilan chiziladi (forma yo'q), ilova kodni kirita olmaydi. Kod so'ralganda «Login va parol» bo'limida
@@ -131,6 +133,7 @@ const EMKS = (() => {
       if (!f || !f.pw || !f.us) {
         // parol yuborilgandan keyin oraliq sahifa (forma yo'q) — tizimga kirilganmi, «Sinflarim» orqali tekshiramiz
         if (attempt > 1) { const m = await req(U.my); if (m.s < 400 && !isLogin(m.url, m.b)) { store(S); return true; } }
+        if (r.s >= 500) throw new Error(`eMaktab serverining o'zida xato (${r.s}) — eMaktab hozir vaqtincha ishlamayapti. Bir necha daqiqadan keyin qayta urining yoki xatcho'p usulidan foydalaning.\n${diag(r)}`);
         if (blocked(r)) throw new Error(`eMaktab Google serveridan kelgan so'rovni to'sib qo'ydi (chet el manzili bo'lishi mumkin). Hozircha xatcho'p usulidan foydalaning.\n${diag(r)}`);
         throw Object.assign(new Error(`eMaktab kirish sahifasida login maydoni topilmadi${attempt > 1 ? " (parol yuborilgandan keyin)" : ""}. Hozircha xatcho'p usulidan foydalaning.\n${diag(r)}`), {page: scrub(r)});
       }
