@@ -37,7 +37,7 @@ export function makeGas({token = "TOK", admins = "100", secret = "sir", bot = "Y
     ContentService: {MimeType: {JSON: "json"}, createTextOutput: (t) => ({t, setMimeType() { return this; }})},
     LockService: {getScriptLock: () => ({tryLock: () => true, releaseLock() {}})},
     ScriptApp: {getProjectTriggers: () => triggers, newTrigger: (fn) => ({timeBased: () => ({everyMinutes: () => ({create: () => triggers.push({getHandlerFunction: () => fn})})})})},
-    UrlFetchApp: {fetch: (url, opt = {}) => {
+    UrlFetchApp: {fetchAll: (reqs) => { log.push({m: "fetchAll", p: {n: reqs.length}}); return reqs.map((q) => G.UrlFetchApp.fetch(q.url, q)); }, fetch: (url, opt = {}) => {
       if (/^https:\/\/([a-z0-9-]+\.)*emaktab\.uz\//.test(String(url))) {
         if (!emk) throw new Error("emaktab soxtasi yo'q");
         log.push({m: "emk", p: {url, method: opt.method, payload: opt.payload, cookie: (opt.headers || {}).Cookie, redirects: opt.followRedirects}});

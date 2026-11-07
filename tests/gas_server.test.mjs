@@ -121,7 +121,7 @@ test("havola: Telegram xabari kechikib qayta ishlansa ham eskirmaydi (xabar vaqt
     S.ctx.tick();
     assert.ok(S.log.some((x) => x.m === "sendMessage" && x.p.chat_id === T2 && /Havola eskirgan/.test(x.p.text)));
   } finally { vm.runInContext("Date.now = this.__now", S.ctx); }
-  assert.equal(S.get({}).v, 5); assert.equal(S.get({}).tick, true);
+  assert.equal(S.get({}).v, 6); assert.equal(S.get({}).tick, true);
 });
 
 test("eski Cloudflare webhook'i qolgan bo'lsa (409), server uni o'zi o'chiradi va xabarni oladi", () => {
@@ -145,7 +145,9 @@ test("eMaktab: server faqat emaktab.uz so'rovlarini uzatadi, cookie va qayta yo'
   assert.match(r[2].b, /post login=x&password=y/);
   assert.equal(r[3].e, "faqat emaktab.uz"); assert.equal(r[4].e, "faqat emaktab.uz");
   const calls = S.log.filter((x) => x.m === "emk");
+  assert.equal(S.log.filter((x) => x.m === "fetchAll").length, 1, "bir yo'la (parallel)");
   assert.equal(calls.length, 3); assert.equal(calls[2].p.cookie, "a=1"); assert.ok(calls.every((x) => x.p.redirects === false));
-  assert.equal(S.get({}).v, 5);
+  assert.equal(S.log.filter((x) => x.m === "fetchAll").length, 1, "bir yo'la (parallel)");
+  assert.equal(S.get({}).v, 6);
   assert.ok(![...S.props.keys()].some((k) => /emk|pass|cook/i.test(k)), "hech narsa saqlanmaydi");
 });

@@ -3638,6 +3638,8 @@ test("eMaktab: ilovaning o'zidan import — login, rasmdagi kod, seans saqlanadi
       await page.waitForSelector("text=eMaktab'dan yangilandi", {timeout: 20000});
       assert.deepEqual(await page.evaluate(() => D.classes.filter((c) => c.name !== "5-B").map((c) => [c.name, c.subject, c.students.length])), [["6-A", "Matematika", 36], ["9-A", "Algebra", 18]]);
       assert.equal(st.posts.length, 2); assert.ok(!st.posts[0]["Captcha.Input"]); assert.equal(st.posts[1]["Captcha.Id"], st.guid);
+      // jurnal sahifalari va Excel fayllar bir yo'la (server parallel oladi)
+      assert.equal(G.log.filter((x) => x.m === "fetchAll" && x.p.n === 2).length, 2, "2 ta jurnal sahifasi + 2 ta Excel — 2 ta so'rov");
       assert.deepEqual(direct, []);
       // parol hech qayerda saqlanmaydi; kirish kaliti faqat alohida kalitda (jurnal ma'lumoti va zaxirada yo'q)
       const store = await page.evaluate(() => JSON.stringify(Object.fromEntries(Object.entries(localStorage))));

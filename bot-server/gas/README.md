@@ -50,7 +50,7 @@ kechikib javob beradi. O'qituvchi ulanayotganda esa ilova har 2 soniyada so'rayd
 | `GET ?a=link&t=…` | ilova (har 2 soniyada) | yangi xabarlarni oladi (`/start <t>`), holatni qaytaradi; kalit bir marta beriladi |
 | `POST {a:"api", k, m, p, f}` | ilova | kalitni va `chat_id` ni tekshirib Telegram'ga uzatadi; fayllar `f` da base64 |
 | `POST {a:"api", k, m:"backupFile"}` | ilova (boshqa qurilmada tiklash) | o'z chatidagi qadalgan zaxira faylini o'qib beradi — shu sabab chatga «📦1/11 H4sI…» matn bo'laklari yuborilmaydi |
-| `POST {a:"emk", r:[{u, m, d, c, ref, bin}]}` | ilova («eMaktab'dan yangilash») | faqat `*.emaktab.uz` ga so'rovni bajarib, javob, `Set-Cookie` va `Location` ni qaytaradi (qayta yo'naltirmaydi). Login/parol, cookie, javob **saqlanmaydi**; kirish va o'qish ilovada (`docs/emk-server.js`). Kod v5 dan |
+| `POST {a:"emk", r:[{u, m, d, c, ref, bin}]}` | ilova («eMaktab'dan yangilash») | faqat `*.emaktab.uz` ga so'rovni bajarib, javob, `Set-Cookie` va `Location` ni qaytaradi (qayta yo'naltirmaydi). Login/parol, cookie, javob **saqlanmaydi**; kirish va o'qish ilovada (`docs/emk-server.js`). Kod v5 dan; v6 dan so'rovlar `UrlFetchApp.fetchAll` bilan parallel bajariladi (import tezroq) |
 | `GET ?a=setup&s=…` | admin, bir marta | webhook'ni o'chiradi, buyruqlar, har daqiqalik `tick` trigger |
 | `tick()` | trigger, har daqiqada | admin tugmalari, guruhga qo'shilish, eski havolalarni tozalash |
 
