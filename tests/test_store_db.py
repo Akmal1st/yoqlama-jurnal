@@ -95,3 +95,20 @@ def test_reports_read_db(tmp_path):
     shutil.copy(FIXTURE, tmp_path / "journal.json")
     J.Store(tmp_path / "journal.db")
     assert _same(H.read_journal(tmp_path / "journal.db")["classes"], J.Store(tmp_path / "journal.db").classes)
+
+
+def test_numeric_and_empty_marks_do_not_break_load(tmp_path):
+    """Boshqa dastur yozgan yoki qo'lda tahrirlangan fayl: belgi son (8), null yoki o'quvchida «marks» yo'q — dastur ochiladi."""
+    d = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    s = d["classes"][0]["students"]
+    s[0]["marks"]["2026-09-09"] = 8
+    s[0]["marks"]["2026-09-11"] = None
+    s[1]["marks"]["2026-09-09"] = 7.0
+    del s[2]["marks"]
+    (tmp_path / "journal.json").write_text(json.dumps(d), encoding="utf-8")
+    st = J.Store(tmp_path / "journal.json")
+    m0 = st.classes[0]["students"][0]["marks"]
+    assert m0["2026-09-09"] == "8" and "2026-09-11" not in m0
+    assert st.classes[0]["students"][1]["marks"]["2026-09-09"] == "7"
+    assert st.classes[0]["students"][2]["marks"] == {}
+    assert J.grades_of(m0["2026-09-09"]) == [8]

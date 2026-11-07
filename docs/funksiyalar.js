@@ -117,7 +117,8 @@ const FNK = (() => {
   /* ───────── Dars taymeri ───────── */
   let tmI = null, warned = "";
   function lessonEnd(ci) {
-    const x = typeof schedToday === "function" ? schedToday().find((y) => y.ci === ci && y.to) : null;
+    // jadvaldagi tugash vaqti faqat «SS:DD» ko'rinishida bo'lsa olinadi — buzuq qiymat taymerda «NaN:NaN» chiqarmasin
+    const x = typeof schedToday === "function" ? schedToday().find((y) => y.ci === ci && /^\d{1,2}:\d{2}$/.test(y.to || "")) : null;
     if (x) { const [hh, mm] = x.to.split(":").map(Number), d = new Date(); d.setHours(hh, mm, 0, 0); return {end: d.getTime(), from: x.from, to: x.to}; }
     S.lesT0 = S.lesT0 && S.lesT0.ci === ci && S.lesT0.d === todayIso() ? S.lesT0 : {ci, d: todayIso(), t: Date.now()};
     return {end: S.lesT0.t + 45 * 60000};

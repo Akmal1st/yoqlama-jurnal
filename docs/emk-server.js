@@ -199,7 +199,7 @@ const EMKS = (() => {
       ${e.page ? `<div class="ek-note">Tuzatish uchun eMaktab sahifasini faylga saqlab, ishlab chiquvchiga yuboring (login va parol faylga yozilmaydi).</div>` : ""}
       <div class="ek-acts">${e.page ? `<button class="btn" data-pg>Sahifani saqlash</button>` : ""}<button class="btn" data-bm>Xatcho'p orqali</button><button class="btn btn-primary" data-x>Yopish</button></div></div>`, (mm, close) => {
       mm.classList.add("ek-sh");
-      const pg = $("[data-pg]", mm); if (pg) pg.onclick = () => download(`emaktab-sahifa-${new Date().toISOString().slice(0, 16).replace(/\D/g, "")}.html`, e.page, "text/html");
+      const pg = $("[data-pg]", mm); if (pg) pg.onclick = () => download(`emaktab-sahifa-${nowLocal(16).replace(/\D/g, "")}.html`, e.page, "text/html");
       $("[data-x]", mm).onclick = () => close(); $("[data-bm]", mm).onclick = () => { close(); emkDialog("bm"); };
     });
   }

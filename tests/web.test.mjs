@@ -121,3 +121,18 @@ test("Hisobotlar: Loyiha ishi «Loyiha» deb yoziladi va solishtirishda BSB foiz
   assert.equal(Math.round(r.bsb), 80);    // (10 + 30) / (20 + 30)
   assert.equal(Math.round(r.chsb), 50);   // 20 / 40
 });
+
+test("O'zgarishlar tarixi vaqti mahalliy vaqtda yoziladi (UTC emas, kompyuter dasturi bilan bir xil)", () => {
+  // loadApp: sana qotirilgan — bugun, mahalliy soat 12:00. toISOString() Toshkentda 07:00 berardi
+  assert.equal(A.nowLocal(), `${INPUTS.today}T12:00:00`);
+  assert.equal(A.nowLocal(16), `${INPUTS.today}T12:00`);
+});
+
+test("Belgi son (8) yoki null bo'lsa ham jurnal ochiladi: normalize belgini matnga keltiradi", () => {
+  const B = loadApp(INPUTS.today), d = structuredClone(FIXTURE), s = d.classes[0].students;
+  s[0].marks["2026-09-09"] = 8; s[0].marks["2026-09-11"] = null; s[1].marks["2026-09-09"] = {x: 1};
+  B.setData(d);
+  const m0 = B.D.classes[0].students[0].marks;
+  assert.equal(m0["2026-09-09"], "8"); assert.ok(!("2026-09-11" in m0)); assert.ok(!("2026-09-09" in B.D.classes[0].students[1].marks));
+  assert.doesNotThrow(() => B.reportRows(B.D.classes[0], ...B.periodNow()));
+});
