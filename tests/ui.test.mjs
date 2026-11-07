@@ -3963,3 +3963,48 @@ test("BSB tahlili: «Taxminiy ball» eMaktab jami balini savollar bo'yicha bo'la
     }
   } finally { await browser.close(); }
 });
+
+test("CHSB testi: «Taxminiy ball» eMaktab balini to'g'ri/noto'g'ri javoblarga aylantiradi, ball o'zgarmaydi (36 va 18 o'quvchi)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const [n, vw] of [[36, 1300], [18, 390]]) {
+      const page = await browser.newPage({viewport: {width: vw, height: 844}});
+      const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await page.evaluate((n) => {
+        D.settings.protect.enabled = false;
+        const c = D.classes[0], w = c.works.find((x) => x.type === "chsb");
+        // 20 savol × 2 ball: 0-o'quvchida toq ball (yig'ib bo'lmaydi), 4-o'quvchida ball yo'q, 1-o'quvchida javoblar bor
+        c.students = Array.from({length: n}, (_, i) => ({id: "t" + i, name: `O'quvchi ${String(i + 1).padStart(2, "0")}`, marks: {}, scores: i === 4 ? {} : {[w.id]: i === 0 ? 27 : 2 * ((i * 5) % 21)}}));
+        w.test = {n: 20, o: 4, key: "ABCDABCDABCDABCDABCD", ans: {t1: "ABCDABCDAB.........."}, out: []};
+        S.ci = 0; S.tw = w.id; S.cttab = "tbl"; S.jpage = "chsbt"; go("journal");
+      }, n);
+      await page.waitForSelector("table.tst");
+      const before = await page.evaluate(() => { const c = D.classes[0], w = c.works.find((x) => x.type === "chsb"); return c.students.map((s) => s.scores[w.id] ?? null); });
+      await page.click("[data-btxc]"); await page.waitForSelector(".tx-dlg");
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${vw}px: oyna sig'madi`);
+      assert.match(await page.textContent(".tx-dlg [data-ok]"), new RegExp(`${n - 3} ta`));
+      await page.click(".tx-dlg [data-ok]"); await page.waitForSelector("#txc");
+      const after = await page.evaluate(() => {
+        const c = D.classes[0], w = c.works.find((x) => x.type === "chsb"), t = w.test;
+        return {sc: c.students.map((s) => s.scores[w.id] ?? null), ans: c.students.map((s) => t.ans[s.id] || ""), out: t.out, calc: c.students.map((s) => t.ans[s.id] && !/^\.*$/.test(t.ans[s.id]) ? testScore(w, t, t.ans[s.id]).score : null)};
+      });
+      // eMaktab ballari o'zgarmadi; javoblardan hisoblangan ball ham aynan shu
+      assert.deepEqual(after.sc.map((v, i) => i === 1 ? before[i] : v), before.map((v, i) => i === 4 ? null : v));
+      after.ans.forEach((a, i) => { if (i > 1 && i !== 4) assert.ok(after.calc[i] === before[i], `${i}: ${a} → ${after.calc[i]} ≠ ${before[i]}`); });
+      assert.equal(after.ans[0], "", "toq ballni 2 ballik savollar bilan yig'ib bo'lmaydi — bo'sh qoladi");
+      assert.equal(after.ans[1], "ABCDABCDAB..........", "javobi bor o'quvchiga tegilmaydi");
+      assert.deepEqual(after.out, ["t4"]);
+      assert.equal(await page.locator("table.tst tr[data-row] .ta.tx-estc").count(), (n - 3) * 20);
+      assert.match(await page.textContent("#txc"), /1 tasiga/);
+      // bekor qilish
+      await page.click("[data-txcundo]");
+      const undone = await page.evaluate(() => { const c = D.classes[0], w = c.works.find((x) => x.type === "chsb"); return {n: Object.keys(w.test.ans).length, out: w.test.out || [], sc: c.students.map((s) => s.scores[w.id] ?? null)}; });
+      assert.equal(undone.n, 1); assert.deepEqual(undone.out, []); assert.deepEqual(undone.sc, before);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});

@@ -178,10 +178,116 @@ const TXB = (() => {
     toast(`${n} ta o'quvchiga taxminiy ball kiritildi${off ? `; ${off} tasi ishtirok etmagan deb belgilandi` : ""}`);
   }
 
+  /* ───── CHSB testi: eMaktab bali bo'yicha taxminiy javoblar (to'g'ri / noto'g'ri variantlar) ─────
+     Ball = to'g'ri javob berilgan savollar ballari yig'indisi, yuqoriga yaxlitlangan (testScore). Shunday savollar to'plami tanlanadiki,
+     yaxlitlangan yig'indi aynan eMaktab baliga teng bo'ladi — demak yozilgan ball o'zgarmaydi. Imkonsiz bo'lsa — o'quvchi o'tkazib yuboriladi. */
+  const fits = (sum, T) => Math.ceil(Math.round(sum * 1e6) / 1e6 - 1e-9) === T;
+  function pick(T, P, mode, seed) {
+    const n = P.length, r = rng(seed || "x"), tot = sum(P);
+    if (!(T >= 0) || T > Math.ceil(tot - 1e-9)) return null;
+    const pr = P.map((_, i) => mode === "teng" ? ((i * 0.618034) % 1) + 0.02 * r() : (n > 1 ? i / (n - 1) : 0) + 0.55 * (r() - 0.5));
+    const ord = P.map((_, i) => i).sort((a, b) => pr[a] - pr[b]);
+    const on = Array(n).fill(false); let s = 0;
+    for (const i of ord) if (s + P[i] <= T + 1e-9) { on[i] = true; s += P[i]; }
+    if (fits(s, T)) return on;
+    // almashtirish: bitta to'g'ri javobni boshqasiga almashtirib yig'indini oynaga kiritish
+    for (let k = 0; k < n * n && !fits(s, T); k++) {
+      let best = null;
+      for (let a = 0; a < n; a++) if (on[a]) for (let b = 0; b < n; b++) if (!on[b]) {
+        const ns = s - P[a] + P[b]; if (ns > T + 1e-9 || ns <= s + 1e-9) continue;
+        if (!best || ns > best[2]) best = [a, b, ns];
+      }
+      if (!best) break;
+      on[best[0]] = false; on[best[1]] = true; s = best[2];
+      for (const i of ord) if (!on[i] && s + P[i] <= T + 1e-9) { on[i] = true; s += P[i]; }
+    }
+    if (fits(s, T)) return on;
+    // oxirgi chora: yig'indilar bo'yicha dinamik tanlov (yuzdan birlarda)
+    const C = P.map((v) => Math.round(v * 100)), lim = T * 100 + 1, from = new Map([[0, null]]), real = new Map([[0, 0]]);
+    for (let i = 0; i < n; i++) for (const [v] of [...from]) { const nv = v + C[i]; if (nv <= lim && !from.has(nv)) { from.set(nv, [v, i]); real.set(nv, real.get(v) + P[i]); } }
+    const got = [...from.keys()].filter((v) => fits(real.get(v), T)).sort((a, b) => b - a)[0];
+    if (got === undefined) return null;
+    const res = Array(n).fill(false); for (let v = got; from.get(v); v = from.get(v)[0]) res[from.get(v)[1]] = true;
+    return res;
+  }
+  function answers(t, P, T, mode, seed) {
+    const on = pick(T, P, mode, seed); if (!on) return null;
+    const r = rng(seed + "#v"), L = TEST_L.slice(0, t.o);
+    return on.map((ok, i) => { if (ok) return t.key[i]; const o = L.replace(t.key[i], ""); return o[Math.floor(r() * o.length)]; }).join("");
+  }
+  const blankAns = (a) => !a || /^\.*$/.test(a);
+  const TC = {};   // xotirada: {[ish id]: {ids: Set, mode, undo, skip}}
+  const chsbCls = (w, s) => TC[w.id] && TC[w.id].ids.has(s.id) ? " tx-estc" : "";
+  function chsbBanner(w) {
+    const st = TC[w.id]; if (!st || (!st.ids.size && !st.undo)) return "";
+    return `<div class="tx-banner${st.skip.length ? "" : " ok"}" id="txc"><span>${st.ids.size ? `✓ Taxminiy javoblar: <b>${st.ids.size} ta o'quvchi</b>, har birining bali eMaktabdagi bilan bir xil.` : "Taxminiy javoblar yo'q."}${st.skip.length ? ` <b>${st.skip.length} tasiga</b> mos javob topilmadi (savol ballari bilan bu ballni yig'ib bo'lmaydi): ${esc(st.skip.slice(0, 6).join(", "))}${st.skip.length > 6 ? "…" : ""}.` : ""}</span><span class="sp"></span>${st.undo ? `<button class="btn btn-sm" data-txcundo>Bekor qilish</button>` : ""}</div>`;
+  }
+  async function chsbDialog(c, w, ensure, rescoreAll, rerender) {
+    const t = ensure();
+    if (/\./.test(t.key)) { toast("Avval barcha savollarning to'g'ri javobini belgilang"); return; }
+    const P = testPts(w, t), out = new Set(t.out || []);
+    const sc = (s) => { const v = (s.scores || {})[w.id]; return isNum(v) ? v : null; };
+    const todo = c.students.filter((s) => !out.has(s.id) && blankAns(t.ans[s.id]) && sc(s) !== null);
+    const miss = c.students.filter((s) => !out.has(s.id) && blankAns(t.ans[s.id]) && sc(s) === null);
+    if (!todo.length && !miss.length) { toast("Javobi bo'sh, bali bor o'quvchi yo'q — eMaktabdan import qilingan CHSB ballari kerak"); return; }
+    let mode = (TC[w.id] && TC[w.id].mode) || "tabiiy", absent = true;
+    const res = await modal(`<div class="tx-dlg"></div>`, (mm, close) => {
+      mm.querySelector(".card").classList.add("wide");
+      const box = mm.querySelector(".tx-dlg");
+      const draw = () => {
+        const sample = todo.slice(0, 5).map((s) => ({s, a: answers(t, P, sc(s), mode, s.name)}));
+        const bad = todo.filter((s) => !answers(t, P, sc(s), mode, s.name)).length;
+        const opt = (v, ttl, d) => `<label class="tx-opt${mode === v ? " on" : ""}"><input type="radio" name="txm" value="${v}" ${mode === v ? "checked" : ""}><span><b>${ttl}</b><small>${d}</small></span></label>`;
+        box.innerHTML = `<h2>Taxminiy javoblar kiritish</h2>
+          <div class="muted">Javoblari bo'sh, lekin «BSB / CHSB» sahifasida (eMaktabdan) bali bor o'quvchilarga to'g'ri va noto'g'ri variantlar shunday yoziladiki, savol ballari (${P.every((v) => Math.abs(v - P[0]) < 1e-9) ? `${t.n} × ${gnum(Math.round(P[0] * 100) / 100)}` : P.map((v) => gnum(Math.round(v * 100) / 100)).join(" + ")}) bo'yicha hisoblangan ball eMaktabdagi bal bilan aynan bir xil chiqadi.</div>
+          <div class="tx-info">CHSB · ${fmt(w.date)} · maks. ${fmtNum(w.max)} · ${t.n} ta savol, ${t.o} ta variant. Javobi bor ${c.students.filter((s) => !blankAns(t.ans[s.id])).length} ta o'quvchiga tegilmaydi.${bad ? ` <b>${bad} ta o'quvchi</b>ning balini savol ballari bilan aynan yig'ib bo'lmaydi — ular bo'sh qoladi.` : ""}</div>
+          <div class="vcol" style="gap:6px"><div class="f">Taqsimlash usuli</div><div class="tx-opts">
+            ${opt("tabiiy", "Tabiiy", "Oldingi savollar osonroq, oxirgilari qiyinroq; har o'quvchida biroz farqli — haqiqiy testga o'xshaydi.")}
+            ${opt("teng", "Teng ulush", "To'g'ri javoblar butun test bo'ylab bir tekis tarqaladi.")}</div></div>
+          ${miss.length ? `<label class="tx-chk"><input type="checkbox" id="txa" ${absent ? "checked" : ""}><span>Bali ham, javobi ham yo'q <b>${miss.length} ta o'quvchi</b>ni «ishtirok etmagan» deb belgilash (✔ olib tashlanadi)</span></label>` : ""}
+          <div class="vcol" style="gap:6px"><div class="f">Namuna${sample.length ? ` (birinchi ${sample.length} ta)` : ""}</div>
+          <div class="tx-pv"><table><tr><th>O'quvchi</th>${P.map((_, i) => `<th>${i + 1}</th>`).join("")}<th>Ball</th><th>eMaktab</th></tr>
+          ${sample.map((x) => `<tr><td>${esc(x.s.name)}</td>${x.a ? x.a.split("").map((ch, i) => `<td><span class="tx-c ${ch === t.key[i] ? "ok" : "wr"}">${ch}</span></td>`).join("") + `<td><b>${gnum(testScore(w, t, x.a).score)}</b></td><td><span class="tx-em ok">✓ ${esc(fmtNum(sc(x.s)))}</span></td>` : `<td colspan="${t.n + 1}" class="muted">mos javob topilmadi</td><td><span class="tx-em no">${esc(fmtNum(sc(x.s)))}</span></td>`}</tr>`).join("") || `<tr><td colspan="${t.n + 3}" class="muted">Javobi bo'sh, bali bor o'quvchi yo'q.</td></tr>`}</table></div></div>
+          <p class="muted tx-note">Javoblar taxminiy: kerak bo'lsa katakni qo'lda tuzating (ball shunga qarab qayta hisoblanadi). O'zgarishlar darhol saqlanadi; «Bekor qilish» bilan qaytarish mumkin.</p>
+          <div class="hrow tx-act"><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn btn-primary" data-ok ${todo.length - bad || (absent && miss.length) ? "" : "disabled"}><i class="bi bi-magic" aria-hidden="true"></i> ${todo.length - bad} ta o'quvchiga kiritish</button></div>`;
+        box.querySelectorAll("[name=txm]").forEach((x) => x.onchange = () => { mode = x.value; draw(); });
+        const ab = $("#txa", box); if (ab) ab.onchange = () => { absent = ab.checked; draw(); };
+        $("[data-x]", box).onclick = () => close(null);
+        $("[data-ok]", box).onclick = () => close({mode, absent});
+      };
+      draw();
+    });
+    if (!res) return;
+    const st = TC[w.id] = {ids: new Set(), mode: res.mode, skip: [], undo: {ans: clone(t.ans), out: (t.out || []).slice()}};
+    for (const s of todo) {
+      const a = answers(t, P, sc(s), res.mode, s.name);
+      if (!a || testScore(w, t, a).score !== sc(s)) { st.skip.push(s.name); continue; }
+      t.ans[s.id] = a; st.ids.add(s.id);
+    }
+    let off = 0;
+    if (res.absent) for (const s of miss) { out.add(s.id); off++; }
+    t.out = [...out]; save(); await rescoreAll(); rerender();
+    toast(`${st.ids.size} ta o'quvchiga taxminiy javob kiritildi${off ? `; ${off} tasi ishtirok etmagan deb belgilandi` : ""}${st.skip.length ? `; ${st.skip.length} tasiga mos javob topilmadi` : ""}`);
+  }
+  function chsbBind(m, c, w, ensure, rescoreAll, rerender) {
+    const b = m.querySelector("[data-btxc]"); if (b) b.onclick = () => chsbDialog(c, w, ensure, rescoreAll, rerender);
+    const u = m.querySelector("[data-txcundo]"); if (u) u.onclick = async () => {
+      const st = TC[w.id]; if (!st || !st.undo) return;
+      if (isLocked() && !await unlock()) return;
+      const t = ensure(); t.ans = st.undo.ans; t.out = st.undo.out; delete TC[w.id]; cleanTest(w); save();
+      // taxminiy javoblar o'chirilganda ball eMaktabdagi bilan bir xil bo'lgani uchun o'zgarmaydi
+      await rescoreAll(); rerender(); toast("Taxminiy javoblar bekor qilindi");
+    };
+  }
+  // qo'lda o'zgartirilgan qator endi taxminiy emas
+  const chsbTouch = (w, s) => { if (TC[w.id]) TC[w.id].ids.delete(s.id); };
+  const chsbButton = () => `<button class="btn tx-btn" data-btxc title="eMaktabdagi CHSB balini to'g'ri / noto'g'ri javoblarga taxminan aylantiradi"><i class="bi bi-magic" aria-hidden="true"></i> Taxminiy ball</button>`;
+  const chsb = {button: chsbButton, bind: chsbBind, banner: chsbBanner, cls: chsbCls, touch: chsbTouch, pick, answers, state: TC};
+
   const button = () => `<button class="btn tx-btn" data-btx title="eMaktabdagi jami BSB / CHSB balini savollar bo'yicha taxminan bo'lib chiqadi"><i class="bi bi-magic" aria-hidden="true"></i> Taxminiy ball</button>`;
   function bind(m, c, B, rerender) {
     const b = m.querySelector("[data-btx]"); if (b) b.onclick = () => dialog(c, B, rerender);
     bindBanner(m, c, B, rerender);
   }
-  return {spread, src, target, cls, touch, head, mxCell, cell, paint, banner, refresh, button, bind, dialog, works};
+  return {chsb, spread, src, target, cls, touch, head, mxCell, cell, paint, banner, refresh, button, bind, dialog, works};
 })();

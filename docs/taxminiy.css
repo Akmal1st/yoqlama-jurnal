@@ -30,3 +30,6 @@ table.bsa th.tx-h small{display:block;font-weight:500;font-size:10px}
 .tx-note{font-size:12px;margin:0;line-height:1.5}
 .tx-act{position:sticky;bottom:-16px;background:var(--base);padding-block:10px;border-top:1px solid var(--line)}
 @media (max-width:760px){.tx-opts{grid-template-columns:1fr}}
+/* CHSB testi: taxminiy javoblar */
+.tst input.sc.ta.tx-estc{border:1.5px dashed var(--today)}
+.tx-c.ok{background:#d9f2df;color:#14532d}.tx-c.wr{background:#fde2e2;color:#7f1d1d}
