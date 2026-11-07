@@ -3077,10 +3077,20 @@ test("Sozlamalar → Dizayn: mavzular, tungi variant, rang, tugmalar joyi va qay
       const order = await page.$$eval(w > 820 ? "#side [data-go]" : "#tabbar [data-go]", (x) => x.map((b) => b.dataset.go));
       assert.deepEqual(order, ["today", "journal", "reports", "groups", "settings"]);
       assert.equal(await page.locator('[data-dz-eye="settings"]').count(), 0, "Sozlamalar yashirilmaydi");
-      assert.equal(await page.locator("[data-dz-emo]").count(), 2, "faqat Belgi va Chiroqcha");
-      await page.click('[data-dz-emo="dot"]');
+      // yoqish/o'chirish belgilari tanlovi yo'q: hamma joyda bitta kalit, ichida belgi yo'q
+      assert.equal(await page.locator("[data-dz-emo]").count(), 0, "belgi tanlovi olib tashlandi");
+      assert.equal(await page.locator(".dz-sec .dzprev").count(), 0, "Tugmalar bo'limida baho namunasi yo'q");
+      // tugma shakli: tanlov kartalari o'z shaklida qoladi, asosiy tugmalar o'zgaradi
+      await page.click('[data-dz-shape="line"]');
+      assert.equal(await page.evaluate(() => D.web.dz.shape), "line");
+      const shp = await page.$$eval(".dz-sec .tg-shp span", (x) => x.map((e) => getComputedStyle(e).backgroundColor));
+      assert.notEqual(shp[0], shp[2], "namunalar bir xil emas");
+      assert.equal(await page.evaluate(() => { const b = h('<button class="btn btn-primary">x</button>'); document.body.append(b); const c = getComputedStyle(b).backgroundColor; b.remove(); return c; }), "rgba(0, 0, 0, 0)", "chiziqli asosiy tugma");
+      await page.click("[data-tg-try]"); assert.ok(await page.locator(".modal .tg-sr").count() > 0, "Sinab ko'rish oynasi"); await page.click(".modal [data-x]");
+      await page.click('[data-dz-shape="solid"]');
       await page.evaluate(() => { S.sec = 6; go("settings"); });
-      assert.match(await page.textContent(".sz-tg.on"), /🟢/);
+      assert.equal((await page.textContent(".sz-tg.on")).trim(), "", "kalit ichida belgi yo'q");
+      const kw = await page.$eval(".sz-tg", (e) => [e.offsetWidth, e.offsetHeight]); assert.deepEqual(kw, [44, 26]);
       // menyu tepada (kompyuter)
       await page.evaluate(() => { D.web.dz.nav = "top"; save(); render(); });
       if (w > 820) { const r = await page.evaluate(() => { const s = $("#side").getBoundingClientRect(); return [Math.round(s.top), Math.round(s.width)]; }); assert.equal(r[0], 0); assert.ok(r[1] > 900, "yon panel tepada qator bo'ldi"); }

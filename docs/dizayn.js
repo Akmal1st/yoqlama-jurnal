@@ -1,6 +1,6 @@
 /* Sozlamalar → Dizayn (Akmal tasdiqlagan maket, 2026-11-01). Alohida fayl: ilovaning qolgan qismi faqat DZN.* ni chaqiradi.
    Ikki bo'lim: «Ko'rinish» (mavzu, kechqurun, asosiy rang, o'lcham, zichlik, burchak, shrift) va
-   «Tugmalar» (menyu joyi, belgi/yozuv, menyu tartibi, yoqish/o'chirish belgilari, oyna tugmalari joyi va asosiy tugma tomoni).
+   «Tugmalar» (tugmalar.js: menyu joyi va ko'rinishi, menyu tartibi, oyna tugmalari joyi va asosiy tugma tomoni, tugma shakli).
    Saqlanadigan joy: D.web.dz. Asosiy ko'rinish — tpt-tema.css, bu fayl uning ranglari va o'lchamlarini almashtiradi.
    Bu fayl asosiy <script> dan OLDIN ulanadi: undagi D, S, save, render, esc, $, h, modal kabi nomlarga faqat chaqirilganda murojaat qiladi. */
 const DZN = (() => {
@@ -28,13 +28,11 @@ const DZN = (() => {
     georgia: ["Georgia", "Kitobiy", `Georgia,"DejaVu Serif",serif`], verdana: ["Verdana", "Keng, aniq", `Verdana,"DejaVu Sans",Geneva,sans-serif`]};
   // [nomi, izoh, tugma balandligi, kartochka ichki chekkasi, katak balandligi]
   const DENS = [["Keng", "telefon", 44, 20, 40], ["Oddiy", "standart", 0, 0, 0], ["Ixcham", "jadval", 30, 11, 28]];
-  // yoqish/o'chirish kalitlari: [yoqilgan, o'chiq, nomi]
-  // (Akmal, 2026-11-02: faqat «Belgi» va «Chiroqcha» qolsin; eski tanlovlar standartga o'tadi)
-  const EMO = {check: ["✅", "⬜", "Belgi"], dot: ["🟢", "⚪", "Chiroqcha"]};
+  // yoqish/o'chirish belgilari tanlovi olib tashlandi (Akmal, 2026-11-07): hamma joyda bitta oddiy kalit — kalit.css
   const NAVK = ["today", "journal", "groups", "reports", "settings", "help"];
   const NAVN = {today: "Bugun", journal: "Jurnal", groups: "Guruhlar", reports: "Hisobotlar", settings: "Sozlamalar", help: "Yordam"};
   const LOOK = {theme: "tpt", night: "off", hue: "", font: "manrope", size: 100, dens: 1, rad: 14};
-  const BTNS = {nav: "left", lab: "both", ord: NAVK.slice(), hid: [], emo: "check", act: "end", pri: "right"};
+  const BTNS = {nav: "left", lab: "both", ord: NAVK.slice(), hid: [], act: "end", pri: "right", shape: "solid"};
   const DEF = () => Object.assign({}, LOOK, JSON.parse(JSON.stringify(BTNS)), {force: false});
   const pick = (v, list, d) => (list.includes(v) ? v : d);
   const num = (v, lo, hi, d) => (Number.isFinite(+v) ? Math.min(hi, Math.max(lo, Math.round(+v))) : d);
@@ -53,7 +51,7 @@ const DZN = (() => {
       font: pick(o.font, [...Object.keys(FONTS), "custom"], d.font), size: num(o.size, 90, 120, 100), dens: num(o.dens, 0, 2, 1), rad: num(o.rad, 0, 20, 14),
       nav: pick(o.nav, ["left", "top", "bottom"], "left"), lab: pick(o.lab, ["both", "icon", "text"], "both"),
       ord: [...ord, ...NAVK.filter((k) => !ord.includes(k))], hid: Array.isArray(o.hid) ? o.hid.filter((k) => NAVK.includes(k) && k !== "settings") : [],
-      emo: pick(o.emo, Object.keys(EMO), BTNS.emo), act: pick(o.act, ["top", "end", "bot"], "end"), pri: pick(o.pri, ["left", "right"], "right"), force: !!o.force};
+      shape: pick(o.shape, ["solid", "soft", "line"], "solid"), act: pick(o.act, ["top", "end", "bot"], "end"), pri: pick(o.pri, ["left", "right"], "right"), force: !!o.force};
   }
   const cfg = () => (D.web.dz = D.web.dz && D.web.dz.ord ? D.web.dz : clean(D.web.dz, D.web));
 
@@ -100,13 +98,14 @@ const DZN = (() => {
     if (z.act === "top") out += `html.dz .modal .card>h2{order:-2}${ft}{order:-1;padding-bottom:10px;border-bottom:1px solid var(--line)}`;
     if (z.act === "bot") out += `${ft}{position:sticky;bottom:-16px;background:var(--base);margin:0 -18px -16px;padding:12px 18px;border-top:1px solid var(--line);z-index:2}`;
     if (z.pri === "left") out += `${ft} .sp{order:-3}${ft} .btn-primary,html.dz .dzfoot .btn-primary{order:-2}`;
+    if (typeof TGM !== "undefined") out += TGM.css(z);
     return out;
   }
   // yon panel ixcham bo'lsinmi (faqat belgi yoki menyu chapda emas)
   const compact = () => { const z = cfg(); return (z.lab === "icon" && z.nav === "left") || z.nav !== "left"; };
   // menyu tugmalari tartibi: [kalit, nomi] — yashirilganlar chiqmaydi
   const navList = () => { const z = cfg(); return z.ord.filter((k) => !z.hid.includes(k)); };
-  const emo = (on) => EMO[cfg().emo][on ? 0 : 1];
+  const emo = () => "";   // eski chaqiruvlar uchun: kalit ichida belgi yo'q
 
   // kechqurun «soat bo'yicha» bo'lsa — vaqti kelganda o'zi almashadi
   let lastDark = null;
@@ -124,8 +123,8 @@ const DZN = (() => {
 
   function body() {
     const z = cfg(), tab = S.dztab === "btn" ? "btn" : "look", t = THEMES[z.theme], [v, dk] = variant(z, t), acc = z.hue || v.acc, cr = contrast(acc, v.base);
-    const ent = Object.entries(THEMES), E = EMO[z.emo];
-    const prev = `<div class="dzprev" aria-label="Namuna"><div class="dzpc"><span class="dzlab">Namuna</span><b>7-B · Matematika</b>
+    const ent = Object.entries(THEMES);
+    const prev = tab === "btn" ? "" : `<div class="dzprev" aria-label="Namuna"><div class="dzpc"><span class="dzlab">Namuna</span><b>7-B · Matematika</b>
       <span class="dzc g9">9</span><span class="dzc g7">7</span><span class="dzc s">S</span><span class="sp"></span><span class="dzfoot"><button class="btn btn-sm" tabindex="-1">Bekor</button><button class="btn btn-sm btn-primary" tabindex="-1">▶ Boshlash</button></span></div>
       ${cr < 3 ? `<div class="dzwarn">⚠ Bu rang fonda xira ko'rinadi (kontrast ${cr.toFixed(1)}:1, kamida 3:1 kerak). <button class="lnk" data-dz-hue="">Mavzu rangiga qaytish</button></div>` : ""}</div>`;
     const tabs = `<div class="dztabs" role="tablist"><button role="tab" aria-selected="${tab === "look"}" class="${tab === "look" ? "on" : ""}" data-dz-tab="look">🎨 Ko'rinish</button><button role="tab" aria-selected="${tab === "btn"}" class="${tab === "btn" ? "on" : ""}" data-dz-tab="btn">🔲 Tugmalar</button></div>`;
@@ -139,7 +138,7 @@ const DZN = (() => {
           <div class="tsrow"><span class="tsl">🌙 Tungi</span><div class="tsg">${ent.filter(([, x]) => x[2]).map(([k, x]) => swatch(k, x, z)).join("")}</div></div>
           <p class="tsd">${t[0]} — ${t[1].toLowerCase()}${t[4] ? (nightNow(z) ? ". Hozir tungi varianti ko'rsatilmoqda 🌙" : ". Kechqurun o'zining tungi varianti bilan almashadi") : ""}</p></div>`) +
         grp("Kechqurun", "Tungi variantga o'zi o'tsinmi", `<div class="radios">${night.map(([k, n, hn]) => `<button class="rd ${z.night === k ? "on" : ""}" data-dz-night="${k}" role="radio" aria-checked="${z.night === k}" ${t[2] ? "disabled" : ""}><i class="rdo"></i><span><b>${n}</b><small>${hn}</small></span></button>`).join("")}
-          <button class="rd tst ${z.force ? "on" : ""}" data-dz-force="1" role="switch" aria-checked="${z.force}" ${t[2] ? "disabled" : ""}><span class="dzemo">${emo(z.force)}</span><span><b>Hozir tungi ko'rinish</b><small>Qo'lda yoqish — kechqurun bo'lmasa ham (Ctrl+K → «Kunduzgi / tungi»)</small></span></button>
+          <div class="rd tst ${z.force ? "on" : ""}"><span><b>Hozir tungi ko'rinish</b><small>Qo'lda yoqish — kechqurun bo'lmasa ham (Ctrl+K → «Kunduzgi / tungi»)</small></span><button class="kalit ${z.force ? "on" : ""}" data-dz-force="1" role="switch" aria-checked="${z.force}" aria-label="Hozir tungi ko'rinish" ${t[2] ? "disabled" : ""}></button></div>
           ${t[2] ? `<p class="rdn">Tanlangan mavzu o'zi to'q rangli, shuning uchun bu sozlama kerak emas.</p>` : ""}</div>`) +
         grp("Asosiy rang", "Mavzu rangini o'zgartirish shart emas", `<div class="hues"><button class="hu auto ${z.hue ? "" : "on"}" data-dz-hue="" title="Mavzuning o'z rangi"><span style="background:${v.acc}"></span>Mavzu rangi</button>${HUES.map((hx) => `<button class="hu ${z.hue === hx ? "on" : ""}" data-dz-hue="${hx}" aria-label="Rang ${hx}"><span style="background:${hx}"></span></button>`).join("")}<label class="hu pick" title="Istalgan rang"><input type="color" id="dzpick" value="${z.hue || v.acc}" aria-label="Istalgan rang"><span>＋</span></label></div>`) +
         grp("Moslash", "Surib ko'ring: oyna darhol o'zgaradi", `<div class="sliders">
@@ -149,19 +148,7 @@ const DZN = (() => {
         grp("Yozuv turi", "Ekran, hisobot va chop etishda", `<div class="radios fl">${Object.entries(FONTS).map(([k, x]) => fr(k, x[0], x[1], x[2])).join("")}${cf ? fr("custom", cf, "Kompyuterdan", `"${cf}",system-ui`) : ""}
           <button class="rd" data-dz-sysfont="1"><i class="rdo" style="visibility:hidden"></i><span><b>🖥 Kompyuterdagi shriftlar…</b><small>O'rnatilgan istalgan shrift</small></span></button></div>`) +
         (typeof ALF !== "undefined" ? ALF.body() : "");
-    } else {
-      const lay = (k) => `<span class="lay ${k}"><i></i></span>`;
-      html = grp("Asosiy menyu joyi", "Bugun, Jurnal, Guruhlar…", `<div class="dzgrid g3">${[["left", "Chapda", "Yon panel"], ["top", "Tepada", "Qator"], ["bottom", "Pastda", "Tabbar"]].map(([k, n, s]) => opt("nav", k, z.nav === k, `${lay(k)}<b>${n}</b><small>${s}</small>`, k === BTNS.nav)).join("")}</div>
-          <p class="dzhint">Telefonda «Chapda» tanlansa ham menyu pastda turadi.</p>`) +
-        grp("Menyu tugmalari", "Belgi, yozuv yoki ikkalasi", `<div class="dzgrid g3">${[["both", "Ikkalasi", `${ICO("journal")}Jurnal`], ["icon", "Belgi", ICO("journal")], ["text", "Yozuv", "Jurnal"]].map(([k, n, x]) => opt("lab", k, z.lab === k, `<span class="labs">${x}</span><b>${n}</b>`, k === BTNS.lab)).join("")}</div>`) +
-        grp("Menyu tartibi", `↑ ↓ — joyi, ${E[0]} ko'rinadi, ${E[1]} yashirin`, `<div class="olist">${z.ord.map((k, i) => { const off = z.hid.includes(k), lock = k === "settings";
-          return `<div class="orow ${off ? "off" : ""}">${ICO(k)}<span class="n">${NAVN[k]}</span>
-            <button class="ib" data-dz-mv="${k}|-1" ${i ? "" : "disabled"} aria-label="${NAVN[k]} — yuqoriga">↑</button><button class="ib" data-dz-mv="${k}|1" ${i < z.ord.length - 1 ? "" : "disabled"} aria-label="${NAVN[k]} — pastga">↓</button>
-            ${lock ? `<span class="vis lock" title="Sozlamalar doim ko'rinadi, aks holda unga qaytib bo'lmaydi">🔒</span>` : `<button class="vis ${off ? "" : "on"}" data-dz-eye="${k}" role="switch" aria-checked="${!off}" title="${off ? "Yashirin — ko'rsatish uchun bosing" : "Ko'rinadi — yashirish uchun bosing"}" aria-label="${NAVN[k]} menyuda ko'rinsin">${E[off ? 1 : 0]}</button>`}</div>`; }).join("")}</div>`) +
-        grp("Yoqish/o'chirish belgilari", "Hamma kalitlarda: yoqilgan → o'chiq", `<div class="dzgrid g2">${Object.entries(EMO).map(([k, [a, b, n]]) => opt("emo", k, z.emo === k, `<span class="ep">${a}<i>→</i>${b}</span><b>${n}</b>`, k === BTNS.emo)).join("")}</div>`) +
-        grp("Oyna tugmalari joyi", "«Bekor qilish / OK» kabi tugmalar", `<div class="dzgrid g3">${[["top", "Tepada", "Sarlavha ostida"], ["end", "Oxirida", "Oyna tagida"], ["bot", "Qotgan", "Doim pastda"]].map(([k, n, s]) => opt("act", k, z.act === k, `<span class="lay a-${k}"><u style="top:30%"></u><u style="top:48%"></u><i></i></span><b>${n}</b><small>${s}</small>`, k === BTNS.act)).join("")}</div>`) +
-        grp("Asosiy tugma tomoni", "Rangli tugma qaysi tomonda", `<div class="dzgrid g2">${[["left", "Chapda"], ["right", "O'ngda"]].map(([k, n]) => opt("pri", k, z.pri === k, `<span class="pairs">${k === "left" ? '<s class="p"></s><s></s>' : '<s></s><s class="p"></s>'}</span><b>${n}</b>`, k === BTNS.pri)).join("")}</div>`);
-    }
+    } else html = TGM.body(z, BTNS, NAVN, NAVK, ICO);
     const foot = `<div class="dzfoot2"><button class="btn" data-dz-undo ${hist.length ? "" : "disabled"} title="Oxirgi o'zgarishni bekor qilish">↶ Qaytarish</button><button class="btn" data-dz-reset title="Ochiq bo'limni boshlang'ich holatga qaytarish">↺ Standart</button></div>
       <p class="muted dzhint">★ — standart tanlov. Har bir tanlov darhol saqlanadi. Yoqmasa, «↶ Qaytarish» bosing.</p>`;
     return `<div class="dz-sec">${prev}${tabs}${html}${foot}</div>`;
@@ -172,7 +159,7 @@ const DZN = (() => {
     const commit = (fn, quiet) => { hist.push(JSON.stringify(D.web.dz)); if (hist.length > 30) hist.shift(); fn(z); D.web.dz = clean(z, D.web); save(); render(); if (!quiet) flash(); };
     const flash = () => { const s = document.querySelector(".shead"); if (s && !s.querySelector(".dzsaved")) { const e = h(`<span class="dzsaved">✓ Saqlandi</span>`); s.append(e); setTimeout(() => e.remove(), 1400); } };
     m.querySelectorAll("[data-dz-tab]").forEach((b) => b.onclick = () => { S.dztab = b.dataset.dzTab; render(); });
-    for (const k of ["theme", "night", "hue", "font", "nav", "lab", "emo", "act", "pri"])
+    for (const k of ["theme", "night", "hue", "font", "nav", "lab", "shape", "act", "pri"])
       m.querySelectorAll(`[data-dz-${k}]`).forEach((b) => b.onclick = () => commit((o) => { o[k] = b.dataset["dz" + k[0].toUpperCase() + k.slice(1)]; }));
     m.querySelectorAll("[data-dz-force]").forEach((b) => b.onclick = () => commit((o) => { o.force = !o.force; }));
     m.querySelectorAll("[data-dz-mv]").forEach((b) => b.onclick = () => commit((o) => { const [k, d] = b.dataset.dzMv.split("|"), i = o.ord.indexOf(k), j = i + +d; if (j >= 0 && j < o.ord.length) [o.ord[i], o.ord[j]] = [o.ord[j], o.ord[i]]; }));
@@ -184,6 +171,7 @@ const DZN = (() => {
     });
     const pk = m.querySelector("#dzpick"); if (pk) pk.onchange = () => commit((o) => { o.hue = pk.value; });
     if (typeof ALF !== "undefined") ALF.bind(m);
+    if (typeof TGM !== "undefined") TGM.bind(m);
     m.querySelectorAll("[data-dz-sysfont]").forEach((b) => b.onclick = () => { if (typeof fontDialog === "function") fontDialog(); });
     m.querySelectorAll("[data-dz-undo]").forEach((b) => b.onclick = () => { const s0 = hist.pop(); if (!s0) return; D.web.dz = clean(JSON.parse(s0), D.web); save(); render(); flash(); });
     m.querySelectorAll("[data-dz-reset]").forEach((b) => b.onclick = () => commit((o) => { Object.assign(o, S.dztab === "btn" ? JSON.parse(JSON.stringify(BTNS)) : Object.assign({}, LOOK, {force: false})); }));
@@ -191,5 +179,5 @@ const DZN = (() => {
   // Ctrl+K: «Kunduzgi / tungi»
   function toggleNight() { const z = cfg(); if (THEMES[z.theme][2]) z.theme = "tpt", z.force = false; else z.force = !z.force; save(); render(); }
 
-  return {THEMES, EMO, DEF, clean, cfg, css, isDark, compact, navList, emo, body, bind, toggleNight, contrast, NAVK};
+  return {THEMES, DEF, clean, cfg, css, isDark, compact, navList, emo, body, bind, toggleNight, contrast, NAVK};
 })();

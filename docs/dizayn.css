@@ -54,9 +54,9 @@
 .dz-sec .rd em{font-style:normal;color:var(--muted);font-size:12px;white-space:nowrap}
 .dz-sec .rd.on{background:var(--acc-soft)}
 .dz-sec .rd[disabled]{opacity:.45;cursor:not-allowed}
+.dz-sec .rd.tst .kalit{margin-left:auto}
 .dz-sec .rdo{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:none;background:var(--base)}
 .dz-sec .rd.on .rdo{border:5px solid var(--acc)}
-.dz-sec .rd .dzemo{flex:none;font-size:18px;width:22px;text-align:center}
 .dz-sec .rd.tst{background:var(--alt);border-top:1px dashed var(--line)}.dz-sec .rd.tst.on{background:var(--acc-soft)}
 .dz-sec .rdn{margin:0;padding:8px 14px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--line)}
 /* asosiy rang */
@@ -88,27 +88,6 @@
 .dz-sec .dzo small{color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .dz-sec .dzo.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc) inset;background:var(--acc-soft)}
 .dz-sec .dzo.on::after{content:"✓";position:absolute;top:5px;right:8px;font-size:12px;font-weight:800;color:var(--acc-t,var(--acc))}
-.dz-sec .lay{width:100%;height:32px;border-radius:calc(8px*var(--rk,1));border:1px solid var(--line);background:var(--win);position:relative;overflow:hidden;display:block}
-.dz-sec .lay i{position:absolute;background:var(--acc);opacity:.85;border-radius:calc(2px*var(--rk,1))}
-.dz-sec .lay.left i{left:0;top:0;bottom:0;width:22%}.dz-sec .lay.top i{left:0;right:0;top:0;height:22%}.dz-sec .lay.bottom i{left:0;right:0;bottom:0;height:22%}
-.dz-sec .lay.a-top i{right:8%;top:12%;width:34%;height:20%;border-radius:calc(4px*var(--rk,1))}.dz-sec .lay.a-end i{left:30%;width:40%;top:62%;height:18%;border-radius:calc(4px*var(--rk,1))}.dz-sec .lay.a-bot i{left:0;right:0;bottom:0;height:24%;border-radius:0}
-.dz-sec .lay u{position:absolute;left:10%;right:10%;height:5px;border-radius:calc(3px*var(--rk,1));background:var(--line)}
-.dz-sec .labs{display:flex;gap:6px;align-items:center;justify-content:center;height:22px;font-size:12px;font-weight:700;color:var(--acc-t,var(--acc))}
-.dz-sec .labs svg{width:18px;height:18px}
-.dz-sec .pairs{display:flex;gap:5px;height:22px;align-items:center}.dz-sec .pairs s{display:block;width:34px;height:18px;border-radius:calc(5px*var(--rk,1));border:1px solid var(--line);background:var(--base);text-decoration:none}.dz-sec .pairs s.p{background:var(--acc);border-color:var(--acc)}
-.dz-sec .ep{display:flex;align-items:center;gap:4px;font-size:20px;line-height:1;height:26px}.dz-sec .ep i{font-style:normal;font-size:11px;color:var(--muted)}
-/* menyu tartibi */
-.dz-sec .olist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--base)}
-.dz-sec .orow{display:flex;align-items:center;gap:10px;padding:6px 10px;border-top:1px solid var(--line)}
-.dz-sec .orow:first-child{border-top:0}
-.dz-sec .orow svg{width:18px;height:18px;flex:none}
-.dz-sec .orow .n{flex:1;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dz-sec .orow.off .n,.dz-sec .orow.off svg{opacity:.4}
-.dz-sec .ib{width:34px;height:34px;border:1px solid var(--line);background:var(--base);border-radius:calc(8px*var(--rk,1));display:grid;place-items:center;font-weight:700;flex:none}
-.dz-sec .ib:disabled{opacity:.35;cursor:default}
-.dz-sec .vis{width:38px;height:34px;flex:none;border:1px solid var(--line);background:var(--base);border-radius:calc(8px*var(--rk,1));display:grid;place-items:center;font-size:18px;padding:0}
-.dz-sec .vis.on{background:var(--acc-soft);border-color:color-mix(in srgb,var(--acc) 40%,var(--line))}
-.dz-sec .vis.lock{background:var(--soft);font-size:15px}
 /* pastki tugmalar */
 .dz-sec .dzfoot2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;border-top:1px solid var(--line);padding-top:14px}
 /* telefon */
@@ -119,11 +98,9 @@
   .dz-sec .sl{grid-template-columns:1fr;gap:4px}
   .dz-sec .g4{grid-template-columns:repeat(4,minmax(0,1fr))}.dz-sec .g4 .ep{font-size:17px;gap:2px}
   .dz-sec .dzo small{display:none}
-  .dz-sec .ib,.dz-sec .vis{width:40px;height:40px}
   .dz-sec .hu span{width:36px;height:36px}.dz-sec .hu.pick input{width:36px;height:36px}
   .dz-sec .dzprev{top:0;padding:8px}
   .dz-sec .dzpc{gap:6px;padding:8px}.dz-sec .dzpc .dzfoot{flex:none}
   .dz-sec .dzpc .dzc.s,.dz-sec .dzpc .dzc.g7{display:none}
 }
 @media (prefers-reduced-motion:reduce){.dz-sec *{transition:none!important}}
-.swt .swe{font-style:normal}
