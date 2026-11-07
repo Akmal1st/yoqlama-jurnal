@@ -4309,3 +4309,95 @@ test("Yangilaganda (F5) ochiq sahifa qoladi, yangi oynada «Bugun» (36 va 18 o'
     }
   } finally { await browser.close(); }
 });
+
+// Summativ eksporti: «Hozirgi / Yangi» varaq dizayni (bsb-yangi.js) — hozirgi o'zgarishsiz, yangi uslublar, qayta chizilmaslik, sig'ish, kontrast, PDF
+for (const [name, viewport, count] of [["kompyuter", {width: 1440, height: 900}, 36], ["telefon", {width: 390, height: 844}, 18]]) {
+  test(`${name}: Summativ eksporti — Hozirgi/Yangi varaq dizayni (${count} o'quvchi)`, async () => {
+    const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+    try {
+      const ctx = await browser.newContext({viewport});
+      const page = await ctx.newPage();
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      await page.evaluate((n) => { D.settings.protect.enabled = false; window.print = () => { window.__printed = document.getElementById("pdoc").innerHTML; };
+        const c = D.classes[0]; for (let i = c.students.length; i < n; i++) c.students.push({name: `Qo'shimcha O'quvchi ${i + 1}`, marks: {}, scores: {}}); c.students.length = n;
+        c.students[1].name = "Abdurahmonova Mohinur Shuhratjon qizi";
+        D.web.bsb_hdr = Object.assign(D.web.bsb_hdr || {}, {teacher: "Otaboboyev Akmal", school: "274-sonli umumta'lim maktabi"}); save(); }, count);
+      await page.click(`${name === "telefon" ? ".tabbar" : ".side"} [data-go=journal]`);
+      await page.evaluate(() => { S.jpage = "bsb"; render(); }); await page.waitForSelector("table.bsa");
+      const qd = await page.evaluate(() => D.settings.quarters[0][0]);
+      await page.fill("#bt", "Kasrlar"); await page.fill("#bdt", qd); await page.dispatchEvent("#bdt", "change");
+      await page.fill("#bnq", "3"); await page.press("#bnq", "Tab"); await page.waitForSelector('[data-bx="2"]');
+      await page.fill('[data-bx="2"]', "6"); await page.press('[data-bx="2"]', "Tab");
+      const n = await page.evaluate(() => D.classes[S.ci].students.length);
+      for (let si = 0; si < n; si++) for (let i = 0; i < 3; i++) await page.fill(`[data-bp="${si}|${i}"]`, String((si + i) % (i === 2 ? 7 : 3)));
+      await page.press(`[data-bp="${n - 1}|2"]`, "Tab"); await page.click("[data-bsave]");
+      const tap = (s) => page.evaluate((s) => document.querySelector(s).click(), s);
+      await page.click("[data-bexp]"); await page.waitForSelector(".modal .bx-pg", {state: "attached"});
+      // Hozirgi: avvalgidek, yangi elementlar yo'q
+      assert.equal(await page.evaluate(() => document.querySelector(".bx-dlg").dataset.d), "old");
+      const old = await page.evaluate(() => ({nw: document.querySelectorAll(".modal .bx-pg.nw").length, cb: document.querySelectorAll(".modal .bx-cb").length, kp: document.querySelectorAll(".modal .bx-kp").length, fr: document.querySelectorAll(".modal .bx-fr").length,
+        newVis: [...document.querySelectorAll("[data-newonly]")].some((e) => e.offsetParent), oldVis: [...document.querySelectorAll("[data-oldonly]")].filter((e) => !e.hidden).every((e) => e.offsetParent)}));
+      assert.deepEqual([old.nw, old.cb, old.kp, old.fr, old.newVis, old.oldVis], [0, 0, 0, 0, false, true], "Hozirgi dizayn o'zgarmagan");
+      // Yangi
+      await tap('[data-seg=dz] [data-v=new]'); await page.waitForSelector(".modal .bx-pg.nw", {state: "attached"});
+      const nw = await page.evaluate(() => ({d: document.querySelector(".bx-dlg").dataset.d, st: D.web.bsb_hdr.bx.d, cb: document.querySelectorAll(".modal .bx-pg.nw .bx-cb").length, kp: document.querySelectorAll(".modal .bx-kp").length, med: document.querySelectorAll(".modal td.mdl").length,
+        pre: document.querySelectorAll(".bxn-pc").length, dots: document.querySelectorAll(".bxn-dot").length, oldHidden: [...document.querySelectorAll("[data-oldonly]")].every((e) => !e.offsetParent), gl: document.querySelectorAll(".modal .bx-gl").length}));
+      assert.equal(nw.d, "new"); assert.equal(nw.st, "new"); assert.ok(nw.cb >= 1 && nw.kp === 3 && nw.med === 3 && nw.gl >= 1, JSON.stringify(nw)); assert.equal(nw.pre, 4); assert.equal(nw.dots, 6); assert.ok(nw.oldHidden);
+      assert.ok(await page.evaluate(() => document.querySelector(".bxn-pc.on")), "Zamonaviy tanlangan");
+      // tugma bosilganda panel va varaq qayta chizilmaydi (tugunlar va scroll joyida)
+      await page.evaluate(() => { window.__chips = document.querySelector("[data-chips]"); window.__pg = document.querySelector(".bx-pages .bx-pw"); window.__sb = document.querySelector(".bx-side-b"); document.querySelector(".bx-pages").scrollTop = 150; });   // telefonda ko'rish yorlig'i yopiq: faqat tugunlar tekshiriladi
+      await tap('[data-np=ras]');
+      const same = await page.evaluate(() => ({chips: window.__chips === document.querySelector("[data-chips]"), pg: window.__pg === document.querySelector(".bx-pages .bx-pw"), sb: window.__sb === document.querySelector(".bx-side-b"), y: document.querySelector(".bx-pages").scrollTop,
+        fr: document.querySelectorAll(".modal .bx-fr").length, mo: document.querySelectorAll(".modal .bx-mo").length, serif: document.querySelectorAll(".modal .bx-pg.f-serif").length, on: document.querySelector(".bxn-pc.on").dataset.np}));
+      assert.ok(same.chips && same.pg && same.sb, "tugunlar saqlanadi"); if (name === "kompyuter") assert.ok(same.y >= 100, `scroll joyida: ${same.y}`);
+      assert.ok(same.fr >= 2 && same.mo >= 1 && same.serif >= 1 && same.on === "ras", JSON.stringify(same));
+      // hamma rang mavzusi va uslub, ikkala shakl: ichki sig'ish, ismlar kesilmaydi, kontrast >= 4.5
+      const scan = () => page.evaluate(() => {
+        const parse = (c) => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(",").map(Number); return {r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1}; };
+        const lum = ({r, g, b}) => { const f = (v) => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(r) + .7152 * f(g) + .0722 * f(b); };
+        const over = (t, b) => ({r: t.r * t.a + b.r * (1 - t.a), g: t.g * t.a + b.g * (1 - t.a), b: t.b * t.a + b.b * (1 - t.a), a: 1});
+        const bgOf = (el) => { const ch = []; for (let e = el; e; e = e.parentElement) { const c = parse(getComputedStyle(e).backgroundColor); if (c && c.a > 0) { ch.push(c); if (c.a >= 1) break; } } let b = {r: 255, g: 255, b: 255, a: 1}; for (let i = ch.length - 1; i >= 0; i--) b = over(ch[i], b); return b; };
+        const bad = [], cut = [];
+        for (const pg of document.querySelectorAll(".modal .bx-pg")) {
+          const body = pg.querySelector(".bx-body"); if (body.scrollHeight > body.clientHeight + 1) cut.push("sig'maydi " + (body.scrollHeight - body.clientHeight));
+          const zm = body.firstElementChild && body.firstElementChild.classList.contains("bx-zm") ? body.firstElementChild : body, ks = [...zm.children];
+          for (let i = 0; i + 1 < ks.length; i++) if (ks[i].getBoundingClientRect().bottom > ks[i + 1].getBoundingClientRect().top + 1) cut.push("bloklar ustma-ust " + i);
+          const w = document.createTreeWalker(pg, NodeFilter.SHOW_TEXT);
+          while (w.nextNode()) { const t = w.currentNode; if (!t.nodeValue.trim()) continue; const el = t.parentElement, cs = getComputedStyle(el); if (cs.visibility === "hidden" || !el.getBoundingClientRect().width) continue;
+            const fg = parse(cs.color), bg = bgOf(el), f2 = over(fg, bg), a = lum(f2), b = lum(bg), cr = (Math.max(a, b) + .05) / (Math.min(a, b) + .05); const big = parseFloat(cs.fontSize) >= 18.66;
+            if (cr < (big ? 3 : 4.5)) bad.push(`${el.className}|${t.nodeValue.trim().slice(0, 14)}|${cr.toFixed(2)}`); }
+        }
+        return {bad: [...new Set(bad)].slice(0, 6), cut};
+      });
+      for (const th of ["", "t-kok", "t-bin", "t-iliq", "t-qiz", "t-bw"]) for (const pre of ["zam", "yen", "ras", "ixc"]) for (const form of ["1", "2"]) {
+        await tap(`[data-np=${pre}]`); await tap(`[data-nth="${th}"]`); await tap(`.bxn-full [data-v="${form}"]`);
+        const r = await scan(); assert.deepEqual(r, {bad: [], cut: []}, `${th || "yashil"} ${pre} ${form}: ${JSON.stringify(r)}`);
+      }
+      assert.equal(await page.evaluate(() => D.web.bsb_hdr.bx.bw), true, "Oq-qora mavzu Excel uchun ham oq-qora");
+      // suv belgisi, rangli baho katagi, imzo muhri — PDF va chop etishga o'tadi
+      await tap('[data-nth=""]'); await tap('[data-np=yen]'); await tap('[data-seg=nform] [data-v="1"]');
+      await page.evaluate(() => { document.querySelector(".bxn-g").open = true; });
+      for (const k of ["wm", "gc", "fr", "mo"]) await tap(`[data-nt=${k}]`);
+      assert.ok(await page.evaluate(() => document.querySelectorAll(".modal img.bx-wm").length >= 1 && document.querySelector(".bxn-g").open), "suv belgisi va ochiq bo'lim saqlanadi");
+      await page.evaluate(() => { window.__pdf = null; const R = BXP.pagesHtml(BXP.data(D.classes[S.ci], D.classes[S.ci].analyses[0]), BXP.cfg(), 1); return PTG.pagesPdf(R.pages, R.land).then((b) => b.arrayBuffer()).then((ab) => { window.__pdf = [...new Uint8Array(ab).slice(0, 5)].map((c) => String.fromCharCode(c)).join("") + ":" + ab.byteLength; }); });
+      const pdf = await page.evaluate(() => window.__pdf); assert.match(pdf, /^%PDF-:\d+$/); assert.ok(+pdf.split(":")[1] > 8000, pdf);
+      await page.click(".modal [data-pdf]");
+      const html = await page.evaluate(() => window.__printed);
+      assert.ok(html.includes("bx-pg") && html.includes("nw") && html.includes("bx-fr") && html.includes("bx-cb"), "chop etishda yangi dizayn");
+      // eslab qolinadi: qayta ochilganda ham Yangi, tanlangan uslub saqlangan
+      await page.click("[data-bexp]"); await page.waitForSelector(".modal .bx-pg.nw", {state: "attached"});
+      assert.equal(await page.evaluate(() => document.querySelector(".bx-dlg").dataset.d), "new");
+      assert.equal(await page.evaluate(() => D.web.bsb_hdr.bx.n.wm), true);
+      // Hozirgi'ga qaytish — avvalgi ko'rinish
+      await tap('[data-seg=dz] [data-v=old]');
+      const back = await page.evaluate(() => ({nw: document.querySelectorAll(".modal .bx-pg.nw").length, d: document.querySelector(".bx-dlg").dataset.d, bw: D.web.bsb_hdr.bx.bw}));
+      assert.deepEqual(back, {nw: 0, d: "old", bw: false});
+      assert.deepEqual(errors, []);
+      await ctx.close();
+    } finally { await browser.close(); }
+  });
+}
