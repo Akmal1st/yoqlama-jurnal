@@ -506,7 +506,7 @@ test("jurnal: mezon bo'yicha baho (darsdagi ish + uy vazifasi), izoh, «Qolganla
       assert.deepEqual((await st(0)).slice(0, 2), ["kq", "null"]);
       // jurnal saqlanib qayta yuklanganda qismlar qoladi
       await page.click("[data-mzp='3|0|4']");   // uy vazifasi «Qolganlarga» bilan 4 bo'lgan
-      await page.reload(); await page.waitForSelector(".bn-hd");
+      await page.reload(); await page.waitForFunction(() => S.page === "journal");
       await page.click(`${viewport.width < 600 ? ".tabbar" : ".side"} [data-go=journal]`);
       await page.evaluate((d) => { S.ci = 0; V.mode = "day"; V.anchor = d; render(); }, t); await page.waitForSelector(".dlist.mz");
       assert.deepEqual(await st(3), ["8", "[4,4]", ""]);
@@ -3407,10 +3407,13 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
       assert.match(await page.textContent(".g-tpc"), /1-dars \/ 4.*Tanishuv/);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
       // saqlanib, qayta yuklangandan keyin ham bor
-      await page.reload(); await page.waitForSelector(".bn-hd");
+      // yangilangandan keyin ham o'sha guruh ochiq qoladi
+      await page.reload(); await page.waitForSelector(".tpt [data-home]");
+      assert.deepEqual(await page.evaluate(() => [S.page, D.classes[TPT._state.gi].name]), ["groups", "Katta guruh"]);
       assert.equal(await page.evaluate(() => { const c = D.classes.find((x) => x.name === "Katta guruh"); return [c.gplan.topics.length, c.gplan.start, JSON.stringify(c.gtop)].join("|"); }), '3|2026-11-02|{"2026-11-04":{"off":true}}');
       // 18 o'quvchili to'garak: «Boshqa mavzu» kuni rejadan mavzu olmaydi
       await page.click(`${name === "telefon" ? ".tabbar" : ".side"} [data-go=groups]`);
+      await page.click("[data-home]");
       await page.click(".g-gcard:has-text('Kichik guruh')");
       await page.click("[data-tab=top]");
       await page.click("[data-tpl]");
@@ -4253,6 +4256,56 @@ test("Bugun: chorak tugagandan keyin — yopish, ta'til, yangi chorak (bugun-tat
         assert.deepEqual(errors, []);
         await page.close();
       }
+    }
+  } finally { await browser.close(); }
+});
+
+test("Yangilaganda (F5) ochiq sahifa qoladi, yangi oynada «Bugun» (36 va 18 o'quvchi)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const [vp, n] of [[{width: 1440, height: 900}, 36], [{width: 390, height: 844}, 18]]) {
+      const ctx = await browser.newContext({viewport: vp});
+      const page = await ctx.newPage();
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+      await page.goto(APP);
+      await page.evaluate((n) => {
+        const st = Array.from({length: n}, (_, i) => ({name: `O'quvchi ${i + 1}`, marks: {}}));
+        D = normalize({classes: [{name: "7-A", subject: "Matematika", students: st, dates: ["2026-10-19", "2026-10-20"]}, {name: "8-B", subject: "Fizika", students: st.slice(0, 5), dates: ["2026-10-20"]}]});
+        save(); render();
+      }, n);
+      const tb = vp.width < 600 ? ".tabbar" : ".side";
+      // jurnal: 2-sinf, «Umumiy» sahifasi
+      await page.click(`${tb} [data-go=journal]`);
+      await page.evaluate(() => { S.ci = 1; S.jpage = "sum"; render(); });
+      await page.reload(); await page.waitForFunction(() => S.page === "journal" && document.querySelector("#main").innerText.includes("8-B"));
+      assert.deepEqual(await page.evaluate(() => [S.page, S.ci, S.jpage]), ["journal", 1, "sum"]);
+      // sozlamalar bo'limi
+      await page.click(`${tb} [data-go=settings]`);
+      await page.evaluate(() => { S.sec = 2; render(); });
+      await page.reload(); await page.waitForFunction(() => S.page === "settings");
+      assert.deepEqual(await page.evaluate(() => [S.page, S.sec]), ["settings", 2]);
+      // hisobotlar
+      await page.click(`${tb} [data-go=reports]`);
+      await page.reload(); await page.waitForFunction(() => S.page === "reports");
+      // dars (Darsni boshlash) — o'sha kuni qadam va o'quvchi bilan qaytadi
+      await page.evaluate(() => { startLesson(0); }); await page.waitForFunction(() => S.page === "lesson");
+      await page.evaluate(() => { S.step = 1; render(); });
+      await page.reload(); await page.waitForFunction(() => S.page === "lesson");
+      assert.deepEqual(await page.evaluate(() => [S.lesson, S.step]), [0, 1]);
+      // sinf o'chirilgan bo'lsa ham xato chiqmaydi
+      await page.click(`${tb} [data-go=journal]`);
+      await page.evaluate(() => { S.ci = 1; render(); });
+      await page.evaluate(() => { const d = JSON.parse(localStorage.getItem(STORE_KEY)); d.classes.length = 1; localStorage.setItem(STORE_KEY, JSON.stringify(d)); indexedDB.deleteDatabase("yoqlama_jurnal"); });
+      await page.reload(); await page.waitForFunction(() => S.page === "journal");
+      assert.equal(await page.evaluate(() => S.ci), 0);
+      // yangi oyna (tab) — odatdagidek «Bugun»
+      const p2 = await ctx.newPage(); await p2.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+      await p2.goto(APP); await p2.waitForSelector(".bn-hd");
+      assert.equal(await p2.evaluate(() => S.page), "today");
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+      assert.deepEqual(errors, []);
+      await ctx.close();
     }
   } finally { await browser.close(); }
 });

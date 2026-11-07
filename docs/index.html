@@ -5249,10 +5249,50 @@ window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); inst
 if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});
 const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 
+/* ───────── yangilaganda (F5) ochiq sahifada qolish ─────────
+   S (qaysi sahifa, sinf, bo'lim) faqat xotirada edi — sahifa yangilanganda S yana boshidan ({page: "today"}) yaratilib,
+   har safar «Bugun» ochilardi (Akmal, 2026-11-07). Endi joriy joy sessionStorage'ga yoziladi: shu oynada yangilansa
+   o'sha sahifa qaytadi, ilova yangidan ochilganda esa (yangi oyna/tab) odatdagidek «Bugun». */
+const NAV_KEY = "yoqlama_nav";
+function navSave() {
+  try {
+    const t = typeof TPT !== "undefined" && TPT._state, n = {page: S.page, ci: S.ci, jpage: S.jpage, sec: S.sec, smt: S.smt, smw: S.smw, day: todayIso()};
+    if (S.page === "lesson") Object.assign(n, {lesson: S.lesson, step: S.step, cur: S.cur});
+    if (S.page === "groups" && t) n.tpt = {scr: t.scr, gi: t.gi, tab: t.tab, day: t.day, mo: t.mo, av: t.av};
+    sessionStorage.setItem(NAV_KEY, JSON.stringify(n));
+  } catch (e) {}
+}
+function navRestore() {
+  let n = null;
+  try { n = JSON.parse(sessionStorage.getItem(NAV_KEY) || "null"); } catch (e) {}
+  if (!n || typeof n !== "object") return;
+  const okCi = (i) => Number.isInteger(i) && i >= 0 && i < D.classes.length;
+  if (okCi(n.ci)) S.ci = n.ci;
+  if (JPAGES.includes(n.jpage)) S.jpage = n.jpage;
+  if (Number.isInteger(n.sec)) S.sec = n.sec;
+  if (typeof n.smt === "string") S.smt = n.smt;
+  if (typeof n.smw === "string") S.smw = n.smw;
+  let p = ["today", "journal", "groups", "reports", "settings", "archive", "lesson"].includes(n.page) ? n.page : "today";
+  if (p === "journal" && !D.classes.length) p = "today";
+  if (p === "lesson") {   // dars faqat o'sha kuni davom etadi
+    if (n.day === todayIso() && okCi(n.lesson) && D.classes[n.lesson].students.length) {
+      S.ci = S.lesson = n.lesson; S.step = Number.isInteger(n.step) ? n.step : 0; S.cur = Number.isInteger(n.cur) ? n.cur : 0; V.anchor = n.day;
+    } else p = "today";
+  }
+  if (p === "groups" && n.tpt && typeof TPT !== "undefined" && TPT._state) {
+    const t = TPT._state, g = n.tpt;
+    if (["home", "all"].includes(g.scr)) t.scr = g.scr;
+    else if (g.scr === "grp" && okCi(g.gi) && typeof g.day === "string" && g.day) Object.assign(t, {scr: "grp", gi: g.gi, tab: g.tab || "att", day: g.day, mo: g.mo || g.day.slice(0, 7), av: g.av || "day"});
+  }
+  S.page = p;
+}
+
 /* ───────── ishga tushirish ───────── */
 if (document.getElementById("app")) {
   D = load(); autoDates(); if (D.classes.some((c) => c.plan && c.plan.on)) { reflowAll(); save(); }
-  render(); emkReady(); idbBoot().then(() => { tgAuto().then(() => KUN.tick()); remSchedule(); });
+  navRestore(); render();
+  window.addEventListener("pagehide", navSave);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") navSave(); }); emkReady(); idbBoot().then(() => { tgAuto().then(() => KUN.tick()); remSchedule(); });
   setInterval(() => KUN.tick(), 60000);   // kunlik hisobot: darslar tugagach Telegram'ga (kunlik.js)
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") KUN.tick(); });
   setInterval(() => { if (S.page === "journal" && isLocked() !== $("[data-lock]")?.textContent.includes("🔒")) renderNav(); }, 30000);
