@@ -3760,6 +3760,11 @@ test("eMaktab: kirish sahifasi kutilmagan bo'lsa, xato oynasida nima qaytgani ko
       await page.waitForSelector("text=eMaktab'dan olib bo'lmadi", {timeout: 20000});
       const msg = await page.textContent(".modal.ek-sh .ek-sub");
       assert.match(msg, c.re); assert.ok(!msg.includes("maxfiy123"));
+      // «Sahifani saqlash»: eMaktab sahifasi faylga (login/parol qiymatlarisiz)
+      if (c.page.status === 403) { assert.equal(await page.locator(".modal.ek-sh [data-pg]").count(), 0); await ctx.close(); continue; }
+      const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".modal.ek-sh [data-pg]")]);
+      const html = (await import("node:fs")).readFileSync(await dl.path(), "utf8");
+      assert.match(dl.suggestedFilename(), /^emaktab-sahifa-\d+\.html$/); assert.match(html, /login\.emaktab\.uz/); assert.ok(!html.includes("maxfiy123"));
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       assert.deepEqual(errors, []);
       await ctx.close();

@@ -92,6 +92,10 @@ const EMKS = (() => {
     let u = r.url; try { const x = new URL(r.url); u = x.host + x.pathname; } catch (e) { /* */ }
     return `Javob: ${r.s} · ${u}${t ? ` · «${t.replace(/\s+/g, " ").trim().slice(0, 60)}»` : ""} · ${Math.round(String(r.b || "").length / 1024)} KB`;
   }
+  // nosozlikni topish uchun sahifani faylga saqlash: login/parol qiymatlari o'chiriladi (dastur/emaktab_http.py hide_secrets kabi)
+  const scrub = (r) => `<!-- ${r.s} ${r.url} -->\n` + String(r.b || "")
+    .replace(/<input[^>]*>/gi, (t) => /name=["']?(login|user\w*|pass\w*|parol)["'\s>]|type=["']?password/i.test(t) ? t.replace(/value=("[^"]*"|'[^']*'|[^\s>]*)/i, 'value=""') : t)
+    .replace(/((?:\\x22|")(?:login|password|userName|parol)(?:\\x22|")\s*(?::|\\x3a)\s*(?:\\x22|"))((?:(?!\\x22)[^"])*)/gi, "$1");
   const blocked = (r) => r.s === 403 || r.s === 451 || r.s === 429 || r.s >= 500
     || /access denied|forbidden|blocked|cloudflare|ddos|captcha-delivery|доступ (запрещ|огранич)|ruxsat yo'q/i.test(String(r.b || "").slice(0, 20000).replace(/<script[\s\S]*?<\/script>/gi, ""));
   /* ───────── ikki bosqichli tasdiqlash (login.emaktab.uz/login/2fa-verification, 2026-11-07) ─────────
@@ -124,7 +128,7 @@ const EMKS = (() => {
   async function verify(r) {
     for (let k = 0; k < 4; k++) {
       const f = parse2fa(r.b, r.url);
-      if (!f.code) throw new Error(`eMaktab tasdiqlash kodini so'rayapti, lekin kod maydoni topilmadi. Hozircha xatcho'p usulidan foydalaning.\n${diag(r)}\n${f.shape}${f.hint ? `\n«${f.hint}»` : ""}`);
+      if (!f.code) throw Object.assign(new Error(`eMaktab tasdiqlash kodini so'rayapti, lekin kod maydoni topilmadi. Hozircha xatcho'p usulidan foydalaning.\n${diag(r)}\n${f.shape}${f.hint ? `\n«${f.hint}»` : ""}`), {page: scrub(r)});
       done();
       const ans = await codeSheet(f.hint, k > 0, f.num);
       if (ans === null) return null;
@@ -152,7 +156,7 @@ const EMKS = (() => {
         // parol yuborilgandan keyin oraliq sahifa (forma yo'q) — tizimga kirilganmi, «Sinflarim» orqali tekshiramiz
         if (attempt > 1) { const m = await req(U.my); if (m.s < 400 && !isLogin(m.url, m.b)) { store(S); return true; } }
         if (blocked(r)) throw new Error(`eMaktab Google serveridan kelgan so'rovni to'sib qo'ydi (chet el manzili bo'lishi mumkin). Hozircha xatcho'p usulidan foydalaning.\n${diag(r)}`);
-        throw new Error(`eMaktab kirish sahifasida login maydoni topilmadi${attempt > 1 ? " (parol yuborilgandan keyin)" : ""}. Hozircha xatcho'p usulidan foydalaning.\n${diag(r)}`);
+        throw Object.assign(new Error(`eMaktab kirish sahifasida login maydoni topilmadi${attempt > 1 ? " (parol yuborilgandan keyin)" : ""}. Hozircha xatcho'p usulidan foydalaning.\n${diag(r)}`), {page: scrub(r)});
       }
       f.data[f.us] = user; f.data[f.pw] = pass;
       if (attempt > 1) {
@@ -223,8 +227,10 @@ const EMKS = (() => {
     done();
     if (e.old) { toast(e.message); emkDialog(); return; }   // server kodi eski (Code.gs v5 dan oldingi) — xatcho'p yo'riqnomasi
     modal(`<div class="ek-res-in"><div class="ek-rh"><h2>eMaktab'dan olib bo'lmadi</h2></div><div class="ek-sub">${esc(e.message || String(e))}</div>
-      <div class="ek-acts"><button class="btn" data-bm>Xatcho'p orqali</button><button class="btn btn-primary" data-x>Yopish</button></div></div>`, (mm, close) => {
+      ${e.page ? `<div class="ek-note">Tuzatish uchun eMaktab sahifasini faylga saqlab, ishlab chiquvchiga yuboring (login va parol faylga yozilmaydi).</div>` : ""}
+      <div class="ek-acts">${e.page ? `<button class="btn" data-pg>Sahifani saqlash</button>` : ""}<button class="btn" data-bm>Xatcho'p orqali</button><button class="btn btn-primary" data-x>Yopish</button></div></div>`, (mm, close) => {
       mm.classList.add("ek-sh");
+      const pg = $("[data-pg]", mm); if (pg) pg.onclick = () => download(`emaktab-sahifa-${new Date().toISOString().slice(0, 16).replace(/\D/g, "")}.html`, e.page, "text/html");
       $("[data-x]", mm).onclick = () => close(); $("[data-bm]", mm).onclick = () => { close(); emkDialog(); };
     });
   }
