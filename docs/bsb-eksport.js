@@ -28,6 +28,7 @@ const BXP = (() => {
     for (const f of [1, 2]) { const ok = SECS[f].map((s) => s[0]); x["off" + f] = (Array.isArray(x["off" + f]) ? x["off" + f] : []).filter((k) => ok.includes(k)); x["ord" + f] = x["ord" + f] === "list" || x["ord" + f] === "score" ? x["ord" + f] : f === 1 ? "score" : "list"; }
     x.dv = DVK.includes(x.dv) ? x.dv : "tab";
     x.bw = !!x.bw; x.ori = ["auto", "p", "l"].includes(x.ori) ? x.ori : "auto";
+    if (typeof BXN !== "undefined") BXN.norm(x);   // «Hozirgi / Yangi» varaq dizayni (bsb-yangi.js)
     return H;
   }
   function signsOf(H) {
@@ -116,7 +117,14 @@ const BXP = (() => {
     const s = sg.filter((x) => x[0] || x[1]), fn = String(H.fnote || "").trim();
     return `<div style="display:flex;flex-direction:column;gap:8px;margin-top:auto">${fn ? `<div class="bx-fnote">${esc(fn).replace(/\n/g, "<br>")}</div>` : ""}${s.length ? `<div class="bx-sig" style="--n:${s.length}">${s.map(([l, n]) => `<div><span class="bx-ln"><small>imzo</small></span><span>${esc(l)}</span><span class="bx-sn">${esc(n)}</span></div>`).join("")}</div>` : ""}</div>`;
   }
+  let XCLS = "";   // o'lchov varag'iga yangi dizayn sinflari (bo'linish yangi dizayn o'lchamlari bo'yicha)
+  const nwOn = (H) => typeof BXN !== "undefined" && BXN.isNew(H);
   function blocks(X, H, form) {
+    const nw = nwOn(H); XCLS = nw ? " " + BXN.cls(H) : "";
+    const B = blocks0(X, H, form);
+    return nw ? B.map((b) => BXN.deco(b, X, H, form)) : B;
+  }
+  function blocks0(X, H, form) {
     const x = H.bx, off = new Set(x["off" + form]), on = (k) => !off.has(k), sg = signsOf(H), B = [], an = X.an;
     B.push(on("hdr") ? hdr(X, H, form, sg) : `<h1>${esc(title(X, form))}</h1>`);
     if (form === 1) {
@@ -140,9 +148,9 @@ const BXP = (() => {
 
   /* ───────── varaqlarga bo'lish (o'lchab) ───────── */
   let meas = null;
-  function measurer(land, bw) {
+  function measurer(land) {
     if (!meas || !meas.isConnected) { meas = document.createElement("div"); meas.className = "bx-meas"; document.body.append(meas); }
-    meas.innerHTML = `<div class="bx-pg${land ? " bx-land" : ""}${bw ? " bx-bw" : ""}"><div class="bx-body"></div><div class="bx-pf"><span>x</span><span>1 / 1</span></div></div>`;
+    meas.innerHTML = `<div class="bx-pg${land ? " bx-land" : ""}${XCLS}"><div class="bx-body"></div><div class="bx-pf"><span>x</span><span>1 / 1</span></div></div>`;
     return meas.querySelector(".bx-body");
   }
   const over = (body) => body.scrollHeight > body.clientHeight + 1;
@@ -150,7 +158,7 @@ const BXP = (() => {
   function paginate(B, form, land) {
     const body = measurer(land);
     if (form === 2) {                 // bitta varaq: sig'masa eng katta sig'adigan masshtab qidiriladi
-      const html = B.join(""), fits = (z) => { body.innerHTML = `<div class="bx-zm" style="zoom:${z.toFixed(3)}">${html}</div>`; return !over(body); };
+      const html = B.join(""), fits = (z) => { body.innerHTML = `<div class="bx-zm" style="zoom:${z.toFixed(3)};--zk:${(1 / z).toFixed(3)}">${html}</div>`; return !over(body); };
       let z = 1;
       if (!fits(1)) { let lo = 0.3, hi = 1; for (let i = 0; i < 11; i++) { const m = (lo + hi) / 2; if (fits(m)) lo = m; else hi = m; } z = lo; }
       meas.innerHTML = "";
@@ -166,7 +174,7 @@ const BXP = (() => {
       node.remove();
       const tbl = node.querySelector && node.querySelector("table");
       if (tbl) {                      // jadval bo'linadi: sarlavha qatorlari keyingi betda takrorlanadi
-        const part = node.cloneNode(true); [...part.children].filter((ch) => ch.tagName === "P").forEach((p) => p.remove());
+        const part = node.cloneNode(true); [...part.children].filter((ch) => ch.tagName === "P" || ch.classList.contains("bx-gl")).forEach((p) => p.remove());
         body.append(part);
         const rows = [...part.querySelector("table").rows].filter((r) => !isHead(r));
         let k = rows.length; while (k > 0 && over(body)) rows[--k].remove();
@@ -189,7 +197,8 @@ const BXP = (() => {
   function pagesHtml(X, H, form) {
     const land = landOf(H, X, form), P = paginate(blocks(X, H, form), form, land), m = X.meta;
     const foot = (i) => `<div class="bx-pf"><span>${esc([m.cls, m.subject, X.kind, m.date].filter(Boolean).join(" · "))}</span><span>${i + 1} / ${P.length}</span></div>`;
-    return {land, P, pages: P.map((pg, i) => `<div class="bx-pg${land ? " bx-land" : ""}${H.bx.bw ? " bx-bw" : ""}"><div class="bx-body">${pg.zoom < 1 ? `<div class="bx-zm" style="zoom:${pg.zoom.toFixed(3)}">${pg.html}</div>` : pg.html}</div>${foot(i)}</div>`)};
+    const nw = nwOn(H), pc = nw ? " " + BXN.cls(H) : H.bx.bw ? " bx-bw" : "", ex = nw ? BXN.extra(H) : "";
+    return {land, P, pages: P.map((pg, i) => `<div class="bx-pg${land ? " bx-land" : ""}${pc}">${ex}<div class="bx-body">${pg.zoom < 1 ? `<div class="bx-zm" style="zoom:${pg.zoom.toFixed(3)};--zk:${(1 / pg.zoom).toFixed(3)}">${pg.html}</div>` : pg.html}</div>${foot(i)}</div>`)};
   }
 
   /* ───────── chop etish / PDF ───────── */
@@ -391,16 +400,19 @@ const BXP = (() => {
       clearTimeout(saveT); saveT = setTimeout(save, 400);
     };
     const seg = (id, opts, cur) => `<div class="bx-seg" data-seg="${id}">${opts.map(([v, l]) => `<button type="button" data-v="${v}" class="${v === cur ? "on" : ""}">${l}</button>`).join("")}</div>`;
-    return modal(`<div class="bx-dlg" data-pt="set">
+    return modal(`<div class="bx-dlg" data-pt="set" data-d="${H.bx.d || "old"}">
       <div class="bx-side">
         <div class="bx-side-h"><h2>${X.kind} tahlilini eksport qilish</h2><div class="bx-work">${esc([X.kind, B.title, X.meta.date, X.meta.label].filter(Boolean).join(" · "))}</div></div>
         <div class="bx-tabs">${seg("pt", [["set", "⚙ Sozlash"], ["view", "👁 Ko'rish"]], "set")}</div>
         <div class="bx-side-b">
-          <div><div class="bx-lbl">Shakl</div><div class="bx-forms">${[1, 2].map((f) => `<button type="button" class="bx-fc" data-v="${f}">${THUMB[f]}<b>${f === 1 ? "📊 Tahlil hisoboti" : "📋 Rasmiy shakl"}</b><small data-fcn="${f}"></small></button>`).join("")}</div></div>
+          <div><div class="bx-lbl">Varaq dizayni</div>${seg("dz", [["old", "Hozirgi"], ["new", "Yangi"]], H.bx.d)}</div>
+          <div data-oldonly><div class="bx-lbl">Shakl</div><div class="bx-forms">${[1, 2].map((f) => `<button type="button" class="bx-fc" data-v="${f}">${THUMB[f]}<b>${f === 1 ? "📊 Tahlil hisoboti" : "📋 Rasmiy shakl"}</b><small data-fcn="${f}"></small></button>`).join("")}</div></div>
+          <div data-newonly data-nform></div>
           <div><div class="bx-lbl">Varaqqa kiradigan qismlar</div><div class="bx-chips" data-chips></div></div>
-          <div data-dvw><div class="bx-lbl">Taqsimot ko'rinishi</div><div class="bx-dvs" data-dvs></div><p class="bx-dvh" data-dvh></p></div>
+          <div data-newonly data-nstyle></div>
+          <div data-dvw data-oldonly><div class="bx-lbl">Taqsimot ko'rinishi</div><div class="bx-dvs" data-dvs></div><p class="bx-dvh" data-dvh></p></div>
           <div style="display:grid;gap:8px"><div class="bx-lbl" style="margin:0">Ko'rinish</div>
-            <div class="bx-opt"><span>Ranglar</span>${seg("bw", [["c", "🎨 Rangli"], ["bw", "⚫ Oq-qora"]], H.bx.bw ? "bw" : "c")}</div>
+            <div class="bx-opt" data-oldonly><span>Ranglar</span>${seg("bw", [["c", "🎨 Rangli"], ["bw", "⚫ Oq-qora"]], H.bx.bw ? "bw" : "c")}</div>
             <div class="bx-opt"><span>O'quvchilar</span><div data-ordw></div></div>
             <div class="bx-opt"><span>Varaq</span>${seg("ori", [["auto", "Avto"], ["p", "Tik"], ["l", "Yotiq"]], H.bx.ori)}</div></div>
           <details class="bx-grp"><summary>🏫 Sarlavha va imzolar</summary><div class="bx-in">
@@ -420,31 +432,36 @@ const BXP = (() => {
       mm.classList.add("bx-modal");
       const dlg = $(".bx-dlg", mm), box = $("[data-pages]", mm), q = (s) => $(s, mm);
       const segSet = (id, v) => mm.querySelectorAll(`[data-seg="${id}"] button`).forEach((b) => b.classList.toggle("on", b.dataset.v === v));
+      const mo = (el, html) => (typeof BXN !== "undefined" ? BXN.morph(el, html) : (el.innerHTML = html));   // faqat o'zgargan joy yangilanadi (panel va varaq joyidan siljimaydi)
       const side = () => {
         const f = H.bx.form, off = new Set(H.bx["off" + f]);
+        dlg.dataset.d = H.bx.d || "old"; segSet("dz", H.bx.d || "old");
         mm.querySelectorAll(".bx-fc").forEach((b) => b.classList.toggle("on", +b.dataset.v === f));
-        q("[data-chips]").innerHTML = SECS[f].map(([k, l]) => `<button type="button" class="bx-chip ${off.has(k) ? "" : "on"}" data-chip="${k}"><i>${off.has(k) ? "＋" : "✓"}</i>${l}</button>`).join("");
-        q("[data-ordw]").innerHTML = seg("ord", [["list", "Ro'yxat"], ["score", "Ball bo'yicha"]], H.bx["ord" + f]);
-        q("[data-dvs]").innerHTML = DV.map(([v, l]) => `<button type="button" class="bx-dv${v === H.bx.dv ? " on" : ""}" data-dv="${v}" aria-pressed="${v === H.bx.dv}">${v === "tab" ? "<i>asosiy</i>" : ""}${DVT[v]}<b>${l}</b></button>`).join("");
+        mo(q("[data-chips]"), SECS[f].map(([k, l]) => `<button type="button" class="bx-chip ${off.has(k) ? "" : "on"}" data-chip="${k}"><i>${off.has(k) ? "＋" : "✓"}</i>${l}</button>`).join(""));
+        mo(q("[data-ordw]"), seg("ord", [["list", "Ro'yxat"], ["score", "Ball bo'yicha"]], H.bx["ord" + f]));
+        mo(q("[data-dvs]"), DV.map(([v, l]) => `<button type="button" class="bx-dv${v === H.bx.dv ? " on" : ""}" data-dv="${v}" aria-pressed="${v === H.bx.dv}">${v === "tab" ? "<i>asosiy</i>" : ""}${DVT[v]}<b>${l}</b></button>`).join(""));
         q("[data-dvh]").textContent = DVH[H.bx.dv];
         q("[data-dvw]").hidden = off.has(f === 2 ? "dist" : "kpi");
         q("[data-tit]").textContent = title(X, f);
+        if (typeof BXN !== "undefined") BXN.side(mm, H, off.has(f === 2 ? "dist" : "kpi"));
         q("[data-signs]").innerHTML = sg.map(([l, n], i) => `<div class="bx-sg"><input type="text" data-sl="${i}" value="${esc(l)}" placeholder="Lavozim" aria-label="Lavozim"><input type="text" data-sn="${i}" value="${esc(n)}" placeholder="F.I.Sh." aria-label="F.I.Sh."><button type="button" class="bx-ib" data-sdel="${i}" title="O'chirish">✕</button></div>`).join("");
       };
       const draw = () => {
         const f = H.bx.form, R = pagesHtml(X, H, f), o = paginate(blocks(X, H, 3 - f), 3 - f, landOf(H, X, 3 - f));
         q(`[data-fcn="${f}"]`).textContent = `${R.P.length} bet`; q(`[data-fcn="${3 - f}"]`).textContent = `${o.length} bet`;
+        if (typeof BXN !== "undefined") BXN.counts(mm, `${f === 1 ? R.P.length : o.length} bet`, `${f === 2 ? R.P.length : o.length} bet`);
         const zm = R.P[0].zoom;
         q("[data-pinfo]").textContent = st.view === "xl" ? `${X.file}.xlsx` : `A4 · ${R.land ? "yotiq" : "tik"} · ${R.P.length} bet${zm < 1 ? ` · ${Math.round(zm * 100)}% ga kichraytirildi` : ""}${H.bx.bw ? " · oq-qora" : ""}`;
         q('[data-seg="zm"]').hidden = st.view === "xl";
-        if (st.view === "xl") { box.innerHTML = xlPreview(X, H, f); return; }
+        if (st.view === "xl") { mo(box, xlPreview(X, H, f)); return; }
         const W = R.land ? 1123 : 794, Hh = R.land ? 791 : 1120, avail = Math.max(240, box.clientWidth - 24), sc = st.zoom === "100" ? 1 : Math.min(1, avail / W);
-        box.innerHTML = R.pages.map((p, i) => `<div><div class="bx-pw" style="width:${W * sc}px;height:${Hh * sc}px">${p.replace('class="bx-pg', `style="transform:scale(${sc})" class="bx-pg`)}</div><div class="bx-pno">${i + 1}-bet</div></div>`).join("");
+        mo(box, R.pages.map((p, i) => `<div><div class="bx-pw" style="width:${W * sc}px;height:${Hh * sc}px">${p.replace('class="bx-pg', `style="transform:scale(${sc})" class="bx-pg`)}</div><div class="bx-pno">${i + 1}-bet</div></div>`).join(""));
       };
       const all = () => { side(); draw(); };
       mm.addEventListener("click", (e) => {
         const t = e.target.closest("button"); if (!t || !mm.contains(t)) return;
         const sgId = t.parentElement && t.parentElement.dataset.seg, v = t.dataset.v;
+        if (typeof BXN !== "undefined" && BXN.click(t, {H, store, all, S})) return;   // Hozirgi / Yangi dizayn tanlovlari (bsb-yangi.js)
         if (sgId === "pt") { st.pt = v; dlg.dataset.pt = v; segSet("pt", v); draw(); }
         else if (sgId === "bw") { H.bx.bw = v === "bw"; segSet("bw", v); store(); draw(); }
         else if (sgId === "ori") { H.bx.ori = v; segSet("ori", v); store(); draw(); }
