@@ -1,0 +1,77 @@
+/* Sozlamalar → «Qo'shimcha funksiyalar» (tasdiqlangan maket v2.1, 2026-11-07) va darsdagi taymer / navbatchi qatori. funksiyalar.js bilan birga. */
+.fn-sec{display:flex;flex-direction:column;gap:12px;min-width:0}
+.fn-sec button{font:inherit;color:inherit;cursor:pointer}
+.fn-sec button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.fn-sec svg{display:block}
+/* xulosa */
+.fn-sum{background:var(--base);border:1px solid var(--line);border-radius:var(--r,14px);padding:12px 14px;gap:10px;box-shadow:var(--sh)}
+.fn-st{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.fn-st b{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fn-st b small{font-size:13px;color:var(--muted);font-weight:700}
+.fn-st span{font-size:12px;color:var(--muted);text-align:right;max-width:170px}
+.fn-bar{height:8px;border-radius:99px;background:var(--soft);overflow:hidden}
+.fn-bar i{display:block;height:100%;background:var(--acc);border-radius:99px;transition:width .25s}
+.fn-pre{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.fn-pre button{border:1px solid var(--line);background:var(--base);border-radius:10px;padding:7px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0}
+.fn-pre button b{font-size:13px;white-space:nowrap}
+.fn-pre button small{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.fn-pre button.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc) inset;background:var(--acc-soft)}
+.fn-pre button.on b{color:var(--acc-t,var(--acc))}
+.fn-pre button:disabled{cursor:default}
+/* saralash */
+.fn-flt{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.fn-flt button{border:1px solid var(--line);background:var(--base);padding:6px 12px;border-radius:999px;font-weight:700;font-size:12.5px;white-space:nowrap;color:var(--muted)}
+.fn-flt button.on{border-color:var(--acc);color:var(--acc-t,var(--acc));background:var(--acc-soft)}
+.fn-flt button em{font-style:normal;opacity:.75;margin-left:4px;font-variant-numeric:tabular-nums}
+/* guruhlar */
+.fn-g{gap:0}
+.fn-gh{display:flex;align-items:center;gap:8px;margin:0 2px 7px}
+.fn-gh .sz-sgt{margin:0}
+.fn-gh .sp{flex:1}
+.fn-cnt{font-size:11.5px;font-weight:800;color:var(--muted);background:var(--soft);border-radius:99px;padding:1px 7px;font-variant-numeric:tabular-nums}
+.fn-gh .fn-all{border:0;background:none;font-size:12px;font-weight:700;color:var(--acc-t,var(--acc));padding:2px 0;white-space:nowrap}
+.fn-box{overflow:hidden}
+.fn-prev{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:9px 12px;background:var(--alt,var(--soft));border-bottom:1px solid var(--line);min-height:44px}
+.fn-pl{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);flex:none;margin-right:2px}
+.fn-chip{flex:none;display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;border:1px solid var(--line);background:var(--base);border-radius:8px;padding:4px 8px;white-space:nowrap;animation:fnpop .2s ease}
+.fn-chip svg{width:14px;height:14px;color:var(--acc-t,var(--acc))}
+.fn-none{font-size:12px;color:var(--muted)}
+.fn-mseg{display:inline-flex;background:var(--soft);padding:2px;border-radius:8px;gap:2px;flex:none}
+.fn-mseg span{padding:3px 9px;border-radius:6px;font-size:12px;font-weight:700;color:var(--muted);animation:fnpop .2s ease}
+.fn-mseg span.on{background:var(--base);color:var(--text);box-shadow:var(--sh)}
+@keyframes fnpop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+/* qator = kalit */
+.fn-row{display:flex;align-items:center;gap:11px;padding:10px 12px;border:0;border-top:1px solid var(--line);width:100%;background:transparent;text-align:left;min-height:56px}
+.fn-prev+.fn-row{border-top:0}
+.fn-sec button.fn-row:hover{background:var(--alt,var(--soft))}
+.fn-ic{width:34px;height:34px;border-radius:10px;background:var(--acc-soft);color:var(--acc-t,var(--acc));display:grid;place-items:center;flex:none}
+.fn-ic svg{width:18px;height:18px}
+.fn-row.off .fn-ic{background:var(--soft);color:var(--muted)}
+.fn-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.fn-tx b{font-size:13.5px;font-weight:700}
+.fn-tx small{font-size:12px;color:var(--muted)}
+.fn-row.off .fn-tx b{color:var(--muted)}
+.fn-row .kalit{pointer-events:none}
+.fn-new{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--acc-fg,#fff);background:var(--acc);border-radius:5px;padding:1px 5px;margin-left:6px;vertical-align:2px}
+.fn-row.multi{flex-wrap:wrap}
+.fn-mch{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;padding-left:45px}
+.fn-mch button,.fn-fix{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--base);border-radius:999px;padding:5px 11px;font-weight:700;font-size:12.5px;color:var(--muted);min-height:32px}
+.fn-mch button i{width:16px;height:16px;border-radius:50%;border:2px solid var(--kalit-off,#cfd5df);flex:none;display:grid;place-items:center;font-style:normal;font-size:10px;color:var(--acc-fg,#fff)}
+.fn-mch button.on{border-color:var(--acc);color:var(--acc-t,var(--acc));background:var(--acc-soft)}
+.fn-mch button.on i{background:var(--acc);border-color:var(--acc)}
+.fn-fix{border-style:dashed}
+/* doim yoqilgan */
+.fn-core{background:var(--base);border:1px dashed var(--line);border-radius:var(--r,14px);padding:11px 12px;font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:7px}
+.fn-core>span{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.fn-core>span svg{width:14px;height:14px}
+.fn-core div{display:flex;flex-wrap:wrap;gap:5px}
+.fn-core em{font-style:normal;display:inline-flex;align-items:center;background:var(--soft);color:var(--text);font-weight:700;border-radius:7px;padding:3px 8px;font-size:12px}
+.fn-empty{padding:22px 14px;text-align:center;color:var(--muted);font-size:13px;background:var(--base);border:1px solid var(--line);border-radius:var(--r,14px)}
+@media (max-width:420px){.fn-mch{padding-left:0}}
+/* darsdagi qator: taymer, navbatchi, kelmaganlarga xabar */
+.fn-lbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.fn-tm,.fn-duty{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--base);border-radius:10px;padding:4px 10px;font-size:13px;min-height:32px}
+.fn-tm b{font-variant-numeric:tabular-nums;font-size:14px}
+.fn-tm.warn{border-color:var(--warn,#b45309);color:var(--warn,#b45309);background:color-mix(in srgb,var(--warn,#b45309) 10%,var(--base))}
+.fn-duty .btn{margin-left:2px;padding:2px 8px}
+@media (prefers-reduced-motion:reduce){.fn-chip,.fn-mseg span{animation:none}.fn-bar i{transition:none}}

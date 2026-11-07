@@ -39,6 +39,7 @@
 <link rel="stylesheet" href="alifbo.css">
 <link rel="stylesheet" href="taxminiy.css?v=193">
 <link rel="stylesheet" href="summativ.css?v=193">
+<link rel="stylesheet" href="funksiyalar.css">
 <link rel="stylesheet" href="kalit.css">
 </head>
 <body>
@@ -61,8 +62,9 @@
 <script src="bsb-yangi.js?v=202"></script>
 <script src="bugun-arxiv.js"></script>
 <script src="bugun-tatil.js?v=199"></script>
-<script src="bugun.js?v=199"></script>
-<script src="sozlamalar.js?v=202"></script>
+<script src="bugun.js?v=203"></script>
+<script src="funksiyalar.js"></script>
+<script src="sozlamalar.js?v=203"></script>
 <script src="mezon.js?v=193"></script>
 <script src="kunlik.js?v=193"></script>
 <script src="pdf-tg.js"></script>
@@ -2157,14 +2159,18 @@ const FEATS = [
   ["parents", "👪 Ota-onalar", "Kontaktlar va butun sinfga xabarlar (menyuda)"],
   ["ktr", "📚 KTR", "Kalendar-tematik reja, mavzular bo'yicha bajarilishi"],
   ["gaps", "📝 To'ldirilmagan darslar", "«Bugun»da va kechqurun eslatma: yo'qlama yoki mavzu kiritilmagan darslar"],
-  ["week", "📊 Haftalik xulosa", "Juma–dushanba «Bugun»da hafta natijasi: darslar, baholar, davomat, yangi xavf"],
   ["vweek", "📆 Hafta rejimi", "Jurnalda hafta jadvali (kataklarni bossangiz kunlik rejim ochiladi)"],
   ["vmonth", "🗓 Oy rejimi", "Jurnalda oy jadvali"],
   ["vquarter", "📚 Chorak rejimi", "Jurnalda butun chorak jadvali"],
-  ["act", "✋ Faollik belgilari", "Darsda baho o'rniga «+» / «−»; 3 ta «+» to'planganda baho qo'yish taklifi"],
+  ["timer", "⏳ Dars taymeri", "Darsda qolgan vaqt (dars jadvali qo'ng'irog'idan yoki 45 daqiqa), 5 daqiqa qolganda ogohlantirish"],
+  ["duty", "👤 Navbatchi", "Har kuni navbat bilan, kelmagan o'tkazib yuboriladi; «Bugun»da va darsda"],
+  ["bsbrem", "🔔 BSB/CHSB yaqinlashmoqda", "Summativ ishga 3 kun qolganda «Bugun»da eslatma"],
+  ["absmsg", "✉ Kelmaganlar ota-onasiga xabar", "Yo'qlamadan keyin har kelmaganga tayyor matn, Telegram yoki SMS"],
 ];
-const SIMPLE_OFF = ["call", "groups", "seats", "attmodes", "debts"];
-function feat(id) { return !(D.web.off || {})[id]; }
+const SIMPLE_OFF = ["call", "groups", "seats", "attmodes", "debts", "timer", "duty"];
+// olib tashlangan funksiyalar (2026-11-07): Faollik +/− (mezon «Darsdagi ish» bor), Haftalik xulosa (Hisobotlar va kunlik hisobotda bor) — ma'lumoti saqlanadi
+const FEAT_GONE = new Set(["act", "week"]);
+function feat(id) { return !FEAT_GONE.has(id) && !(D.web.off || {})[id]; }
 function attMode() { const v = D.web.att_mode || "list"; return !feat("attmodes") || (v === "map" && !feat("seats")) ? "list" : v; }
 /* kichik amallar menyusi: [matn, amal, xavfli?] — xavfli amal pastda, chiziq bilan ajratilgan */
 function rowMenu(title, items) {
@@ -2350,7 +2356,7 @@ function pageLesson(m) {
     <div class="steps">${steps}</div></div>
     ${sw ? `<p class="warn" style="margin:0">📝 Bugun ${sumTag(sw)}${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars bahosi qo'yilmaydi — faqat yo'qlama. Ballar «Umumiy» sahifasida.</p>` : ""}
     ${(() => { const b = feat("bday") ? birthdays(0).filter((x) => x.ci === S.lesson) : []; return b.length ? `<div class="card hrow bday" style="padding:10px 14px">🎂 Bugun tug'ilgan kun: <b>${b.map((x) => esc(x.s.name)).join(", ")}</b></div>` : ""; })()}
-    ${!grp && (feat("call") || feat("groups")) ? `<div class="hrow wrap" style="gap:8px">${feat("call") ? `<button class="btn btn-sm" data-call>🎲 Doskaga chaqirish</button>` : ""}${feat("groups") ? `<button class="btn btn-sm" data-grp>👥 Guruhlarga bo'lish</button>` : ""}</div>` : ""}${body}
+    ${!grp && (feat("call") || feat("groups")) ? `<div class="hrow wrap" style="gap:8px">${feat("call") ? `<button class="btn btn-sm" data-call>🎲 Doskaga chaqirish</button>` : ""}${feat("groups") ? `<button class="btn btn-sm" data-grp>👥 Guruhlarga bo'lish</button>` : ""}</div>` : ""}${FNK.lessonBar(c, S.lesson, t, absent)}${body}
     <div class="foot"><span class="muted sp">${grp ? `O'tildi: ${c.students.filter((x) => x.marks[t] === "ot").length} · o'tilmadi: ${absent}` : `Kelmagan: ${absent} · kech qolgan: ${late} · baho qo'yilgan: ${graded}${noGr ? "" : ` (${gradedShare(c, t).pct}% ${gradedShare(c, t).ok ? "✓" : "⚠"})`}`}${(() => { const no = c.students.filter((x) => x.hwd && x.hwd[t] === 0).length; return no ? ` · UV bajarmagan: ${no}` : ""; })()}</span>
       ${S.step ? `<button class="btn" data-back>‹ Orqaga</button>` : ""}<button class="btn btn-primary" data-next>${[grp ? "Saqlash va mavzuga o'tish ›" : "Saqlash va baholarga o'tish ›", "Keyingi: mavzu ›", "✓ Darsni yakunlash"][S.step]}</button></div></div>`;
   const keepY = softRender;   // belgi/baho bosilganda faqat o'zgargan qatorlar almashtiriladi
@@ -2397,6 +2403,7 @@ function pageLesson(m) {
   $("[data-exit]", m).onclick = () => { saveTopic(); go("today"); };
   const cl = $("[data-call]", m); if (cl) cl.onclick = () => { saveTopic(); callDialog(S.lesson); };
   const gp = $("[data-grp]", m); if (gp) gp.onclick = () => { saveTopic(); groupsDialog(S.lesson); };
+  FNK.lessonBind(m, c, S.lesson);
   const bk = $("[data-back]", m); if (bk) bk.onclick = () => { saveTopic(); S.step = noGr && S.step === 2 ? 0 : S.step - 1; render(); };
   $("[data-next]", m).onclick = async () => {
     saveTopic();
@@ -2496,6 +2503,7 @@ function pageSettings(m) {
   if (S.sec === 3) DZN.bind(m);
   m.querySelectorAll("[data-ft]").forEach((b) => b.onclick = () => { const o = D.web.off = D.web.off || {}, k = b.dataset.ft; if (o[k]) delete o[k]; else o[k] = 1; save(); render(); });
   m.querySelectorAll("[data-fp]").forEach((b) => b.onclick = () => { D.web.off = b.dataset.fp === "all" ? {} : Object.fromEntries(SIMPLE_OFF.map((k) => [k, 1])); save(); render(); toast(b.dataset.fp === "all" ? "Hamma funksiyalar yoqildi" : "Faqat asosiy funksiyalar qoldi"); });
+  if (S.sec === 6) FNK.bind(m);
   m.querySelectorAll("[data-a]").forEach((b) => b.onclick = () => settingsAction(b.dataset.a, +b.dataset.i));
   m.querySelectorAll("[data-wd]").forEach((b) => b.onclick = () => {
     const [i, k] = b.dataset.wd.split("|").map(Number); const c = D.classes[i]; const w = new Set(c.weekdays || []);
