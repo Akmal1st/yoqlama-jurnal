@@ -3345,7 +3345,7 @@ test("Bo'sh varaq v6: 5 xil tur, 9 xil jadval dizayni, aniq chop etish (36 va 18
       await page.evaluate(() => { D.web.bsb_hdr = Object.assign(D.web.bsb_hdr || {}, {teacher: "Otaboboyev Akmal Abdurahmonovich", school: "Toshkent shahar Yunusobod tumani 274-sonli umumta'lim maktabi"}); D.classes[0].students[1].name = "Abdurahmonova Mohinur Shuhratjon qizi"; save(); });
       const fitAll = () => page.evaluate(() => { const A = document.querySelector(".bv-print"); A.style.cssText = "display:block;position:absolute;left:-9000px";
         const r = [...A.querySelectorAll(".bv-pg")].map((p) => { const i = p.querySelector(".bv-in"), t = p.querySelector("table"), f = p.querySelector(".bv-foot");
-          return {over: i.scrollHeight - i.clientHeight, nm: [...t.querySelectorAll("td.bv-nm, thead th")].filter((x) => x.scrollWidth > x.clientWidth + 1).length, below: f.getBoundingClientRect().top < t.getBoundingClientRect().bottom, w: Math.round(p.getBoundingClientRect().width / 3.7795), h: Math.round(p.getBoundingClientRect().height / 3.7795 * 10) / 10}; });
+          return {over: i.scrollHeight - i.clientHeight, nm: [...t.querySelectorAll("td.bv-nm, thead th")].filter((x) => x.scrollWidth > x.clientWidth + 1).map((x) => `${x.textContent.trim().slice(0, 24)}:${x.scrollWidth}/${x.clientWidth}`).join("|"), below: f.getBoundingClientRect().top < t.getBoundingClientRect().bottom, w: Math.round(p.getBoundingClientRect().width / 3.7795), h: Math.round(p.getBoundingClientRect().height / 3.7795 * 10) / 10}; });
         A.style.cssText = ""; return r; });
       for (const ci of [0, 1]) {
         await page.click(".hb-pks [data-hk=cls]"); await page.click(`.hb-pop [data-ho=ci][data-v='${ci}']`);

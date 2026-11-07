@@ -146,8 +146,8 @@ const BVQ = (() => {
     if (!NSP) { NSP = document.createElement("span"); NSP.style.cssText = "position:absolute;left:-9999px;top:0;white-space:nowrap;visibility:hidden;font-family:Arial,Helvetica,sans-serif"; }
     if (!NSP.isConnected) document.body.appendChild(NSP);
     NSP.style.fontSize = fsPt + "pt"; NSP.style.fontWeight = o && o.bold ? "700" : "400"; NSP.textContent = name;
-    const w = NSP.getBoundingClientRect().width / MM, room = wMm - (o && o.pad != null ? o.pad : 3.4);
-    return w <= room ? 1 : Math.max(0.5, room / w * 0.97);
+    const w = NSP.getBoundingClientRect().width / MM, room = wMm - (o && o.pad != null ? o.pad : 3.4) - 0.6;
+    return w <= room ? 1 : Math.max(0.5, room / w * 0.96);
   }
   // bitta A4 varaq (mm o'lchamda); .bx-pg — Telegram PDF uchun (pdf-tg.js pagesPdf)
   function sheet(c, P, k, land, probe) {
