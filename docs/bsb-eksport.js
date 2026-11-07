@@ -45,7 +45,7 @@ const BXP = (() => {
     const ranked = an.students.slice().sort((a, b) => b.total - a.total);
     return {c, B, an, meta, kind, q, err, by, ranked, rec: bsbRecs(an), ok: !!(an.n && an.questions.length), file: baFileBase(c, B)};
   }
-  const title = (X, form) => `${X.kind === "CHSB" ? (X.q ? `${X.q}-chorak` : "Chorak") : "Bo'lim"} bo'yicha summativ baholash (${X.kind}) ${form === 1 ? "tahlili" : "natijalari"}`;
+  const title = (X, form) => X.kind === "Loyiha ishi" ? `Loyiha ishi ${form === 1 ? "tahlili" : "natijalari"}` : `${X.kind === "CHSB" ? (X.q ? `${X.q}-chorak` : "Chorak") : "Bo'lim"} bo'yicha summativ baholash (${X.kind}) ${form === 1 ? "tahlili" : "natijalari"}`;
 
   /* ───────── varaq bloklari ───────── */
   function hdr(X, H, form, signs) {

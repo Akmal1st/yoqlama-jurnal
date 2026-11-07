@@ -14,8 +14,8 @@ const HSB = (() => {
   const XLS = {blank: "data-bvx", cls: "data-xlsx", att: "data-dvx", cmp: "data-ccsv", ready: "data-rxlsx", sum: "data-sxlsx"};
   const SRC = {cls: "<b>Jurnal</b> baholari va yo'qlama, tanlangan davr ichida. Xavf ostida — <b>Sozlamalar → Baholash → Xavf turlari</b> bo'yicha.",
     stats: "<b>Jurnal</b> baholari va yo'qlama, haftalarga bo'lib.", att: "<b>Jurnal</b> yo'qlamasi: S, DQ, K, KQ belgilari, tanlangan chorak ichida (sanalar <b>Sozlamalar → Choraklar</b>dan). Belgisi yo'q kunlar — darsda bo'lgan.",
-    sum: "<b>Jurnal → BSB / CHSB</b> ballari va kundalik baholar (FB). Chorak bahosi: jami ≥ 86 — 5, ≥ 66 — 4, ≥ 30 — 3.",
-    ready: "<b>Jurnal → BSB / CHSB</b>, kundalik baholar soni va <b>Sozlamalar → Choraklar</b>.",
+    sum: "<b>Jurnal → Umumiy</b> ballari va kundalik baholar (FB). Chorak bahosi: jami ≥ 86 — 5, ≥ 66 — 4, ≥ 30 — 3.",
+    ready: "<b>Jurnal → Umumiy</b>, kundalik baholar soni va <b>Sozlamalar → Choraklar</b>.",
     par: "Sinf hisoboti bilan bir xil ma'lumot; o'qituvchi ismi <b>BSB tahlili</b> sahifasidagi sarlavhadan.",
     cmp: "Har sinfning sinf hisoboti, bir xil davr uchun. Jami qatori vaznli: baho — barcha baholar, davomat — o'quvchilar, BSB/CHSB — ballar yig'indisi bo'yicha.",
     blank: "O'quvchilar ro'yxati va dars kunlari <b>Jurnal</b>dan, kelgusi kunlar <b>dars jadvali</b>dan (bayram va metod kunlari tashlanadi); sarlavha <b>BSB tahlili</b> sahifasidagi maktab va o'qituvchi ismidan."};
@@ -104,15 +104,15 @@ const HSB = (() => {
     const {c, q} = X;
     if (!qRange(q)) return `<div class="hb-box"><h3>${q}-chorak sanalari belgilanmagan</h3><span class="hb-mut">Sozlamalar → Dars kunlari va choraklar.</span></div>`;
     const D0 = sumData(c, q), {W, rows, ql} = D0;
-    if (!W.length) return `<div class="hb-box"><h3>${q}-chorakda BSB yoki CHSB ishlari yo'q</h3><span class="hb-mut">Jurnal → «BSB / CHSB» sahifasida ish qo'shilgach, natijalar shu yerda chiqadi.</span><div><button class="btn btn-sm" data-hgo="sum">＋ Ish qo'shish</button></div></div>`;
-    const tag = (w) => `<span class="hb-chip ${w.type === "bsb" ? "bsb" : "chsb"}">${wTag(w)}</span>`;
+    if (!W.length) return `<div class="hb-box"><h3>${q}-chorakda BSB yoki CHSB ishlari yo'q</h3><span class="hb-mut">Jurnal → «Umumiy» sahifasida ish qo'shilgach, natijalar shu yerda chiqadi.</span><div><button class="btn btn-sm" data-hgo="sum">＋ Ish qo'shish</button></div></div>`;
+    const tag = (w) => `<span class="hb-chip ${w.type === "chsb" ? "chsb" : "bsb"}">${wTag(w)}</span>`;
     const avgCol = (fn) => { const v = rows.map(fn).filter(isNum); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
     const sc = (s, w) => { const v = (s.scores || {})[w.id]; return isNum(v) ? fmtNum(v) : `<span class="hb-why">—</span>`; };
     const works = W.map((x) => `<div class="hb-box"><div class="hb-tools">${tag(x.w)}<span class="hb-mut" style="font-size:12.5px">maks. ${x.mx} ball</span><b class="hb-num" style="margin-left:auto">${f(x.pct, 0, "%")}</b></div>
       <div class="hb-mut" style="font-size:12.5px">Topshirdi <b style="color:${x.n < D0.N ? "var(--hb-warn)" : "var(--text)"}">${x.n} / ${D0.N}</b> · o'rtacha ${f(x.avg)} ball${x.n ? ` · ${fmtNum(x.lo)}–${fmtNum(x.hi)}` : ""}</div>
       ${dist(PB.map(([l, cc], i) => [l, x.band[i], cc]))}</div>`).join("");
     const gcell = (r) => r.complete ? `<span class="hb-qg">${r.grade}</span>` : `<span class="hb-chip" title="ballar to'liq emas">to'liq emas</span>`;
-    return `<div class="hb-kpis">${kpi("Ishlar", `${W.filter((x) => x.w.type === "bsb").length} BSB · ${W.filter((x) => x.w.type !== "bsb").length} CHSB`)}${kpi("Topshirish", f(D0.sub, 0, "%"))}${kpi("O'rtacha natija", f(D0.pct, 0, "%"), ql ? `sifat ${ql.q.toFixed(0)}% · o'zl. ${ql.u.toFixed(0)}%` : "")}${kpi("Chorak bahosi", `${D0.done} <i>/ ${D0.N}</i>`, D0.done < D0.N ? `${D0.N - D0.done} tasida ball yetmaydi` : "")}</div>
+    return `<div class="hb-kpis">${kpi("Ishlar", `${W.filter((x) => x.w.type !== "chsb").length} BSB · ${W.filter((x) => x.w.type === "chsb").length} CHSB`)}${kpi("Topshirish", f(D0.sub, 0, "%"))}${kpi("O'rtacha natija", f(D0.pct, 0, "%"), ql ? `sifat ${ql.q.toFixed(0)}% · o'zl. ${ql.u.toFixed(0)}%` : "")}${kpi("Chorak bahosi", `${D0.done} <i>/ ${D0.N}</i>`, D0.done < D0.N ? `${D0.N - D0.done} tasida ball yetmaydi` : "")}</div>
       <h3>Ishlar bo'yicha</h3><div class="hb-three">${works}</div>
       <h3>O'quvchilar · chorak yakuni</h3>
       <div class="hb-tw hb-pc"><table class="hb-t rsum"><thead><tr><th class="s">№</th><th>O'quvchi</th>${W.map((x) => `<th class="s">${wTag(x.w)}<small>${x.mx} ball</small></th>`).join("")}<th class="s">BSB<small>/50</small></th><th class="s">CHSB<small>/40</small></th><th class="s">FB<small>/10</small></th><th class="s">Jami<small>/100</small></th><th class="s">Baho</th></tr></thead><tbody>
@@ -190,7 +190,7 @@ const HSB = (() => {
     const {c, q, R} = X;
     if (!qRange(q)) return `<div class="hb-box"><h3>${q}-chorak sanalari belgilanmagan</h3><span class="hb-mut">Sozlamalar → Dars kunlari va choraklar.</span></div>`;
     const [cp, per] = readiness(c, q), names = Object.keys(per), N = c.students.length, ok = N - names.length, p = N ? ok / N : 1, C = 2 * Math.PI * 26;
-    const works = worksInQuarter(c, q), nb = works.filter((w) => w.type === "bsb").length, nc = works.length - nb, r = qRange(q);
+    const works = worksInQuarter(c, q), nb = works.filter((w) => w.type !== "chsb").length, nc = works.length - nb, r = qRange(q);
     const noScore = names.filter((n) => per[n].some((x) => x.includes("ball yo'q"))).length, fewFb = names.filter((n) => per[n].some((x) => x.startsWith("formativ"))).length;
     const checks = [[1, "Chorak sanalari belgilangan", `${fmt(r[0])} – ${fmt(r[1])}`],
       [!cp.some((x) => x.startsWith("BSB")) && nb, "BSB ishlari kiritilgan", nb ? `${nb} ta ish${cp.find((x) => x.startsWith("BSB")) ? " · " + cp.find((x) => x.startsWith("BSB")) : ""}` : "Jurnal → BSB / CHSB → ＋ Ish"],
