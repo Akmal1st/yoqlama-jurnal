@@ -47,7 +47,7 @@ const ARX = (() => {
   function note(c, s, d, old, nw) { const q = quarterOf(d); if (!isGrp(c) && isOpen(q) && entry(q)) addLog(q, `${label(c)} · ${s.name} · ${fmt(d).slice(0, 5)}: ${shown(old)} → ${shown(nw)}`); }
   function noteScore(c, s, k, old, nw) {
     const q = scoreQ(c, k); if (isGrp(c) || !isOpen(q) || !entry(q)) return;
-    const w = (c.works || []).find((x) => x.id === k), what = w ? `${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)}` : "chorak bahosi";
+    const w = (c.works || []).find((x) => x.id === k), what = w ? `${wTypeName(w)} ${fmt(w.date).slice(0, 5)}` : "chorak bahosi";
     addLog(q, `${label(c)} · ${s.name} · ${what}: ${shown(old)} → ${shown(nw)}`);
   }
 
@@ -137,10 +137,11 @@ const ARX = (() => {
     let q = null;
     if (S.jpage === "sum") q = S.sq;
     else if (S.jpage === "chsbt") { const w = (c.works || []).find((x) => x.id === S.tw); q = w ? quarterOf(w.date) : null; }
+    else if (S.jpage === "sm") { const w = (c.works || []).find((x) => x.id === S.smw); q = w ? quarterOf(w.date) : null; }   // «Summativ tahlili» (summativ.js)
     if (!q || !entry(q)) return;
     const r = qRange(q); put(banner(c, [r[0]]));
     if (!lockedQ(q)) return;
-    const ro = S.jpage === "sum" ? "[data-sc],[data-fq]" : "[data-ta],[data-tin],[data-tk],[data-tp],[data-tmax],[data-tsave],[data-tdel],[data-peq],[data-psum],[data-btr],[data-qp],input.tp,input.ta";
+    const ro = S.jpage === "sum" ? "[data-sc],[data-fq]" : "[data-bp],[data-bx],[data-bin],[data-bmax],[data-btx],[data-smset],[data-smdel],[data-ta],[data-tin],[data-tk],[data-tp],[data-tmax],[data-tsave],[data-tdel],[data-peq],[data-psum],[data-btr],[data-qp],input.tp,input.ta";
     m.querySelectorAll(ro).forEach((x) => { x.disabled = true; });
     m.querySelectorAll("[data-addw],[data-apq]").forEach((x) => x.remove());
   }

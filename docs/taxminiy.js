@@ -39,15 +39,15 @@ const TXB = (() => {
 
   const sum = (a) => (a || []).reduce((s, v) => s + (+v || 0), 0);
   const filled = (r) => !!r && (r.pts || []).some((v) => v !== null && v !== undefined && v !== "");
-  const works = (c) => (c.works || []).filter((w) => w.type === "bsb" || w.type === "chsb").sort((a, b) => a.date < b.date ? -1 : 1);
+  const works = (c) => (c.works || []).filter((w) => w.type === "bsb" || w.type === "chsb" || w.type === "loyiha").sort((a, b) => a.date < b.date ? -1 : 1);
   const scoreOf = (s, w) => { const v = (s.scores || {})[w.id]; return isNum(v) ? v : null; };
-  const wLabel = (w) => `${w.type.toUpperCase()} · ${fmt(w.date)} · maks. ${fmtNum(w.max)}${w.title ? " · " + w.title : ""}`;
+  const wLabel = (w) => `${wTypeName(w)} · ${fmt(w.date)} · maks. ${fmtNum(w.max)}${w.title ? " · " + w.title : ""}`;
   // tahlilga mos ish: avval tanlangani, keyin tahlil bog'langan ish, keyin shu sanadagi ish
   function src(c, B) {
     const L = works(c); if (!L.length) return null;
     const by = (id) => id && L.find((w) => w.id === id);
     const saved = B.id && (c.analyses || []).find((a) => a.id === B.id);
-    return by(B.tx && B.tx.wid) || by(saved && saved.w) || L.find((w) => w.date === B.date) || null;
+    return by(B.tx && B.tx.wid) || by(B.wid) || by(saved && saved.w) || L.find((w) => w.date === B.date) || null;
   }
   // eMaktab bali tahlil maksimaliga keltiriladi (maksimallar farq qilsa — proporsional, 0,5 gacha)
   function target(c, B, s, w) {
@@ -67,7 +67,7 @@ const TXB = (() => {
   }
 
   /* jadval: «eMaktab» ustuni «Jami» oldida */
-  const head = (c, B) => { const w = src(c, B); return w ? `<th class="tx-h" title="BSB / CHSB sahifasidagi (eMaktabdan import qilingan) jami ball">eMaktab<small>${w.type.toUpperCase()}</small></th>` : ""; };
+  const head = (c, B) => { const w = src(c, B); return w ? `<th class="tx-h" title="«Umumiy» sahifasidagi (eMaktabdan import qilingan) jami ball">eMaktab<small>${wTypeName(w)}</small></th>` : ""; };
   const mxCell = (c, B) => src(c, B) ? `<td></td>` : "";
   const cell = (c, B) => src(c, B) ? `<td class="s" data-em></td>` : "";
   function paint(c, B, s, tr, total) {
@@ -124,7 +124,7 @@ const TXB = (() => {
   async function dialog(c, B, rerender) {
     if (!B.max.every((v) => v > 0)) { toast("Hamma savol uchun maksimal ball (0 dan katta) kiriting"); return; }
     const L = works(c).filter((w) => c.students.some((s) => scoreOf(s, w) !== null));
-    if (!L.length) { toast("BSB / CHSB sahifasida bu sinf uchun ball yo'q — avval eMaktabdan import qiling"); return; }
+    if (!L.length) { toast("«Umumiy» sahifasida bu sinf uchun ball yo'q — avval eMaktabdan import qiling"); return; }
     const tot = sum(B.max), cur = src(c, B);
     let wid = (cur && L.some((w) => w.id === cur.id) ? cur : (L.find((w) => w.date === B.date) || L[L.length - 1])).id;
     let mode = (B.tx && B.tx.mode) || "tabiiy", scope = "bosh", absent = true;
@@ -251,7 +251,7 @@ const TXB = (() => {
         const nOk = todo.length - (near ? badL.filter((s) => !nearest(t, P, sc(s), mode, s.name)).length : bad);
         const opt = (v, ttl, d) => `<label class="tx-opt${mode === v ? " on" : ""}"><input type="radio" name="txm" value="${v}" ${mode === v ? "checked" : ""}><span><b>${ttl}</b><small>${d}</small></span></label>`;
         box.innerHTML = `<h2>Taxminiy javoblar kiritish</h2>
-          <div class="muted">Javoblari bo'sh, lekin «BSB / CHSB» sahifasida (eMaktabdan) bali bor o'quvchilarga to'g'ri va noto'g'ri variantlar shunday yoziladiki, savol ballari (${P.every((v) => Math.abs(v - P[0]) < 1e-9) ? `${t.n} × ${gnum(Math.round(P[0] * 100) / 100)}` : P.map((v) => gnum(Math.round(v * 100) / 100)).join(" + ")}) bo'yicha hisoblangan ball eMaktabdagi bal bilan aynan bir xil chiqadi.</div>
+          <div class="muted">Javoblari bo'sh, lekin «Umumiy» sahifasida (eMaktabdan) bali bor o'quvchilarga to'g'ri va noto'g'ri variantlar shunday yoziladiki, savol ballari (${P.every((v) => Math.abs(v - P[0]) < 1e-9) ? `${t.n} × ${gnum(Math.round(P[0] * 100) / 100)}` : P.map((v) => gnum(Math.round(v * 100) / 100)).join(" + ")}) bo'yicha hisoblangan ball eMaktabdagi bal bilan aynan bir xil chiqadi.</div>
           <div class="tx-info">CHSB · ${fmt(w.date)} · maks. ${fmtNum(w.max)} · ${t.n} ta savol, ${t.o} ta variant. Javobi bor ${c.students.filter((s) => !blankAns(t.ans[s.id])).length} ta o'quvchiga tegilmaydi.${bad ? ` <b>${bad} ta o'quvchi</b>ning balini savol ballari bilan aynan yig'ib bo'lmaydi.` : ""}</div>
           ${bad ? `<label class="tx-chk"><input type="checkbox" id="txn" ${near ? "checked" : ""}><span>Aynan yig'ib bo'lmasa, <b>eng yaqin ballni</b> qo'yish (bu ${bad} ta o'quvchining bali o'zgaradi, masalan ${(() => { const s0 = badL[0], r = nearest(t, P, sc(s0), mode, s0.name); return r ? `${gnum(sc(s0))} → ${gnum(r.v)}` : ""; })()}). Belgi olinsa, ular bo'sh qoladi.</span></label>` : ""}
           <div class="vcol" style="gap:6px"><div class="f">Taqsimlash usuli</div><div class="tx-opts">

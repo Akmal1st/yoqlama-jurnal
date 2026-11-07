@@ -126,7 +126,7 @@ const KUN = (() => {
     const sl = (slots || []).filter((x) => x.from), L = c.lessons[t] || {}, w = (c.works || []).find((x) => x.date === t);
     let work = "";
     if (w) { const sc = c.students.map((s) => (s.scores || {})[w.id]).filter(isNum);
-      work = `${w.type.toUpperCase()}${w.max ? ` · ${w.max} ball` : ""}` + (sc.length ? ` · o'rtacha ${KRJ.num(sc.reduce((a, b) => a + b, 0) / sc.length)}${w.max ? ` (${Math.round(sc.reduce((a, b) => a + b, 0) / sc.length / w.max * 100)}%)` : ""}` : ""); }
+      work = `${wTypeName(w)}${w.max ? ` · ${w.max} ball` : ""}` + (sc.length ? ` · o'rtacha ${KRJ.num(sc.reduce((a, b) => a + b, 0) / sc.length)}${w.max ? ` (${Math.round(sc.reduce((a, b) => a + b, 0) / sc.length / w.max * 100)}%)` : ""}` : ""); }
     const rows = c.students.map((s) => {
       const mk = s.marks[t] || "", ap = attPart(mk), gs = gradesOf(mk), fp = MZN.parts(s, t);
       return {n: s.name, st: ST.has(ap) ? ap : "", g: gs.length ? gs[0] : null, gs, gt: gs.length > 1 ? gs.join("/") : "",

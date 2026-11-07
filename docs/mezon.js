@@ -85,7 +85,7 @@ const MZN = (() => {
     const lw = lowList(c, d), k = fbMin(), q = quarterOf(d);
     const fb = q ? `<div class="card mz-fb"><b>Formativ holat · ${q}-chorak</b><span class="muted mz-small">Har o'quvchi chorakda kamida ${k} marta baholanadi.</span>${lw.length ? `<ul>${lw.map(([s, n]) => `<li><span>${esc(s.name)}</span><span>${n} / ${k}</span></li>`).join("")}</ul>` : `<span class="mz-okk">Hammada yetarli baho bor ✓</span>`}</div>` : "";
     const formula = `<div class="card mz-formula"><b>Chorak bahosi (eMaktab)</b><div class="mz-f4"><div class="me"><b>10</b><small>Formativ</small></div><div><b>50</b><small>BSB</small></div><div><b>40</b><small>CHSB</small></div><div><b>100</b><small>Jami</small></div></div>
-      <span class="muted mz-small">Formativ ball = chorakdagi kundalik baholar o'rtachasi (umumiy ballning 10%). BSB va CHSB ballari «BSB / CHSB» sahifasida.</span></div>`;
+      <span class="muted mz-small">Formativ ball = chorakdagi kundalik baholar o'rtachasi (umumiy ballning 10%). BSB va CHSB ballari «Umumiy» sahifasida.</span></div>`;
     return `<div class="mz-side">${dayCard(c, d, ed)}${fb}${formula}</div>`;
   }
   function top(c, d, ed) {
