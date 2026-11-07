@@ -40,10 +40,11 @@ const BGN = (() => {
   const minTxt = (n) => n >= 60 ? `${Math.floor(n / 60)} soat ${n % 60} daqiqa` : `${n} daqiqa`;
 
   /* ───────── bo'laklar ───────── */
-  function header(t, L, tel) {
+  function header(t, L, tel, M) {
     const q = quarterOf(t), hr = new Date().getHours(), hello = hr < 11 ? "Xayrli tong!" : hr < 17 ? "Xayrli kun!" : "Xayrli kech!";
     let sub = longDate(t); if (q) sub += tel ? ` · ${Math.floor((pdate(t) - pdate(qRange(q)[0])) / 6048e5) + 1}-hafta` : ` · ${q}-chorak, ${Math.floor((pdate(t) - pdate(qRange(q)[0])) / 6048e5) + 1}-hafta`;
-    const h1 = tel ? hello : `${hello} <em>${L.length ? `Bugun ${L.length} ta darsingiz bor` : "Bugun darsingiz yo'q"}</em>`;
+    let h1 = tel ? hello : `${hello} <em>${L.length ? `Bugun ${L.length} ta darsingiz bor` : "Bugun darsingiz yo'q"}</em>`;
+    const bt = M && BTL.title(M, t, tel); if (bt) { sub = bt[0]; h1 = tel ? bt[1] : `${hello} ${bt[1]}`; }   // chorak tugagandan keyin (bugun-tatil.js)
     const qa = dz().act === "top" && !tel ? `<div class="bn-hdacts">${quick(true)}</div>` : "";
     return `<header class="bn-hd"><div class="bn-t"><span class="bn-sub">${sub}</span><h1>${h1}</h1></div>
       ${tel ? `<button class="bn-ibtn" data-bsrch aria-label="Qidirish">🔍</button>` : `${qa}<div class="bn-srch"><input class="form-control" type="text" id="find" placeholder="O'quvchi yoki sinfni qidirish" autocomplete="off"><div class="bn-found" id="found" hidden></div></div>`}</header>`;
@@ -124,9 +125,12 @@ const BGN = (() => {
     if (T.qe) out.push(`<div class="bn-grp qend"><div class="bn-g">📋 ${T.qe.q}-chorak tugashiga ${T.qe.left ? `${T.qe.left} kun` : "bugun"} qoldi<span>${d5(T.qe.end)}</span></div>${T.qrows.length ? T.qrows.map(({c, ci, g}) => `<div class="bn-ti"><span class="bn-tx"><b class="bn-ell">${esc(label(c))}</b><small>${[g.low.length ? `${g.low.length} o'quvchida formativ baho kam (kamida ${fbMin()} ta kerak)` : "", g.noScore.length ? `${g.noScore.length} o'quvchida BSB/CHSB balli yo'q` : "", feat("debts") && (() => { const [lo, hi] = periodNow(), n = c.students.reduce((a, st) => a + debtsOf(c, st, lo, hi).filter((d) => !d.done).length, 0); return n ? `qarzlar: ${n}` : ""; })(), `qolgan darslar: ${g.left}`].filter(Boolean).join(" · ")}</small></span>
       <span class="bn-r"><button class="btn btn-sm" data-qready="${ci}">Ko'rish</button></span></div>`).join("") : `<div class="bn-okl">✓ Hamma sinflarda baholar va ballar yetarli — chorak bahosini qo'yishga tayyor.</div>`}</div>`);
     if (T.ktr.length) out.push(`<div class="bn-grp"><div class="bn-g">📚 KTR: rejadan orqada</div>${T.ktr.map(({c, ci, k}) => `<div class="bn-ti"><span class="bn-tx"><b class="bn-ell">${esc(label(c))}</b><small>${ktrLine(k)}</small></span><span class="bn-r"><button class="btn btn-sm" data-ktr="${ci}">Reja</button></span></div>`).join("")}</div>`);
-    return `<div class="bn-todo">${out.join("") || `<div class="bn-okl">✓ Hamma ishlar bajarilgan — to'ldirilmagan dars yo'q.</div>`}</div>`;
+    // ta'til: qulflangan chorakdan qolgan ishlar bitta qatorda (bugun-tatil.js)
+    const lk = T.lk && T.M ? BTL.lockedRow(T.M, T.lk) : "";
+    return `<div class="bn-todo">${out.join("") || `<div class="bn-okl">✓ ${T.M && T.M.k === "arx" ? `${T.M.q < 4 ? T.M.q + 1 + "-chorak uchun hozircha" : "Hozircha"} ish yo'q.` : "Hamma ishlar bajarilgan — to'ldirilmagan dars yo'q."}</div>`}${lk}</div>`;
   }
-  const todoCard = (T) => `<section class="card bn-todoc"><div class="bn-ch"><h2>Bajarish kerak</h2>${T.n ? `<span class="bn-cnt warn">${T.n}</span>` : ""}</div>${todoBody(T)}</section>`;
+  const todoChip = (T) => T.M && T.M.k === "grace" && T.M.due && T.n ? `<span class="bn-cnt warn">Arxivgacha ${Math.round((pdate(T.M.due) - pdate(todayIso())) / 864e5)} kun</span>` : T.n ? `<span class="bn-cnt warn">${T.n}</span>` : "";
+  const todoCard = (T) => `<section class="card bn-todoc"><div class="bn-ch"><h2>Bajarish kerak</h2>${todoChip(T)}</div>${todoBody(T)}</section>`;
   function riskList() {
     const risk = riskOverview().flatMap((r) => r.names.map((n) => ({ci: r.ci, ...n})));
     for (const h of hwOverview()) { const x = risk.find((r) => r.ci === h.ci && r.name === h.name); if (x) x.why = x.why.concat(h.why); else risk.push(h); }
@@ -138,7 +142,7 @@ const BGN = (() => {
     return `<div class="bn-rl">${risk.slice(0, N).map((r) => `<button class="bn-ri" data-stud="${r.ci}|${esc(r.name)}"><span class="bn-av">${esc(initials(r.name))}</span><span class="bn-tx"><b class="bn-ell">${esc(r.name)} <small>· ${esc(D.classes[r.ci].name)}</small></b><span class="bn-why">${r.why.slice(0, 2).map((w) => `<span class="bn-chip bad">${esc(w)}</span>`).join("")}</span></span></button>`).join("")}</div>
       <div class="bn-more">${risk.length > N ? `<span>va yana ${risk.length - N} ta</span>` : "<span></span>"}<button class="bn-lnk" data-go2="reports">Hammasi →</button></div>`;
   }
-  const riskCard = (risk) => `<section class="card"><div class="bn-ch"><h2>E'tibor talab qiladi</h2>${risk.length ? `<span class="bn-cnt bad">${risk.length}</span>` : ""}</div>${riskBody(risk)}</section>`;
+  const riskCard = (risk, top = "") => `<section class="card"><div class="bn-ch"><h2>E'tibor talab qiladi</h2>${risk.length ? `<span class="bn-cnt bad">${risk.length}</span>` : ""}</div>${top}${riskBody(risk)}</section>`;
   const tone = (v) => v >= 85 ? "var(--ok)" : v >= 70 ? "var(--acc)" : v >= 55 ? "var(--bn-warn-b)" : "var(--danger)";
   const mb = (v) => v === null || v === undefined ? `<span class="bn-mut">—</span>` : `<span class="bn-mb"><span class="bn-tr"><i style="width:${Math.max(0, Math.min(100, v))}%;background:${tone(v)}"></i></span><b>${Math.round(v)}%</b></span>`;
   const gp = (v) => v === null || v === undefined ? `<span class="bn-gp">—</span>` : `<span class="bn-gp ${v < 5 ? "lo" : v < 8 ? "mid" : "hi"}">${v.toFixed(2)}</span>`;
@@ -152,8 +156,8 @@ const BGN = (() => {
   function clsBody(C, tel) {
     if (!C.R.length) return `<div class="bn-okl bn-mut" style="padding:4px 16px 14px">Hali ma'lumot yo'q.</div>`;
     const ci = (r) => D.classes.indexOf(r.c);
-    return tel ? `<div class="clsstat">${C.R.map((r) => `<button class="bn-cr" data-cls="${ci(r)}"><span class="bn-l1"><b class="bn-ell">${esc(label(r.c))}</b>${r.risk ? `<span class="bn-chip bad">⚠ ${r.risk}</span>` : ""}${gp(r.avg)}</span><span class="bn-l2"><span><small>Davomat</small>${mb(r.att)}</span><span><small>O'zlashtirish</small>${mb(r.qu ?? r.qp)}</span></span></button>`).join("")}</div>`
-      : `<div class="clsstat"><table class="bn-ct"><thead><tr><th>Sinf</th><th>Davomat</th><th title="O'rtacha jami ball (100 dan). Chorak tugamagan bo'lsa — shu kungacha olingan ball ÷ maksimal ball">O'zlashtirish</th><th class="s">O'rtacha</th><th class="s">Xavf</th></tr></thead><tbody>${C.R.map((r) => `<tr data-cls="${ci(r)}" tabindex="0"><td><b>${esc(label(r.c))}</b></td><td>${mb(r.att)}</td><td>${mb(r.qu ?? r.qp)}</td><td class="s">${gp(r.avg)}</td><td class="s">${r.risk ? `<span class="bn-chip bad">${r.risk}</span>` : `<span class="bn-mut">—</span>`}</td></tr>`).join("")}</tbody></table></div>`;
+    return tel ? `<div class="clsstat">${C.R.map((r) => `<button class="bn-cr" data-cls="${ci(r)}"><span class="bn-l1"><b class="bn-ell">${esc(label(r.c))}</b>${r.risk ? `<span class="bn-chip bad">⚠ ${r.risk}</span>` : ""}${gp(r.avg)}</span><span class="bn-l2"><span><small>Davomat</small>${mb(r.att)}${BTL.was(C.prev, r.c, "att")}</span><span><small>O'zlashtirish</small>${mb(r.qu ?? r.qp)}${BTL.was(C.prev, r.c, "qu")}</span></span></button>`).join("")}</div>`
+      : `<div class="clsstat"><table class="bn-ct"><thead><tr><th>Sinf</th><th>Davomat</th><th title="O'rtacha jami ball (100 dan). Chorak tugamagan bo'lsa — shu kungacha olingan ball ÷ maksimal ball">O'zlashtirish</th><th class="s">O'rtacha</th><th class="s">Xavf</th></tr></thead><tbody>${C.R.map((r) => `<tr data-cls="${ci(r)}" tabindex="0"><td><b>${esc(label(r.c))}</b></td><td>${mb(r.att)}${BTL.was(C.prev, r.c, "att")}</td><td>${mb(r.qu ?? r.qp)}${BTL.was(C.prev, r.c, "qu")}</td><td class="s">${gp(r.avg)}${BTL.was(C.prev, r.c, "avg")}</td><td class="s">${r.risk ? `<span class="bn-chip bad">${r.risk}</span>` : `<span class="bn-mut">—</span>`}</td></tr>`).join("")}</tbody></table></div>`;
   }
   const clsCard = (C, t) => C.R.length ? `<section class="card" style="overflow:hidden"><div class="bn-ch"><h2>Sinflar ko'rsatkichi</h2><span class="bn-mut bn-per">${C.q ? `${C.q}-chorak · ` : ""}${d5(C.lo)} – ${d5(C.hi)}</span></div>${clsBody(C, false)}</section>` : "";
   function upcomingCard() {
@@ -214,23 +218,34 @@ const BGN = (() => {
   /* ───────── sahifa ───────── */
   function page(m) {
     const t = todayIso(), tel = phone(); wasPhone = tel;
-    const L = lessons(), T = todoData(), risk = riskList(), C = clsRows(t), z = dz(), bot = z.act === "bot";
+    const M = BTL.mode(t), G = M && M.k === "grace", A = M && M.k === "arx";   // chorak tugagandan keyin → bugun-tatil.js
+    const L = lessons(), T = {...BTL.filterTodo(todoData(), M), M}, risk = riskList(), C = clsRows(t), z = dz(), bot = z.act === "bot";
+    C.prev = BTL.prev(M);
     const aq = BAX.quarter(t), AX = aq ? BAX.data(aq) : null;   // ta'til + chorak arxivlangan → bugun-arxiv.js
+    const R = G ? BTL.readyRows(M.q) : null, low = G || A ? BTL.lowCard(M) : null, top = BTL.lowTop(M);
+    // bosh karta: arxivgacha — «Chorakni yopish», ta'tilda — «Ta'til»; dars bo'lsa odatdagi karta ham qoladi
+    const lead = (tel2) => G ? `${BTL.closeCard(M, R, tel2)}${L.length ? hero(t, L, tel2) : ""}` : A ? `${BTL.vacCard(M, tel2)}${L.length ? hero(t, L, tel2) : ""}` : hero(t, L, tel2);
+    const emk = (tel2) => A ? "" : EMK1.card(tel2), wk = () => G || A ? "" : week();
     let body;
     if (tel) {
-      const tab = ["todo", "risk", "cls"].includes(S.btab) ? S.btab : "todo";
-      const tabs = [["todo", "Vazifalar", T.n], ["risk", "E'tibor", risk.length], ["cls", "Sinflar", C.R.length]];
-      const tb = tab === "todo" ? todoBody(T) : tab === "risk" ? riskBody(risk) : AX ? `<div class="ba-tel">${BAX.banner(AX)}${BAX.clsCard(AX, true)}</div>` : clsBody(C, true);
-      body = `${header(t, L, true)}${z.act === "top" ? `<div class="bn-qrow">${quick(false)}</div>` : ""}${reminders(true)}${EMK1.card(true)}${ARX.todayCard(true)}${hero(t, L, true)}${timeline(t, L, true)}
-        <div class="tgrid bn-one"><div class="bn-col">${week()}<section class="card${tab === "todo" ? " bn-todoc" : ""}" style="overflow:hidden"><div style="padding:8px"><div class="bn-seg" role="tablist">${tabs.map(([k, n, c]) => `<button role="tab" aria-selected="${tab === k}" class="${tab === k ? "on" : ""}" data-btab="${k}">${n}${c ? `<em>${c}</em>` : ""}</button>`).join("")}</div></div>${tb}</section>
+      const tabs = A ? [["todo", "Vazifalar", T.n], ["res", "Natija", 0], ["risk", "E'tibor", low.n]]
+        : G ? [["todo", "Vazifalar", T.n], ["risk", "E'tibor", low.n]]
+        : [["todo", "Vazifalar", T.n], ["risk", "E'tibor", risk.length], ["cls", "Sinflar", C.R.length]];
+      const tab = tabs.some((x) => x[0] === S.btab) ? S.btab : "todo";
+      const tb = tab === "todo" ? todoBody(T) : tab === "risk" ? (low ? low.body : top + riskBody(risk))
+        : tab === "res" ? (AX ? `<div class="ba-tel">${BAX.banner(AX)}${BAX.clsCard(AX, true)}</div>` : clsBody(C, true))
+        : AX ? `<div class="ba-tel">${BAX.banner(AX)}${BAX.clsCard(AX, true)}</div>` : clsBody(C, true);
+      body = `${header(t, L, true, M)}${z.act === "top" ? `<div class="bn-qrow">${quick(false)}</div>` : ""}${reminders(true)}${BTL.strip(M, true)}${emk(true)}${G ? "" : ARX.todayCard(true)}${lead(true)}${timeline(t, L, true)}${G ? BTL.readyCard(M, R, true) : ""}
+        <div class="tgrid bn-one"><div class="bn-col">${wk()}<section class="card${tab === "todo" ? " bn-todoc" : ""}" style="overflow:hidden"><div style="padding:8px"><div class="bn-seg" role="tablist">${tabs.map(([k, n, c]) => `<button role="tab" aria-selected="${tab === k}" class="${tab === k ? "on" : ""}" data-btab="${k}">${n}${c ? `<em>${c}</em>` : ""}</button>`).join("")}</div></div>${tb}</section>
         ${upcomingCard()}${z.act !== "top" ? quickCard() : ""}</div></div>${bot ? stick(L, true) : ""}`;
     } else {
-      body = `${header(t, L, false)}${reminders(false)}${EMK1.card(false)}${ARX.todayCard(false)}${AX ? BAX.banner(AX) : ""}
-        <div class="tgrid bn-grid"><div class="bn-col">${hero(t, L, false)}${timeline(t, L, false)}${AX ? BAX.clsCard(AX, false) : clsCard(C, t)}${upcomingCard()}</div>
-          <div class="bn-col">${week()}${todoCard(T)}${riskCard(risk)}${z.act !== "top" ? quickCard() : ""}</div></div>${bot ? stick(L, false) : ""}`;
+      const rc = low ? `<section class="card"><div class="bn-ch"><h2>E'tibor talab qiladi</h2>${low.n ? `<span class="bn-cnt bad">${low.n}</span>` : ""}</div>${low.body}</section>` : riskCard(risk, top);
+      body = `${header(t, L, false, M)}${reminders(false)}${BTL.strip(M, false)}${emk(false)}${G ? "" : ARX.todayCard(false)}${AX ? BAX.banner(AX) : ""}
+        <div class="tgrid bn-grid"><div class="bn-col">${lead(false)}${timeline(t, L, false)}${G ? BTL.readyCard(M, R, false) : AX ? BAX.clsCard(AX, false) : clsCard(C, t)}${upcomingCard()}</div>
+          <div class="bn-col">${wk()}${todoCard(T)}${rc}${z.act !== "top" ? quickCard() : ""}</div></div>${bot ? stick(L, false) : ""}`;
     }
     m.innerHTML = `<div class="bn ${z.pri === "left" ? "pl" : ""}">${body}</div>`;
-    bindPage(m, t); BAX.bind(m); EMK1.bind(m);
+    bindPage(m, t); BAX.bind(m); EMK1.bind(m); BTL.bind(m);
   }
   // amal tugmalari (sahifa va dars oynasi uchun umumiy)
   function bindActs(root, close) {

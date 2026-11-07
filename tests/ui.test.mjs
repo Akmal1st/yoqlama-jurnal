@@ -24,7 +24,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
       await chooser.setFiles(FIXTURE);
-      await page.waitForSelector("text=Xayrli");
+      await page.waitForSelector(".bn-hd");
       await nav("journal");
       // ko'rinish: kompyuterda chap panelda, telefonda jurnal tepasida
       await page.click("[data-per]"); await page.click(".perpop [data-mode=week]");
@@ -60,7 +60,7 @@ test("o'quvchini faolsizlantirish va qayta faollashtirish", async () => {
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const names = () => page.evaluate(() => D.classes[1].students.map((s) => s.name));
     const before = await names(), gone = [before[0], before[2]];
     const marks = await page.evaluate(() => JSON.stringify(D.classes[1].students[0].marks));
@@ -96,7 +96,7 @@ test("o'quvchi boshqa fanlarda ham faolsizlantiriladi", async () => {
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const has = (ci, n) => page.evaluate(([ci, n]) => D.classes[ci].students.some((s) => s.name === n), [ci, n]);
     const nm = "Rahimova Nilufar", ai = await page.evaluate((n) => D.classes[2].students.findIndex((s) => s.name === n), nm);
     // dialog: «Boshqa fanlarda ham» belgisi chiqadi (9-A Geometriya)
@@ -131,7 +131,7 @@ test("hisobotlar chop etilganda bitta varaqqa sig'adi", async () => {
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     // katta sinf: 40 o'quvchi, uzun izohlar bilan
     await page.evaluate(() => { const c = D.classes[0]; for (let i = c.students.length; i < 40; i++) c.students.push({name: `Qo'shimcha O'quvchi Familiyasi ${i}`, marks: {}, scores: {}}); save(); });
     await page.click(".side [data-go=reports]");
@@ -300,7 +300,7 @@ test("BSB/CHSB: kech qolgan (KQ) o'quvchiga ball qo'yish", async () => {
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // 1-chorak ichidagi kun: chorak arxivi (arxiv.js) qulflamasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => { D.settings.protect.enabled = false; save(); });
     await page.click(".side [data-go=journal]"); await page.click("[data-jp=sum]");
     const cell = await page.$("[data-sc]"); const key = await cell.getAttribute("data-sc");
@@ -326,7 +326,7 @@ test("jurnal: KQ katagiga himoya yoqilgan holda ham baho qo'yiladi", async () =>
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const r = await page.evaluate(() => {
       const c = D.classes[0], t = todayIso(); D.settings.method_weekday = null; c.extra_x = [];
       if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); }
@@ -348,7 +348,7 @@ test("Tahlil tuzatishlari: Ctrl tugmalari belgi qo'ymaydi, Escape, bir marta saq
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => {
       const c = D.classes[0], t = todayIso(); c.extra_x = []; c.works = c.works.filter((w) => w.date !== t);
       if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); }
@@ -394,7 +394,7 @@ test("Tavsiyalar: o'quvchi id va bir xil ismlar, to'lovni qaytarish, buzilgan xo
     await page.waitForSelector(".toast:has-text('buzilgan')");
     assert.equal(await page.evaluate(() => localStorage.getItem(STORE_KEY + "_buzilgan")), "{buzilgan");
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const r = await page.evaluate(async () => {
       const d = normalize({classes: [{name: "7-A", students: [{name: "Ali Valiyev"}, {name: "ali  valiyev"}, {name: "Ali Valiyev"}]}]});
       const names = d.classes[0].students.map((s) => s.name), ids = d.classes[0].students.map((s) => s.id);
@@ -430,7 +430,7 @@ test("Yangi dizayn: Ctrl+K buyruqlar oynasi, Alt+raqam, ? tezkor tugmalar, telef
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // chorak ichidagi kun: test sanaga bog'liq bo'lmasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     // o'quvchini yozib topish → kartochka ochiladi
     const nm = await page.evaluate(() => D.classes[1].students[2].name);
     await page.keyboard.press("Control+k"); await page.waitForSelector(".modal .cmdl");
@@ -471,7 +471,7 @@ test("jurnal: mezon bo'yicha baho (darsdagi ish + uy vazifasi), izoh, «Qolganla
       await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       const t = await page.evaluate(() => { const c = D.classes[0], t = todayIso(); D.settings.method_weekday = null; c.extra_x = [];
         if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } D.settings.protect.enabled = false;
         for (const s of c.students) delete s.marks[t]; S.ci = 0; V.mode = "day"; V.anchor = t; S.view = "journal"; save(); return t; });
@@ -506,7 +506,7 @@ test("jurnal: mezon bo'yicha baho (darsdagi ish + uy vazifasi), izoh, «Qolganla
       assert.deepEqual((await st(0)).slice(0, 2), ["kq", "null"]);
       // jurnal saqlanib qayta yuklanganda qismlar qoladi
       await page.click("[data-mzp='3|0|4']");   // uy vazifasi «Qolganlarga» bilan 4 bo'lgan
-      await page.reload(); await page.waitForSelector("text=Xayrli");
+      await page.reload(); await page.waitForSelector(".bn-hd");
       await page.click(`${viewport.width < 600 ? ".tabbar" : ".side"} [data-go=journal]`);
       await page.evaluate((d) => { S.ci = 0; V.mode = "day"; V.anchor = d; render(); }, t); await page.waitForSelector(".dlist.mz");
       assert.deepEqual(await st(3), ["8", "[4,4]", ""]);
@@ -534,7 +534,7 @@ test("jurnal: Kun ko'rinishi, katak yonidagi belgi oynasi, sinf tanlash", async 
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const t = await page.evaluate(() => { const c = D.classes[0], t = todayIso(); D.settings.method_weekday = null; c.extra_x = [];
       if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } D.settings.protect.enabled = false; c.students[0].marks[t] = ""; delete c.students[0].marks[t]; D.web.fmode = "plain"; save(); return t; });
     await page.click(".side [data-go=journal]"); await page.click("[data-per]"); await page.click(".perpop [data-mode=day]");
@@ -590,7 +590,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // 1-chorak ichidagi kun: chorak arxivi (arxiv.js) qulflamasin
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       await page.evaluate(() => { D.settings.protect.enabled = false; window.print = () => { window.__printed = document.getElementById("pdoc").innerText; }; });
       await page.click(`${name === "telefon" ? ".tabbar" : ".side"} [data-go=journal]`);
       await page.evaluate(() => { S.jpage = "bsb"; render(); }); await page.waitForSelector("table.bsa");
@@ -651,7 +651,7 @@ test("BSB tahlili: strelka tugmalari, Excel'dan joylash, savol nomlari va xatola
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => { D.settings.protect.enabled = false; });
     await page.click(".side [data-go=journal]"); await page.evaluate(() => { S.jpage = "bsb"; render(); }); await page.waitForSelector("table.bsa");
     const focused = async () => { await page.waitForTimeout(60); return page.evaluate(() => document.activeElement.dataset.bp || "mx" + document.activeElement.dataset.bx); };
@@ -729,7 +729,7 @@ test("BSB eksporti: rasmiy shakl 1 ta varaqqa sig'adi, tahlil hisoboti betlarga 
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => { window.print = () => {}; const c = D.classes[0], B = baBlank(); B.q = 6; B.max = Array(6).fill(2); B.title = "Kasrlar";
       while (c.students.length < 45) c.students.push({...clone(c.students[0]), name: "Talaba " + c.students.length, id: "t" + c.students.length});
       c.students.forEach((s, i) => { B.rows[s.name] = {in: true, pts: B.max.map((m, k) => (i + k) % 3)}; });
@@ -760,7 +760,7 @@ test("jurnal: bo'sh va to'ldirilgan kataklar bir chiziqda", async () => {
     const page = await browser.newPage({viewport: {width: 360, height: 760}});
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     for (const den of ["oddiy"]) for (const mode of ["day", "week", "month"]) {
       const bad = await page.evaluate(([den, mode]) => { S.page = "journal"; V.mode = mode; render();
         return [...document.querySelectorAll("table.j tr")].filter((tr) => new Set([...tr.querySelectorAll(".cell")].map((c) => Math.round(c.getBoundingClientRect().top))).size > 1).length; }, [den, mode]);
@@ -777,7 +777,7 @@ test("jurnal: telefonda sinf ☰ ro'yxatdan tanlanadi", async () => {
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // 1-chorak ichidagi kun: chorak arxivi (arxiv.js) qulflamasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.click(".tabbar [data-go=journal]");
     // telefonda ☰ — sinflar fan bo'yicha guruhlangan ro'yxat
     const names = await page.evaluate(() => D.classes.map((c) => c.name));
@@ -811,7 +811,7 @@ test("Sozlamalar → Baholash: baho ranglari oraliqlari aniq ko'rinadi", async (
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="2"]');
     assert.deepEqual(await page.$$eval(".sz-gr .sz-rng > span", (x) => x.map((e) => e.textContent)), ["– 4", "– 7", "– 10"]);
     await page.selectOption('[data-rmin="1"]', "6");
@@ -832,7 +832,7 @@ test("jurnal: yonga surilganda sana ustuni ism ustuni ostida yarim qolmaydi", as
     const page = await browser.newPage({viewport: {width: 360, height: 760}});
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     let skipped = 0;
     for (const fs of ["m", "xl"]) for (const den of ["oddiy"]) for (const mode of ["week", "month", "quarter"]) {
       const gaps = await page.evaluate(async ([fs, den, mode]) => {
@@ -864,7 +864,7 @@ test("jurnal: telefonda ism bir qatorda, familiya qisqartiriladi", async () => {
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // chorak ichidagi kun: test sanaga bog'liq bo'lmasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     assert.equal(await page.evaluate(() => shortName("Isakjanov Shoxjaxon")), "I. Shoxjaxon");
     const r = await page.evaluate(() => { S.page = "journal"; V.mode = "month"; render();
       const td = $('td.nm[data-st="0"]'), lh = parseFloat(getComputedStyle(td).lineHeight) || 20;
@@ -904,7 +904,7 @@ test("Telegram: ulash, avtomatik zaxira va boshqa qurilmadan yuklash (soxta bot 
     });
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.click(".tabbar [data-go=settings]"); await page.click('[data-sec="5"]');
     await page.click("[data-a=tgon]");
     await page.fill("#tgt", "123456789:AAHabcdefghijklmnopqrstuvwxyz");
@@ -991,7 +991,7 @@ test("Kunlik hisobot: darslar tugagach har sinf rasmi Telegram'ga va ota-onalar 
     });
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     // bugun 6-A da dars: jadval vaqti o'tib ketgan, yo'qlama va baholar qo'yilgan
     await page.evaluate(() => {
       const t = todayIso(), c = D.classes[0]; D.settings.method_weekday = null; c.extra_x = [];
@@ -1061,7 +1061,7 @@ test("Hisobotlar va BSB/CHSB tahlili: PDF hisobot Telegram'ga (soxta bot API)", 
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // 1-chorak ichidagi kun: chorak arxivi (arxiv.js) qulflamasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     // ulanmagan: Sozlamalarga yo'naltiradi, hech narsa yuborilmaydi
     await page.click(".tabbar [data-go=reports]"); await page.click("[data-tgpdf]:visible");
     await page.waitForSelector(".modal >> text=Telegram ulanmagan"); await page.click(".modal [data-x]").catch(() => {});
@@ -1108,7 +1108,7 @@ test("Dars jadvali: Excel'dan yuklash, saqlash va dars kunlari", async () => {
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     // maktab jadvali: kunlar ustunlarda, sinf yozuvi har xil ko'rinishda
     const rows = [["O'qituvchi: Akmal"], ["№", "Vaqt", "Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"],
       [1, "8:00-8:45", "6-A Matematika", "", "9 - A Geometriya", "", "7G", ""],
@@ -1151,7 +1151,7 @@ test("BSB/CHSB kuni: jurnalga baho qo'yilmaydi, faqat yo'qlama", async () => {
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const r = await page.evaluate(() => {
       const t = todayIso(), ci = D.classes.findIndex((c) => !isGrp(c)), c = D.classes[ci];
       if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); }
@@ -1181,7 +1181,7 @@ test("Bugun: «Hamma keldi» va oldingi uy vazifasi; mavzular oynasi", async () 
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const prev = await page.evaluate(() => {
       const t = todayIso(), c = D.classes[0], p = iso(addDays(pdate(t), -1));
       for (const d of [p, t]) if (!c.dates.includes(d)) c.dates.push(d);
@@ -1213,7 +1213,7 @@ test("Ota-onalarga xabarlar: butun sinf, haftalik xulosa", async () => {
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const name = await page.evaluate(() => {
       const t = todayIso(), c = D.classes[0], s = c.students[0];
       if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } c.extra_x = c.extra_x.filter((d) => d !== t); c.held.push(t);
@@ -1239,7 +1239,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // chorak ichidagi kun: test sanaga bog'liq bo'lmasin
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       await page.click(`${name === "telefon" ? ".tabbar" : ".side"} [data-go=reports]`);
       if (name === "telefon") { await page.click("[data-hk=kind]"); await page.click(".modal [data-kind=stats]"); } else await page.click("[data-kind=stats]");
       assert.equal(await page.locator("svg.stat").count(), 3);
@@ -1262,7 +1262,7 @@ test("Doskaga chaqirish va guruhlarga bo'lish", async () => {
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const info = await page.evaluate(() => {
       const t = todayIso(), c = D.classes[0];
       if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } c.extra_x = c.extra_x.filter((d) => d !== t); c.held.push(t);
@@ -1303,7 +1303,7 @@ test("Dars eslatmasi: jadval bo'yicha darsdan oldin bildirishnoma", async () => 
     await page.clock.install({time: new Date(2026, 9, 26, 8, 52)});   // dushanba 08:52
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => {
       D.settings.method_weekday = null; D.settings.holidays = [];
       D.classes.forEach((c) => { c.extra_x = []; });
@@ -1334,7 +1334,7 @@ test("Tez yoqlama: kartochkani surish bilan belgilash", async () => {
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const n = await page.evaluate(() => {
       const t = todayIso(), c = D.classes[0];
       if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } c.extra_x = c.extra_x.filter((d) => d !== t); c.held.push(t);
@@ -1371,7 +1371,7 @@ test("O'rindiq xaritasi: tuzish va xaritadan yo'qlama", async () => {
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const names = await page.evaluate(() => {
       const t = todayIso(), c = D.classes[0];
       if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } c.extra_x = c.extra_x.filter((d) => d !== t); c.held.push(t);
@@ -1409,7 +1409,7 @@ test("Tug'ilgan kunlar: kiritish, matndan to'ldirish va «Bugun»da eslatish", a
     await page.clock.setFixedTime(new Date(2026, 9, 26, 9, 0));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const p = await page.evaluate(() => [parseBday("12.03.2013"), parseBday("2013-03-12"), parseBday("5/11"), parseBday("31.02.2013"), parseBday("01.09.12")]);
     assert.deepEqual(p, ["2013-03-12", "2013-03-12", "0000-11-05", null, "2012-09-01"]);
     const names = await page.evaluate(() => { S.ci = 0; S.page = "journal"; render(); bdaysDialog(0); return D.classes[0].students.map((s) => s.name); });
@@ -1440,7 +1440,7 @@ test("Zaxira xotira (IndexedDB): tiklash, kunlik nusxalar va ma'lumot versiyasi"
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.waitForFunction(() => IDB.ready);
     const n = await page.evaluate(async () => { D.classes[0].students[0].name = "Tiklangan Bola"; save(); await idbFlush(); return D.classes.length; });
     assert.equal(await page.evaluate(() => D.web.dv), await page.evaluate(() => DATA_VER));
@@ -1483,7 +1483,7 @@ test("Uy vazifasi tekshiruvi: darsda belgilash, kartochka va «E'tibor talab qil
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // chorak ichidagi kun: test sanaga bog'liq bo'lmasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const name = await page.evaluate(() => {
       const t = todayIso(), c = D.classes[0], p = iso(addDays(pdate(t), -1));
       for (const d of [p, t]) if (!c.dates.includes(d)) c.dates.push(d);
@@ -1517,7 +1517,7 @@ test("Ota-onalar kontaktlari: kiritish, matndan to'ldirish va xabar tugmalari", 
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const n = await page.evaluate(() => [normPhone("90 123-45-67"), normPhone("+998 (93) 555 44 33"), normPhone("12"), normTg("@ali_ota"), normTg("https://t.me/ali_ota"), normTg("a b")]);
     assert.deepEqual(n, ["+998901234567", "+998935554433", null, "ali_ota", "ali_ota", null]);
     const names = await page.evaluate(() => { S.ci = 0; S.page = "journal"; render(); parentsDialog(0); return D.classes[0].students.map((s) => s.name); });
@@ -1554,7 +1554,7 @@ test("Chorak yakuni eslatmasi: «Bugun»da kamchiliklar va darsda «baho kam» b
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const info = await page.evaluate(() => {
       D.settings.quarters[0] = ["2026-09-02", "2026-10-29"]; const c = D.classes[0], t = todayIso();
       if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } c.extra_x = c.extra_x.filter((d) => d !== t); c.held.push(t);
@@ -1583,7 +1583,7 @@ test("Qarzdorlar: past baho va topshirilmagan ish, qayta topshirish", async () =
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // chorak ichidagi kun: test sanaga bog'liq bo'lmasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const info = await page.evaluate(() => {
       const c = D.classes[0], s = c.students[0], [lo, hi] = periodNow();
       const ds = c.dates.filter((d) => lo <= d && d <= hi && !isNoLesson(c, d));
@@ -1615,7 +1615,7 @@ test("«Yana» menyusi: bo'limlar va qidiruv", async () => {
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.click(".tabbar [data-go=journal]"); await page.click("[data-more]");
     const heads = await page.$$eval(".modal .mgrp h3", (x) => x.map((e) => e.textContent));
     assert.deepEqual(heads.slice(0, 3), ["Darsda", "O'quvchilar", "Ota-onalar"]);
@@ -1645,7 +1645,7 @@ test("Funksiyalarni yoqish/o'chirish: menyu, dars va «Bugun»dan yashirinadi", 
     // yangi foydalanuvchi: sodda to'plam
     assert.deepEqual(await page.evaluate(() => SIMPLE_OFF.filter((k) => feat(k))), []);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     // import qilingan jurnalda hammasi yoqilgan
     assert.equal(await page.evaluate(() => FEATS.filter(([k]) => feat(k)).length), await page.evaluate(() => FEATS.length));
     await page.click(".side [data-go=journal]"); await page.click("[data-more]");
@@ -1677,7 +1677,7 @@ test("Sinf hisoboti: saralash, xavf filtri, sifat/o'zlashtirish va Excel", async
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => { S.rep = {ci: 0, per: "cur", kind: "cls"}; go("reports"); });
     const avgs = () => page.$$eval("table.rcls tr:not(.tot)", (tr) => tr.slice(1).map((r) => parseFloat(r.cells[2].textContent)).filter((x) => !isNaN(x)));
     await page.click('th[data-rs="avg"]');
@@ -1707,7 +1707,7 @@ test("Davomat varag'i: butun chorak, har o'quvchining belgilari sanasi bilan, 36
       await page.clock.setFixedTime(new Date(2026, 10, 3, 10, 0));
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       // sinfda 36 o'quvchi (eng ko'p); birinchisiga 1-chorakda S va K, 2-chorakdagi belgi hisobga kirmaydi
       const exp = await page.evaluate(() => {
         const c = D.classes[0], base = c.students[0];
@@ -1775,7 +1775,7 @@ test("Ota-onalar majlisi: har o'quvchiga varaq, xavf filtri, A4 da ikkitadan", a
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => { D.web.bsb_hdr = {teacher: "Karimov A."}; S.rep = {ci: 0, per: "cur", kind: "par"}; go("reports"); });
     const n = await page.evaluate(() => D.classes[0].students.length);
     assert.equal(await page.$$eval(".psheet", (x) => x.length), n);
@@ -1800,7 +1800,7 @@ test("Chop etish: telefonda ham hisobot kompyuterdagidek o'lchamda (mayda emas)"
       const page = await browser.newPage({viewport});
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       zs[n] = await page.evaluate(() => {
         // 30 o'quvchili sinf
         const c = D.classes[0]; while (c.students.length < 30) c.students.push(Object.assign(clone(c.students[c.students.length % 14]), {name: "Qo'shimcha O'quvchi " + c.students.length}));
@@ -1822,7 +1822,7 @@ test("Hisobotlar: tur kartochkalari, telefonda saralash, solishtirishdan sinfga 
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.click(".tabbar [data-go=reports]");
     const kind = async (k) => { await page.click("[data-hk=kind]"); await page.click(`.modal [data-kind=${k}]`); };
     // telefonda turlar «Almashtirish» oynasida: 8 ta, guruhlangan
@@ -1855,7 +1855,7 @@ test("To'ldirilmagan darslar, KTR bajarilishi va qo'llanma", async () => {
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     // o'tgan dars kunida yo'qlama yo'q — ro'yxatda chiqadi, «Hamma keldi» bilan yo'qoladi
     const d = await page.evaluate(() => {
       const c = D.classes[2], t = todayIso(), d = c.dates.filter((x) => x < t && !isNoLesson(c, x)).pop();
@@ -1898,7 +1898,7 @@ test("Haftalik xulosa, faollik belgilari va ota-onaga natija havolasi", async ()
     await page.clock.setFixedTime(new Date("2026-10-23T10:00:00"));   // juma
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     // haftalik xulosa: juma kuni «Bugun»da karta; sonlar jurnal bilan mos
     await page.waitForSelector(".wkc");
     const w = await page.evaluate(() => { const W = weekSummary("2026-10-19", "2026-10-23"), c = D.classes[0], x = W[0];
@@ -1958,7 +1958,7 @@ test("Jurnal: xavf ostidagi o'quvchi qatori va tartib raqami rang bilan ajratila
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // chorak ichidagi kun: test sanaga bog'liq bo'lmasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const r = await page.evaluate(() => { S.ci = 0; V.mode = "month"; go("journal");
       const [lo, hi, q] = periodNow(), want = reportRows(D.classes[0], lo, hi, q).rows.filter((x) => x.why.some((w) => !w.startsWith("baholar soni"))).map((x) => x.name);
       const tr = [...document.querySelectorAll("table.j tr.risk")], ok = document.querySelector("table.j tr:not(.risk) td.nm i");
@@ -1986,7 +1986,7 @@ test("KTR: Excel faylidan choraklari bilan yuklash, «BSB tahlili» summativ ish
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => { ktrDialog(0); });   // 6-A · Matematika
     const [c2] = await Promise.all([page.waitForEvent("filechooser"), page.click(".modal [data-file]")]);
     await c2.setFiles({name: "ktr.xls", mimeType: "application/vnd.ms-excel", buffer: xls});
@@ -2132,7 +2132,7 @@ test("Sozlamalar: bo'limlar guruhlangan, kalitlar holatni ko'rsatadi, telefonda 
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     for (let i = 0; i < 7; i++) {
       await page.evaluate((i) => { S.sec = i; go("settings"); }, i);
       const r = await page.evaluate(() => ({g: document.querySelectorAll(".sz-pan .sz-sg, .sz-pan .sgroup").length, over: document.documentElement.scrollWidth - innerWidth, cur: $(".sz-tb b").textContent}));
@@ -2167,7 +2167,7 @@ test("Bugun: keng ekranda ma'lumot kartochkalari ikki ustunda, telefonda bitta",
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.click(".side [data-go=today]");
     const cols = () => page.evaluate(() => new Set([...$(".tgrid").children].map((x) => Math.round(x.getBoundingClientRect().left))).size);
     assert.equal(await cols(), 2, "kompyuterda ikki ustun");
@@ -2187,7 +2187,7 @@ test("Jurnal: o'tgan darslar, sana menyusi, qidiruv va saralash", async () => {
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => { S.ci = 0; go("journal"); });
     // 7 kun ichidagi o'tgan dars va 7 kundan eskisi
     const [near, far] = await page.evaluate(() => { const c = D.classes[0], t = todayIso(), ok = c.dates.filter((d) => d < t && !isNoLesson(c, d) && !sumOn(c, d));
@@ -2227,7 +2227,7 @@ test("jurnal: sana dars kunlari bo'yicha qo'shiladi; yon panel yig'iladi; yozuv 
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => { D.classes[0].weekdays = [0, 3]; D.settings.method_weekday = null; D.settings.holidays = []; S.ci = 0; save(); });
     await page.click(".side [data-go=journal]"); await page.click("[data-more]"); await page.click(".modal >> text=Sana qo'shish");
     const before = await page.evaluate(() => D.classes[0].dates.length);
@@ -2287,7 +2287,7 @@ test("Dars: 30% dan kam baholangan bo'lsa ogohlantiradi, yetarli bo'lsa to'xtatm
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => { const c = D.classes[0], t = todayIso(); c.students.forEach((s) => { delete s.marks[t]; }); delete c.sumdays; S.ci = 0; S.lesson = 0; S.step = 1; go("lesson"); });
     await page.waitForSelector("[data-step]");
     await page.click("[data-step='1']");
@@ -2315,16 +2315,16 @@ test("Bugun: sinflar ko'rsatkichi kartasi (davomat, o'zlashtirish)", async () =>
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // chorak ichidagi kun: test sanaga bog'liq bo'lmasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.waitForSelector(".clsstat tbody tr");
     assert.equal(await page.locator(".clsstat tbody tr").count(), await page.evaluate(() => D.classes.filter((c) => !isGrp(c)).length));
     assert.ok(await page.locator(".clsstat .bn-tr i").count() > 0);   // davomat va o'zlashtirish chiziqlari (bugun.js)
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
-    // ta'til kuni (1-chorak 29.10 da tugagan, hali arxivlanmagan): oy boshidan emas, tugagan chorak natijasi, O'zlashtirish bo'sh emas
+    // ta'til kuni (1-chorak 29.10 da tugagan, hali arxivlanmagan): ko'rsatkich o'rnida «Sinflar bo'yicha tayyorlik» (bugun-tatil.js)
     await page.clock.setFixedTime(new Date(2026, 10, 1, 10, 0)); await page.evaluate(() => render());
-    await page.waitForSelector(".clsstat tbody tr");
-    assert.match(await page.locator(".bn-per").first().textContent(), /1-chorak · 02\.09 – 29\.10/);
-    assert.ok(await page.locator(".clsstat tbody tr td:nth-child(3) .bn-mb").count() > 0);
+    await page.waitForSelector(".bt-tbl tbody tr");
+    assert.equal(await page.locator(".bt-tbl tbody tr").count(), await page.evaluate(() => D.classes.filter((c) => !isGrp(c) && c.students.length).length));
+    assert.equal(await page.evaluate(() => { return compareRows("2026-09-02", "2026-10-29", 1).some((r) => (r.qu ?? r.qp) !== null); }), true, "tugagan chorak O'zlashtirishi hisoblanadi");
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
@@ -2338,10 +2338,10 @@ test("Bugun: arxivlangan chorak — xulosa bloki, Kartalar | Reyting (bugun-arxi
       await page.clock.setFixedTime(new Date(2026, 10, 3, 10, 0));   // 1-chorak 29.10 da tugagan, 3 kundan keyin arxivlangan; 2-chorak 05.11 dan
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       await page.evaluate(() => { ARX.tick(); render(); });
       assert.ok(await page.evaluate(() => !!ARX.entry(1)));
-      if (tel) { await page.click("[data-btab=cls]"); }
+      if (tel) { await page.click("[data-btab=res]"); }   // ta'tilda telefon bo'limlari: Vazifalar · Natija · E'tibor (bugun-tatil.js)
       await page.waitForSelector(".ba-x");
       assert.match(await page.locator(".ba-x h2").textContent(), /1-chorak yakunlandi/);
       const n = await page.evaluate(() => D.classes.filter((c) => !isGrp(c) && c.students.length).length);
@@ -2369,7 +2369,7 @@ test("KTR: reja boshlanadigan sanani tanlash", async () => {
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const ds = await page.evaluate(() => {
       const t = todayIso(), ds = [10, 9, 8, 7, 6, 5].map((n) => iso(addDays(pdate(t), -n)));
       D.classes.push(normalize({web: {dv: 2}, classes: [{name: "KTR", subject: "sinov", dates: ds, students: [{name: "A", marks: {}}]}]}).classes[0]);
@@ -2405,7 +2405,7 @@ test("Jurnal tagida: bugungi dars bo'yicha sinf ma'lumoti kartasi", async () => 
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // chorak ichidagi kun: tugagan chorak qulflanib, karta yashirinmasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const ci = await page.evaluate(() => {
       const t = todayIso();
       D.classes.push(normalize({web: {dv: 2}, classes: [{name: "8-Z", subject: "Sinov", dates: [t], lessons: {[t]: {topic: "Kasrlar", hw: "12-mashq"}},
@@ -2436,7 +2436,7 @@ test("Jurnal kompyuterda bitta ekranga sig'adi: sahifa na pastga, na yonga suril
       page.on("pageerror", (e) => errors.push(e.message));
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       await page.evaluate(() => {
         const t = todayIso(), c = D.classes[0]; if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); }
         while (c.students.length < 18) c.students.push({id: "x" + c.students.length, name: "Test Oquvchi " + c.students.length, marks: {}});
@@ -2466,7 +2466,7 @@ test("Jurnal jadvali kichrayib ketmaydi: 20 tagacha sig'adi, ko'pida oddiy o'lch
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const info = (n) => page.evaluate((n) => {
       const c = D.classes[0]; while (c.students.length < n) c.students.push({id: "x" + c.students.length, name: "Test Oquvchi " + c.students.length, marks: {}});
       S.ci = 0; S.page = "journal"; S.jpage = "j"; V.mode = "week"; V.anchor = todayIso(); render();
@@ -2499,7 +2499,7 @@ test("Hamma dizaynda tugmalar bir xil: hech biri yo'qolmaydi yoki qirqilmaydi", 
         const page = await browser.newPage({viewport: {width: w, height: h}});
         await page.goto(APP);
         const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-        await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+        await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
         await page.evaluate((s) => { D.web.style = s; save(); render(); }, st);
         for (const pg of ["today", "journal", "reports", "settings"]) {
           await page.evaluate((p) => { S.ci = 0; S.jpage = "j"; V.mode = "week"; go(p); }, pg);
@@ -2525,7 +2525,7 @@ test("Sozlamalar: hafta/oy/chorak rejimlarini o'chirib-yoqish, ixcham dizayn va 
     const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     // rejimlar: hammasi yoqilgan
     await page.evaluate(() => { S.ci = 0; S.jpage = "j"; V.mode = "week"; go("journal"); });
 
@@ -2566,7 +2566,7 @@ test("Menyu tugmalari: Hisobotlar turlari va Sozlamalar bo'limlari bir xil o'lch
       const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       const sizes = async (sel) => page.$$eval(sel, (x) => x.filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(), i = b.querySelector(".ic, .si, .sz-ic").getBoundingClientRect(); return [Math.round(r.height), Math.round(i.width), parseFloat(getComputedStyle(b.querySelector("b, .sn")).fontSize)]; }));
       // Hisobotlar (hisobotlar.js): kompyuterda chap ro'yxat, telefonda «Almashtirish» oynasi — hammasi bir xil, yozuv bir qatorda
       await page.evaluate(() => go("reports"));
@@ -2598,7 +2598,7 @@ test("BSB tahlili: ball maksimaldan oshmaydi (yozishda, joylashda, maksimal kama
     const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => { D.settings.protect.enabled = false; });
     await page.click(".side [data-go=journal]"); await page.evaluate(() => { S.jpage = "bsb"; render(); }); await page.waitForSelector("table.bsa");
     const pts = () => page.evaluate(() => { const B = S.bas[label(D.classes[S.ci])]; return D.classes[S.ci].students.slice(0, 3).map((s) => (B.rows[s.name] || {pts: []}).pts.slice(0, 3)); });
@@ -2642,7 +2642,7 @@ test("BSB tahlili: katakni bosganda 0 dan maksimalgacha sonlar oynasi chiqadi, t
       const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       await page.evaluate(() => { D.settings.protect.enabled = false; S.ci = 0; S.jpage = "bsb"; go("journal"); });
       await page.waitForSelector("table.bsa");
       const max0 = await page.evaluate(() => S.bas[label(D.classes[S.ci])].max[0]);
@@ -2675,7 +2675,7 @@ test("CHSB testi: to'g'ri javob belgilanadi, o'quvchi varianti mos kelsa maksima
     const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => { D.settings.protect.enabled = false; const c = D.classes[S.ci]; c.works.push({id: "wt1", type: "chsb", date: todayIso(), max: 10, title: "Test"}); save(); });
     await page.click(".side [data-go=journal]"); await page.evaluate(() => { S.jpage = "chsbt"; render(); }); await page.waitForSelector("table.tst");
     await page.fill("#tn", "5"); await page.press("#tn", "Tab"); await page.waitForSelector('[data-tk="4"]');
@@ -2741,7 +2741,7 @@ test("CHSB testi: ishtirok, % va baho, tahlil, xatolar kesimi, joylash, variant 
     const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => { D.settings.protect.enabled = false; });
     await page.click(".side [data-go=journal]"); await page.evaluate(() => { S.jpage = "chsbt"; render(); }); await page.waitForSelector("[data-newt]");
     // yangi test yaratiladi (maksimal ball 40), 4 ta savol
@@ -2791,7 +2791,7 @@ test("O'chirilgan BSB/CHSB qayta paydo bo'lmaydi: KTR rejasi va eMaktab importi 
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const r = await page.evaluate(() => {
       const c = D.classes[0], d = c.dates.find((x) => x >= "2026-09-10" && !isNoLesson(c, x)), keys = () => c.works.map((w) => `${w.type}|${w.date}`);
       const slots = [{text: "BSB-1", q: null}];
@@ -2822,7 +2822,7 @@ test("eMaktab importi kundalik baholarni to'liq almashtiradi, BSB/CHSB ballariga
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const r = await page.evaluate(() => {
       const c = D.classes[0], s = c.students[0], [d1, d2, d3, d4] = c.dates.filter((x) => !isNoLesson(c, x)).slice(0, 4);
       const w = {id: newWorkId(c), type: "bsb", date: d4, max: 25, title: ""}; c.works.push(w);
@@ -2847,7 +2847,7 @@ test("Xavf turlarini tanlash: har tur alohida yoqiladi, chegarasi o'zgaradi, tay
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => { S.sec = 2; go("settings"); });
     assert.equal(await page.locator("[data-rkon]").count(), 9, "9 ta xavf turi");
     // sinf o'quvchisi uchun sun'iy holat: davomati past, baholari yaxshi
@@ -2881,7 +2881,7 @@ test("Hisobotda xavf turi bo'yicha saralash", async () => {
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => {
       const c = D.classes[0], ds = c.dates.filter((d) => d <= todayIso() && !isNoLesson(c, d)).slice(-10);
       c.students.forEach((s, k) => { s.marks = {}; ds.forEach((d, i) => s.marks[d] = k === 0 && i < 5 ? "s" : "9"); });
@@ -2908,7 +2908,7 @@ test("Guruhlar faqat o'z bo'limida: boshqa sahifalarda ko'rinmaydi, saqlangan gu
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const gsrc = {name: "Ingliz kursi", subject: "Ingliz tili", kind: "paid", fee: {month: 0, day: 10000}, dueDay: 12, rule: {sz: "free", sb: "charge"}, dates: ["2026-10-05", "2026-10-06"],
       packs: [{id: "pk1", name: "Standart", n: 8, sum: 400000}], wdel: [],
       students: [{name: "Guruh Talabasi", plan: {t: "day", sum: 10000}, pkg: "pk1", marks: {"2026-10-05": "ot"}, abs: {"2026-10-06": "sz"}, pays: [{id: "p1", no: 1, d: "2026-10-09", m: "2026-10", sum: 10000, how: "Naqd"}]}]};
@@ -2951,7 +2951,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
       await page.clock.setFixedTime(new Date(2026, 10, 2, 10, 0));   // dushanba
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       // eski ma'lumot: oylik narxli o'quvchi, to'lovida dars soni yozilmagan
       await page.evaluate(() => {
         const marks = {}; for (const d of ["2026-10-26", "2026-10-28", "2026-10-30"]) marks[d] = "ot";
@@ -3050,7 +3050,7 @@ test("Sozlamalar → Dizayn: mavzular, tungi variant, rang, tugmalar joyi va qay
       const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       await page.evaluate(() => { S.sec = 3; S.dztab = "look"; go("settings"); });
       const tok = (k) => page.evaluate((k) => getComputedStyle(document.documentElement).getPropertyValue(k).trim(), k);
       assert.equal(await page.locator(".dz-sec [data-dz-theme]").count(), 6);
@@ -3112,12 +3112,13 @@ test("chorak arxivi: tugagan chorak qulflanadi, vaqtincha ochiladi, «Bugun» es
       await page.clock.setFixedTime(new Date(2026, 9, 31, 10, 0));
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
-      await page.waitForSelector(".ax-today");
-      assert.match(await page.textContent(".ax-today"), /1-chorak 29\.10 da tugadi/);
-      // tekshiruv ro'yxati: kompyuterda jadval, telefonda kartochkalar; raqam — «qo'yilgan / jami»
-      const chk = vp.width > 820 ? ".ax-ctbl" : ".ax-cpl";
-      if (await page.locator(".ax-today [data-axfix]").count()) { assert.ok(await page.isVisible(chk)); assert.match(await page.textContent(chk), /\d+ \/ \d+/); }
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      // «Bugun»: «1-chorakni yopish» kartasi + «Sinflar bo'yicha tayyorlik» (bugun-tatil.js; oldingi alohida eslatma kartasi o'rnida)
+      await page.waitForSelector(".bt-close");
+      assert.match(await page.textContent(".bt-close"), /29\.10 da tugadi/);
+      // tayyorlik: kompyuterda jadval, telefonda kartochkalar; raqam — «qo'yilgan / jami»
+      const chk = vp.width > 820 ? ".bt-tbl" : ".bt-ready";
+      assert.ok(await page.isVisible(chk)); assert.match(await page.textContent(chk), /\d+ \/ \d+/);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "yonga chiqmaydi");
       assert.equal(await page.evaluate(() => ARX.lockedQ(1)), false);
       const d0 = await page.evaluate(() => { D.web.past = "all"; D.settings.protect.enabled = false; const c = D.classes[0]; return c.dates.find((d) => d < "2026-10-29" && !isNoLesson(c, d) && !c.students[0].marks[d]); });
@@ -3158,7 +3159,7 @@ test("chorak arxivi: tugagan chorak qulflanadi, vaqtincha ochiladi, «Bugun» es
     await page.clock.setFixedTime(new Date(2026, 10, 4, 10, 0));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     assert.equal(await page.evaluate(() => [ARX.lockedQ(1), D.web.arx.q[1].by].join()), "true,auto");
     const r = await page.evaluate(() => { const c = D.classes[0], s = c.students[0], d = c.dates.find((x) => x < "2026-10-29" && s.marks[x]), old = s.marks[d];
       const rep = mergeImport({name: c.name, subject: c.subject, dates: [d], students: [{name: s.name, marks: {[d]: "2"}, scores: {}}], works: [], skipped: {}}, true);
@@ -3175,7 +3176,7 @@ test("Bugun: BSB/CHSB tahlili qilinmagan sinflar va tahlil sahifasini ochish", a
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const r = await page.evaluate(() => {
       const t = todayIso(), dd = (k) => iso(addDays(pdate(t), k));
       D.settings.quarters = [[dd(-40), dd(20)], null, null, null];
@@ -3215,7 +3216,7 @@ test("BSB/CHSB ustuni ochilsa «BSB tahlili»da shu sana uchun tahlil ochiladi (
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const d = await page.evaluate(() => {
       const t = todayIso(), dd = (k) => iso(addDays(pdate(t), k));
       D.settings.quarters = [[dd(-40), dd(20)], null, null, null];
@@ -3268,7 +3269,7 @@ test("Bo'sh varaq v3: 5 xil tur, jadval dizayni, kelgusi kunlar, BSB ballari, 36
       await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       // 36 va 18 o'quvchili sinflar (Akmal: test 36 va 18 o'quvchi bilan)
       await page.evaluate(() => { const grow = (c, n) => { for (let i = c.students.length; i < n; i++) c.students.push({name: `Qo'shimcha O'quvchi ${i + 1}`, marks: {}, scores: {}}); c.students.length = n; };
         grow(D.classes[0], 36); grow(D.classes[1], 18); save(); });
@@ -3349,7 +3350,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
       await page.clock.setFixedTime(new Date(2026, 10, 4, 10, 0));   // chorshanba
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       // 36 o'quvchili pullik guruh (Du·Ch·Ju) va 18 o'quvchili to'garak (Se·Pa); 2 noyabr — 30 kishi keldi
       await page.evaluate(() => {
         const mk = (n, p) => Array.from({length: n}, (_, i) => ({id: p + i, name: `${p} O'quvchi ${i + 1}`, marks: i < 30 ? {"2026-11-02": "ot"} : {}, joined: "2026-09-01"}));
@@ -3385,7 +3386,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
       assert.match(await page.textContent(".g-tpc"), /1-dars \/ 4.*Tanishuv/);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
       // saqlanib, qayta yuklangandan keyin ham bor
-      await page.reload(); await page.waitForSelector("text=Xayrli");
+      await page.reload(); await page.waitForSelector(".bn-hd");
       assert.equal(await page.evaluate(() => { const c = D.classes.find((x) => x.name === "Katta guruh"); return [c.gplan.topics.length, c.gplan.start, JSON.stringify(c.gtop)].join("|"); }), '3|2026-11-02|{"2026-11-04":{"off":true}}');
       // 18 o'quvchili to'garak: «Boshqa mavzu» kuni rejadan mavzu olmaydi
       await page.click(`${name === "telefon" ? ".tabbar" : ".side"} [data-go=groups]`);
@@ -3414,7 +3415,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
       await page.clock.setFixedTime(new Date(2026, 10, 4, 10, 0));   // 4-noyabr: 1-chorak tugagan
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       // 36 o'quvchili pullik guruh (Du·Ch·Ju) va 18 o'quvchili to'garak (Se·Pa); 1-chorak 2-sentabr — 31-oktabr
       await page.evaluate(() => {
         D.settings.quarters = [["2026-09-02", "2026-10-31"], ["2026-11-09", "2026-12-27"], ["2027-01-11", "2027-03-20"], ["2027-03-30", "2027-05-25"]];
@@ -3517,7 +3518,7 @@ test("Umumiy Telegram bot: bitta tugma bilan ulanish, zaxira va kunlik hisobot s
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     // ikki sinf: 36 va 18 o'quvchi, bugun ikkalasida dars o'tgan
     await page.evaluate(() => {
       const t = todayIso(); D.settings.method_weekday = null;
@@ -3839,7 +3840,7 @@ test("Umumiy bot (Google serveri): bitta tugma, zaxira fayli, guruh va kunlik hi
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => {
       const t = todayIso(); D.settings.method_weekday = null;
       for (const x of D.classes) x.dates = x.dates.filter((d) => d !== t);
@@ -3906,7 +3907,7 @@ test("Alifbo: yangi alifbo ekran, Excel va Telegram'da, ma'lumot o'zgarmaydi (al
       await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       // 36 va 18 o'quvchi bilan
       await page.evaluate(() => { const add = (c, n) => { const b = c.students; for (let i = 0; b.length < n; i++) b.push({...JSON.parse(JSON.stringify(b[i % 14])), name: `Shodmonov Cho'lpon ${i}`}); }; add(D.classes[0], 36); add(D.classes[1], 18); save(); render(); });
       await page.click(`${viewport.width < 800 ? ".tabbar" : ".side"} [data-go=settings]`); await page.click('[data-sec="3"]');
@@ -3950,7 +3951,7 @@ test("BSB tahlili: «Taxminiy ball» eMaktab jami balini savollar bo'yicha bo'la
       const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       await page.evaluate((n) => {
         D.settings.protect.enabled = false;
         const c = D.classes[0];
@@ -4004,7 +4005,7 @@ test("CHSB testi: «Taxminiy ball» eMaktab balini to'g'ri/noto'g'ri javoblarga 
       const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       await page.evaluate((n) => {
         D.settings.protect.enabled = false;
         const c = D.classes[0], w = c.works.find((x) => x.type === "chsb");
@@ -4054,7 +4055,7 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
       await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       await page.evaluate((n) => { const c = D.classes[0]; while (c.students.length < n) c.students.push({id: "sm" + c.students.length, name: `Sinov O'quvchi ${c.students.length + 1}`, marks: {}, scores: {}});
         c.students.length = n; c.students.forEach((s) => s.scores = {}); c.works = []; c.analyses = []; S.ci = 0; save(); go("journal"); }, n);
       // jurnal tablari: Kundalik · Umumiy · Summativ tahlili · Yillik (eski «BSB tahlili» / «CHSB testi» yo'q)
@@ -4153,7 +4154,7 @@ test("Hisobotlar tuzatishlari (2026-11-07): Loyiha belgisi, qisqa izohlar, jami 
     await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     // 36 o'quvchi, BSB 20 + Loyiha 30 + CHSB 40; ikkinchi o'quvchida Loyiha balli yo'q, birinchisida past natija
     await page.evaluate(() => {
       const c = D.classes[0], [a] = qRange(1), d = c.dates.filter((x) => x >= a);
@@ -4187,5 +4188,50 @@ test("Hisobotlar tuzatishlari (2026-11-07): Loyiha belgisi, qisqa izohlar, jami 
     assert.ok((await page.textContent(".hb-kpis")).includes("Davomat"));
     assert.ok(await page.$("[data-stxlsx]"));
     assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("Bugun: chorak tugagandan keyin — yopish, ta'til, yangi chorak (bugun-tatil.js)", async () => {
+  const browser = await chromium.launch();
+  try {
+    for (const [w, tel] of [[1300, false], [390, true]]) {
+      for (const [day, k] of [[31, "grace"], [3, "arx"], [5, "new"]]) {
+        const page = await browser.newPage({viewport: {width: w, height: 900}});
+        const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+        await page.clock.setFixedTime(new Date(2026, k === "grace" ? 9 : 10, day, 9, 0));   // 1-chorak 29.10 da tugaydi, 02.11 da arxivlanadi, 2-chorak 05.11 dan
+        await page.goto(APP);
+        const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+        await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+        await page.evaluate(() => { ARX.tick(); render(); });
+        assert.equal(await page.evaluate(() => BTL.mode(todayIso()).k), k);
+        if (k === "grace") {
+          await page.waitForSelector(".bt-close");
+          assert.equal(await page.locator(".ax-today").count(), 0, "alohida arxiv kartasi chiqmaydi");
+          assert.match(await page.locator(".bt-close h2").textContent(), /1-chorakni yopish/);
+          const n = await page.evaluate(() => D.classes.filter((c) => !isGrp(c) && c.students.length).length);
+          assert.equal(await page.locator(tel ? ".bt-cr" : ".bt-tbl tbody tr").count(), n);
+          await page.click("[data-btlt=cb]");
+          assert.equal(await page.locator("[data-btlt=cb].on").count(), 1);
+          assert.equal(await page.locator(".bn-wk").count(), 0, "ta'tilda haftalik xulosa yo'q");
+        } else if (k === "arx") {
+          await page.waitForSelector(".bt-vac");
+          assert.match(await page.locator(".bt-vac h2").textContent(), /2-chorak 2 kundan keyin/);
+          assert.ok(await page.locator(".bt-pi").count() >= 5);
+          await page.waitForSelector(".bt-lock");
+          assert.equal(await page.locator(".bt-lock [data-axopen='1']").count(), 1);
+          if (tel) { await page.click("[data-btab=res]"); await page.waitForSelector(".ba-x"); }
+          else assert.equal(await page.locator(".ba-x").count(), 1);
+        } else {
+          await page.waitForSelector(".bt-strip");
+          if (tel) await page.click("[data-btab=cls]");
+          assert.ok(await page.locator(".bt-was").count() > 0, "o'tgan chorak qiymatlari");
+          await page.click("[data-btlx]");
+          assert.equal(await page.locator(".bt-strip").count(), 0);
+        }
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
+        assert.deepEqual(errors, []);
+        await page.close();
+      }
+    }
   } finally { await browser.close(); }
 });
