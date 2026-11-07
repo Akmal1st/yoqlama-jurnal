@@ -1955,9 +1955,15 @@ class Store:
         cls.setdefault("weekdays", None)   # jurnalning o'z dars kunlari (0=Du … 6=Ya); None — umumiy sozlama
         cls.setdefault("analyses", [])  # saqlangan BSB tahlillari: {id, title, date, q, max[], rows{ism: {in, pts[]}}}
         cls.setdefault("works", [])     # summativ ishlar (BSB / CHSB): {id, type, date, max, title}
-        studs = cls["students"]
+        cls["students"] = studs = [s for s in (cls.get("students") or []) if isinstance(s, dict)]
+        cls["dates"] = [d for d in (cls.get("dates") or []) if isinstance(d, str)]
         for s in studs:
             s.setdefault("scores", {})  # {ish id: ball | yo'qlama belgisi}
+            s["name"] = str(s.get("name") or "?")
+            # belgi doim matn: faylda 8 (son) yoki null kelsa dastur ochilmay, «buzilgan fayl» deb zaxiraga o'tib ketardi
+            mk = s.get("marks") if isinstance(s.get("marks"), dict) else {}
+            s["marks"] = {d: (str(int(m)) if isinstance(m, float) and m.is_integer() else str(m)) for d, m in mk.items()
+                          if isinstance(m, str) or (isinstance(m, (int, float)) and not isinstance(m, bool))}
         for d in cls["dates"]:
             if studs and all(s["marks"].get(d) == "x" for s in studs) and d not in cls["extra_x"]:
                 cls["extra_x"].append(d)

@@ -197,7 +197,8 @@ def normalize(d):
             s["name"] = str(s.get("name") or "?")
             if not isinstance(s.get("marks"), dict):
                 s["marks"] = {}
-            s["marks"] = {k: str(v) for k, v in s["marks"].items() if isinstance(k, str) and v not in (None, "")}
+            s["marks"] = {k: str(int(v)) if isinstance(v, float) and v.is_integer() else str(v)       # 7.0 → "7" (baho bo'lib o'qiladi)
+                          for k, v in s["marks"].items() if isinstance(k, str) and v not in (None, "")}
             if not isinstance(s.get("scores"), dict):
                 s["scores"] = {}
             s.setdefault("id", new_sid())

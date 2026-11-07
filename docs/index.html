@@ -63,7 +63,7 @@
 <script src="bugun-arxiv.js"></script>
 <script src="bugun-tatil.js?v=199"></script>
 <script src="bugun.js?v=203"></script>
-<script src="funksiyalar.js"></script>
+<script src="funksiyalar.js?v=204"></script>
 <script src="sozlamalar.js?v=203"></script>
 <script src="mezon.js?v=193"></script>
 <script src="kunlik.js?v=193"></script>
@@ -71,7 +71,7 @@
 <script src="tg-umumiy.js"></script>
 <script src="arxiv.js?v=199"></script>
 <script src="emk-bir.js?v=197"></script>
-<script src="emk-server.js?v=198"></script>
+<script src="emk-server.js?v=204"></script>
 <script src="boshlash.js?v=194"></script>
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=193"></script>
@@ -363,6 +363,8 @@ function normalize(d) {
       s = Object.assign({marks: {}}, s); s.name = String(s.name || "?");
       if (!s.id) s.id = newSid();
       if (!s.marks || typeof s.marks !== "object" || Array.isArray(s.marks)) s.marks = {};
+      // belgi doim matn: boshqa dastur yoki qo'lda tahrirlangan faylda 8 (son) yoki null kelsa ilova ochilmay qolardi (m.endsWith)
+      for (const [d, v] of Object.entries(s.marks)) { if (typeof v === "number" && isFinite(v)) s.marks[d] = String(v); else if (typeof v !== "string") delete s.marks[d]; }
       return s;
     });
     for (const s of c.students_off) if (s && typeof s === "object" && !s.id) s.id = newSid();
@@ -480,7 +482,9 @@ async function idbFlush() {
     // eski nusxalarni tozalash — kuniga bir marta yetadi
     if (IDB.pruned !== day) {
       const keys = (await idbReq("snap", "readonly", (st) => st.getAllKeys())) || [];
-      const old = keys.sort().slice(0, Math.max(0, keys.length - SNAP_DAYS));
+      // oxirgi SNAP_DAYS KUN saqlanadi: «tiklashdan oldingi» nusxalar (kalit oxirida «~») kunlar sonini kamaytirmaydi
+      const days = [...new Set(keys.map((k) => String(k).slice(0, 10)))].sort(), keep = new Set(days.slice(-SNAP_DAYS));
+      const old = keys.filter((k) => !keep.has(String(k).slice(0, 10)));
       if (old.length) await idbReq("snap", "readwrite", (st) => old.forEach((k) => st.delete(k)));
       IDB.pruned = day;
     }
@@ -591,6 +595,9 @@ const pdate = (s) => { const [y, m, d] = s.split("-").map(Number); return new Da
 const pyWd = (s) => (pdate(s).getDay() + 6) % 7;
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const todayIso = () => iso(new Date());
+// o'zgarishlar tarixi va eslatmalar vaqti — MAHALLIY vaqt (kompyuter dasturi ham shunday yozadi). toISOString() UTC beradi:
+// Toshkentda 5 soat orqada ko'rinardi va kompyuter dasturi yozganlari bilan aralashib ketardi
+const nowLocal = (n = 19) => { const d = new Date(); return `${iso(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`.slice(0, n); };
 const fmt = (s) => ISO_D.test(s) ? `${s.slice(8)}.${s.slice(5, 7)}.${s.slice(0, 4)}` : esc(String(s).slice(0, 12));   // HTMLga to'g'ridan-to'g'ri tushadi: noto'g'ri sana hech qachon markup bo'lmaydi
 const longDate = (s) => `${WD_FULL[pyWd(s)]}, ${+s.slice(8)}-${MONTHS_GEN[+s.slice(5, 7) - 1]}`;
 const label = (c) => c.subject ? `${c.name} · ${c.subject}` : c.name;
@@ -1411,7 +1418,7 @@ async function unlock() {
 function log(c, s, date, old, nw) {
   if (!old) return;
   const lg = D.changelog = D.changelog || [];
-  lg.push({t: new Date().toISOString().slice(0, 19), cls: label(c), student: s.name, sid: s.id, date, old, new: nw, kind: nw ? "edit" : "clear"});
+  lg.push({t: nowLocal(), cls: label(c), student: s.name, sid: s.id, date, old, new: nw, kind: nw ? "edit" : "clear"});
   if (lg.length > 5000) lg.splice(0, lg.length - 5000);
 }
 /* bitta katakka belgi: faqat bugungi kun; mavjud baho — qulf ochiq bo'lsa */
@@ -2554,7 +2561,7 @@ async function settingsAction(a, i) {
     const c = D.classes[i]; const n = c.students.reduce((x, s) => x + Object.keys(s.marks).length, 0);
     if (n && isLocked() && !await unlock()) return;
     if (await confirmBox("Sinfni olib tashlash", `«${label(c)}» sinfi olib tashlansinmi? ${c.students.length} o'quvchi va ${n} ta baho/yo'qlama o'chadi.`, "Olib tashlash")) {
-      if (n) { D.changelog = D.changelog || []; D.changelog.push({t: new Date().toISOString().slice(0, 19), cls: label(c), student: "(butun sinf)", date: "", old: `${n} ta belgi`, new: "", kind: "del_class"}); }
+      if (n) { D.changelog = D.changelog || []; D.changelog.push({t: nowLocal(), cls: label(c), student: "(butun sinf)", date: "", old: `${n} ta belgi`, new: "", kind: "del_class"}); }
       D.classes.splice(i, 1); S.ci = 0; save(); render();
     }
   } else if (a === "genq") {
@@ -2711,7 +2718,7 @@ async function renameStudent(ci, si) {
 /* ───────── o'quvchini faolsizlantirish: jurnal, hisobot va hisob-kitoblardan yashiriladi, ma'lumoti saqlanadi ─────────
    Faolsizlar c.students_off da turadi (kompyuter dasturi bu kalitni bilmaydi, shuning uchun u yerda ham ko'rinmaydi). */
 const nMarks = (s) => Object.keys(s.marks).length + Object.keys(s.scores || {}).length;
-const offLog = (c, s, kind) => (D.changelog = D.changelog || []).push({t: new Date().toISOString().slice(0, 19), cls: label(c), student: s.name, date: "", old: kind === "off" ? "faol" : "faolsiz", new: kind === "off" ? "faolsiz" : "faol", kind: kind === "off" ? "deactivate" : "activate"});
+const offLog = (c, s, kind) => (D.changelog = D.changelog || []).push({t: nowLocal(), cls: label(c), student: s.name, date: "", old: kind === "off" ? "faol" : "faolsiz", new: kind === "off" ? "faolsiz" : "faol", kind: kind === "off" ? "deactivate" : "activate"});
 function deactivate(c, idx, join = false) {
   const items = idx.slice().sort((a, b) => a - b).map((i) => [i, c.students[i]]);
   for (const [i, st] of items) { st.off = {at: todayIso(), prev: i ? c.students[i - 1].name : null}; c.students_off.push(st); offLog(c, st, "off"); }
@@ -2787,7 +2794,7 @@ function studentsDialog(ci, hint = [], why = "") {
       const st = off[+b.dataset.del], n = nMarks(st); close();
       if (n && isLocked() && !await unlock()) return;
       if (!await confirmBox("Butunlay o'chirish", `«${st.name}» butunlay o'chirilsinmi?${n ? `\nUning ${n} ta bahosi/yo'qlamasi ham o'chadi va qaytarib bo'lmaydi.` : ""}`, "O'chirish")) { studentsDialog(ci); return; }
-      if (n) (D.changelog = D.changelog || []).push({t: new Date().toISOString().slice(0, 19), cls: label(c), student: st.name, date: "", old: `${n} ta belgi`, new: "", kind: "del_student"});
+      if (n) (D.changelog = D.changelog || []).push({t: nowLocal(), cls: label(c), student: st.name, date: "", old: `${n} ta belgi`, new: "", kind: "del_student"});
       c.students_off = c.students_off.filter((x) => x !== st); save(); render(); studentsDialog(ci);
     });
   });
@@ -2844,7 +2851,7 @@ function logScore(c, s, key, old, nw) {
   if (old === "" || old === undefined) return;
   const w = c.works.find((x) => x.id === key), lg = D.changelog = D.changelog || [];
   const wt = w ? wTypeName(w) : ({exam: "IMTIHON", "final:y": "YILLIK", "final:f": "YAKUNIY"}[key] || (key.startsWith("final:q") ? `${key.slice(7)}-CHORAK` : key));
-  lg.push({t: new Date().toISOString().slice(0, 19), cls: label(c), student: s.name, sid: s.id, date: w ? w.date : "", old, new: nw, kind: nw === "" ? "clear" : "edit", work: key, wt});
+  lg.push({t: nowLocal(), cls: label(c), student: s.name, sid: s.id, date: w ? w.date : "", old, new: nw, kind: nw === "" ? "clear" : "edit", work: key, wt});
 }
 async function putScore(c, s, key, nv, batch) {
   const sc = s.scores = s.scores || {}, old = sc[key] ?? "";
@@ -2867,7 +2874,7 @@ async function revertEntry(e) {
   if (wid ? ARX.scoreLocked(c, wid) : ARX.dateLocked(e.date, c)) return ARX.deny(wid ? ARX.scoreQ(c, wid) : quarterOf(e.date));
   if (isLocked() && !await unlock()) return false;
   if (e.old !== "") b[key] = e.old; else delete b[key];
-  (D.changelog = D.changelog || []).push({t: new Date().toISOString().slice(0, 19), cls: label(c), student: s.name, sid: s.id, date: e.date, old: cur, new: e.old, kind: "revert", ...(wid ? {work: wid, wt: e.wt} : {})});
+  (D.changelog = D.changelog || []).push({t: nowLocal(), cls: label(c), student: s.name, sid: s.id, date: e.date, old: cur, new: e.old, kind: "revert", ...(wid ? {work: wid, wt: e.wt} : {})});
   save(); toast("Baho qaytarildi"); return true;
 }
 const shownVal = (e, v) => e.work ? fmtNum(v) : /activate/.test(e.kind) ? v : (displayMark(v) || v);
@@ -4252,7 +4259,7 @@ function studentCard(ci, name, tab = "sum") {
     mm.querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => again(b.dataset.tab));
     $("[data-star]", mm).onclick = () => { s.star = !s.star; save(); render(); again(tab); };
     mm.querySelectorAll("[data-gp]").forEach((b) => b.onclick = () => { S.gper = b.dataset.gp; again("grow"); });
-    const an = $("[data-addn]", mm); if (an) { const inp = $("#nt", mm); const add = () => { const v = inp.value.trim(); if (!v) return; (s.notes = s.notes || []).push({t: new Date().toISOString().slice(0, 16), text: v}); save(); again("notes"); }; an.onclick = add; inp.onkeydown = (e) => { if (e.key === "Enter") add(); }; }
+    const an = $("[data-addn]", mm); if (an) { const inp = $("#nt", mm); const add = () => { const v = inp.value.trim(); if (!v) return; (s.notes = s.notes || []).push({t: nowLocal(16), text: v}); save(); again("notes"); }; an.onclick = add; inp.onkeydown = (e) => { if (e.key === "Enter") add(); }; }
     mm.querySelectorAll("[data-deln]").forEach((b) => b.onclick = async () => { if (!await confirmBox("Eslatmani o'chirish", "Eslatma o'chirilsinmi?", "O'chirish")) { again("notes"); return; } s.notes.splice(+b.dataset.deln, 1); save(); again("notes"); });
     const pk = $("#pk", mm); if (pk) pk.onchange = () => { S.pkind = pk.value; again("msg"); };
     mm.querySelectorAll("[data-pl]").forEach((b) => b.onclick = () => { S.plang = b.dataset.pl; again("msg"); });
@@ -4485,7 +4492,7 @@ function rollover() {
       if (resetQ) D.settings.quarters = [null, null, null, null];
       if (D.web.arx) { D.web.arx.q = {}; D.web.arx.off = []; D.web.arx.log = []; }   // yangi o'quv yili — chorak arxivi noldan
       D.web.gen = []; UNDO.length = 0;
-      (D.changelog = D.changelog || []).push({t: new Date().toISOString().slice(0, 19), cls: "(o'quv yili)", student: "(yangi yilga o'tkazish)", date: "", old: lbl, new: `${items.length} jurnal → ${created.length} yangi`, kind: "rollover"});
+      (D.changelog = D.changelog || []).push({t: nowLocal(), cls: "(o'quv yili)", student: "(yangi yilga o'tkazish)", date: "", old: lbl, new: `${items.length} jurnal → ${created.length} yangi`, kind: "rollover"});
       save(); S.ci = 0; S.sec = resetQ ? 1 : 5; go("settings"); toast(`Arxiv yuklab olindi. ${created.length} ta yangi jurnal ochildi${resetQ ? " — endi choraklarni kiriting" : ""}`);
     };
   });

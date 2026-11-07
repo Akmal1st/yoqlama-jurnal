@@ -320,3 +320,17 @@ def test_html_escaping(bot):
     B.process(1, cb("j:ws"))
     B.process(1, cb("j:c:0"))
     assert "&lt;script&gt;" in last_text(B) and re.search(r"&lt;b&gt;9-V", last_text(B))
+
+
+def test_stale_buttons_do_not_crash(bot):
+    """Eski (ro'yxat o'zgargandan keyingi) yoki buzilgan tugma raqami botda «Xato: IndexError» chiqarmaydi."""
+    B = bot
+    B.process(1, msg("/start"))
+    B.CATALOG[1] = [{"name": "6-A", "journals": [{"subject": "Matematika", "url": "/j/1"}]}]
+    for data in ("sel:t:9", "sel:t:abc", "rj:7", "rj:x", "rd:j:5", "rd:t:5"):
+        n = len(B._calls)
+        B.process(1, cb(data))
+        texts = [p.get("text", "") for m, p, _ in B._calls[n:] if m in ("sendMessage", "editMessageText")]
+        assert not any(t.startswith("Xato:") for t in texts), (data, texts)
+    assert B.PICK.get(1, set()) == set()
+    assert B.idx("2", 3) == 2 and B.idx("3", 3) is None and B.idx("-1", 3) is None and B.idx("x", 3) is None

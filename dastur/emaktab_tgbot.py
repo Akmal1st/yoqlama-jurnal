@@ -591,12 +591,22 @@ def picker(chat, mid=None, note=""):
     return show(chat, note + "📚 Mening sinflarim\nKerakli sinflarni belgilang va «Saqlash» ni bosing:", kb(rows), mid)
 
 
+def idx(v, n):
+    """Tugmadagi tartib raqami: butun son va 0 <= i < n bo'lsa — i, aks holda None (eski yoki buzilgan tugma bot to'xtatmasin)."""
+    try:
+        i = int(v)
+    except (TypeError, ValueError):
+        return None
+    return i if 0 <= i < n else None
+
+
 def on_pick(chat, mid, arg):
     classes = CATALOG.get(chat) or []
     pick = PICK.setdefault(chat, set())
     if arg.startswith("t:"):
-        i = int(arg[2:])
-        pick.symmetric_difference_update({i})
+        i = idx(arg[2:], len(classes))
+        if i is not None:
+            pick.symmetric_difference_update({i})
     elif arg == "all":
         pick.update(range(len(classes)))
     elif arg == "none":
@@ -814,7 +824,10 @@ def del_menu(chat, arg, mid=None):
                         kb([[(lb[:40], f"rd:j:{i}")] for i, lb in enumerate(labels)] + [[("◀ Orqaga", "rf:back")]]), mid)
         act, val = "j", "0"
     if act == "j":
-        r["dl"] = labels[int(val)]
+        i = idx(val, len(labels))
+        if i is None:                                          # eski tugma (hisobot o'zgargan)
+            return show(chat, "Hisobot eskirgan — qaytadan tanlang.", kb([[(B_REPORT, "m:report")]]), mid)
+        r["dl"] = labels[i]
         r["dset"] = set(hid.get(r["dl"], []))
     lb = r.get("dl")
     if lb not in book.orig:
@@ -822,7 +835,9 @@ def del_menu(chat, arg, mid=None):
     names = [s["name"] for s in book.orig[lb]]
     dset = r.setdefault("dset", set())
     if act == "t":
-        dset.symmetric_difference_update({names[int(val)]})
+        i = idx(val, len(names))
+        if i is not None:
+            dset.symmetric_difference_update({names[i]})
     elif act == "none":
         dset.clear()
     elif act == "ok":
@@ -925,8 +940,8 @@ def do_sheets(chat, arg, mid=None):
             with REPORT_LOCK:
                 names = [x["name"] for x in book.rows(cls, lo, hi, q)[0] if x["risk"]]
         else:
-            i = int(arg)
-            names = [cls["students"][i]["name"]] if i < len(cls["students"]) else []
+            i = idx(arg, len(cls["students"]))
+            names = [] if i is None else [cls["students"][i]["name"]]
         if not names:
             say(chat, f"{book.label(cls)}: varaq uchun o'quvchi yo'q" + (" (xavf ostida hech kim yo'q ✅)." if arg == "risk" else "."))
             continue
@@ -1207,7 +1222,10 @@ def handle_cb(cq):
     if kind == "ex":
         return do_export(chat, arg if arg in ("1", "2", "3", "4") else None, mid)
     if kind == "rj":
-        REP.setdefault(chat, {})["j"] = list(range(len(cf["sel"]))) if arg == "all" else [int(arg)]
+        i = idx(arg, len(cf["sel"]))
+        if arg != "all" and i is None:
+            return show(chat, "Ro'yxat o'zgargan — qaytadan tanlang.", kb([[(B_REPORT, "m:report")]]), mid)
+        REP.setdefault(chat, {})["j"] = list(range(len(cf["sel"]))) if arg == "all" else [i]
         return period_menu(chat, mid)
     if kind == "rp":
         return build(chat, arg if arg in dict(PERIODS) else "cur", mid)
