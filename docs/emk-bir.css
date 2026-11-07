@@ -34,10 +34,23 @@ html[data-theme="dark"] .ek-ri>span.ek-w{color:#f5b454}
 .ek-form label{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:13px}
 .ek-safe{display:flex;gap:8px;font-size:12.5px;color:var(--muted);background:var(--alt);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
 .ek-safe b{color:var(--text)}
-.ek-cap{width:180px;max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fff;align-self:flex-start}
+.ek-cap{width:240px;max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fff;align-self:flex-start}
 .ek-alt{align-self:center;font-size:13px;border:0!important;background:none!important;box-shadow:none!important;color:var(--acc)!important;text-decoration:underline}
 .ek-prog{height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
 .ek-prog i{display:block;height:100%;width:0;background:var(--acc);transition:width .35s}
 .ek-sh .ek-sub{white-space:pre-line}
 .ek-acc{display:flex;align-items:center;gap:10px;padding:10px 12px;flex-wrap:wrap}
 @media (prefers-reduced-motion:reduce){.ek-prog i{transition:none}}
+
+/* eMaktab oynasi: ikki alohida bo'lim — «Login va parol» / «Xatcho'p» (tasdiqlangan maket, 2026-11-07, ikki-bolim-maket.html) */
+.ek-top{display:flex}
+.ek-top button{flex:1;min-height:48px;padding:6px;display:flex;flex-direction:column;align-items:center;gap:1px;font-weight:800}
+.ek-top button small{font-weight:600;font-size:11.5px;color:var(--muted)}
+.ek-sub2{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.ek-sub2 button{border:0;background:none;padding:7px 10px;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.ek-sub2 button.on{color:var(--acc);border-bottom-color:var(--acc)}
+.ek-warn{display:flex;gap:10px;background:color-mix(in srgb,#f5b454 16%,var(--base));border:1px solid color-mix(in srgb,#a15c07 35%,transparent);border-radius:12px;padding:11px 12px;font-size:13px}
+.ek-warn b{display:block;color:#a15c07}
+html[data-theme="dark"] .ek-warn b{color:#f5b454}
+.ek-wide{width:100%}
+.ek-foot{border-top:1px solid var(--line);padding-top:10px}

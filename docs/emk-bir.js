@@ -28,15 +28,8 @@ const EMK1 = (() => {
       <button class="btn btn-primary ek-go" data-ekgo>🔄 eMaktab'dan yangilash</button></section>`;
   }
   function bind(m) { m.querySelectorAll("[data-ekgo]").forEach((b) => b.onclick = start); }
-  // ilovaning o'zidan (server orqali, emk-server.js) — asosiy yo'l (Akmal, 2026-11-06). Server bo'lmasa: xatcho'p qo'shilgan bo'lsa —
-  // eMaktab ochiladi, u yerda xatcho'p bosiladi; hali qo'shilmagan bo'lsa — yo'riqnoma
-  function start() {
-    if (typeof EMKS !== "undefined" && EMKS.on()) { EMKS.sync(); return; }
-    if (!D.web.emk_bm) { emkDialog(); return; }
-    let w = null; try { w = window.open("https://schools.emaktab.uz/v2/myclasses", "emaktab"); } catch (e) { w = null; }
-    if (!w) { toast("eMaktab oynasi ochilmadi — emaktab.uz ni o'zingiz oching va «📒 Jurnal» xatcho'pini bosing"); return; }
-    toast("eMaktab ochildi: u yerda «📒 Jurnal» xatcho'pini bosing");
-  }
+  // eMaktab oynasi ochiladi: «Login va parol» yoki «Xatcho'p» bo'limi (oxirgi ishlatilgani) — Akmal, 2026-11-07
+  function start() { emkDialog(); }
 
   /* ───────── import ───────── */
   const k2 = (x) => `${clsKey(x.name)}|${clsKey(x.subject)}`;

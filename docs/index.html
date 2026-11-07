@@ -31,7 +31,7 @@
 <link rel="stylesheet" href="arxiv.css">
 <link rel="stylesheet" href="arxiv-tekshir.css">
 <link rel="stylesheet" href="ikon.css">
-<link rel="stylesheet" href="emk-bir.css">
+<link rel="stylesheet" href="emk-bir.css?v=194">
 <link rel="stylesheet" href="boshlash.css">
 <link rel="stylesheet" href="alifbo.css">
 <link rel="stylesheet" href="taxminiy.css?v=193">
@@ -61,9 +61,9 @@
 <script src="pdf-tg.js"></script>
 <script src="tg-umumiy.js"></script>
 <script src="arxiv.js?v=193"></script>
-<script src="emk-bir.js"></script>
-<script src="emk-server.js"></script>
-<script src="boshlash.js"></script>
+<script src="emk-bir.js?v=194"></script>
+<script src="emk-server.js?v=194"></script>
+<script src="boshlash.js?v=194"></script>
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=193"></script>
 <script>
@@ -4019,9 +4019,18 @@ function fontDialog() {
     };
   });
 }
-function emkDialog(tab = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? "phone" : "pc") {
+// eMaktab oynasi: ikki alohida bo'lim — «Login va parol» (EMKS, server orqali) va «Xatcho'p» (Kompyuter / Telefon / Fayl).
+// Biri ikkinchisiga o'zi o'tmaydi; oyna oxirgi ishlatilgan bo'limda ochiladi (tasdiqlangan maket, Akmal 2026-11-07).
+// emkDialog("pw" | "bm", tab) — eski chaqiruvlar uchun emkDialog("pc" | "phone" | "file") ham ishlaydi (xatcho'p bo'limi).
+function emkDialog(top, tab) {
+  if (["pc", "phone", "file"].includes(top)) { tab = top; top = "bm"; }
+  tab = tab || (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? "phone" : "pc");
+  const srv = typeof EMKS !== "undefined" && EMKS.on() && !EMKS.old();
+  if (!srv) top = "bm";
+  else if (top !== "pw" && top !== "bm") { try { top = localStorage.getItem("yoqlama_emk_top"); } catch (e) { top = null; } if (top !== "bm") top = "pw"; }
+  try { if (srv) localStorage.setItem("yoqlama_emk_top", top); } catch (e) { /* */ }
   const web = /^https?:$/.test(location.protocol);
-  const T = [["pc", "💻 Kompyuter"], ["phone", "📱 Telefon"], ["file", "📂 Fayl orqali"]];
+  const T = [["pc", "Kompyuter"], ["phone", "Telefon"], ["file", "Fayl"]];
   const body = {
     pc: `<div class="vcol" style="gap:10px">
       <div><b>1-usul · xatcho'p.</b> Quyidagi tugmani sichqoncha bilan brauzerning <b>xatcho'plar paneliga</b> sudrab olib boring (panel ko'rinmasa: Ctrl+Shift+B).</div>
@@ -4042,21 +4051,22 @@ function emkDialog(tab = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)
       <div>• xatcho'p saqlagan <b>emaktab_jurnallar.json</b> fayli;<br>• emaktab'dan yuklab olingan <b>«Fan jurnali» Excel</b> fayllari (.xls / .xlsx).</div>
       <div><button class="btn btn-primary" data-pick>📂 Fayllarni tanlash</button></div>
       <div class="muted">Kompyuterda fayllarni ilova oynasiga sichqoncha bilan sudrab tashlasangiz ham bo'ladi.</div></div>`};
-  const srv = typeof EMKS !== "undefined" && EMKS.on();
-  modal(`<h2>emaktab.uz saytidan import</h2>
-    ${srv ? `<div class="card ek-acc"><span class="ek-ic" aria-hidden="true">e</span><span class="ek-tx"><b>Ilovaning o'zidan</b><small>${EMKS.linked() ? `Hisob ulangan: ${esc(EMKS.user())}` : "Login va parol bilan, xatcho'psiz — telefonda ham"}</small></span>
-      ${EMKS.linked() ? `<button class="btn btn-sm" data-ekun>Uzish</button>` : ""}<button class="btn btn-sm btn-primary" data-eksync>🔄 Yangilash</button></div>
-      <div class="muted">Yoki xatcho'p orqali:</div>` : ""}
+  const open = `<button class="btn btn-primary" data-emopen>eMaktab'ni ochish</button>`;
+  modal(`<h2>eMaktab'dan olish</h2>
+    ${srv ? `<div class="seg ek-top">${[["pw", "Login va parol", "ilovaning o'zida"], ["bm", "Xatcho'p", "eMaktab sahifasida"]].map(([k, n, d]) =>
+      `<button class="${k === top ? "on" : ""}" data-ektop="${k}">${n}<small>${d}</small></button>`).join("")}</div>` : ""}
+    ${top === "pw" ? EMKS.pane() : `
     ${web ? "" : `<div class="card warnbox">Xatcho'p va konsol usuli faqat ilova saytdan ochilganda ishlaydi: <b>https://akmal1st.github.io/yoqlama-jurnal/</b></div>`}
-    <div class="muted">Ilova emaktab.uz ga o'zi kira olmaydi (brauzer ruxsat bermaydi), shuning uchun jurnallarni emaktab sahifasining o'zida turib olamiz. Login va parol hech qayerga yuborilmaydi.</div>
-    <div class="seg tabs">${T.map(([k, n]) => `<button class="${k === tab ? "on" : ""}" data-et="${k}">${n}</button>`).join("")}</div>
-    ${body[tab]}
-    <div class="hrow"><span class="sp"></span><button class="btn" data-x>Yopish</button></div>`, (mm, close) => {
+    <div class="ek-sub2">${T.map(([k, n]) => `<button class="${k === tab ? "on" : ""}" data-et="${k}">${n}</button>`).join("")}</div>
+    ${body[tab]}${tab === "file" ? "" : `<div class="ek-acts">${open}</div>`}`}
+    <div class="hrow ek-foot"><span class="sp"></span><button class="btn" data-x>Yopish</button></div>`, (mm, close) => {
+    mm.classList.add("ek-dlg");
     const bm = $("#emkbm", mm); if (bm) bm.href = emkBookmark();
-    const es = $("[data-eksync]", mm); if (es) es.onclick = () => { close(); EMKS.sync(); };
-    const eu = $("[data-ekun]", mm); if (eu) eu.onclick = () => { EMKS.unlink(); close(); emkDialog(tab); };
+    if (top === "pw") EMKS.bindPane(mm, close, () => { close(); emkDialog("pw"); });
+    mm.querySelectorAll("[data-ektop]").forEach((b) => b.onclick = () => { close(); emkDialog(b.dataset.ektop, tab); });
+    const eo = $("[data-emopen]", mm); if (eo) eo.onclick = () => { window.open("https://schools.emaktab.uz/v2/myclasses", "emaktab"); };
     $("[data-x]", mm).onclick = () => close();
-    mm.querySelectorAll("[data-et]").forEach((b) => b.onclick = () => { close(); emkDialog(b.dataset.et); });
+    mm.querySelectorAll("[data-et]").forEach((b) => b.onclick = () => { close(); emkDialog("bm", b.dataset.et); });
     // nusxalab bo'lmasa — kodni maydonda ko'rsatamiz, qo'lda belgilab nusxalanadi
     const cp = async (t, ok) => {
       try { await navigator.clipboard.writeText(t); toast(ok); }

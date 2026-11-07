@@ -3633,6 +3633,7 @@ test("eMaktab: ilovaning o'zidan import — login, rasmdagi kod, seans saqlanadi
       // birinchi urinish kodsiz, eMaktab sahifani qaytardi → rasmdagi kod so'raladi
       await page.waitForSelector("img.ek-cap");
       assert.match(await page.getAttribute("img.ek-cap", "src"), /^data:image\/png;base64,/);
+      assert.equal(await page.getAttribute("#ekci", "inputmode"), null, "kodda harf ham bo'lishi mumkin — telefonda to'liq klaviatura");
       await page.fill("#ekci", "4827"); await page.click("#ekc [type=submit]");
       await page.waitForSelector("text=eMaktab'dan yangilandi", {timeout: 20000});
       assert.deepEqual(await page.evaluate(() => D.classes.filter((c) => c.name !== "5-B").map((c) => [c.name, c.subject, c.students.length])), [["6-A", "Matematika", 36], ["9-A", "Algebra", 18]]);
@@ -3648,19 +3649,23 @@ test("eMaktab: ilovaning o'zidan import — login, rasmdagi kod, seans saqlanadi
       // ikkinchi marta: parol so'ralmaydi
       await page.click(".modal.ek-res [data-x]"); await page.evaluate(() => go("today"));
       await page.click("[data-ekgo]");
+      assert.match(await page.textContent(".modal.ek-dlg .ek-top .on"), /Login va parol/);   // oxirgi bo'lim
+      assert.match(await page.textContent(".modal.ek-dlg .ek-acc"), /akmal/);
+      await page.click(".modal.ek-dlg [data-eksync]");
       await page.waitForSelector(".modal.ek-res", {timeout: 20000});
       assert.equal(st.posts.length, 2, "qayta kirilmadi");
       assert.equal(await page.locator("#ekp").count(), 0);
       // seans eskirdi → parol qayta so'raladi (login oldindan yozilgan)
       await page.click(".modal.ek-res [data-x]"); await page.evaluate(() => go("today"));
       st.valid.clear();
-      await page.click("[data-ekgo]");
+      await page.click("[data-ekgo]"); await page.click(".modal.ek-dlg [data-eksync]");
       await page.waitForSelector("text=Kirish muddati tugagan");
       assert.equal(await page.inputValue("#eku"), "akmal");
       await page.click(".modal.ek-sh [data-x]");
       // Uzish: kirish kaliti o'chadi
-      await page.evaluate(() => emkDialog("pc"));
+      await page.evaluate(() => emkDialog("pw"));
       await page.click(".modal [data-ekun]");
+      await page.waitForSelector(".modal.ek-dlg #ekf");   // uzilgach — yana login/parol formasi
       assert.equal(await page.evaluate(() => [EMKS.linked(), localStorage.getItem("yoqlama_emk_sess")]).then((x) => JSON.stringify(x)), "[false,null]");
       assert.deepEqual(errors, []);
       await ctx.close();
@@ -3668,7 +3673,7 @@ test("eMaktab: ilovaning o'zidan import — login, rasmdagi kod, seans saqlanadi
   } finally { await browser.close(); }
 });
 
-test("eMaktab: tasdiqlash kodi (2fa) so'ralsa — xatcho'p usuliga o'tadi va keyingi safar parol so'ralmaydi", async () => {
+test("eMaktab: tasdiqlash kodi (2fa) so'ralsa — «Login va parol» bo'limida ogohlantirish, xatcho'pga o'zi o'tmaydi; bo'limlar alohida", async () => {
   const loginPage = `<html><body><form action="/login" method="post"><input name="login" type="text"><input name="password" type="text" class="password"><button type="submit">Kirish</button></form></body></html>`;
   const faPage = `<html><head><title>eMaktab | &#x41F;&#x43E;&#x434;&#x442;&#x432;&#x435;&#x440;&#x436;&#x434;&#x435;&#x43D;&#x438;&#x435; &#x432;&#x445;&#x43E;&#x434;&#x430;</title></head><body><div id="root"></div><script src="/app.js"></script></body></html>`;
   const posts = [];
@@ -3694,16 +3699,28 @@ test("eMaktab: tasdiqlash kodi (2fa) so'ralsa — xatcho'p usuliga o'tadi va key
         {name: "9-A", subject: "Algebra", dates: [], students: Array.from({length: 18}, (_, i) => ({name: `O'quvchi ${i + 1}`, marks: {}}))}]}); save(); go("today"); });
       await page.click("[data-ekgo]");
       await page.fill("#eku", "akmal"); await page.fill("#ekp", "maxfiy123"); await page.click("#ekf [type=submit]");
-      await page.waitForSelector(".modal [data-et]", {timeout: 20000});   // xatcho'p yo'riqnomasi (Kompyuter/Telefon/Fayl)
+      await page.waitForSelector(".modal.ek-dlg .ek-warn", {timeout: 20000});
+      assert.match(await page.textContent(".modal.ek-dlg .ek-warn"), /tasdiqlash kodini so'radi/);
+      assert.equal(await page.locator(".modal [data-et]").count(), 0, "xatcho'p bo'limiga o'zi o'tmaydi");
       assert.equal(await page.locator("text=eMaktab'dan olib bo'lmadi").count(), 0, "xato oynasi chiqmaydi");
       assert.equal(posts.length, 1);
-      assert.deepEqual(await page.evaluate(() => [EMKS.on(), EMKS.linked(), localStorage.getItem("yoqlama_emk_2fa")]), [false, false, "1"]);
+      assert.deepEqual(await page.evaluate(() => [EMKS.linked(), localStorage.getItem("yoqlama_emk_2fa")]), [false, "1"]);
       assert.ok(!(await page.evaluate(() => JSON.stringify(Object.fromEntries(Object.entries(localStorage))))).includes("maxfiy123"));
-      // keyingi safar: parol so'ralmaydi, darhol xatcho'p usuli
-      await page.evaluate(() => document.querySelectorAll(".modal").forEach((m) => m.remove()));
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      // «Xatcho'p bo'limiga o'tish» — foydalanuvchi o'zi tanlaydi; keyingi safar oyna shu bo'limda ochiladi
+      await page.click(".modal.ek-dlg [data-ektop=bm]");
+      await page.waitForSelector(".modal.ek-dlg [data-et]");
+      assert.match(await page.textContent(".modal.ek-dlg .ek-top .on"), /Xatcho'p/);
+      await page.click(".modal.ek-dlg [data-x]");
       await page.click("[data-ekgo]");
-      await page.waitForSelector(".modal [data-et]");
+      await page.waitForSelector(".modal.ek-dlg [data-et]");
       assert.equal(await page.locator("#ekp").count(), 0); assert.equal(posts.length, 1);
+      // «Login va parol» bo'limi: ogohlantirish turibdi; «Qayta urinish» — forma qaytadi
+      await page.click(".modal.ek-dlg [data-ektop=pw]");
+      await page.waitForSelector(".modal.ek-dlg .ek-warn");
+      await page.click(".modal.ek-dlg [data-ekre]");
+      await page.waitForSelector(".modal.ek-dlg #ekp");
+      assert.equal(await page.evaluate(() => localStorage.getItem("yoqlama_emk_2fa")), null);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       assert.deepEqual(errors, []);
       await ctx.close();
