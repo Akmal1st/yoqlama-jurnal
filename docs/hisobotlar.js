@@ -349,7 +349,7 @@ const HSB = (() => {
     const per = pl ? `<button class="hb-pk" data-hk="per" aria-haspopup="true"><span class="hb-v"><small>${n === "q" ? "Chorak" : n === "mon" ? "Oy" : "Davr"}</small><b class="hb-ell">${pl[0]}${n !== "mon" ? `<span class="hb-mut hb-pc" style="font-weight:600;display:inline"> · ${pl[1]}</span>` : ""}</b></span><span class="hb-car">▼</span></button>` : "";
     return cls + per;
   }
-  const actions = (k) => `<button class="btn btn-primary" data-print>🖨 Chop etish</button><button class="btn" data-tgpdf title="Hisobotni PDF qilib Telegram botingizga yuborish">✈️ Telegram</button>${XLS[k] ? `<button class="btn" ${XLS[k]}>📊 Excel</button>` : ""}`;
+  const actions = (k) => `<button class="btn btn-primary" data-print>🖨 Chop etish</button>${k === "blank" ? `<button class="btn" data-bvpdf title="A4 PDF faylni saqlash">⬇ PDF</button>` : ""}<button class="btn" data-tgpdf title="Hisobotni PDF qilib Telegram botingizga yuborish">✈️ Telegram</button>${XLS[k] ? `<button class="btn" ${XLS[k]}>📊 Excel</button>` : ""}`;
 
   function page(m) {
     closePop();
@@ -361,7 +361,7 @@ const HSB = (() => {
     m.innerHTML = `<div class="hb">
       <h1>Hisobotlar</h1>
       <button class="hb-kind hb-tel" data-hk="kind" aria-haspopup="true"><span class="hb-ic">${K[1]}</span><span><b class="hb-ell">${K[2]}</b><small class="hb-ell">${sub}</small></span><em>Almashtirish ▾</em></button>
-      <div class="hb-g2 hb-tel">${pickers(X)}</div>${bot ? "" : `<div class="hb-g2 hb-tel ${XLS[X.R.kind] ? "hb-g3" : ""}">${actions(X.R.kind)}</div>`}
+      <div class="hb-g2 hb-tel">${pickers(X)}</div>${bot ? "" : `<div class="hb-g2 hb-tel ${XLS[X.R.kind] && X.R.kind !== "blank" ? "hb-g3" : ""}">${actions(X.R.kind)}</div>`}
       <div class="hb-grid">
         <nav class="card hb-list hb-pc" aria-label="Hisobot turlari">${KINDS.map(([g, l]) => `<div class="hb-gt">${g}</div>${l.map(([k, ic, n, d]) => `<button class="hb-ri ${X.R.kind === k ? "on" : ""}" data-kind="${k}"><span class="hb-ic">${ic}</span><span><b class="hb-ell">${n}</b><small class="hb-ell">${d}</small></span>${badge(k, X)}</button>`).join("")}`).join("")}</nav>
         <section class="card hb-panel">
