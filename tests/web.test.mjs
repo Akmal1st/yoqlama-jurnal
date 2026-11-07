@@ -106,3 +106,18 @@ test("Loyiha ishi chorak hisobida BSB qismiga kiradi: BSB + Loyiha = 50, CHSB = 
   const [cp] = B.readiness(c, q);
   assert.ok(cp.some((x) => x.includes("BSB + Loyiha ishi") && x.includes("45")), cp.join("; "));
 });
+
+test("Hisobotlar: Loyiha ishi «Loyiha» deb yoziladi va solishtirishda BSB foiziga kiradi (CHSB ga emas)", () => {
+  const B = loadApp(INPUTS.today); B.setData(structuredClone(FIXTURE));
+  const c = B.D.classes.find((x) => x.works && x.works.length) || B.D.classes[0], q = [1, 2, 3, 4].find((k) => B.worksInQuarter(c, k).length) || 1;
+  const [a, b] = B.D.settings.quarters[q - 1];
+  c.works = [{id: "lb", type: "bsb", date: a, max: 20, title: ""}, {id: "ll", type: "loyiha", date: a, max: 30, title: ""}, {id: "lc", type: "chsb", date: b, max: 40, title: ""}];
+  for (const s of c.students) s.scores = {lb: 10, ll: 30, lc: 20};
+  assert.match(B.wTag(c.works[1]), /^Loyiha /);
+  const aoa = B.sumAoa(c, q)[0];
+  assert.ok(aoa.some((row) => row.includes("BSB + Loyiha /50")), "Excel ustuni");
+  assert.ok(!aoa.flat().some((x) => typeof x === "string" && /^CHSB/.test(x) && x.includes(B.wTag(c.works[1]).slice(-5)) && !x.includes(B.wTag(c.works[2]).slice(-5))));
+  const r = B.compareRows(a, b, q).find((x) => x.c === c);
+  assert.equal(Math.round(r.bsb), 80);    // (10 + 30) / (20 + 30)
+  assert.equal(Math.round(r.chsb), 50);   // 20 / 40
+});

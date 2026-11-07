@@ -26,7 +26,7 @@ export function loadApp(today) {
   vm.runInContext(src + `
     ;globalThis.__app = {setData: (x) => { D = normalize(x); }, get D() { return D; }, grade5, parseMark, parseScore, parsePlanText,
       emaktabSheet, bsbStats, bsbRecs, worksInQuarter, quarterResult, yearResult, readiness, reportRows, periodNow, label,
-      compareRows, compareTotal, sumData, gradedShare, qProgress};`, ctx);
+      compareRows, compareTotal, sumData, gradedShare, qProgress, wTag, sumAoa, statsData};`, ctx);
   return ctx.__app;
 }
 
