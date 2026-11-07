@@ -1,0 +1,108 @@
+/* «Bugun» — chorak tugagandan keyin (bugun-tatil.js). Tasdiqlangan maket v1 (Akmal, 2026-11-07). Sinflar «bt-» bilan.
+   Ranglar ilovaning umumiy belgilaridan va bugun.css dagi holat ranglaridan (--bn-warn …). */
+.bn{--bt-vac:#5b4bd6;--bt-vac-s:#efedfd;--bt-vac-2:#e8f4fb}
+html[data-theme="dark"] .bn{--bt-vac:#a99cff;--bt-vac-s:#211d3d;--bt-vac-2:#13253a}
+.bn .bt-bad{color:var(--danger)}
+
+/* 1. Chorakni yopish */
+.bn .bt-close{padding:18px 20px;display:flex;flex-direction:column;gap:14px;border-left:4px solid var(--bn-warn-b)!important}
+.bt-top{display:flex;gap:14px;align-items:flex-start}
+.bt-tt{flex:1;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.bn .bt-close h2,.bn .bt-vac h2{font-size:22px;letter-spacing:-.02em;margin:2px 0 0;text-wrap:balance}
+.bt-cd{flex:none;text-align:center;background:var(--bn-warn-s);color:var(--bn-warn);border-radius:calc(12px*var(--rk,1));padding:8px 14px}
+.bt-cd b{display:block;font-size:28px;line-height:1;font-weight:800}
+.bt-cd small{font-size:11px;font-weight:700}
+.bt-steps{display:grid;grid-template-columns:repeat(4,1fr)}
+.bt-st{display:flex;flex-direction:column;align-items:center;text-align:center;gap:3px;position:relative;font-size:12px}
+.bt-st::before{content:"";position:absolute;top:12px;left:-50%;width:100%;height:3px;background:var(--line)}
+.bt-st:first-child::before{display:none}
+.bt-st.done::before,.bt-st.cur::before{background:var(--acc)}
+.bt-st .bt-n{position:relative;z-index:1;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--muted);font-style:normal;font-weight:800;font-size:12px;border:3px solid var(--base)}
+.bt-st.done .bt-n{background:var(--acc);color:var(--acc-fg,#fff)}
+.bt-st.cur .bt-n{background:var(--bn-warn-b);color:#fff;box-shadow:0 0 0 3px var(--bn-warn-s)}
+.bt-st b{font-weight:800}.bt-st small{color:var(--muted);font-weight:600}
+.bt-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.bt-tile{border:1px solid var(--line);background:var(--alt);border-radius:calc(12px*var(--rk,1));padding:10px 12px;text-align:left;display:flex;flex-direction:column;gap:6px;color:var(--text);cursor:pointer;font:inherit}
+.bt-tile:hover{border-color:var(--acc)}
+.bt-tile.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc-soft)}
+.bt-tile small{font-size:11.5px;font-weight:700;color:var(--muted)}
+.bt-tile b{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
+.bt-tile b span{font-size:13px;color:var(--muted);font-weight:700}
+.bt-tile.ok b{color:var(--ok)}.bt-tile.warn b{color:var(--bn-warn)}.bt-tile.bad b{color:var(--danger)}
+.bt-bar{display:block;height:6px;background:var(--soft);border-radius:4px;overflow:hidden}
+.bt-bar i{display:block;height:100%;border-radius:4px;background:var(--bn-warn-b)}
+.ok>.bt-bar i,.bt-pg.ok .bt-bar i{background:var(--ok)}.bad>.bt-bar i,.bt-pg.bad .bt-bar i{background:var(--danger)}
+.bt-acts{display:flex;gap:8px;flex-wrap:wrap}
+
+/* tayyorlik jadvali */
+.bt-tw{overflow-x:auto}
+.bt-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.bt-tbl th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:800;text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--alt);white-space:nowrap}
+.bt-tbl td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+.bt-tbl tr:last-child td{border-bottom:0}
+.bt-tbl td small{display:block;color:var(--muted);font-size:12px}
+.bt-tbl .c{text-align:center}.bt-tbl .r{text-align:right}
+.bt-tbl td:nth-child(2),.bt-tbl td:nth-child(3){width:21%}
+.bt-tbl tr.dim td{opacity:.55}
+.bt-pg{display:flex;flex-direction:column;gap:4px;font-weight:700;font-variant-numeric:tabular-nums}
+.bt-pg em{font-style:normal;color:var(--muted)}
+.bt-pg.ok>span:first-child{color:var(--ok)}.bt-pg.bad>span:first-child{color:var(--danger)}
+.bt-note{font-size:12px;color:var(--muted);padding:8px 14px 12px}
+.bt-cr{padding:12px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.bt-l1{display:flex;align-items:center;gap:8px}
+.bt-l1 b{flex:1}
+.bt-l2{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12.5px}
+.bt-l2 small{font-size:10.5px;font-weight:800;letter-spacing:.05em;color:var(--muted)}
+.bt-l3{display:flex;gap:6px;flex-wrap:wrap}
+
+/* «E'tibor»: chorak bahosi «2» */
+.bt-g{flex-wrap:wrap;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:2px 16px 4px;display:flex;gap:8px;align-items:baseline}
+.bt-g span{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:700;white-space:nowrap}
+.bt-sc{font-weight:800;font-variant-numeric:tabular-nums;text-align:right;font-size:13px;flex:none}
+.bt-sc small{display:block;font-size:11px;color:var(--muted);font-weight:600}
+
+/* 2. Ta'til */
+.bn .bt-vac{padding:18px 20px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;background:linear-gradient(135deg,var(--bt-vac-s),var(--bt-vac-2))!important;border-color:transparent!important}
+.bt-cal{width:118px;border-radius:calc(14px*var(--rk,1));background:var(--base);box-shadow:var(--sh);overflow:hidden;text-align:center;align-self:start;flex:none}
+.bt-m{background:var(--bt-vac);color:#fff;font-size:12px;font-weight:800;letter-spacing:.08em;padding:5px 0;text-transform:uppercase}
+.bt-cal b{display:block;font-size:44px;line-height:1.05;font-weight:800;padding-top:6px}
+.bt-cal small{display:block;font-size:12px;font-weight:700;color:var(--muted);padding-bottom:8px}
+.bn .bt-vb{background:var(--base);color:var(--bt-vac)}
+.bt-vb2{display:flex;flex-direction:column;gap:4px}
+.bt-vb2>.bn-badge{align-self:flex-start}
+.bt-crow{display:flex;gap:14px;align-items:center}
+.bt-crow>div:last-child{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.bt-first{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.bt-first span{background:var(--base);border-radius:calc(9px*var(--rk,1));padding:5px 10px;font-size:12.5px;font-weight:700;box-shadow:var(--sh)}
+.bt-first small{color:var(--muted);font-weight:600;margin-right:5px}
+.bt-prep{background:var(--base);border-radius:calc(12px*var(--rk,1));margin-top:12px;box-shadow:var(--sh)}
+.bt-ph{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.bt-ph b{flex:1;font-weight:800}
+.bt-pi{display:flex;align-items:center;gap:10px;padding:9px 14px}
+.bt-pi+.bt-pi{border-top:1px solid var(--line)}
+.bt-ic{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none;font-size:13px;font-weight:800}
+.bt-ic.p-ok{background:var(--bn-ok-s);color:var(--ok)}.bt-ic.p-warn{background:var(--bn-warn-s);color:var(--bn-warn)}.bt-ic.p-o{background:var(--soft);color:var(--muted)}
+.bt-tx{flex:1;display:flex;flex-direction:column}
+.bt-tx small{color:var(--muted);font-size:12px}
+.bt-pi.p-ok .bt-tx b{font-weight:600}
+.bt-lock{margin:8px 12px 12px;background:var(--base);border-radius:calc(10px*var(--rk,1));padding:10px 12px;display:flex;gap:10px;align-items:center;border:1px dashed var(--line)}
+.bt-lock .bt-tx{min-width:0}
+.bt-li{color:var(--muted);flex:none}
+
+/* 3. Yangi chorak */
+.bn .bt-strip{display:flex;align-items:center;gap:12px;padding:10px 14px;flex-wrap:wrap;background:var(--acc-soft)!important;border-color:transparent!important}
+.bt-sk{display:flex;gap:14px;flex-wrap:wrap;flex:1;font-size:13px}
+.bt-sk b{font-weight:800}
+.bt-was{display:block;color:var(--muted);font-weight:600;font-size:11.5px;margin-top:2px}
+
+/* telefon */
+@media (max-width:820px){
+  .bn .bt-close{padding:16px}
+  .bn .bt-close h2,.bn .bt-vac h2{font-size:19px}
+  .bt-tiles{grid-template-columns:1fr 1fr}
+  .bt-acts .btn{flex:1}
+  .bn .bt-vac{grid-template-columns:1fr;gap:12px;padding:16px}
+  .bt-cal{width:96px}.bt-cal b{font-size:34px}.bt-cal small{font-size:11px}
+  .bt-pi{flex-wrap:wrap}
+  .bt-pi .bt-tx{min-width:150px}
+}

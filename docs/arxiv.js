@@ -290,5 +290,5 @@ const ARX = (() => {
     if (d.axgr !== undefined) { cfg().grace = GRACE[+d.axgr] ?? 3; save(); tick(); return render(); }
   });
 
-  return {cfg, tick, entry, lockedQ, dateLocked, scoreQ, scoreLocked, deny, note, noteScore, banner, decorate, todayCard, page, openDialog, isOpen, due, status, GRACE, go: go2};
+  return {cfg, tick, entry, pending, gaps, lockedQ, dateLocked, scoreQ, scoreLocked, deny, note, noteScore, banner, decorate, todayCard, page, openDialog, isOpen, due, status, GRACE, go: go2};
 })();
