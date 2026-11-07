@@ -41,3 +41,16 @@ html[data-theme="dark"] .ek-ri>span.ek-w{color:#f5b454}
 .ek-sh .ek-sub{white-space:pre-line}
 .ek-acc{display:flex;align-items:center;gap:10px;padding:10px 12px;flex-wrap:wrap}
 @media (prefers-reduced-motion:reduce){.ek-prog i{transition:none}}
+
+/* eMaktab oynasi: ikki alohida bo'lim — «Login va parol» / «Xatcho'p» (tasdiqlangan maket, 2026-11-07, ikki-bolim-maket.html) */
+.ek-top{display:flex}
+.ek-top button{flex:1;min-height:48px;padding:6px;display:flex;flex-direction:column;align-items:center;gap:1px;font-weight:800}
+.ek-top button small{font-weight:600;font-size:11.5px;color:var(--muted)}
+.ek-sub2{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.ek-sub2 button{border:0;background:none;padding:7px 10px;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.ek-sub2 button.on{color:var(--acc);border-bottom-color:var(--acc)}
+.ek-warn{display:flex;gap:10px;background:color-mix(in srgb,#f5b454 16%,var(--base));border:1px solid color-mix(in srgb,#a15c07 35%,transparent);border-radius:12px;padding:11px 12px;font-size:13px}
+.ek-warn b{display:block;color:#a15c07}
+html[data-theme="dark"] .ek-warn b{color:#f5b454}
+.ek-wide{width:100%}
+.ek-foot{border-top:1px solid var(--line);padding-top:10px}
