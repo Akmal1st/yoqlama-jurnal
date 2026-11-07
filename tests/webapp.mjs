@@ -7,7 +7,7 @@ const read = (p) => readFileSync(new URL(p, new URL(".", import.meta.url)), "utf
 export function loadApp(today) {
   const html = read("../docs/index.html");
   // dizayn.js va mezon.js asosiy skriptdan oldin ulanadi (normalize D.web.dz ni shu yerda tekshiradi)
-  const src = read("../docs/tugmalar.js") + "\n" + read("../docs/dizayn.js") + "\n" + read("../docs/mezon.js") + "\n" + read("../docs/arxiv.js") + "\n" + read("../docs/taxminiy.js") + "\n" + read("../docs/summativ.js") + "\n" + html.slice(html.indexOf("<script>") + 8, html.lastIndexOf("</script>"));
+  const src = read("../docs/tugmalar.js") + "\n" + read("../docs/funksiyalar.js") + "\n" + read("../docs/dizayn.js") + "\n" + read("../docs/mezon.js") + "\n" + read("../docs/arxiv.js") + "\n" + read("../docs/taxminiy.js") + "\n" + read("../docs/summativ.js") + "\n" + html.slice(html.indexOf("<script>") + 8, html.lastIndexOf("</script>"));
   const [y, m, d] = today.split("-").map(Number);
   const FIXED = new Date(y, m - 1, d, 12).getTime();
   class FixedDate extends Date {

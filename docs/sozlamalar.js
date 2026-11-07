@@ -11,7 +11,6 @@ const SZL = (() => {
   const SECS = [["👥", "Sinflar va o'quvchilar", "Sinf qo'shish, ro'yxatlar"], ["📅", "Dars kunlari va choraklar", "Jadval, eslatmalar, choraklar"], ["🎯", "Baholash", "Baho ranglari, xavf mezonlari"],
     ["🎨", "Dizayn", "Mavzu, rang, tugmalar joyi"], ["🔒", "Himoya", "Baholarni qulflash, parol"], ["💾", "Ma'lumotlar", "Zaxira, import, o'quv yili"], ["🧩", "Funksiyalar", "Keraksizlarini yashirish"]];
   const GROUPS = [["O'quv jarayoni", [0, 1, 2]], ["Dastur", [3, 6]], ["Xavfsizlik", [4, 5]]];
-  const FGROUPS = [["Darsda", ["call", "groups", "seats", "attmodes", "hw", "act"]], ["«Bugun» sahifasi", ["bday", "qend", "gaps", "week"]], ["Jurnal rejimlari", ["vweek", "vmonth", "vquarter"]]];
   const RISK_SHORT = {default: "Asosiy", att: "Davomat", grade: "Baho", all: "Hammasi", none: "Yo'q"};
   let flash = null, q = "", wasPhone = null;
 
@@ -41,7 +40,7 @@ const SZL = (() => {
     if (i === 3) { const z = dz(), t = typeof DZN !== "undefined" ? DZN.THEMES[z.theme] : null; return [t ? `${t[0]} · ${DZN.isDark() ? "tungi" : "kunduzgi"}` : "", 0]; }
     if (i === 4) return [st.protect.enabled ? `Yoqilgan${st.protect.pin ? " · parol bor" : ""}` : "O'chiq", 0];
     if (i === 5) { if (tgOn()) return ["Telegram'ga zaxira ulangan", 0]; const a = backupAge(); return a === null ? ["Zaxira hali olinmagan", 1] : [`Zaxira ${a ? `${a} kun oldin` : "bugun"}`, a > 7 ? 1 : 0]; }
-    return [`${FEATS.filter(([k]) => feat(k)).length} / ${FEATS.length} yoqilgan`, 0];
+    return [`${FNK.ALL.filter(feat).length} / ${FNK.ALL.length} yoqilgan`, 0];
   }
 
   /* ───────── bo'limlar: {body, acts, what} ───────── */
@@ -151,13 +150,8 @@ const SZL = (() => {
     return {body: `<section class="sz-sg"><h3 class="sz-sgt">Zaxira holati</h3>${bst}</section>` + grp("Zaxira", z) + grp("Kunlik hisobot", KUN.rows(row, tog)) + grp("Yuklash va import", imp) + grp("O'quv yili", yr) + grp("Ilova", app) + dzr,
       acts: [["📂 Fayldan", 'data-a="imp"', 0], ["💾 Zaxira olish", 'data-a="exp"', 1]], what: "Zaxira"};
   }
-  function sec6() {
-    const used = new Set(FGROUPS.flatMap((g) => g[1])), groups = FGROUPS.concat([["Boshqa", FEATS.map(([k]) => k).filter((k) => !used.has(k))]]);
-    const byK = Object.fromEntries(FEATS.map((f) => [f[0], f]));
-    return {body: `<p class="sz-hint" style="margin:0 2px">Ishlatmaydigan funksiyalarni o'chiring — ular menyu, «Bugun» sahifasi va darsdan yo'qoladi. Kiritilgan ma'lumotlar o'chmaydi, qayta yoqsangiz hammasi joyida bo'ladi. Yo'qlama, baholar, BSB/CHSB va hisobotlar doim yoqilgan.</p>` +
-      groups.map(([g, ks]) => { const L = ks.filter((k) => byK[k]); return grp(g, L.map((k) => { const [, n, d] = byK[k]; return row("ft" + k, n, d, tog(`data-ft="${k}"`, feat(k), n), feat(k) ? "" : "off"); }).join(""), cnt(`${L.filter(feat).length} / ${L.length}`)); }).join(""),
-      acts: [["Oddiy", 'data-fp="simple" title="Doskaga chaqirish, guruhlar, o\'rindiq xaritasi, yo\'qlama rejimlari va qarzdorlar o\'chadi"', 0], ["Hammasi", 'data-fp="all"', 1]], what: `${FEATS.filter(([k]) => feat(k)).length} / ${FEATS.length} ta yoqilgan`};
-  }
+  // «Qo'shimcha funksiyalar» — alohida faylda: funksiyalar.js / funksiyalar.css (tasdiqlangan maket v2.1, 2026-11-07)
+  const sec6 = () => FNK.sec6(flash);
   const sec3 = () => ({body: DZN.body(), acts: []});
   const SECF = [sec0, sec1, sec2, sec3, sec4, sec5, sec6];
 

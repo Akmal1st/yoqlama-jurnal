@@ -1890,7 +1890,7 @@ test("To'ldirilmagan darslar, KTR bajarilishi va qo'llanma", async () => {
   } finally { await browser.close(); }
 });
 
-test("Haftalik xulosa, faollik belgilari va ota-onaga natija havolasi", async () => {
+test("Haftalik xulosa va faollik olib tashlangan, ota-onaga natija havolasi", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     const page = await browser.newPage({viewport: {width: 390, height: 844}});
@@ -1899,29 +1899,11 @@ test("Haftalik xulosa, faollik belgilari va ota-onaga natija havolasi", async ()
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
-    // haftalik xulosa: juma kuni «Bugun»da karta; sonlar jurnal bilan mos
-    await page.waitForSelector(".wkc");
-    const w = await page.evaluate(() => { const W = weekSummary("2026-10-19", "2026-10-23"), c = D.classes[0], x = W[0];
-      const ds = c.dates.filter((d) => d >= "2026-10-19" && d < "2026-10-23" && !isNoLesson(c, d));
-      return {x: {planned: x.planned, grades: x.grades}, grades: c.students.reduce((a, s) => a + ds.concat(c.dates.includes("2026-10-23") && hasMarks(c, "2026-10-23") ? ["2026-10-23"] : []).reduce((b, d) => b + gradesOf(s.marks[d] || "").length, 0), 0)}; });
-    assert.equal(w.x.grades, w.grades);
-    await page.click(".wkc [data-wk]"); await page.waitForSelector(".modal table.wk");
-    assert.ok((await page.textContent(".modal")).includes("Hafta xulosasi · 19.10–23.10"));
-    await page.click('.modal [data-wk="1"]'); await page.waitForSelector(".modal >> text=12.10–18.10");
-    await page.click(".modal [data-x]");
-    await page.click(".wkc [data-wkx]"); assert.equal(await page.locator(".wkc").count(), 0);
-    assert.equal(await page.evaluate(() => D.web.wk_seen), "2026-10-19");
-    assert.equal(await page.evaluate(() => JSON.stringify([weekCardRange("2026-10-21"), weekCardRange("2026-10-26")])), JSON.stringify([null, ["2026-10-19", "2026-10-25", 1]]));
-    // faollik: 3 ta «+» → «⭐ baho» tugmasi, baho qo'yilgach to'plam nolga tushadi
+    // Haftalik xulosa va faollik belgilari olib tashlangan (2026-11-07): D.web.off da bo'lmasa ham ko'rinmaydi
+    assert.equal(await page.evaluate(() => [feat("week"), feat("act"), FEATS.some(([k]) => k === "week" || k === "act")].join()), "false,false,false");
+    assert.equal(await page.locator(".wkc, [data-wk]").count(), 0);
     await page.evaluate(() => { S.lesson = 1; S.ci = 1; S.step = 1; go("lesson"); });
-    for (let i = 0; i < 3; i++) await page.click('[data-act="0|0"]');
-    await page.click('[data-act="1|1"]');
-    assert.equal((await page.textContent('[data-actu="0"]')).trim(), "+3");
-    await page.click('[data-actg="0"]'); await page.click('.modal [data-ag="9"]');
-    const a = await page.evaluate(() => { const s = D.classes[1].students; return {m: gradesOf(s[0].marks[todayIso()] || ""), bank: actBank(s[0]), minus: s[1].act[todayIso()]}; });
-    assert.ok(a.m.includes(9)); assert.equal(a.bank, 0); assert.deepEqual(a.minus, [0, 1]);
-    assert.equal(await page.locator('[data-actg="0"]').count(), 0);
-    await page.click('[data-actu="1"]'); assert.equal(await page.evaluate(() => !D.classes[1].students[1].act[todayIso()]), true);
+    assert.equal(await page.locator("[data-act], [data-actg]").count(), 0);
     // ota-onaga havola: xabarga qo'shiladi, natija.html ma'lumotni havoladan ko'rsatadi
     const nm = await page.evaluate(() => { D.web.bsb_hdr = {school: "12-maktab", teacher: ""}; S.pkind = "gen"; const n = D.classes[0].students[3].name; studentCard(0, n, "msg"); return n; });
     await page.click("[data-rlink]");
@@ -2145,7 +2127,7 @@ test("Sozlamalar: bo'limlar guruhlangan, kalitlar holatni ko'rsatadi, telefonda 
     assert.equal(await page.getAttribute("[data-ft=call]", "aria-checked"), "false");
     assert.equal(await page.evaluate(() => feat("call")), false);
     // kalit sarlavha bilan bir qatorda
-    const same = await page.evaluate(() => { const row = $("[data-ft=bday]").closest(".sz-r"), a = row.firstElementChild.getBoundingClientRect(), b = $("[data-ft=bday]").getBoundingClientRect(); return b.top < a.bottom && b.left > a.left; });
+    const same = await page.evaluate(() => { const row = $("[data-ft=bday]"), a = $(".fn-tx", row).getBoundingClientRect(), b = $(".kalit", row).getBoundingClientRect(); return b.top < a.bottom && b.left > a.right - 1; });
     assert.ok(same);
     // sinf qatori (telefon): qatorning o'zi menyu ochadi, xavfli amal qatorda ko'rinmaydi; o'chirish menyuda, alohida ajratilgan
     await page.evaluate(() => { S.sec = 0; go("settings"); });
@@ -3089,8 +3071,8 @@ test("Sozlamalar → Dizayn: mavzular, tungi variant, rang, tugmalar joyi va qay
       await page.click("[data-tg-try]"); assert.ok(await page.locator(".modal .tg-sr").count() > 0, "Sinab ko'rish oynasi"); await page.click(".modal [data-x]");
       await page.click('[data-dz-shape="solid"]');
       await page.evaluate(() => { S.sec = 6; go("settings"); });
-      assert.equal((await page.textContent(".sz-tg.on")).trim(), "", "kalit ichida belgi yo'q");
-      const kw = await page.$eval(".sz-tg", (e) => [e.offsetWidth, e.offsetHeight]); assert.deepEqual(kw, [44, 26]);
+      assert.equal((await page.textContent(".fn-row .kalit.on")).trim(), "", "kalit ichida belgi yo'q");
+      const kw = await page.$eval(".fn-row .kalit", (e) => [e.offsetWidth, e.offsetHeight]); assert.deepEqual(kw, [44, 26]);
       // menyu tepada (kompyuter)
       await page.evaluate(() => { D.web.dz.nav = "top"; save(); render(); });
       if (w > 820) { const r = await page.evaluate(() => { const s = $("#side").getBoundingClientRect(); return [Math.round(s.top), Math.round(s.width)]; }); assert.equal(r[0], 0); assert.ok(r[1] > 900, "yon panel tepada qator bo'ldi"); }
@@ -4411,3 +4393,68 @@ for (const [name, viewport, count] of [["kompyuter", {width: 1440, height: 900},
     } finally { await browser.close(); }
   });
 }
+
+for (const n of [36, 18]) test(`Qo'shimcha funksiyalar: yangi bo'lim, taymer, navbatchi, BSB eslatmasi, kelmaganlarga xabar — ${n} o'quvchi`, async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date("2026-10-23T10:00:00"));   // juma, 6-A da dars bor
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+    const names = await page.evaluate((n) => {
+      const c = D.classes[0], base = c.students[0], t = todayIso();
+      while (c.students.length < n) c.students.push(Object.assign(JSON.parse(JSON.stringify(base)), {name: `Sinovov O'quvchi ${c.students.length + 1}`, marks: {}}));
+      c.students.length = n; if (!c.dates.includes(t)) c.dates.push(t), c.dates.sort();
+      c.students[0].marks[t] = "s"; c.students[5].marks[t] = "k"; c.students[0].par = {name: "Otasi", phone: "+998901234567"};
+      c.works.push({id: "w9", type: "bsb", date: "2026-10-26", max: 25, title: "BSB-3"});
+      delete D.web.duty; D.web.bsb_hdr = {teacher: "Karimova N."}; save(); go("today"); return c.students.map((s) => s.name);
+    }, n);
+    // «Bugun»: navbatchi (kelmagan 1- va 2-o'quvchi o'tkazib yuboriladi) va 3 kundan keyingi BSB
+    const dr = await page.textContent(".fn-dutyr"); assert.ok(dr.includes(names[2]), dr + " / " + names.slice(0, 3));
+    const br = await page.textContent(".fn-bsbr"); assert.ok(br.includes("3 kundan keyin") && br.includes("6-A"), br);
+    // dars: taymer (jadval yo'q — 45 daqiqa), navbatchi, «Keyingisi»
+    await page.evaluate(() => { S.ci = 0; S.lesson = 0; S.step = 0; go("lesson"); });
+    await page.waitForSelector("[data-fn-tm]");
+    assert.ok((await page.textContent("[data-fn-tm]")).includes("45:00"));
+    assert.equal(await page.textContent(".fn-duty b"), names[2]);
+    await page.click("[data-fn-duty]"); assert.equal(await page.textContent(".fn-duty b"), names[3], "kech qolgan navbatchi bo'la oladi");
+    assert.deepEqual(await page.evaluate(() => Object.values(D.web.duty)[0]), {d: "2026-10-23", i: 3});
+    // kelmaganlar ota-onasiga xabar: har biriga tayyor matn, kontakt bo'lsa — to'g'ridan-to'g'ri
+    assert.ok((await page.textContent("[data-fn-abs]")).includes("(3)"));
+    await page.click("[data-fn-abs]"); await page.waitForSelector(".modal .pmsg");
+    assert.equal(await page.locator(".modal .pmsg").count(), 3);
+    const t0 = await page.inputValue('.modal [data-fa="0"]'), t1 = await page.inputValue('.modal [data-fa="2"]');
+    assert.ok(t0.includes(names[0]) && t0.includes("23.10.2026") && t0.includes("kelmadi") && t0.includes("Karimova N."), t0);
+    assert.ok(t1.includes(names[5]) && t1.includes("(kasal)"), t1);
+    assert.ok(await page.$('.modal [data-pwa="a0"]'), "telefon bor — WhatsApp");
+    await page.fill('.modal [data-fa="0"]', "Salom test");
+    assert.ok((await page.getAttribute('.modal [data-psms="a0"]', "href")).endsWith("body=Salom%20test"));
+    assert.ok(await page.evaluate(() => document.querySelector(".modal .card").scrollWidth <= document.querySelector(".modal .card").clientWidth + 1), "oyna yonga chiqmaydi");
+    await page.click(".modal [data-x]");
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "dars sahifasi yonga chiqmaydi");
+    // Sozlamalar → Funksiyalar: 4 guruh, jonli namuna, saralash, guruhni o'chirish va «Qaytarish»
+    await page.evaluate(() => { S.sec = 6; go("settings"); });
+    assert.equal(await page.locator(".fn-g").count(), 4);
+    assert.equal(await page.locator(".fn-row .fn-new").count(), 4);
+    assert.equal(await page.locator('[data-ft="act"], [data-ft="week"]').count(), 0);
+    assert.ok((await page.textContent(".fn-g .fn-prev")).includes("Taymer"));
+    await page.click('[data-fnf="new"]'); assert.equal(await page.locator(".fn-row:not(.multi)").count(), 4);
+    await page.click('[data-fnf="all"]');
+    await page.click('[data-fng="lesson"]');
+    assert.equal(await page.evaluate(() => ["call", "groups", "attmodes", "seats", "hw", "timer", "duty"].some(feat)), false);
+    assert.ok((await page.textContent(".fn-g .fn-prev")).includes("Hech narsa"));
+    await page.click(".toast .tact");
+    assert.equal(await page.evaluate(() => ["call", "groups", "attmodes", "seats", "hw", "timer", "duty"].every(feat)), true, "Qaytarish");
+    // to'plamlar: Asosiy → «Tanlovim» emas; bitta kalit → Tanlovim
+    await page.click('[data-fp="simple"]'); assert.ok(await page.$('.fn-pre [data-fp="simple"].on'));
+    await page.click('[data-ft="hw"]'); assert.ok(await page.$(".fn-pre button.on:not([data-fp])"), "Tanlovim");
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "sozlamalar yonga chiqmaydi");
+    await page.click('[data-fp="all"]'); await page.click('[data-ft="timer"]'); await page.click('[data-ft="duty"]'); await page.click('[data-ft="absmsg"]');
+    await page.evaluate(() => { S.step = 0; go("lesson"); }); await page.waitForSelector("[data-next]");
+    assert.equal(await page.locator(".fn-lbar").count(), 0, "o'chirilgan funksiyalar darsda yo'q");
+    await page.evaluate(() => go("today")); assert.equal(await page.locator(".fn-dutyr").count(), 0); assert.equal(await page.locator(".fn-bsbr").count(), 1);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});

@@ -63,6 +63,7 @@ const BGN = (() => {
     if ((a === null || a > 7) && (tg === null || tg > 7)) R.push(["info", "💾", a === null ? (tel ? "Ma'lumotlar hali faylga saqlanmagan" : "Ma'lumotlar hali faylga saqlanmagan. Brauzer tozalansa, ma'lumot yo'qolishi mumkin.") : (tel ? `Oxirgi zaxira <b>${a} kun</b> oldin olingan` : `Oxirgi zaxira <b>${a} kun</b> oldin olingan. Brauzer tozalansa, ma'lumot yo'qolishi mumkin.`), `<button class="btn btn-sm btn-primary" data-backup2>Saqlash</button>`, ""]);
     const b = feat("bday") ? birthdays(0) : [];
     if (b.length) R.push(["pink", "🎂", `Bugun tug'ilgan kun: ${b.map((x) => `<button class="bn-lnk" data-stud="${x.ci}|${esc(x.s.name)}">${esc(x.s.name)}</button> <span class="bn-mut">(${esc(D.classes[x.ci].name)}${x.age ? `, ${x.age} yosh` : ""})</span>`).join(", ")}${tel ? "" : ". Tabriklashni unutmang!"}`, "", "bday"]);
+    if (typeof FNK !== "undefined") R.push(...FNK.rems(tel));   // navbatchi va yaqinlashayotgan BSB/CHSB (funksiyalar.js)
     return R.length ? `<section class="card bn-rems" aria-label="Eslatmalar">${R.map(([c, ic, t, btn, cls]) => `<div class="bn-rm ${c} ${cls}"><span class="bn-ic">${ic}</span><span class="bn-rt">${t}</span>${btn}</div>`).join("")}</section>` : "";
   }
   function hero(t, L, tel) {
