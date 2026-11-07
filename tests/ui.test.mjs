@@ -625,7 +625,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".modal [data-xl]")]);
       const wb = XLSX.read(await readFile(await dl.path()));
       const aoa = XLSX.utils.sheet_to_json(wb.Sheets.BSB, {header: 1});
-      assert.equal(aoa[0][0], "12-maktab"); assert.ok(aoa.some((r) => r[1] === "O'zlashtirish, %") && aoa.some((r) => r[0] === "Baho" && r[1] === "Soni"), "yangi qatorlar Excelda"); assert.ok(aoa.some((r) => r.some((x) => String(x).startsWith("Metod birlashma rahbari"))));
+      assert.equal(aoa[0][0], "12-maktab"); assert.ok(aoa.some((r) => r[1] === "O'zlashtirish, %") && aoa.some((r) => r[1] === "Baho" && r[2] === "Soni"), "yangi qatorlar Excelda"); assert.ok(aoa.some((r) => r.some((x) => String(x).startsWith("Metod birlashma rahbari"))));
       const ws = wb.Sheets.BSB, hr = aoa.findIndex((r) => r[1] === "Maksimal ball") + 2, tc = XLSX.utils.encode_col(2 + 3);
       assert.equal(ws[`${tc}${hr}`].f, `SUM(C${hr}:E${hr})`, "Jami — formula");
       // jami ballni summativga o'tkazish (yangi BSB ishi)
@@ -679,7 +679,11 @@ test("BSB tahlili: strelka tugmalari, Excel'dan joylash, savol nomlari va xatola
     const wb = XLSX.read(await readFile(await dl.path()));
     assert.deepEqual(wb.SheetNames, ["Natijalar", "Savollar", "Xulosa"]);
     const aoa = XLSX.utils.sheet_to_json(wb.Sheets.Savollar, {header: 1});
-    assert.equal(aoa[0][0], "Savol"); assert.equal(aoa[1][0], "1-savol");
+    const qh = aoa.findIndex((r) => r[0] === "Savol");   // sarlavha qatorlaridan keyin
+    assert.ok(qh > 0); assert.equal(aoa[qh + 1][0], "1-savol");
+    // rangli: sarlavha qatori to'q yashil, oq qalin harf (xlsx-js-style)
+    const XS = XLSX.read(await readFile(await dl.path()), {cellStyles: true}).Sheets.Natijalar, hc = Object.keys(XS).find((a) => XS[a].v === "№");
+    assert.equal(XS[hc].s && XS[hc].s.fgColor && XS[hc].s.fgColor.rgb, "0B5C5A", "Excel sarlavhasi rangli");
     assert.ok(!JSON.stringify(XLSX.utils.sheet_to_json(wb.Sheets.Natijalar, {header: 1})).includes("Kasrni qisqartirish"), "savol nomlari eksportga chiqmaydi");
     // sarlavha, imzolar va qismlar
     await page.evaluate(() => { window.print = () => { window.__printed = document.getElementById("pdoc").textContent; }; });
