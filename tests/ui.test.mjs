@@ -3910,3 +3910,56 @@ test("Alifbo: yangi alifbo ekran, Excel va Telegram'da, ma'lumot o'zgarmaydi (al
     }
   } finally { await browser.close(); }
 });
+
+test("BSB tahlili: «Taxminiy ball» eMaktab jami balini savollar bo'yicha bo'ladi (36 va 18 o'quvchi), Moslash va Bekor qilish", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const [n, vw] of [[36, 1300], [18, 390]]) {
+      const page = await browser.newPage({viewport: {width: vw, height: 844}});
+      const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+      await page.evaluate((n) => {
+        D.settings.protect.enabled = false;
+        const c = D.classes[0];
+        c.students = Array.from({length: n}, (_, i) => ({name: `O'quvchi ${String(i + 1).padStart(2, "0")}`, marks: {}, scores: i === 4 ? {} : {w3: 3 + (i * 7) % 23}}));
+        c.analyses = []; S.ci = 0; S.bas = {}; go("journal");
+      }, n);
+      await page.click("[data-jp=bsb]"); await page.waitForSelector("table.bsa");
+      await page.evaluate(() => { const B = baCur(); B.q = 6; B.max = [3, 3, 4, 4, 5, 6]; render(); });
+      await page.click("[data-btx]"); await page.waitForSelector(".tx-dlg");
+      assert.equal(await page.locator(".tx-pv tr").count(), 6);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${vw}px: oyna sig'madi`);
+      await page.click(".tx-dlg [data-ok]");
+      const check = () => page.evaluate(() => {
+        const c = D.classes[0], B = baCur(), bad = [];
+        c.students.forEach((s) => {
+          const r = B.rows[s.name], sc = s.scores.w3;
+          if (sc === undefined) { if (r.in !== false) bad.push(s.name + ": ishtirok etmagan bo'lishi kerak"); return; }
+          const sum = r.pts.reduce((a, v) => a + v, 0);
+          if (Math.abs(sum - sc) > 1e-9 || r.pts.some((v, i) => v < 0 || v > B.max[i])) bad.push(`${s.name}: ${JSON.stringify(r.pts)} ≠ ${sc}`);
+        });
+        return bad;
+      });
+      assert.deepEqual(await check(), []);
+      assert.equal(await page.locator("table.bsa .tx-em.ok").count(), n - 1);
+      assert.equal(await page.locator("table.bsa input.sc.tx-est").count(), (n - 1) * 6);
+      // eMaktab ustuni «Jami» oldida
+      assert.equal(await page.evaluate(() => { const th = [...document.querySelectorAll("table.bsa tr:first-child th")]; return th.findIndex((x) => x.classList.contains("tx-h")) + 1 === th.findIndex((x) => x.textContent === "Jami"); }), true);
+      // qo'lda tuzatish → farq, «Moslash» qolganini to'g'rilaydi, qo'lda yozilgani o'zgarmaydi
+      const k = await page.evaluate(() => { const p = baCur().rows[D.classes[0].students[2].name].pts; return p.indexOf(Math.max(...p)); });
+      await page.fill(`[data-bp="2|${k}"]`, "0"); await page.press(`[data-bp="2|${k}"]`, "Tab");
+      assert.equal(await page.locator("table.bsa .tx-em.no").count(), 1);
+      await page.click("[data-txfit]");
+      assert.deepEqual(await check(), []);
+      assert.equal(await page.evaluate((k) => baCur().rows[D.classes[0].students[2].name].pts[k], k), 0);
+      assert.ok(await page.locator(`[data-bp="2|${k}"].tx-man`).count());
+      // bekor qilish — oldingi (bo'sh) holat
+      await page.click("[data-txundo]");
+      assert.equal(await page.evaluate(() => Object.values(baCur().rows).some((r) => r.pts.some((v) => v != null))), false);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});

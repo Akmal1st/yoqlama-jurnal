@@ -34,6 +34,7 @@
 <link rel="stylesheet" href="emk-bir.css">
 <link rel="stylesheet" href="boshlash.css">
 <link rel="stylesheet" href="alifbo.css">
+<link rel="stylesheet" href="taxminiy.css">
 </head>
 <body>
 <div class="app" id="app">
@@ -62,6 +63,7 @@
 <script src="emk-bir.js"></script>
 <script src="emk-server.js"></script>
 <script src="boshlash.js"></script>
+<script src="taxminiy.js"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
@@ -3466,15 +3468,15 @@ function pageBsb(m) {
   const tot = sumOf(B.max);
   let body;
   if (tab === "tbl") {
-    const head = `<tr><th title="Ishtirok etdi">✔</th><th class="nm">O'quvchi</th>${B.max.map((_, i) => `<th class="d">${i + 1}<small>savol</small></th>`).join("")}<th>Jami</th><th>%</th><th>Baho</th><th></th></tr>
-      <tr class="mx"><td></td><td class="nm"><b>Maksimal ball</b></td>${B.max.map((v, i) => `<td class="c"><input class="sc" data-bx="${i}" value="${gnum(v)}" inputmode="decimal" autocomplete="off"></td>`).join("")}<td class="s">${gnum(tot)}</td><td class="s">100</td><td></td><td></td></tr>`;
+    const head = `<tr><th title="Ishtirok etdi">✔</th><th class="nm">O'quvchi</th>${B.max.map((_, i) => `<th class="d">${i + 1}<small>savol</small></th>`).join("")}${TXB.head(c, B)}<th>Jami</th><th>%</th><th>Baho</th><th></th></tr>
+      <tr class="mx"><td></td><td class="nm"><b>Maksimal ball</b></td>${B.max.map((v, i) => `<td class="c"><input class="sc" data-bx="${i}" value="${gnum(v)}" inputmode="decimal" autocomplete="off"></td>`).join("")}${TXB.mxCell(c, B)}<td class="s">${gnum(tot)}</td><td class="s">100</td><td></td><td></td></tr>`;
     const rows = c.students.map((s, si) => {
       const r = baRow(B, s.name), on = r.in !== false;
       return `<tr class="${on ? "" : "off"}" data-row="${si}"><td class="c"><input type="checkbox" data-bin="${si}" ${on ? "checked" : ""}></td><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>
-        ${B.max.map((mx, i) => { const v = r.pts[i]; return `<td class="c"><input class="sc ${v > mx ? "bad" : ""}" data-bp="${si}|${i}" value="${v === null || v === undefined ? "" : gnum(v)}" inputmode="${BA_COARSE && mx <= 30 ? "none" : "decimal"}" enterkeyhint="next" autocomplete="off" maxlength="6" placeholder="/${gnum(mx)}" title="0 – ${gnum(mx)}" ${on ? "" : "disabled"}></td>`; }).join("")}
-        <td class="s" data-tot></td><td class="s a" data-pct></td><td class="s" data-g></td><td class="c"><button type="button" class="btn btn-sm" data-bmax="${si}" title="Yuqori ball olgan o'quvchi: barcha savollarga maksimal ball yozadi" ${on ? "" : "disabled"}>max</button></td></tr>`;
+        ${B.max.map((mx, i) => { const v = r.pts[i]; return `<td class="c"><input class="sc ${v > mx ? "bad" : ""}${TXB.cls(B, s.name, i)}" data-bp="${si}|${i}" value="${v === null || v === undefined ? "" : gnum(v)}" inputmode="${BA_COARSE && mx <= 30 ? "none" : "decimal"}" enterkeyhint="next" autocomplete="off" maxlength="6" placeholder="/${gnum(mx)}" title="0 – ${gnum(mx)}" ${on ? "" : "disabled"}></td>`; }).join("")}
+        ${TXB.cell(c, B)}<td class="s" data-tot></td><td class="s a" data-pct></td><td class="s" data-g></td><td class="c"><button type="button" class="btn btn-sm" data-bmax="${si}" title="Yuqori ball olgan o'quvchi: barcha savollarga maksimal ball yozadi" ${on ? "" : "disabled"}>max</button></td></tr>`;
     }).join("");
-    body = `<div class="tblwrap"><table class="j bsa">${head}${rows}</table></div>
+    body = `${TXB.banner(c, B)}<div class="tblwrap"><table class="j bsa">${head}${rows}</table></div>
       <p class="muted" style="margin:0">Birinchi qator — savollarning maksimal ballari (o'zgartirish mumkin). ✔ olib tashlansa, o'quvchi ishtirok etmagan hisoblanadi. Bo'sh katak — 0 ball. Ball maksimaldan oshmaydi (oshirib yozsangiz, maksimal ball qo'yiladi); maksimal ball yozilganda keyingi katakka o'zi o'tadi. Baho: 86–100% → 5, 66–85% → 4, 30–65% → 3, qolgani → 2.</p>`;
   } else if (tab === "er") {
     const an = baAnalysis(c, B);
@@ -3492,7 +3494,7 @@ function pageBsb(m) {
       <div class="muted" style="padding-bottom:10px">Maksimal ball: <b>${gnum(tot)}</b></div></div>
     <div class="hrow" style="gap:8px"><div class="seg"><button class="${tab === "tbl" ? "on" : ""}" data-btab="tbl">✎ Ballar jadvali</button><button class="${tab === "an" ? "on" : ""}" data-btab="an">🔍 Tahlil</button><button class="${tab === "er" ? "on" : ""}" data-btab="er">❌ Xatolar kesimi</button></div>
       <span class="muted" id="bdirty">${B.dirty ? "• saqlanmagan o'zgarishlar" : ""}</span><span class="sp"></span>
-      <button class="btn" data-bnames title="Har bir savol yoki mezonga nom bering — hisobotlarda ko'rinadi">✎ Savol nomlari</button><button class="btn" data-bexp>⬇ Eksport</button><button class="btn" data-btr title="Har bir o'quvchining jami ballini BSB / CHSB sahifasidagi BSB ishiga yozadi">↳ Summativga o'tkazish</button></div>
+      ${TXB.button()}<button class="btn" data-bnames title="Har bir savol yoki mezonga nom bering — hisobotlarda ko'rinadi">✎ Savol nomlari</button><button class="btn" data-bexp>⬇ Eksport</button><button class="btn" data-btr title="Har bir o'quvchining jami ballini BSB / CHSB sahifasidagi BSB ishiga yozadi">↳ Summativga o'tkazish</button></div>
     ${body}</div>`;
   bindTop(m);
   const dirty = () => { B.dirty = true; const el = $("#bdirty", m); if (el) el.textContent = "• saqlanmagan o'zgarishlar"; };
@@ -3527,23 +3529,26 @@ function pageBsb(m) {
     $("[data-x]", mm).onclick = () => close();
     $("[data-ok]", mm).onclick = () => { B.names = B.max.map((_, i) => $(`[data-qn="${i}"]`, mm).value.trim()); dirty(); close(); render(); };
   });
+  const reTx = () => { const y = window.scrollY, tw = $(".tblwrap", m), sl = tw ? tw.scrollLeft : 0; render(); window.scrollTo(0, y); const t2 = $(".tblwrap"); if (t2) t2.scrollLeft = sl; };
+  TXB.bind(m, c, B, reTx);   // «Taxminiy ball» (taxminiy.js)
   if (tab !== "tbl") return;
   const paint = (si) => {
     const s = c.students[si], r = baRow(B, s.name), tr = m.querySelector(`tr[data-row="${si}"]`), on = r.in !== false;
-    if (!on) { $("[data-tot]", tr).textContent = "—"; $("[data-pct]", tr).textContent = ""; $("[data-g]", tr).innerHTML = ""; return; }
     const total = sumOf(B.max.map((mx, i) => Math.min(Math.max(+(r.pts[i] || 0), 0), mx))), pct = tot ? 100 * total / tot : 0;
+    TXB.paint(c, B, s, tr, total);
+    if (!on) { $("[data-tot]", tr).textContent = "—"; $("[data-pct]", tr).textContent = ""; $("[data-g]", tr).innerHTML = ""; return; }
     $("[data-tot]", tr).textContent = gnum(Math.round(total * 100) / 100); $("[data-pct]", tr).textContent = pyFixed(pct, 0) + "%"; $("[data-g]", tr).innerHTML = g5pill(grade5(pct));
   };
   c.students.forEach((_, si) => paint(si));
   const edit = (s) => B.rows[s.name] = B.rows[s.name] || {in: true, pts: []};
   m.querySelectorAll("[data-bmax]").forEach((b) => b.onclick = () => {   // hamma savolga maksimal ball
-    const si = +b.dataset.bmax, r = edit(c.students[si]); r.in = true; r.pts = B.max.slice(); dirty();
+    const si = +b.dataset.bmax, r = edit(c.students[si]); r.in = true; r.pts = B.max.slice(); TXB.touch(B, c.students[si].name); dirty();
     // butun sahifa qayta chizilmaydi: faqat shu qator kataklari va jami
-    m.querySelectorAll(`[data-bp^="${si}|"]`).forEach((x) => { const i = +x.dataset.bp.split("|")[1]; x.value = gnum(B.max[i]); x.classList.remove("bad"); }); paint(si); toast(`${c.students[si].name}: barcha savollarga maksimal ball (${gnum(tot)})`);
+    m.querySelectorAll(`[data-bp^="${si}|"]`).forEach((x) => { const i = +x.dataset.bp.split("|")[1]; x.value = gnum(B.max[i]); x.classList.remove("bad", "tx-est"); }); paint(si); TXB.refresh(m, c, B, reTx); toast(`${c.students[si].name}: barcha savollarga maksimal ball (${gnum(tot)})`);
   });
   m.querySelectorAll("[data-bin]").forEach((cb) => cb.onchange = () => {
     const si = +cb.dataset.bin, r = edit(c.students[si]); r.in = cb.checked; dirty();
-    const tr = cb.closest("tr"); tr.classList.toggle("off", !r.in); tr.querySelectorAll("[data-bp]").forEach((x) => x.disabled = !r.in); paint(si);
+    const tr = cb.closest("tr"); tr.classList.toggle("off", !r.in); tr.querySelectorAll("[data-bp]").forEach((x) => x.disabled = !r.in); paint(si); TXB.refresh(m, c, B, reTx);
   });
   /* katakdan katakka: ↑ ↓ ← → (← → matn chetiga yetganda), Enter / Shift+Enter, Home / End; Excel'dan ko'p katakli joylash */
   const posOf = (x) => x.dataset.bx !== undefined ? [-1, +x.dataset.bx] : x.dataset.bp.split("|").map(Number);
@@ -3615,6 +3620,7 @@ function pageBsb(m) {
       const v = numIn(t), row = edit(st); if (row.in === false || Number.isNaN(v) || v < 0 || v > 1000) return;
       while (row.pts.length < B.q) row.pts.push(null);
       if (v !== null && v > B.max[k]) { row.pts[k] = B.max[k]; cut++; } else row.pts[k] = v;
+      TXB.touch(B, st.name, k);
       put++;
     }));
     if (put) { dirty(); const y = window.scrollY; render(); window.scrollTo(0, y); toast(`${put} ta katak joylandi${cut ? `, ${cut} tasi maksimal ballga tushirildi` : ""}`); }
@@ -3641,7 +3647,8 @@ function pageBsb(m) {
       if (v !== null && v > mx) { v = mx; warnMax(i, mx); }
       const r = edit(c.students[si]); while (r.pts.length < B.q) r.pts.push(null); r.pts[i] = v;
       inp.value = v === null ? "" : gnum(v); inp.classList.remove("bad");
-      dirty(); paint(si);
+      if (inp.classList.contains("tx-est")) { TXB.touch(B, c.students[si].name, i); inp.classList.replace("tx-est", "tx-man"); }
+      dirty(); paint(si); TXB.refresh(m, c, B, reTx);
     };
   });
   m.querySelectorAll("[data-bx]").forEach((inp) => inp.onchange = () => {
