@@ -92,3 +92,17 @@ test("Baholanganlar ulushi: kamida 30% (baholangan / jami * 100 >= 30)", () => {
   assert.deepEqual(r(3, 1), [true, 33.3, 1]);
   assert.deepEqual(r(0, 0), [false, 0, 0]);
 });
+
+test("Loyiha ishi chorak hisobida BSB qismiga kiradi: BSB + Loyiha = 50, CHSB = 40", () => {
+  const B = loadApp(INPUTS.today); B.setData(structuredClone(FIXTURE));
+  const c = B.D.classes.find((x) => x.works && x.works.length) || B.D.classes[0], q = [1, 2, 3, 4].find((k) => B.worksInQuarter(c, k).length) || 1;
+  const [a, b] = B.D.settings.quarters[q - 1], s = c.students[0];
+  c.works = [{id: "lb", type: "bsb", date: a, max: 25, title: ""}, {id: "ll", type: "loyiha", date: a, max: 25, title: ""}, {id: "lc", type: "chsb", date: b, max: 40, title: ""}];
+  s.scores = {lb: 20, ll: 15, lc: 30};
+  const r = B.quarterResult(c, s, q, B.worksInQuarter(c, q));
+  assert.deepEqual([r.bsb, r.chsb, r.max_bsb, r.max_chsb, r.missing], [35, 30, 50, 40, 0]);
+  assert.equal(r.complete, true);
+  c.works[1].max = 20;
+  const [cp] = B.readiness(c, q);
+  assert.ok(cp.some((x) => x.includes("BSB + Loyiha ishi") && x.includes("45")), cp.join("; "));
+});

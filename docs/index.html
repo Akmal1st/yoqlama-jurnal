@@ -34,7 +34,8 @@
 <link rel="stylesheet" href="emk-bir.css">
 <link rel="stylesheet" href="boshlash.css">
 <link rel="stylesheet" href="alifbo.css">
-<link rel="stylesheet" href="taxminiy.css?v=192">
+<link rel="stylesheet" href="taxminiy.css?v=193">
+<link rel="stylesheet" href="summativ.css?v=193">
 </head>
 <body>
 <div class="app" id="app">
@@ -48,22 +49,23 @@
 <script src="tpt-mavzu.js"></script>
 <script src="guruhlar.js"></script>
 <script src="dizayn.js"></script>
-<script src="hisobotlar.js"></script>
+<script src="hisobotlar.js?v=193"></script>
 <script src="bosh-varaq.js"></script>
 <script src="davomat.js"></script>
-<script src="bsb-eksport.js"></script>
+<script src="bsb-eksport.js?v=193"></script>
 <script src="bugun-arxiv.js"></script>
-<script src="bugun.js"></script>
+<script src="bugun.js?v=193"></script>
 <script src="sozlamalar.js"></script>
-<script src="mezon.js"></script>
-<script src="kunlik.js"></script>
+<script src="mezon.js?v=193"></script>
+<script src="kunlik.js?v=193"></script>
 <script src="pdf-tg.js"></script>
 <script src="tg-umumiy.js"></script>
-<script src="arxiv.js"></script>
+<script src="arxiv.js?v=193"></script>
 <script src="emk-bir.js"></script>
 <script src="emk-server.js"></script>
 <script src="boshlash.js"></script>
-<script src="taxminiy.js?v=192"></script>
+<script src="taxminiy.js?v=193"></script>
+<script src="summativ.js?v=193"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
@@ -318,7 +320,7 @@ function cleanClass(c) {
       if (g.nat && typeof g.nat === "object") { const nt = {}; for (const q of ["0", "1", "2", "3", "4"]) if (typeof g.nat[q] === "string" && g.nat[q].trim()) nt[q] = g.nat[q].slice(0, 1500); if (Object.keys(nt).length) o.nat = nt; }
     }
     if (Object.keys(o).length) c.grh = o; else delete c.grh; }
-  c.works = (Array.isArray(c.works) ? c.works : []).filter((w) => w && typeof w === "object" && SAFE_ID.test(String(w.id)) && (w.type === "bsb" || w.type === "chsb") && ISO_D.test(String(w.date)))
+  c.works = (Array.isArray(c.works) ? c.works : []).filter((w) => w && typeof w === "object" && SAFE_ID.test(String(w.id)) && isSumType(w.type) && ISO_D.test(String(w.date)))
     .map((w) => Object.assign({}, w, {id: String(w.id), max: num0(w.max)}));
   for (const w of c.works) cleanTest(w);
   c.wdel = (Array.isArray(c.wdel) ? c.wdel : []).filter((k) => /^(bsb|chsb)\|\d{4}-\d{2}-\d{2}$/.test(String(k))).map(String).slice(0, 500); if (!c.wdel.length) delete c.wdel;
@@ -714,7 +716,7 @@ function reportRows0(c, lo, hi, q) {
     }
     if (on.work) for (const w of c.works) {
       const v = (s.scores || {})[w.id];
-      if (lo <= w.date && w.date <= hi && isNum(v) && w.max) { const pct = 100 * v / w.max; if (pct < +(rk.work_below ?? 40)) W("work", `${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)}: ${pyFixed(pct, 0)}%`); }
+      if (lo <= w.date && w.date <= hi && isNum(v) && w.max) { const pct = 100 * v / w.max; if (pct < +(rk.work_below ?? 40)) W("work", `${wTypeName(w)} ${fmt(w.date).slice(0, 5)}: ${pyFixed(pct, 0)}%`); }
     }
     return {name: s.name, n: gr.length, avg, att, ...cnt, ch: nch, absent, q: qr, why, kinds, risk: why.length > 0};
   });
@@ -760,7 +762,7 @@ function quarterGaps(c, q, t = todayIso()) {
     const r = quarterResult(c, s, q, works);
     if (r.n_fb < fbMin()) low.push({name: s.name, n: r.n_fb});
     const miss = past.filter((w) => !isNum((s.scores || {})[w.id]));
-    if (miss.length) noScore.push({name: s.name, works: miss.map((w) => `${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)}`)});
+    if (miss.length) noScore.push({name: s.name, works: miss.map((w) => `${wTypeName(w)} ${fmt(w.date).slice(0, 5)}`)});
   }
   const left = c.dates.filter((d) => t < d && d <= qRange(q)[1] && !isNoLesson(c, d)).length;
   return {low, noScore, left};
@@ -775,24 +777,22 @@ function analysisGaps(t = todayIso()) {
   const rows = [];
   D.classes.forEach((c, ci) => {
     if (isGrp(c)) return;
-    const done = new Set((c.analyses || []).filter(has).map((a) => a.date));
-    const miss = worksInQuarter(c, q).filter((w) => (w.type === "bsb" || w.type === "chsb") && w.date <= t && !done.has(w.date)
+    // tahlil qilingan: shu ishga bog'langan (a.w) yoki eski yozuvlarda — shu sanadagi bog'lanmagan tahlilda ball bor
+    const A = (c.analyses || []).filter(has), done = (w) => A.some((a) => a.w === w.id || (a.date === w.date && (!a.w || !c.works.some((x) => x.id === a.w))));
+    const miss = worksInQuarter(c, q).filter((w) => isSumType(w.type) && w.date <= t && !done(w)
       && !(w.type === "chsb" && w.test && Object.values(w.test.ans || {}).some((a) => /[^.]/.test(a))))
       .sort((a, b) => a.date < b.date ? -1 : 1);
     if (miss.length) rows.push({c, ci, works: miss});
   });
   return {q, rows};
 }
-/* tahlil sahifasini ochish: BSB — yangi tahlil (sana va mavzu ishdan), CHSB — shu ishning «CHSB testi» */
+/* tahlil sahifasini ochish: «Summativ tahlili»da shu ish */
 function openAnalysis(ci, wid) {
   const c = D.classes[ci], w = c && c.works.find((x) => x.id === wid); if (!w) return;
   S.ci = ci; S.page = "journal";
-  if (w.type === "chsb") { S.jpage = "chsbt"; S.tw = w.id; S.cttab = "tbl"; }
-  else {
-    S.jpage = "bsb"; S.batab = "tbl"; S.bas = S.bas || {};
-    const cur = S.bas[label(c)];
-    if (!(cur && cur.dirty)) { const a = (c.analyses || []).find((x) => x.date === w.date); S.bas[label(c)] = a ? baFrom(a) : Object.assign(baBlank(), {date: w.date, title: w.title || ""}); }
-  }
+  // «Summativ tahlili» sahifasi (summativ.js): ish turi va shu ish tanlanadi
+  S.jpage = "sm"; S.smt = w.type; S.smw = w.id;
+  if (w.type === "chsb") { S.tw = w.id; S.cttab = "tbl"; } else S.batab = "tbl";
   go("journal");
 }
 /* qarzdorlar: past baho (qizil oraliq) yoki o'tgan BSB/CHSB topshirilmagan / past natija; s.retake[kalit] = {d, v} — qayta topshirdi */
@@ -805,8 +805,8 @@ function debtsOf(c, s, lo, hi, t = todayIso()) {
   }
   for (const w of c.works) if (lo <= w.date && w.date <= hi && w.date <= t) {
     const v = (s.scores || {})[w.id], ab = ["s", "dq", "k"].includes(attPart(s.marks[w.date] || ""));
-    if (!isNum(v) && ab) out.push({key: "w:" + w.id, date: w.date, what: `${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)} — topshirmagan (darsda yo'q edi)`});
-    else if (isNum(v) && w.max && 100 * v / w.max < wb) out.push({key: "w:" + w.id, date: w.date, what: `${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)} — ${fmtNum(v)}/${fmtNum(w.max)} (${pyFixed(100 * v / w.max, 0)}%)`});
+    if (!isNum(v) && ab) out.push({key: "w:" + w.id, date: w.date, what: `${wTypeName(w)} ${fmt(w.date).slice(0, 5)} — topshirmagan (darsda yo'q edi)`});
+    else if (isNum(v) && w.max && 100 * v / w.max < wb) out.push({key: "w:" + w.id, date: w.date, what: `${wTypeName(w)} ${fmt(w.date).slice(0, 5)} — ${fmtNum(v)}/${fmtNum(w.max)} (${pyFixed(100 * v / w.max, 0)}%)`});
   }
   return out.map((x) => Object.assign(x, {done: (s.retake || {})[x.key] || null})).sort((a, b) => a.date.localeCompare(b.date));
 }
@@ -946,7 +946,7 @@ function upcomingItems(days = 7) {
   const when = (left, d) => left === 0 ? "bugun" : left === 1 ? "ertaga" : `${left} kundan keyin`;
   for (const c of D.classes) for (const w of c.works) if (t <= w.date && w.date <= hi) {
     const left = Math.round((pdate(w.date) - pdate(t)) / 864e5);
-    out.push({date: w.date, left, title: w.type.toUpperCase(), sub: `${label(c)} · ${when(left)}`, text: `${w.type.toUpperCase()} — ${label(c)} (${left === 0 ? "bugun" : left === 1 ? "ertaga" : fmt(w.date)})`});
+    out.push({date: w.date, left, title: wTypeName(w), sub: `${label(c)} · ${when(left)}`, text: `${wTypeName(w)} — ${label(c)} (${left === 0 ? "bugun" : left === 1 ? "ertaga" : fmt(w.date)})`});
   }
   if (feat("bday")) for (const b of birthdays(days)) if (b.left) { const d = iso(addDays(pdate(t), b.left));
     out.push({date: d, left: b.left, title: `🎂 ${b.s.name}`, sub: `${D.classes[b.ci].name}${b.age ? `, ${b.age} yosh` : ""} · tug'ilgan kun ${b.left === 1 ? "ertaga" : fmt(d).slice(0, 5)}`, text: `🎂 ${b.s.name} (${D.classes[b.ci].name}) — tug'ilgan kun ${b.left === 1 ? "ertaga" : fmt(d).slice(0, 5)}${b.age ? `, ${b.age} yosh` : ""}`}); }
@@ -994,6 +994,10 @@ const BSB_TOTAL = 50, CHSB_TOTAL = 40, FB_TOTAL = 10;
 const grade5 = (t) => t >= 86 ? 5 : t >= 66 ? 4 : t >= 30 ? 3 : 2;
 const G5COL = {5: 10, 4: 8, 3: 5, 2: 2};
 const isNum = (v) => typeof v === "number" && isFinite(v);
+/* summativ ish turlari: BSB, CHSB va Loyiha ishi (BSB kabi baholanadi; chorakda BSB qismiga qo'shiladi: BSB + Loyiha = 50) */
+const WTYPE_NAME = {bsb: "BSB", chsb: "CHSB", loyiha: "Loyiha ishi"};
+const wTypeName = (w) => WTYPE_NAME[w && w.type] || String((w && w.type) || "").toUpperCase();
+const isSumType = (t) => t === "bsb" || t === "chsb" || t === "loyiha";
 const fmtNum = (v) => isNum(v) ? String(Math.round(v * 10) / 10) : String(v ?? "");
 const fbMin = () => Math.max(1, +(D.settings.fb_min || 4));
 function worksInQuarter(c, q) {
@@ -1016,8 +1020,8 @@ function quarterResult(c, s, q, works) {
   const sc = s.scores || {}; let bsb = 0, chsb = 0, mb = 0, mc = 0, missing = 0;
   for (const w of works) {
     const v = sc[w.id];
-    if (w.type === "bsb") mb += +w.max; else mc += +w.max;
-    if (isNum(v)) { if (w.type === "bsb") bsb += v; else chsb += v; } else missing++;
+    if (w.type !== "chsb") mb += +w.max; else mc += +w.max;   // Loyiha ishi — BSB qismiga
+    if (isNum(v)) { if (w.type !== "chsb") bsb += v; else chsb += v; } else missing++;
   }
   const [fb, nfb, avg] = fbInfo(c, s, qRange(q)); const total = bsb + chsb + fb;
   const complete = mb === BSB_TOTAL && mc === CHSB_TOTAL && missing === 0;
@@ -1038,13 +1042,13 @@ function yearResult(c, s) {
 }
 function readiness(c, q) {
   const works = worksInQuarter(c, q), cp = [];
-  const mb = works.filter((w) => w.type === "bsb").reduce((a, w) => a + +w.max, 0), mc = works.filter((w) => w.type !== "bsb").reduce((a, w) => a + +w.max, 0);
-  if (mb !== BSB_TOTAL) cp.push(`BSB maksimal ballari yig'indisi ${fmtNum(mb)} (kerak: ${BSB_TOTAL})`);
+  const mb = works.filter((w) => w.type !== "chsb").reduce((a, w) => a + +w.max, 0), mc = works.filter((w) => w.type === "chsb").reduce((a, w) => a + +w.max, 0);
+  if (mb !== BSB_TOTAL) cp.push(`${works.some((w) => w.type === "loyiha") ? "BSB + Loyiha ishi" : "BSB"} maksimal ballari yig'indisi ${fmtNum(mb)} (kerak: ${BSB_TOTAL})`);
   if (mc !== CHSB_TOTAL) cp.push(`CHSB maksimal ballari yig'indisi ${fmtNum(mc)} (kerak: ${CHSB_TOTAL})`);
   const per = {};
   for (const s of c.students) {
     const res = quarterResult(c, s, q, works), probs = [];
-    for (const w of works) if (!isNum((s.scores || {})[w.id])) probs.push(`${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)} — ball yo'q`);
+    for (const w of works) if (!isNum((s.scores || {})[w.id])) probs.push(`${wTypeName(w)} ${fmt(w.date).slice(0, 5)} — ball yo'q`);
     if (res.n_fb < fbMin()) probs.push(`formativ baholar ${res.n_fb} ta (kamida ${fbMin()} ta kerak)`);
     if (probs.length) per[s.name] = probs;
   }
@@ -1167,13 +1171,15 @@ function removeWork(c, w) { forgetWork(c, w.type, w.date); c.works.splice(c.work
 /* BSB/CHSB ustuni ochilganda «BSB tahlili»da shu sana uchun bo'sh tahlil ham ochiladi (a.w — ish id si).
    Ball kiritilmagan (bo'sh) bog'langan tahlil ish sanasi/nomiga ergashadi, ish o'chirilsa — o'chadi; ball kiritilgani tegilmaydi. */
 const anEmpty = (a) => !Object.values(a.rows || {}).some((r) => r && (r.pts || []).some((p) => p !== null && p !== undefined && p !== ""));
-const anTitle = (w) => w.title || w.type.toUpperCase();
+const anTitle = (w) => w.title || wTypeName(w);
 function workAnalysis(c, w) {
-  if (isGrp(c) || !w || (w.type !== "bsb" && w.type !== "chsb")) return;
+  if (isGrp(c) || !w || !isSumType(w.type)) return;
   c.analyses = c.analyses || [];
-  if (c.analyses.some((a) => a.w === w.id || a.date === w.date)) return;
+  if (c.analyses.some((a) => a.w === w.id || (!a.w && a.date === w.date))) return;
   const ids = c.analyses.map((x) => String(x.id)).filter((x) => /^a\d+$/.test(x)).map((x) => +x.slice(1));
-  c.analyses.push({id: "a" + (Math.max(0, ...ids) + 1), title: anTitle(w), date: w.date, q: 5, max: [2, 2, 2, 2, 2], names: [], rows: {}, w: w.id});
+  // 5 ta topshiriq, maksimal ballar ish maksimaliga teng bo'linadi (25 → 5×5); maksimal bo'lmasa — 2 dan
+  const b = +w.max > 0 ? Math.floor(+w.max / 5 * 2) / 2 : 0, max = b > 0 ? [b, b, b, b, Math.round((+w.max - 4 * b) * 100) / 100] : [2, 2, 2, 2, 2];
+  c.analyses.push({id: "a" + (Math.max(0, ...ids) + 1), title: anTitle(w), date: w.date, q: 5, max, names: [], rows: {}, w: w.id});
 }
 function syncWorkAnalyses(c) {
   if (!c.analyses || !c.analyses.length) return;
@@ -1422,7 +1428,7 @@ function putMark(c, si, date, nw, quiet) {
   if (preJoin(c, s, date)) { if (!quiet) toast(`${s.name} ${fmt(s.joined)} dan qo'shilgan — undan oldingi darslarga belgi qo'yilmaydi`); return false; }
   if (old === nw) return false;
   const sw = sumOn(c, date);
-  if (sw && gradesOf(nw).length && gradesOf(nw).join("/") !== gradesOf(old).join("/")) { if (!quiet || quiet === "batch") toast(`${fmt(date).slice(0, 5)} — ${sumTag(sw)} kuni: oddiy dars bahosi qo'yilmaydi, faqat yo'qlama. Ballni «BSB / CHSB» sahifasiga kiriting.`); return false; }
+  if (sw && gradesOf(nw).length && gradesOf(nw).join("/") !== gradesOf(old).join("/")) { if (!quiet || quiet === "batch") toast(`${fmt(date).slice(0, 5)} — ${sumTag(sw)} kuni: oddiy dars bahosi qo'yilmaydi, faqat yo'qlama. Ballni «Umumiy» sahifasiga kiriting.`); return false; }
   if (old && !isAdditive(old, nw) && isLocked()) { toast("🔒 Qo'yilgan baho himoyalangan. O'zgartirish uchun qulfni oching."); return false; }
   if (nw) s.marks[date] = nw; else delete s.marks[date];
   log(c, s, date, old, nw); ARX.note(c, s, date, old, nw); if (!quiet || quiet === "batch") pushUndo([{kind: "mark", c, s, key: date, old, nw}]); touchLock(); save();
@@ -1602,7 +1608,7 @@ const HELP = [
     ["Baho qo'yish", "Katakni bosing, pastdagi tugmalardan baho yoki S/DQ/K/KQ ni tanlang. Klaviatura: 1–9, 0 (=10), S, D, K, Q; o'qlar bilan yuring. Xato bo'lsa — ↶ (Ctrl+Z)."],
     ["Ko'rinish", "Kun / Hafta / Oy / Chorak. «Kompakt» — butun chorak bitta ekranda. Telefonda ismlar qisqa chiqadi."],
     ["«Yana ▾» menyusi", "Barcha qo'shimcha amallar bo'limlarga ajratilgan, tepada qidiruv bor. Keraksizlarini Sozlamalar → «🧩 Funksiyalar»dan yashirish mumkin."],
-    ["BSB / CHSB va Yillik", "Yuqoridagi «BSB / CHSB» sahifasida summativ ishlar ballari, «BSB tahlili»da savollar bo'yicha tahlil, «Yillik»da chorak va yillik baholar."],
+    ["Umumiy, Summativ tahlili va Yillik", "«Umumiy» sahifasida summativ ishlar (BSB, CHSB, Loyiha ishi) ballari, «Summativ tahlili»da ish turini tanlab topshiriqlar (test) bo'yicha tahlil, «Yillik»da chorak va yillik baholar."],
     ["Himoya", "Qo'yilgan bahoni o'zgartirish uchun qulfni ochish kerak (yon paneldagi tugma). Parol Sozlamalar → Himoya'da."],
   ]],
   ["lesson", "▶ Darsni boshlash", [
@@ -1769,7 +1775,7 @@ const GRP_KEYS = ["ot", "ox"];
 const preJoin = (c, s, d) => isGrp(c) && !!(s && s.joined) && d < s.joined;
 // BSB/CHSB o'tkazilgan kuni oddiy dars o'tilmaydi: jurnalga baho qo'yilmaydi, faqat yo'qlama
 const sumOn = (c, d) => isGrp(c) ? null : (c.works || []).find((w) => w.date === d && (w.type === "bsb" || w.type === "chsb")) || null;
-const sumTag = (w) => w.type.toUpperCase();
+const sumTag = (w) => wTypeName(w);
 // «hamma keldi»: sinfda — kun yo'qlama qilingan deb belgilanadi; guruhda — belgisizlarga «o'tildi» qo'yiladi
 function allDone(c, d) {
   batch(() => { if (isGrp(c)) c.students.forEach((s, si) => { if (!s.marks[d] && !preJoin(c, s, d)) putMark(c, si, d, "ot", true); }); });
@@ -1784,7 +1790,7 @@ const ACH_PL = ["1-o'rin", "2-o'rin", "3-o'rin", "Faxriy yorliq", "Ishtirok"];
 const monthOf = (d) => d.slice(0, 7);
 const monthName = (m) => `${MONTHS[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}`;
 const shiftMonth = (m, n) => iso(new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + n, 1)).slice(0, 7);
-const JPAGES = ["j", "sum", "year", "bsb", "chsbt"];
+const JPAGES = ["j", "sum", "year", "sm", "bsb", "chsbt"];   // "bsb" / "chsbt" — eski sahifalar (endi «Summativ tahlili» — summativ.js)
 function pageJournal(m) {
   if (!D.classes.some((c) => !isGrp(c))) { go("today"); return; }
   S.ci = Math.min(S.ci, D.classes.length - 1);
@@ -1792,6 +1798,7 @@ function pageJournal(m) {
   if (!JPAGES.includes(S.jpage)) S.jpage = "j";
   if (S.jpage === "sum") { pageSum(m); return ARX.decorate(m, D.classes[S.ci]); }
   if (S.jpage === "year") { pageYear(m); return ARX.decorate(m, D.classes[S.ci]); }
+  if (S.jpage === "sm") return SMV.page(m);
   if (S.jpage === "bsb") return pageBsb(m);
   if (S.jpage === "chsbt") { pageChsbTest(m); return ARX.decorate(m, D.classes[S.ci]); }
   if (!viewModes().some(([k]) => k === V.mode)) V.mode = "day";
@@ -2027,7 +2034,7 @@ function pageDay(m) {
     ${jHead(perNav(), `<div class="dstrip">${strip}</div>`, jTools(c))}${ARX.banner(c, [d])}
     ${!grp && !sw && !x ? MZN.tools() : ""}${mz ? MZN.top(c, d, ed) : ""}
     <div class="dview">
-      <div class="dlist ${ed ? "" : "ro"} ${mz ? "mz" : ""}">${sw && !x ? `<div class="warn" style="padding:10px 14px">📝 ${sumTag(sw)} kuni${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars o'tilmaydi — faqat yo'qlama. Ballar «BSB / CHSB» sahifasida.</div>` : ""}${x ? `<div class="muted" style="padding:14px">${fmt(d)} — dars yo'q (X). «Dars menyusi»dan dars kuni qilishingiz mumkin.</div>` : rows}</div>
+      <div class="dlist ${ed ? "" : "ro"} ${mz ? "mz" : ""}">${sw && !x ? `<div class="warn" style="padding:10px 14px">📝 ${sumTag(sw)} kuni${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars o'tilmaydi — faqat yo'qlama. Ballar «Umumiy» sahifasida.</div>` : ""}${x ? `<div class="muted" style="padding:14px">${fmt(d)} — dars yo'q (X). «Dars menyusi»dan dars kuni qilishingiz mumkin.</div>` : rows}</div>
       <aside class="dinfo" aria-label="Dars">
         <div class="card vcol"><b>${WD_FULL[pyWd(d)]}, ${fmt(d)}${d === t ? " · bugun" : ""}</b>
           ${x ? `<span class="muted">Dars yo'q (X)</span>` : `<label class="vcol"><span class="muted">Mavzu</span><input class="form-control" type="text" id="dmt" value="${esc(l.topic || "")}" placeholder="Dars mavzusi" ${ARX.dateLocked(d, c) ? "readonly" : ""}></label>
@@ -2194,9 +2201,10 @@ async function moreMenu() {
       feat("parents") && ["✉️ Xabarlar (butun sinf)", () => parentBulk(S.ci)],
     ]],
     ["Baholash", [
-      ["📊 BSB / CHSB ballari", () => { S.jpage = "sum"; render(); }],
-      ["🔍 BSB tahlili", () => { S.jpage = "bsb"; render(); }],
-      ["📝 CHSB testi", () => { S.jpage = "chsbt"; render(); }],
+      ["📊 Umumiy (summativ ballar)", () => { S.jpage = "sum"; render(); }],
+      ["🔍 BSB tahlili", () => { S.jpage = "sm"; S.smt = "bsb"; render(); }],
+      ["📝 CHSB testi", () => { S.jpage = "sm"; S.smt = "chsb"; render(); }],
+      ["⭐ Loyiha ishi", () => { S.jpage = "sm"; S.smt = "loyiha"; render(); }],
     ]],
     ["Jurnal", [
       UNDO.length && ["↶ Oxirgi o'zgarishni bekor qilish", undoLast],
@@ -2333,7 +2341,7 @@ function pageLesson(m) {
   m.innerHTML = `<div class="vcol" style="gap:12px"><div class="hrow"><button class="btn btn-sm" data-exit>‹ Chiqish</button>
     <div class="vcol sp" style="gap:0"><h2>${esc(label(c))}</h2><span class="muted">${longDate(t)}${les.topic ? " · " + esc(les.topic) : ""}</span></div>
     <div class="steps">${steps}</div></div>
-    ${sw ? `<p class="warn" style="margin:0">📝 Bugun ${sumTag(sw)}${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars bahosi qo'yilmaydi — faqat yo'qlama. Ballar «BSB / CHSB» sahifasida.</p>` : ""}
+    ${sw ? `<p class="warn" style="margin:0">📝 Bugun ${sumTag(sw)}${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars bahosi qo'yilmaydi — faqat yo'qlama. Ballar «Umumiy» sahifasida.</p>` : ""}
     ${(() => { const b = feat("bday") ? birthdays(0).filter((x) => x.ci === S.lesson) : []; return b.length ? `<div class="card hrow bday" style="padding:10px 14px">🎂 Bugun tug'ilgan kun: <b>${b.map((x) => esc(x.s.name)).join(", ")}</b></div>` : ""; })()}
     ${!grp && (feat("call") || feat("groups")) ? `<div class="hrow wrap" style="gap:8px">${feat("call") ? `<button class="btn btn-sm" data-call>🎲 Doskaga chaqirish</button>` : ""}${feat("groups") ? `<button class="btn btn-sm" data-grp>👥 Guruhlarga bo'lish</button>` : ""}</div>` : ""}${body}
     <div class="foot"><span class="muted sp">${grp ? `O'tildi: ${c.students.filter((x) => x.marks[t] === "ot").length} · o'tilmadi: ${absent}` : `Kelmagan: ${absent} · kech qolgan: ${late} · baho qo'yilgan: ${graded}${noGr ? "" : ` (${gradedShare(c, t).pct}% ${gradedShare(c, t).ok ? "✓" : "⚠"})`}`}${(() => { const no = c.students.filter((x) => x.hwd && x.hwd[t] === 0).length; return no ? ` · UV bajarmagan: ${no}` : ""; })()}</span>
@@ -2820,7 +2828,7 @@ document.addEventListener("keydown", (e) => {
 function logScore(c, s, key, old, nw) {
   if (old === "" || old === undefined) return;
   const w = c.works.find((x) => x.id === key), lg = D.changelog = D.changelog || [];
-  const wt = w ? w.type.toUpperCase() : ({exam: "IMTIHON", "final:y": "YILLIK", "final:f": "YAKUNIY"}[key] || (key.startsWith("final:q") ? `${key.slice(7)}-CHORAK` : key));
+  const wt = w ? wTypeName(w) : ({exam: "IMTIHON", "final:y": "YILLIK", "final:f": "YAKUNIY"}[key] || (key.startsWith("final:q") ? `${key.slice(7)}-CHORAK` : key));
   lg.push({t: new Date().toISOString().slice(0, 19), cls: label(c), student: s.name, sid: s.id, date: w ? w.date : "", old, new: nw, kind: nw === "" ? "clear" : "edit", work: key, wt});
 }
 async function putScore(c, s, key, nv, batch) {
@@ -2851,7 +2859,7 @@ const shownVal = (e, v) => e.work ? fmtNum(v) : /activate/.test(e.kind) ? v : (d
 
 /* ───────── jurnal bo'limlari: kundalik / BSB-CHSB / yillik ───────── */
 function jpSeg() {
-  return `<div class="jtabs" role="tablist">${([["j", "Kundalik"], ["sum", "BSB / CHSB"], ["bsb", "BSB tahlili"], ["chsbt", "CHSB testi"], ["year", "Yillik"]]).map(([k, n]) => `<button role="tab" aria-selected="${S.jpage === k}" class="${S.jpage === k ? "on" : ""}" data-jp="${k}">${n}</button>`).join("")}</div>`;
+  return `<div class="jtabs" role="tablist">${([["j", "Kundalik"], ["sum", "Umumiy"], ["sm", "Summativ tahlili"], ["year", "Yillik"]]).map(([k, n]) => `<button role="tab" aria-selected="${S.jpage === k}" class="${S.jpage === k ? "on" : ""}" data-jp="${k}">${n}</button>`).join("")}</div>`;
 }
 function classGroups() {
   const g = new Map(); D.classes.forEach((c, i) => { if (isGrp(c)) return; const k = c.name; if (!g.has(k)) g.set(k, []); g.get(k).push(i); }); return [...g];
@@ -2877,9 +2885,9 @@ function pageSum(m) {
   if (!rng) body = `<div class="card muted">${q}-chorak sanalari belgilanmagan. «Sozlamalar → Dars kunlari va choraklar»da kiriting.</div>`;
   else {
     const works = worksInQuarter(c, q), [cp] = readiness(c, q);
-    const sb = works.filter((w) => w.type === "bsb").reduce((a, w) => a + +w.max, 0), sc = works.filter((w) => w.type !== "bsb").reduce((a, w) => a + +w.max, 0);
-    let head = `<tr><th class="nm">O'quvchi</th>${works.map((w) => `<th class="wk"><button class="wbtn ${esc(w.type)}" data-we="${esc(w.id)}" title="${esc(w.title || "")}">${w.type.toUpperCase()}<small>${fmt(w.date).slice(0, 5)} · /${fmtNum(w.max)}</small></button></th>`).join("")}
-      <th>BSB<small>/${BSB_TOTAL}</small></th><th>CHSB<small>/${CHSB_TOTAL}</small></th><th title="Formativ baho: kundalik baholar o'rtachasi (kamida ${fbMin()} ta)">FB<small>/${FB_TOTAL}</small></th><th>Jami<small>/100</small></th><th>Tavsiya</th><th>Chorak<small>bahosi</small></th></tr>`;
+    const sb = works.filter((w) => w.type !== "chsb").reduce((a, w) => a + +w.max, 0), sc = works.filter((w) => w.type === "chsb").reduce((a, w) => a + +w.max, 0), lo = works.some((w) => w.type === "loyiha");
+    let head = `<tr><th class="nm">O'quvchi</th>${works.map((w) => `<th class="wk"><button class="wbtn ${esc(w.type)}" data-we="${esc(w.id)}" title="${esc(w.title || "")}">${wTypeName(w)}<small>${fmt(w.date).slice(0, 5)} · /${fmtNum(w.max)}</small></button></th>`).join("")}
+      <th>${lo ? "BSB + Loyiha" : "BSB"}<small>/${BSB_TOTAL}</small></th><th>CHSB<small>/${CHSB_TOTAL}</small></th><th title="Formativ baho: kundalik baholar o'rtachasi (kamida ${fbMin()} ta)">FB<small>/${FB_TOTAL}</small></th><th>Jami<small>/100</small></th><th>Tavsiya</th><th>Chorak<small>bahosi</small></th></tr>`;
     const body2 = c.students.map((s, si) => {
       const r = quarterResult(c, s, q, works), scs = s.scores || {};
       return `<tr data-sr="${si}"><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>${works.map((w) => {
@@ -2890,9 +2898,9 @@ function pageSum(m) {
         <td class="s"><b>${fmtNum(r.total)}</b></td><td class="s">${r.grade ? g5pill(r.grade, "100–86 → 5, 85–66 → 4, 65–30 → 3, qolgani → 2") : `<span class="muted" title="${r.missing ? r.missing + " ta ball kiritilmagan" : "Maksimal ballar 50/40 emas"}">…</span>`}</td>
         <td class="s">${g5select(`data-fq="${si}"`, scs[`final:q${q}`])}</td></tr>`;
     }).join("");
-    body = `${cp.length ? `<div class="card warnbox">⚠ ${cp.map(esc).join(" · ")}</div>` : `<div class="ok">✓ Maksimal ballar to'g'ri: BSB ${fmtNum(sb)}/${BSB_TOTAL}, CHSB ${fmtNum(sc)}/${CHSB_TOTAL}</div>`}
+    body = `${cp.length ? `<div class="card warnbox">⚠ ${cp.map(esc).join(" · ")}</div>` : `<div class="ok">✓ Maksimal ballar to'g'ri: ${lo ? "BSB + Loyiha" : "BSB"} ${fmtNum(sb)}/${BSB_TOTAL}, CHSB ${fmtNum(sc)}/${CHSB_TOTAL}</div>`}
       ${works.length ? `<div class="tblwrap"><table class="j sum">${head}${body2}</table></div>` : `<div class="card muted">Bu chorakda summativ ishlar yo'q. «＋ Ish qo'shish» tugmasini bosing yoki KTRdagi «BSB»/«CHSB» mavzulari o'zi qo'shiladi.</div>`}
-      <p class="muted" style="margin:0">Ball yoki S / DQ / K / KQ yozing. Kech qolgan, lekin ish yozgan bo'lsa: «18 KQ». Jami = BSB + CHSB + FB (formativ: kundalik baholar o'rtachasi, kamida ${fbMin()} ta). Baho: 100–86 → 5, 85–66 → 4, 65–30 → 3, qolgani → 2.</p>`;
+      <p class="muted" style="margin:0">Ball yoki S / DQ / K / KQ yozing. Kech qolgan, lekin ish yozgan bo'lsa: «18 KQ». Jami = BSB (Loyiha ishi bilan) + CHSB + FB (formativ: kundalik baholar o'rtachasi, kamida ${fbMin()} ta). Baho: 100–86 → 5, 85–66 → 4, 65–30 → 3, qolgani → 2.</p>`;
   }
   m.innerHTML = `<div class="vcol" style="gap:12px">${classChips()}
     <div class="hrow" style="gap:8px">${jpSeg()}<div class="seg">${qs}</div><span class="sp"></span>
@@ -2956,13 +2964,13 @@ function workDialog(c, w) {
   const t = todayIso(), defDate = w ? w.date : (r[0] <= t && t <= r[1] ? t : r[0]);
   const scored = w && c.students.some((s) => ((s.scores || {})[w.id] ?? "") !== "");
   modal(`<h2>${isNew ? "Summativ ish qo'shish" : "Summativ ish"}</h2>
-    <div class="seg" id="wt">${["bsb", "chsb"].map((k) => `<button class="${(w ? w.type : "bsb") === k ? "on" : ""}" data-t="${k}">${k.toUpperCase()}</button>`).join("")}</div>
+    <div class="seg" id="wt">${["bsb", "chsb", "loyiha"].map((k) => `<button class="${(w ? w.type : "bsb") === k ? "on" : ""}" data-t="${k}">${WTYPE_NAME[k]}</button>`).join("")}</div>
     <div class="hrow"><label class="f sp">Sana<input class="form-control" type="date" id="wd" value="${defDate}"></label><label class="f sp">Maksimal ball<input class="form-control" type="number" id="wm" min="1" step="0.5" value="${w ? w.max : 25}" inputmode="decimal"></label></div>
     <label class="f">Nomi (ixtiyoriy)<input class="form-control" type="text" id="wn" value="${esc(w ? w.title : "")}" placeholder="Masalan: Kasrlar"></label>
-    <div class="muted">Bir chorakda BSB maksimal ballari jami ${BSB_TOTAL}, CHSB — ${CHSB_TOTAL} bo'lishi kerak.</div>
+    <div class="muted">Bir chorakda BSB va Loyiha ishi maksimal ballari jami ${BSB_TOTAL}, CHSB — ${CHSB_TOTAL} bo'lishi kerak.</div>
     <div class="hrow">${!isNew ? `<button class="btn btn-outline-danger" data-del>O'chirish</button>` : ""}<span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn btn-primary" data-ok>Saqlash</button></div>`, (mm, close) => {
     let typ = w ? w.type : "bsb";
-    mm.querySelectorAll("#wt button").forEach((b) => b.onclick = () => { typ = b.dataset.t; mm.querySelectorAll("#wt button").forEach((x) => x.classList.toggle("on", x === b)); if (isNew) $("#wm", mm).value = typ === "bsb" ? 25 : CHSB_TOTAL; });
+    mm.querySelectorAll("#wt button").forEach((b) => b.onclick = () => { typ = b.dataset.t; mm.querySelectorAll("#wt button").forEach((x) => x.classList.toggle("on", x === b)); if (isNew) $("#wm", mm).value = typ === "chsb" ? CHSB_TOTAL : 25; });
     $("[data-x]", mm).onclick = () => close();
     $("[data-ok]", mm).onclick = () => {
       const d = $("#wd", mm).value, mx = Math.round(parseFloat(String($("#wm", mm).value).replace(",", ".")) * 10) / 10;
@@ -2977,7 +2985,7 @@ function workDialog(c, w) {
     const del = $("[data-del]", mm); if (del) del.onclick = async () => {
       if (!isGrp(c) && ARX.dateLocked(w.date)) { ARX.deny(quarterOf(w.date)); return; }
       if (scored && isLocked() && !await unlock()) return;
-      if (!await confirmBox("Ishni o'chirish", `${w.type.toUpperCase()} (${fmt(w.date)}) o'chirilsinmi?${scored ? " Kiritilgan ballar ham o'chadi." : ""}`, "O'chirish")) return;
+      if (!await confirmBox("Ishni o'chirish", `${wTypeName(w)} (${fmt(w.date)}) o'chirilsinmi?${scored ? " Kiritilgan ballar ham o'chadi." : ""}`, "O'chirish")) return;
       removeWork(c, w);
       save(); close(); render();
     };
@@ -3038,17 +3046,24 @@ function pageChsbTest(m) {
   const sel = `<select id="tws" title="Saqlangan CHSB testlari" style="width:auto;flex:0 1 280px;min-width:0">${ws.map((x) => `<option value="${esc(x.id)}" ${x.id === w.id ? "selected" : ""}>${esc(x.title || "Nomsiz")} · ${fmt(x.date)}</option>`).join("")}</select>`;
   let body;
   if (tab === "tbl") {
-    const head = `<tr><th title="Ishtirok etdi">✔</th><th class="nm">O'quvchi</th>${Array.from({length: t0.n}, (_, i) => `<th class="d">${i + 1}<small>savol</small></th>`).join("")}<th>To'g'ri</th><th>Ball</th><th>%</th><th>Baho</th><th></th></tr>
+    const head = `<tr><th title="Ishtirok etdi">✔</th><th class="nm">O'quvchi</th>${Array.from({length: t0.n}, (_, i) => `<th class="d">${i + 1}${SMV.on() ? "" : "<small>savol</small>"}</th>`).join("")}<th>To'g'ri</th><th>Ball</th><th>%</th><th>Baho</th><th></th></tr>
       <tr class="mx"><td></td><td class="nm"><b>Savol bali</b></td>${P0.map((v, i) => `<td class="c"><input class="sc tp" data-tp="${i}" value="${gnum(Math.round(v * 100) / 100)}" inputmode="decimal" autocomplete="off" title="${i + 1}-savol: maksimal ball"></td>`).join("")}<td class="s"></td><td class="s" data-psum></td><td class="s">100</td><td></td><td></td></tr>
       <tr class="mx"><td></td><td class="nm"><b>To'g'ri javob</b></td>${Array.from({length: t0.n}, (_, i) => `<td class="c"><input class="sc tk" data-tk="${i}" maxlength="1" value="${t0.key[i] === "." ? "" : t0.key[i]}" autocomplete="off" autocapitalize="characters" enterkeyhint="next" inputmode="${BA_COARSE ? "none" : "text"}" title="${i + 1}-savol: to'g'ri variant"></td>`).join("")}<td class="s" colspan="5"></td></tr>`;
     const rows = c.students.map((s, si) => { const on = !out0.includes(s.id);
       return `<tr class="${on ? "" : "off"}" data-row="${si}"><td class="c"><input type="checkbox" data-tin="${si}" ${on ? "checked" : ""}></td><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>${Array.from({length: t0.n}, (_, i) => `<td class="c"><input class="sc ta${TXC.cls(w, s)}" data-ta="${si}|${i}" maxlength="1" value="${((t0.ans[s.id] || "")[i] || ".") === "." ? "" : t0.ans[s.id][i]}" autocomplete="off" autocapitalize="characters" enterkeyhint="next" inputmode="${BA_COARSE ? "none" : "text"}" ${on ? "" : "disabled"}></td>`).join("")}<td class="s" data-ok></td><td class="s" data-sc2></td><td class="s a" data-pct></td><td class="s" data-g></td><td class="c"><button type="button" class="btn btn-sm" data-tmax="${si}" title="Yuqori ball olgan o'quvchi: barcha savollarga to'g'ri javob yozadi (to'liq ball)">max</button></td></tr>`; }).join("");
     body = `${TXC.banner(w)}<div class="tblwrap"><table class="j bsa tst">${head}${rows}<tr class="mx"><td></td><td class="nm"><b>To'g'ri javob, %</b></td>${Array.from({length: t0.n}, (_, i) => `<td class="c" data-qp="${i}"></td>`).join("")}<td class="s"></td><td class="s" data-avg></td><td class="s a" data-avgp></td><td></td><td></td></tr></table></div>
-      <p class="muted" style="margin:0">Birinchi qatorda har savolning bali (o'zgartirish mumkin), keyingisida to'g'ri variant. Pastda har o'quvchining tanlagan varianti: ${L[0]}–${L.at(-1)} yoki 1–${t0.o}; katakni bosganda variantlar oynasi chiqadi, Excel'dan ko'p katakli nusxa joylash mumkin. Mos kelsa — savolning bali, aks holda 0; bo'sh katak — javob berilmagan. ✔ olib tashlansa, o'quvchi ishtirok etmagan hisoblanadi va balli o'chadi. Ball «BSB / CHSB» sahifasiga o'zi yoziladi. Baho: 86–100% → 5, 66–85% → 4, 30–65% → 3, qolgani → 2.</p>`;
+      <p class="muted" style="margin:0">Birinchi qatorda har savolning bali (o'zgartirish mumkin), keyingisida to'g'ri variant. Pastda har o'quvchining tanlagan varianti: ${L[0]}–${L.at(-1)} yoki 1–${t0.o}; katakni bosganda variantlar oynasi chiqadi, Excel'dan ko'p katakli nusxa joylash mumkin. Mos kelsa — savolning bali, aks holda 0; bo'sh katak — javob berilmagan. ✔ olib tashlansa, o'quvchi ishtirok etmagan hisoblanadi va balli o'chadi. Ball «Umumiy» sahifasiga o'zi yoziladi. Baho: 86–100% → 5, 66–85% → 4, 30–65% → 3, qolgani → 2.</p>`;
   } else {
     const B = chsbB(c, w), an = baAnalysis(c, B), tiles = an.n ? gTiles([["Bilim sifati", pct0(an.quality)], ["O'zlashtirish", pct0(an.mastery)], ["O'rtacha ball", `${pyFixed(an.mean_total, 1)} / ${gnum(an.tot_max)}`], ["O'rtacha %", pct0(an.mean_pct)]]) : "";
     body = tab === "er" ? `${tiles}<div class="paper"><div class="pd">${bsbErrHtml(an, [])}${chsbOptHtml(c, w)}</div></div>` : `${tiles}<div class="paper"><div class="pd">${bsbReportHtml(baMeta(c, B), an, bsbRecs(an), false)}</div></div>`;
   }
+  const SM = SMV.on(), ctabs = `<div class="seg"><button class="${tab === "tbl" ? "on" : ""}" data-ctab="tbl">✎ ${SM ? "Jadval" : "Javoblar jadvali"}</button><button class="${tab === "an" ? "on" : ""}" data-ctab="an">🔍 Tahlil</button><button class="${tab === "er" ? "on" : ""}" data-ctab="er">❌ ${SM ? "Xatolar" : "Xatolar kesimi"}</button></div>`;
+  if (SM) {   // «Summativ tahlili» sahifasi (summativ.js)
+    m.innerHTML = `<div class="vcol sm-page" style="gap:12px">${classChips()}<div class="hrow">${jpSeg()}</div>${SMV.top(c)}
+      ${SMV.bar(ctabs, SMV.menu("chsb", `<button type="button" data-bexp><i class="bi bi-download" aria-hidden="true"></i> Eksport</button>${TXC.button()}<button type="button" data-peq title="Barcha savollarga teng ball: ${gnum(w.max)} ÷ ${t0.n}"><i class="bi bi-distribute-vertical" aria-hidden="true"></i> Teng ball</button>`))}
+      ${body}</div>`;
+    SMV.bind(m, c, {w});
+  } else
   m.innerHTML = `<div class="vcol" style="gap:12px">${classChips()}
     <div class="hrow" style="gap:8px">${jpSeg()}<span class="sp"></span>${sel}<button class="btn" data-newt>＋ Yangi</button><button class="btn btn-primary" data-tsave title="Barcha o'zgarishlar kiritilgan zahoti o'zi ham saqlanadi">💾 Saqlash</button><button class="btn" data-tdel title="O'chirish">🗑</button></div>
     <div class="card hrow bahd" style="gap:10px;align-items:flex-end;flex-wrap:wrap">
@@ -3057,8 +3072,8 @@ function pageChsbTest(m) {
       <label class="f" style="width:110px">Maksimal ball<input class="form-control" type="number" id="tmx" min="1" step="0.5" value="${gnum(w.max)}" inputmode="decimal"></label>
       <label class="f" style="width:110px">Savollar soni<input class="form-control" type="number" id="tn" min="1" max="100" value="${t0.n}" inputmode="numeric"></label>
       <label class="f" style="width:110px">Variantlar soni<input class="form-control" type="number" id="to" min="2" max="6" value="${t0.o}" inputmode="numeric"></label></div>
-    <div class="hrow" style="gap:8px"><div class="seg"><button class="${tab === "tbl" ? "on" : ""}" data-ctab="tbl">✎ Javoblar jadvali</button><button class="${tab === "an" ? "on" : ""}" data-ctab="an">🔍 Tahlil</button><button class="${tab === "er" ? "on" : ""}" data-ctab="er">❌ Xatolar kesimi</button></div>
-      <span class="muted" id="tsaved">✓ saqlangan</span><span class="sp"></span>${TXC.button()}<button class="btn" data-peq title="Barcha savollarga teng ball: ${gnum(w.max)} ÷ ${t0.n}">⚖ Teng ball</button><button class="btn" data-bexp>⬇ Eksport</button><button class="btn" data-btr title="Barcha o'quvchilarning ballini «BSB / CHSB» sahifasiga qayta yozadi">↳ Summativga o'tkazish</button></div>
+    <div class="hrow" style="gap:8px">${ctabs}
+      <span class="muted" id="tsaved">✓ saqlangan</span><span class="sp"></span>${TXC.button()}<button class="btn" data-peq title="Barcha savollarga teng ball: ${gnum(w.max)} ÷ ${t0.n}">⚖ Teng ball</button><button class="btn" data-bexp>⬇ Eksport</button><button class="btn" data-btr title="Barcha o'quvchilarning ballini «Umumiy» sahifasiga qayta yozadi">↳ Summativga o'tkazish</button></div>
     ${body}</div>`;
   bindTop(m);
   const ensure = () => { if (!w.test) w.test = testBlank(); cleanTest(w); return w.test; };
@@ -3076,38 +3091,39 @@ function pageChsbTest(m) {
     const stale = c.students.some((s) => { const t = w.test, a = ansOf(s), cur = (s.scores || {})[w.id]; return !(t.out || []).includes(s.id) && !/^\.*$/.test(a) && isNum(cur) && cur !== testScore(w, t, a).score; });
     if (stale) rescoreAll().then(() => render());
   }
-  $("[data-newt]", m).onclick = newTest;
-  $("[data-tsave]", m).onclick = () => { save(); const el = $("#tsaved", m); if (el) el.textContent = "✓ saqlangan"; toast("CHSB testi saqlandi"); };
-  $("#tws", m).onchange = (e) => { S.tw = e.target.value; render(); };
+  const on = (q, f, ev = "onclick") => { const el = $(q, m); if (el) el[ev] = f; };
+  on("[data-newt]", newTest);
+  on("[data-tsave]", () => { save(); const el = $("#tsaved", m); if (el) el.textContent = "✓ saqlangan"; toast("CHSB testi saqlandi"); });
+  on("#tws", (e) => { S.tw = e.target.value; render(); }, "onchange");
   m.querySelectorAll("[data-ctab]").forEach((b) => b.onclick = () => { S.cttab = b.dataset.ctab; render(); });
-  $("#tt", m).oninput = (e) => { w.title = e.target.value; syncWorkAnalyses(c); save(); };
-  $("#tdt", m).onchange = (e) => { if (e.target.value) { w.date = e.target.value; syncWorkAnalyses(c); workAnalysis(c, w); save(); render(); } };
-  $("#tmx", m).onchange = async (e) => {
+  on("#tt", (e) => { w.title = e.target.value; syncWorkAnalyses(c); save(); }, "oninput");
+  on("#tdt", (e) => { if (e.target.value) { w.date = e.target.value; syncWorkAnalyses(c); workAnalysis(c, w); save(); render(); } }, "onchange");
+  on("#tmx", async (e) => {
     const mx = Math.round(parseFloat(String(e.target.value).replace(",", ".")) * 10) / 10;
     if (!(mx > 0)) { toast("Maksimal ball noto'g'ri"); e.target.value = gnum(w.max); return; }
     const manual = c.students.some((s) => !w.test || !ansOf(s) || /^\.*$/.test(ansOf(s)) ? isNum((s.scores || {})[w.id]) && s.scores[w.id] > mx : false);
     if (manual) { toast("Ba'zi o'quvchilarning bali yangi maksimaldan katta"); e.target.value = gnum(w.max); return; }
     w.max = mx; if (w.test && w.test.pts) delete w.test.pts; save(); await rescoreAll(); render();
-  };
+  }, "onchange");
   const resize = async () => {
     const n = Math.min(100, Math.max(1, Math.trunc(+$("#tn", m).value) || t0.n)), o = Math.min(6, Math.max(2, Math.trunc(+$("#to", m).value) || t0.o));
     const t = ensure(); t.n = n; t.o = o; cleanTest(w); save(); await rescoreAll(); render();
   };
-  $("#tn", m).onchange = resize; $("#to", m).onchange = resize;
-  $("[data-peq]", m).onclick = async () => { const t = ensure(); delete t.pts; save(); await rescoreAll(); render(); };
-  $("[data-bexp]", m).onclick = () => { const B = chsbB(c, w); if (!B.max.every((v) => v > 0)) { toast("Hamma savol uchun ball (0 dan katta) kiriting"); return; } baExportDialog(c, B); };
-  $("[data-btr]", m).onclick = async () => {
+  on("#tn", resize, "onchange"); on("#to", resize, "onchange");
+  on("[data-peq]", async () => { const t = ensure(); delete t.pts; save(); await rescoreAll(); render(); });
+  on("[data-bexp]", () => { const B = chsbB(c, w); if (!B.max.every((v) => v > 0)) { toast("Hamma savol uchun ball (0 dan katta) kiriting"); return; } baExportDialog(c, B); });
+  on("[data-btr]", async () => {
     if (!w.test) { toast("Avval to'g'ri javoblar va o'quvchi variantlarini kiriting"); return; }
     await rescoreAll(); const n = c.students.filter((s) => !(w.test.out || []).includes(s.id) && isNum((s.scores || {})[w.id])).length;
     const q = quarterOf(w.date); if (q) S.sq = q;
-    toast(`CHSB (${fmt(w.date)}, maks. ${fmtNum(w.max)}): ${n} ta o'quvchining bali «BSB / CHSB» sahifasida`); render();
-  };
-  $("[data-tdel]", m).onclick = async () => {
+    toast(`CHSB (${fmt(w.date)}, maks. ${fmtNum(w.max)}): ${n} ta o'quvchining bali «Umumiy» sahifasida`); render();
+  });
+  on("[data-tdel]", async () => {
     const scored = c.students.some((s) => ((s.scores || {})[w.id] ?? "") !== "");
     if (scored && isLocked() && !await unlock()) return;
     if (!await confirmBox("CHSB testini o'chirish", `${esc(w.title || "Nomsiz")} (${fmt(w.date)}) o'chirilsinmi?${scored ? " Kiritilgan ballar ham o'chadi." : ""}`, "O'chirish")) return;
     removeWork(c, w); S.tw = null; save(); render();
-  };
+  });
   TXC.bind(m, c, w, ensure, rescoreAll, () => { const y = window.scrollY, tw = $(".tblwrap", m), sl = tw ? tw.scrollLeft : 0; render(); window.scrollTo(0, y); const t2 = $(".tblwrap"); if (t2) t2.scrollLeft = sl; });   // «Taxminiy ball» (taxminiy.js)
   if (tab !== "tbl") return;
   const cells = (sel) => [...m.querySelectorAll(sel)];
@@ -3468,10 +3484,10 @@ function pageBsb(m) {
   const c = D.classes[S.ci], B = baCur(), tab = S.batab || "tbl";
   const saved = c.analyses.slice().sort((a, b) => a.date < b.date ? -1 : 1);
   const sel = `<select id="bas" title="Saqlangan tahlillar" style="width:auto;flex:0 1 260px;min-width:0"><option value="">— yangi tahlil —</option>${saved.map((a) => `<option value="${esc(a.id)}" ${a.id === B.id ? "selected" : ""}>${esc(a.title || "Nomsiz")} · ${fmt(a.date)}</option>`).join("")}</select>`;
-  const tot = sumOf(B.max);
+  const tot = sumOf(B.max), SM = SMV.on();   // SM — «Summativ tahlili» sahifasi (summativ.js): o'z sarlavhasi, avtomatik saqlash
   let body;
   if (tab === "tbl") {
-    const head = `<tr><th title="Ishtirok etdi">✔</th><th class="nm">O'quvchi</th>${B.max.map((_, i) => `<th class="d">${i + 1}<small>savol</small></th>`).join("")}${TXB.head(c, B)}<th>Jami</th><th>%</th><th>Baho</th><th></th></tr>
+    const head = `<tr><th title="Ishtirok etdi">✔</th><th class="nm">O'quvchi</th>${B.max.map((_, i) => `<th class="d">${i + 1}${SM ? ((B.names || [])[i] ? `<small class="sm-qn" title="${esc(B.names[i])}">${esc(B.names[i])}</small>` : "") : "<small>savol</small>"}</th>`).join("")}${TXB.head(c, B)}<th>Jami</th><th>%</th><th>Baho</th><th></th></tr>
       <tr class="mx"><td></td><td class="nm"><b>Maksimal ball</b></td>${B.max.map((v, i) => `<td class="c"><input class="sc" data-bx="${i}" value="${gnum(v)}" inputmode="decimal" autocomplete="off"></td>`).join("")}${TXB.mxCell(c, B)}<td class="s">${gnum(tot)}</td><td class="s">100</td><td></td><td></td></tr>`;
     const rows = c.students.map((s, si) => {
       const r = baRow(B, s.name), on = r.in !== false;
@@ -3480,7 +3496,7 @@ function pageBsb(m) {
         ${TXB.cell(c, B)}<td class="s" data-tot></td><td class="s a" data-pct></td><td class="s" data-g></td><td class="c"><button type="button" class="btn btn-sm" data-bmax="${si}" title="Yuqori ball olgan o'quvchi: barcha savollarga maksimal ball yozadi" ${on ? "" : "disabled"}>max</button></td></tr>`;
     }).join("");
     body = `${TXB.banner(c, B)}<div class="tblwrap"><table class="j bsa">${head}${rows}</table></div>
-      <p class="muted" style="margin:0">Birinchi qator — savollarning maksimal ballari (o'zgartirish mumkin). ✔ olib tashlansa, o'quvchi ishtirok etmagan hisoblanadi. Bo'sh katak — 0 ball. Ball maksimaldan oshmaydi (oshirib yozsangiz, maksimal ball qo'yiladi); maksimal ball yozilganda keyingi katakka o'zi o'tadi. Baho: 86–100% → 5, 66–85% → 4, 30–65% → 3, qolgani → 2.</p>`;
+      <p class="muted" style="margin:0">${SM ? "Ballar «Umumiy» sahifasiga o'zi yoziladi. " : ""}Birinchi qator — savollarning maksimal ballari (o'zgartirish mumkin). ✔ olib tashlansa, o'quvchi ishtirok etmagan hisoblanadi. Bo'sh katak — 0 ball. Ball maksimaldan oshmaydi (oshirib yozsangiz, maksimal ball qo'yiladi); maksimal ball yozilganda keyingi katakka o'zi o'tadi. Baho: 86–100% → 5, 66–85% → 4, 30–65% → 3, qolgani → 2.</p>`;
   } else if (tab === "er") {
     const an = baAnalysis(c, B);
     body = `${an.n ? gTiles([["Bilim sifati", pct0(an.quality)], ["O'zlashtirish", pct0(an.mastery)], ["O'rtacha ball", `${pyFixed(an.mean_total, 1)} / ${gnum(an.tot_max)}`], ["O'rtacha %", pct0(an.mean_pct)]]) : ""}<div class="paper"><div class="pd">${bsbErrHtml(an, B.names)}</div></div>`;
@@ -3488,6 +3504,14 @@ function pageBsb(m) {
     const an = baAnalysis(c, B);
     body = `${an.n ? gTiles([["Bilim sifati", pct0(an.quality)], ["O'zlashtirish", pct0(an.mastery)], ["O'rtacha ball", `${pyFixed(an.mean_total, 1)} / ${gnum(an.tot_max)}`], ["O'rtacha %", pct0(an.mean_pct)]]) : ""}<div class="paper"><div class="pd">${bsbReportHtml(baMeta(c, B), an, bsbRecs(an), false)}</div></div>`;
   }
+  const btabs = `<div class="seg"><button class="${tab === "tbl" ? "on" : ""}" data-btab="tbl">✎ ${SM ? "Jadval" : "Ballar jadvali"}</button><button class="${tab === "an" ? "on" : ""}" data-btab="an">🔍 Tahlil</button><button class="${tab === "er" ? "on" : ""}" data-btab="er">❌ ${SM ? "Xatolar" : "Xatolar kesimi"}</button></div>`;
+  if (SM) {
+    const w = B.wid && c.works.find((x) => x.id === B.wid);
+    m.innerHTML = `<div class="vcol sm-page" style="gap:12px">${classChips()}<div class="hrow">${jpSeg()}</div>${SMV.top(c)}
+      ${SMV.bar(btabs, SMV.menu(w ? w.type : "bsb", `<button type="button" data-bexp><i class="bi bi-download" aria-hidden="true"></i> Eksport</button>${TXB.button()}<button type="button" data-bnames><i class="bi bi-pencil" aria-hidden="true"></i> ${w && w.type === "loyiha" ? "Mezon nomlari" : "Topshiriq nomlari"}</button>`))}
+      ${body}</div>`;
+    SMV.bind(m, c, {w, a: c.analyses.find((x) => x.id === B.id), B});
+  } else
   m.innerHTML = `<div class="vcol" style="gap:12px">${classChips()}
     <div class="hrow" style="gap:8px">${jpSeg()}<span class="sp"></span>${sel}<button class="btn" data-bnew>＋ Yangi</button><button class="btn btn-primary" data-bsave>💾 Saqlash</button>${B.id ? `<button class="btn" data-bdel title="O'chirish">🗑</button>` : ""}</div>
     <div class="card hrow bahd" style="gap:10px;align-items:flex-end">
@@ -3495,43 +3519,44 @@ function pageBsb(m) {
       <label class="f">Sana<input class="form-control" type="date" id="bdt" value="${esc(B.date)}"></label>
       <label class="f" style="width:110px">Savollar soni<input class="form-control" type="number" id="bnq" min="1" max="30" value="${B.q}" inputmode="numeric"></label>
       <div class="muted" style="padding-bottom:10px">Maksimal ball: <b>${gnum(tot)}</b></div></div>
-    <div class="hrow" style="gap:8px"><div class="seg"><button class="${tab === "tbl" ? "on" : ""}" data-btab="tbl">✎ Ballar jadvali</button><button class="${tab === "an" ? "on" : ""}" data-btab="an">🔍 Tahlil</button><button class="${tab === "er" ? "on" : ""}" data-btab="er">❌ Xatolar kesimi</button></div>
+    <div class="hrow" style="gap:8px">${btabs}
       <span class="muted" id="bdirty">${B.dirty ? "• saqlanmagan o'zgarishlar" : ""}</span><span class="sp"></span>
       ${TXB.button()}<button class="btn" data-bnames title="Har bir savol yoki mezonga nom bering — hisobotlarda ko'rinadi">✎ Savol nomlari</button><button class="btn" data-bexp>⬇ Eksport</button><button class="btn" data-btr title="Har bir o'quvchining jami ballini BSB / CHSB sahifasidagi BSB ishiga yozadi">↳ Summativga o'tkazish</button></div>
     ${body}</div>`;
   bindTop(m);
-  const dirty = () => { B.dirty = true; const el = $("#bdirty", m); if (el) el.textContent = "• saqlanmagan o'zgarishlar"; };
-  $("#bas", m).onchange = async (e) => {
+  const dirty = () => { B.dirty = true; if (SM) { SMV.autosave(c, B); return; } const el = $("#bdirty", m); if (el) el.textContent = "• saqlanmagan o'zgarishlar"; };
+  const on = (q, f, ev = "onclick") => { const el = $(q, m); if (el) el[ev] = f; };
+  on("#bas", async (e) => {
     const id = e.target.value, r = await baAskDiscard(B);
     if (r === null) { e.target.value = B.id || ""; return; }
     if (r === "save" && !baSave(c, B)) { e.target.value = B.id || ""; return; }
     const a = c.analyses.find((x) => x.id === id); S.bas[label(c)] = a ? baFrom(a) : baBlank(); render();
-  };
-  $("[data-bnew]", m).onclick = async () => { const r = await baAskDiscard(B); if (r === null) return; if (r === "save" && !baSave(c, B)) return; S.bas[label(c)] = baBlank(); S.batab = "tbl"; render(); };
-  $("[data-bsave]", m).onclick = () => { if (baSave(c, B)) render(); };
+  }, "onchange");
+  on("[data-bnew]", async () => { const r = await baAskDiscard(B); if (r === null) return; if (r === "save" && !baSave(c, B)) return; S.bas[label(c)] = baBlank(); S.batab = "tbl"; render(); });
+  on("[data-bsave]", () => { if (baSave(c, B)) render(); });
   const del = $("[data-bdel]", m); if (del) del.onclick = async () => {
     if (!await confirmBox("O'chirish", "Saqlangan tahlil o'chirilsinmi?", "O'chirish")) return;
     c.analyses = c.analyses.filter((x) => x.id !== B.id); save(); S.bas[label(c)] = baBlank(); render();
   };
-  $("#bt", m).oninput = (e) => { B.title = e.target.value; dirty(); };
-  $("#bdt", m).onchange = (e) => { if (e.target.value) { B.date = e.target.value; dirty(); } };
-  $("#bnq", m).onchange = (e) => {
+  on("#bt", (e) => { B.title = e.target.value; dirty(); }, "oninput");
+  on("#bdt", (e) => { if (e.target.value) { B.date = e.target.value; dirty(); } }, "onchange");
+  on("#bnq", (e) => {
     const n = Math.max(1, Math.min(30, Math.round(+e.target.value) || 1));
     B.max = B.max.concat(Array(Math.max(0, n - B.max.length)).fill(B.max[B.max.length - 1] || 2)).slice(0, n); B.q = n; B.names = (B.names || []).slice(0, n);
     Object.values(B.rows).forEach((r) => { r.pts = r.pts.slice(0, n); }); dirty(); render();
-  };
+  }, "onchange");
   m.querySelectorAll("[data-btab]").forEach((b) => b.onclick = () => {
     if (b.dataset.btab === "an" && !B.max.every((v) => v > 0)) { toast("Hamma savol uchun maksimal ball (0 dan katta) kiriting"); return; }
     S.batab = b.dataset.btab; render();
   });
-  $("[data-bexp]", m).onclick = () => { if (!B.max.every((v) => v > 0)) { toast("Hamma savol uchun maksimal ball (0 dan katta) kiriting"); return; } baExportDialog(c, B); };
-  $("[data-btr]", m).onclick = () => baTransfer(c, B);
-  $("[data-bnames]", m).onclick = () => modal(`<h2>Savol / mezon nomlari</h2><div class="muted">Masalan: «Kasrni qisqartirish». Tahlil, xatolar kesimi va eksportda ko'rinadi.</div>
+  on("[data-bexp]", () => { if (!B.max.every((v) => v > 0)) { toast("Hamma savol uchun maksimal ball (0 dan katta) kiriting"); return; } baExportDialog(c, B); });
+  on("[data-btr]", () => baTransfer(c, B));
+  on("[data-bnames]", () => modal(`<h2>Savol / mezon nomlari</h2><div class="muted">Masalan: «Kasrni qisqartirish». Tahlil, xatolar kesimi va eksportda ko'rinadi.</div>
     <div class="vcol" style="gap:6px;max-height:55vh;overflow:auto">${B.max.map((_, i) => `<label class="f hrow" style="gap:8px;align-items:center"><b style="width:26px">${i + 1}.</b><input type="text" data-qn="${i}" class="form-control sp" value="${esc((B.names || [])[i] || "")}" placeholder="${i + 1}-savol" maxlength="80"></label>`).join("")}</div>
     <div class="hrow"><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn btn-primary" data-ok>Saqlash</button></div>`, (mm, close) => {
     $("[data-x]", mm).onclick = () => close();
     $("[data-ok]", mm).onclick = () => { B.names = B.max.map((_, i) => $(`[data-qn="${i}"]`, mm).value.trim()); dirty(); close(); render(); };
-  });
+  }));
   const reTx = () => { const y = window.scrollY, tw = $(".tblwrap", m), sl = tw ? tw.scrollLeft : 0; render(); window.scrollTo(0, y); const t2 = $(".tblwrap"); if (t2) t2.scrollLeft = sl; };
   TXB.bind(m, c, B, reTx);   // «Taxminiy ball» (taxminiy.js)
   if (tab !== "tbl") return;
@@ -3550,7 +3575,7 @@ function pageBsb(m) {
     m.querySelectorAll(`[data-bp^="${si}|"]`).forEach((x) => { const i = +x.dataset.bp.split("|")[1]; x.value = gnum(B.max[i]); x.classList.remove("bad", "tx-est"); }); paint(si); TXB.refresh(m, c, B, reTx); toast(`${c.students[si].name}: barcha savollarga maksimal ball (${gnum(tot)})`);
   });
   m.querySelectorAll("[data-bin]").forEach((cb) => cb.onchange = () => {
-    const si = +cb.dataset.bin, r = edit(c.students[si]); r.in = cb.checked; dirty();
+    const si = +cb.dataset.bin, r = edit(c.students[si]); r.in = cb.checked; dirty(); if (SM) SMV.absent(c, B, c.students[si], r.in);
     const tr = cb.closest("tr"); tr.classList.toggle("off", !r.in); tr.querySelectorAll("[data-bp]").forEach((x) => x.disabled = !r.in); paint(si); TXB.refresh(m, c, B, reTx);
   });
   /* katakdan katakka: ↑ ↓ ← → (← → matn chetiga yetganda), Enter / Shift+Enter, Home / End; Excel'dan ko'p katakli joylash */
@@ -4173,7 +4198,7 @@ function studentCard(ci, name, tab = "sum") {
       ${(() => { const h = hwStat(s, lo, hi); return h.n && feat("hw") ? `<div class="${h.no >= HW_WARN ? "warn" : ""}">🏠 Uy vazifasi (${per}): ${h.ok} / ${h.n} bajarilgan${h.no ? ` · ${h.no} marta bajarmagan` : ""}</div>` : ""; })()}
       ${r.why.length ? `<div class="warn">⚠ ${esc(r.why.join("; "))}</div>` : `<div class="ok">✓ Xavf belgilari yo'q</div>`}
       <div class="hrow" style="gap:4px">${last.map((d) => { const col = markColors(s.marks[d]); return `<span class="pill" title="${fmt(d)}" style="${col ? `background:${col[0]};color:${col[1]}` : ""}">${displayMark(s.marks[d])}</span>`; }).join("") || '<span class="muted">Hali belgi yo\'q</span>'}</div>
-      ${qw.length ? `<div><b>${q}-chorak summativ:</b> ${qw.map((w) => `${w.type.toUpperCase()} ${fmt(w.date).slice(0, 5)}: ${esc(fmtNum(sc[w.id] ?? "—"))}/${fmtNum(w.max)}`).join(" · ")}<br>Jami: ${fmtNum(qr.total)} / 100 ${qr.grade ? "→ " + g5pill(qr.grade) : ""}</div>` : ""}`;
+      ${qw.length ? `<div><b>${q}-chorak summativ:</b> ${qw.map((w) => `${wTypeName(w)} ${fmt(w.date).slice(0, 5)}: ${esc(fmtNum(sc[w.id] ?? "—"))}/${fmtNum(w.max)}`).join(" · ")}<br>Jami: ${fmtNum(qr.total)} / 100 ${qr.grade ? "→ " + g5pill(qr.grade) : ""}</div>` : ""}`;
   } else if (tab === "grow") {
     const qs = [1, 2, 3, 4].filter(qRange), gp = S.gper || "q";
     const rng = gp === "all" ? null : gp === "q" ? (q ? qRange(q) : [lo, hi]) : qRange(+gp);
