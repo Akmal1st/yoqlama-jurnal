@@ -7,7 +7,6 @@
 const SZL = (() => {
   const phone = () => matchMedia("(max-width:820px)").matches;
   const dz = () => (typeof DZN !== "undefined" ? DZN.cfg() : {act: "end", pri: "right"});
-  const emo = (on) => (typeof DZN !== "undefined" ? DZN.emo(on) : on ? "✅" : "⬜");
   // [belgi, nomi, qisqa izoh]
   const SECS = [["👥", "Sinflar va o'quvchilar", "Sinf qo'shish, ro'yxatlar"], ["📅", "Dars kunlari va choraklar", "Jadval, eslatmalar, choraklar"], ["🎯", "Baholash", "Baho ranglari, xavf mezonlari"],
     ["🎨", "Dizayn", "Mavzu, rang, tugmalar joyi"], ["🔒", "Himoya", "Baholarni qulflash, parol"], ["💾", "Ma'lumotlar", "Zaxira, import, o'quv yili"], ["🧩", "Funksiyalar", "Keraksizlarini yashirish"]];
@@ -17,7 +16,7 @@ const SZL = (() => {
   let flash = null, q = "", wasPhone = null;
 
   /* ───────── bo'laklar ───────── */
-  const tog = (attrs, on, name) => `<button class="sz-tg ${on ? "on" : ""}" role="switch" aria-checked="${!!on}" aria-label="${esc(name || "")}" ${attrs}><i aria-hidden="true">${emo(on)}</i></button>`;
+  const tog = (attrs, on, name) => `<button class="sz-tg ${on ? "on" : ""}" role="switch" aria-checked="${!!on}" aria-label="${esc(name || "")}" ${attrs}><i aria-hidden="true"></i></button>`;
   const row = (id, t, h, ctl, cls = "") => `<div class="sz-r ${cls} ${flash === id ? "sz-flash" : ""}" id="sz-${id}"><div class="sz-st"><b>${t}</b>${h ? `<small>${h}</small>` : ""}</div>${ctl ? `<div class="sz-sc">${ctl}</div>` : ""}</div>`;
   const grp = (t, html, extra = "", hint = "", id = "") => html ? `<section class="sz-sg" ${id ? `id="sz-${id}"` : ""}>${t ? `<h3 class="sz-sgt">${t}${extra}</h3>` : ""}${hint ? `<p class="sz-hint">${hint}</p>` : ""}<div class="sz-card sz-box">${html}</div></section>` : "";
   const cnt = (t) => `<span class="sz-cnt">${t}</span>`;
