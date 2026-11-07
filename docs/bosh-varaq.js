@@ -168,7 +168,7 @@ const BVQ = (() => {
   const setCount = () => [B.hdr, B.note, B.sig, B.zebra, B.extra > 0, B.ori !== "auto", B.fs !== "m"].filter(Boolean).length;
   function settings() {
     return `<div class="bv-shd"><h2>Varaq sozlamalari</h2><button class="bv-x" data-bv="set" aria-label="Yopish">✕</button></div>
-      ${tg("hdr", "Sarlavhada o'qituvchi va maktab", "BSB tahlili sahifasidagi ma'lumotdan")}${tg("note", "Izoh ustuni")}${tg("sig", "Imzo qatori")}${tg("zebra", "Chiziqli qatorlar", "Har 5-qatorda qalin chiziq doim bor")}
+      ${tg("hdr", "Sarlavhada o'qituvchi va maktab", "Summativ → Eksport sarlavhasidagi ma'lumotdan")}${tg("note", "Izoh ustuni")}${tg("sig", "Imzo qatori")}${tg("zebra", "Chiziqli qatorlar", "Har 5-qatorda qalin chiziq doim bor")}
       <div class="bv-sw"><span><b>Bo'sh qatorlar</b><small>Yangi o'quvchilar uchun</small></span>${step("extra", B.extra, "Bo'sh qatorlar")}</div>
       <div class="bv-sw"><span><b>Yo'nalish</b></span>${seg("ori", [["auto", "Avto"], ["port", "Tik"], ["land", "Yotiq"]], B.ori)}</div>
       <div class="bv-sw"><span><b>Shrift</b></span>${seg("fs", [["s", "Kichik"], ["m", "O'rta"], ["l", "Katta"]], B.fs)}</div>`;

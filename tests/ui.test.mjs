@@ -4141,3 +4141,48 @@ test("eMaktab importi: jurnallarni katakcha bilan tanlab qo'shish, belgisizlari 
     }
   } finally { await browser.close(); }
 });
+
+test("Hisobotlar tuzatishlari (2026-11-07): Loyiha belgisi, qisqa izohlar, jami qatori, «Ball qo'yish» ishni ochadi, sinf eslab qolinadi, 36 o'quvchi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector("text=Xayrli");
+    // 36 o'quvchi, BSB 20 + Loyiha 30 + CHSB 40; ikkinchi o'quvchida Loyiha balli yo'q, birinchisida past natija
+    await page.evaluate(() => {
+      const c = D.classes[0], [a] = qRange(1), d = c.dates.filter((x) => x >= a);
+      while (c.students.length < 36) c.students.push({name: `Qo'shimcha ${c.students.length + 1}`, marks: {}, scores: {}});
+      c.works = [{id: "tb", type: "bsb", date: d[0], max: 20, title: ""}, {id: "tl", type: "loyiha", date: d[1], max: 30, title: ""}, {id: "tc", type: "chsb", date: d[2], max: 40, title: ""}];
+      c.students.forEach((s, i) => { s.scores = {tb: 15, tl: i === 0 ? 3 : 25, tc: 30}; if (i === 1) delete s.scores.tl; });
+      save(); S.rq = 1; S.rep = {ci: 0, per: "q1", kind: "sum"}; go("reports");
+    });
+    const sum = await page.textContent(".hb-panel");
+    assert.ok(sum.includes("1 BSB · 1 Loyiha · 1 CHSB"), "Ishlar ko'rsatkichi");
+    assert.ok(await page.$(".hb-chip.loy"), "Loyiha belgisi");
+    assert.ok(sum.includes("BSB + Loyiha"), "BSB qismi ustuni");
+    // sinf hisoboti: izoh — qisqa belgilar (to'liq matn title'da), jadval oxirida jami qatori
+    await page.click(".hb-list [data-kind=cls]");
+    const chip = await page.$eval("td.hb-wyc .hb-chip.loy", (e) => [e.textContent, e.title]);
+    assert.match(chip[0], /^Loyiha \d+%$/); assert.match(chip[1], /^Loyiha ishi /);
+    assert.ok((await page.textContent("table.rcls tfoot")).includes("O'rtacha / jami"));
+    assert.equal(await page.$$eval("table.rcls tbody tr", (x) => x.length), 36);
+    // o'quvchi tartib raqami bo'yicha ochiladi
+    await page.click('table.rcls [data-card="1"]'); await page.waitForSelector(".modal .hb-stu");
+    assert.equal(await page.textContent(".modal .hb-stu h2"), await page.evaluate(() => D.classes[0].students[1].name));
+    await page.click(".modal [data-x]");
+    // tayyorlik: «Ball qo'yish» aynan Loyiha ishini Summativ sahifasida ochadi
+    await page.click(".hb-list [data-kind=ready]");
+    await page.click("[data-hwork=tl]");
+    assert.deepEqual(await page.evaluate(() => [S.page, S.jpage, S.smt, S.smw]), ["journal", "sm", "loyiha", "tl"]);
+    // tanlangan sinf qayta ochilganda eslab qolinadi
+    await page.evaluate(() => { S.rep.ci = 1; S.rep.kind = "cls"; go("reports"); document.querySelector("[data-kind=stats]").click(); });
+    assert.equal(JSON.parse(await page.evaluate(() => localStorage.getItem("yoqlama_rep"))).ci, 1);
+    // statistika: davomat ko'rsatkichi va Excel tugmasi
+    assert.ok((await page.textContent(".hb-kpis")).includes("Davomat"));
+    assert.ok(await page.$("[data-stxlsx]"));
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
