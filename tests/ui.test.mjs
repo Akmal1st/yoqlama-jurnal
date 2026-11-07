@@ -3260,7 +3260,7 @@ test("BSB/CHSB ustuni ochilsa «BSB tahlili»da shu sana uchun tahlil ochiladi (
   } finally { await browser.close(); }
 });
 
-test("Bo'sh varaq v3: 5 xil tur, jadval dizayni, kelgusi kunlar, BSB ballari, 36 va 18 o'quvchida teng bo'lish, chop etish va Excel", async () => {
+test("Bo'sh varaq v6: 5 xil tur, 9 xil jadval dizayni, aniq chop etish (36 va 18 o'quvchi), kelgusi kunlar, BSB ballari, teng bo'lish, PDF va Excel", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["telefon", {width: 390, height: 844}]]) {
@@ -3285,7 +3285,10 @@ test("Bo'sh varaq v3: 5 xil tur, jadval dizayni, kelgusi kunlar, BSB ballari, 36
         assert.equal(await page.evaluate(() => document.querySelector(".bv").__mark), 1, `${t}: panel qayta chizildi`);
         assert.ok(await page.locator(".bv-scale .bv-pg table.bv-t").count(), `${t}: varaq yo'q`);
       }
-      for (const d of ["oq", "rang", "daf", "qal", "kl"]) { await tap(`.bv-dz[data-v=${d}]`); assert.equal(await page.locator(`.bv-scale .bv-pg.d-${d}`).count() > 0, true, d); }
+      await tap("[data-bv=set]");
+      assert.equal(await page.locator(".bv-pop .bv-dz").count(), 9, "9 xil jadval dizayni");
+      for (const d of ["oq", "rang", "daf", "qal", "min", "kok", "kat", "ilik", "kl"]) { await tap(`.bv-dz[data-v=${d}]`); assert.equal(await page.locator(`.bv-scale .bv-pg.d-${d}`).count() > 0, true, d); }
+      await tap(".bv-x");
       assert.equal(await page.evaluate(() => scrollY), y0);
       // sozlamalar oynasi
       await tap("[data-bv=set]"); assert.ok(await page.locator(".bv-pop").isVisible()); await tap(".bv-x");
@@ -3299,7 +3302,7 @@ test("Bo'sh varaq v3: 5 xil tur, jadval dizayni, kelgusi kunlar, BSB ballari, 36
       assert.ok(Math.max(...rows) - Math.min(...rows) <= 1, `qatorlar teng emas: ${rows}`);
       const days = await page.$$eval(".bv-print .bv-pg", (a) => [...new Set(a.map((p) => p.querySelectorAll("thead tr:first-child th[colspan]").length))]);
       assert.ok(Math.max(...days) - Math.min(...days) <= 1, `kunlar teng emas: ${days}`);
-      assert.ok(await page.locator(".bv-chip.ok").count(), "teng bo'lingan belgisi");
+      assert.match(await page.textContent(".bv-sub"), /varaq/, "varaqlar soni qatori");
       // 18 o'quvchi: bitta varaq, hafta bo'yicha
       await tap("[data-bv=set]"); await tap("[data-bv=ori][data-v=auto]"); await tap("[data-bv=set]");
       await page.click(".hb-pks [data-hk=cls]"); await page.click(".hb-pop [data-ho=ci][data-v='1']");
@@ -3335,6 +3338,24 @@ test("Bo'sh varaq v3: 5 xil tur, jadval dizayni, kelgusi kunlar, BSB ballari, 36
       // Excel
       const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".hb-acts [data-bvx]")]);
       assert.match(dl.suggestedFilename(), /bo.sh varaq\.(xlsx|csv)$/);
+      // PDF fayl (A4, vektor) saqlanadi
+      const [dp] = await Promise.all([page.waitForEvent("download", {timeout: 30000}), page.click(".hb-acts [data-bvpdf]")]);
+      assert.match(dp.suggestedFilename(), /bo.sh varaq\.pdf$/);
+      // chop etish aniqligi: 36 va 18 o'quvchi, sarlavhada o'qituvchi va maktab; hamma tur, davr, chet va qator balandligida pastki qism va ismlar varaq ichida
+      await page.evaluate(() => { D.web.bsb_hdr = Object.assign(D.web.bsb_hdr || {}, {teacher: "Otaboboyev Akmal Abdurahmonovich", school: "Toshkent shahar Yunusobod tumani 274-sonli umumta'lim maktabi"}); D.classes[0].students[1].name = "Abdurahmonova Mohinur Shuhratjon qizi"; save(); });
+      const fitAll = () => page.evaluate(() => { const A = document.querySelector(".bv-print"); A.style.cssText = "display:block;position:absolute;left:-9000px";
+        const r = [...A.querySelectorAll(".bv-pg")].map((p) => { const i = p.querySelector(".bv-in"), t = p.querySelector("table"), f = p.querySelector(".bv-foot");
+          return {over: i.scrollHeight - i.clientHeight, nm: [...t.querySelectorAll("td.bv-nm, thead th")].filter((x) => x.scrollWidth > x.clientWidth + 1).length, below: f.getBoundingClientRect().top < t.getBoundingClientRect().bottom, w: Math.round(p.getBoundingClientRect().width / 3.7795), h: Math.round(p.getBoundingClientRect().height / 3.7795 * 10) / 10}; });
+        A.style.cssText = ""; return r; });
+      for (const ci of [0, 1]) {
+        await page.click(".hb-pks [data-hk=cls]"); await page.click(`.hb-pop [data-ho=ci][data-v='${ci}']`);
+        for (const t of ["att", "only", "mz", "bsb", "own"]) for (const per of ["week", "month"]) for (const [fs, rh, mg] of [["l", "auto", "15"], ["s", "10", "5"], ["m", "auto", "10"]]) {
+          await tap(`.bv-tab[data-v=${t}]`); if (!["bsb", "own"].includes(t)) await tap(`[data-bv=per][data-v=${per}]`);
+          await page.evaluate(([fs, rh, mg]) => { Object.assign(BVQ.state, {fs, rh, mg: +mg, ori: "auto", note: true, hdr: true, extra: 10}); softRender(); }, [fs, rh, mg]);
+          for (const x of await fitAll()) { assert.ok(x.over <= 1 && !x.nm && !x.below, `${ci} ${t} ${per} ${fs}/${rh}/${mg}: ${JSON.stringify(x)}`); assert.ok((x.w === 210 && Math.abs(x.h - 296.5) < 0.5) || (x.w === 297 && Math.abs(x.h - 209.5) < 0.5), `varaq o'lchami: ${x.w}x${x.h}`); }
+        }
+      }
+      assert.equal(await page.locator(".bv-chip.bad").count(), 0, "«sig'madi» belgisi chiqmasligi kerak");
       assert.deepEqual(errors, []);
     }
   } finally { await browser.close(); }

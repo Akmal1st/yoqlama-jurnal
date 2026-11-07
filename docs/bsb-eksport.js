@@ -475,5 +475,5 @@ const BXP = (() => {
       if (document.fonts && document.fonts.status !== "loaded") document.fonts.ready.then(() => mm.isConnected && draw());   // shrift yuklangach qayta o'lchanadi
     }).then(() => { clearTimeout(saveT); save(); });
   }
-  return {dialog, excel, blocks, paginate, pagesHtml, data, cfg, title, print};
+  return {dialog, excel, blocks, paginate, pagesHtml, data, cfg, title, print, loadXlsxStyle};
 })();
