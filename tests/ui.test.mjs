@@ -3667,6 +3667,77 @@ test("eMaktab: ilovaning o'zidan import — login, rasmdagi kod, seans saqlanadi
   } finally { await browser.close(); }
 });
 
+test("eMaktab: parol to'g'ri bo'lsa ikki bosqichli tasdiqlash kodi so'raladi (2fa-verification), keyin import (36 va 18 o'quvchi)", async () => {
+  const XLSX = (await import("xlsx")).default;
+  const xlsOf = (cls, subj, n) => { const rows = [[`Sinf: ${cls} 2026/2027`], [`Fan: ${subj}`], [], ["№", "F.I.Sh.", "Noyabr"], [null, null, 4]];
+    for (let i = 1; i <= n; i++) rows.push([i, `O'quvchi ${cls} ${String(i).padStart(2, "0")}`, 5 + (i % 5)]);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), subj); return XLSX.write(wb, {type: "buffer", bookType: "xls"}); };
+  const XLS = {22: xlsOf("6-A", "Matematika", 36), 23: xlsOf("9-A", "Algebra", 18)};
+  const loginPage = `<html><body><form action="/login" method="post"><input name="login" type="text"><input name="password" type="text" class="password"><button type="submit">Kirish</button></form></body></html>`;
+  const faPage = `<html><head><title>eMaktab | &#x41F;&#x43E;&#x434;&#x442;&#x432;&#x435;&#x440;&#x436;&#x434;&#x435;&#x43D;&#x438;&#x435;</title></head><body>
+    <form action="/login/2fa-verification" method="post"><input type="hidden" name="__RequestVerificationToken" value="tok1"><input type="hidden" name="ReturnUrl" value="/v2/myclasses">
+    <p>Tasdiqlash kodi +998 ** *** 12 34 raqamiga SMS orqali yuborildi.</p><input name="Code" type="text" inputmode="numeric"><input type="checkbox" name="RememberDevice" value="true">
+    <button type="submit">Tasdiqlash</button></form><form action="/logout"></form></body></html>`;
+  const st = {valid: new Set(), pre: new Set(), posts: [], codes: []};
+  const sess = (opt) => (((opt.headers || {}).Cookie || "").match(/sess=(\w+)/) || [])[1];
+  const G = makeGas({emk: (url, opt) => {
+    const u = new URL(url);
+    if (u.host === "login.emaktab.uz" && u.pathname === "/") return {status: 200, headers: {"Content-Type": "text/html"}, body: loginPage};
+    if (u.host === "login.emaktab.uz" && u.pathname === "/login") {
+      const f = Object.fromEntries(new URLSearchParams(opt.payload)); st.posts.push(f);
+      if (f.login !== "akmal" || f.password !== "maxfiy123") return {status: 200, headers: {"Content-Type": "text/html"}, body: loginPage};
+      const p = "p" + st.pre.size; st.pre.add(p);
+      return {status: 302, headers: {Location: "/login/2fa-verification", "Set-Cookie": [`pre=${p}; path=/`]}};
+    }
+    if (u.host === "login.emaktab.uz" && u.pathname === "/login/2fa-verification") {
+      if (!st.pre.has((((opt.headers || {}).Cookie || "").match(/pre=(\w+)/) || [])[1])) return {status: 302, headers: {Location: "https://login.emaktab.uz/"}};
+      if (opt.method === "post") { const f = Object.fromEntries(new URLSearchParams(opt.payload)); st.codes.push(f);
+        if (f.Code !== "551234" || f.__RequestVerificationToken !== "tok1") return {status: 200, headers: {"Content-Type": "text/html"}, body: faPage};
+        const sid = "s" + st.valid.size; st.valid.add(sid);
+        return {status: 302, headers: {Location: "https://schools.emaktab.uz/v2/myclasses", "Set-Cookie": [`sess=${sid}; domain=.emaktab.uz; path=/; HttpOnly`]}}; }
+      return {status: 200, headers: {"Content-Type": "text/html"}, body: faPage};
+    }
+    if (!st.valid.has(sess(opt))) return {status: 302, headers: {Location: "https://login.emaktab.uz/"}};
+    if (u.pathname === "/v2/myclasses") return {status: 200, headers: {"Content-Type": "text/html"}, body: `<html><body><script>window.__TEACHERV2__INITIAL__STATE__ = {"groups": {"groups": ${JSON.stringify([
+      {name: "6-A", journal: [{subjectName: "Matematika", journalUrl: "https://emaktab.uz/journal/school/11/group/22/subject/33?periodId=77"}]},
+      {name: "9-A", journal: [{subjectName: "Algebra", journalUrl: "https://emaktab.uz/journal/school/11/group/23/subject/34?periodId=78"}]}])}}};</script><form action="/logout"></form></body></html>`};
+    if (u.pathname.startsWith("/journal/")) return {status: 200, headers: {"Content-Type": "text/html"}, body: `<script>window.__JOURNAL__INITIAL__STATE__ = {"journalHeader":{"currentPeriodId":${u.pathname.includes("/22/") ? 77 : 78}}};</script>`};
+    if (u.pathname === "/v2/excel") return {status: 200, headers: {"Content-Type": "application/vnd.ms-excel"}, body: XLS[u.searchParams.get("group")]};
+    return {status: 404, headers: {}, body: ""};
+  }});
+  const GAS = "https://script.google.com/macros/s/TEST/exec";
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const vp of [{width: 390, height: 844}, {width: 1280, height: 800}]) {
+      st.valid.clear(); st.pre.clear(); st.posts.length = 0; st.codes.length = 0;
+      const ctx = await browser.newContext({viewport: vp});
+      await ctx.addInitScript((u) => localStorage.setItem("yoqlama_tgu_url", u), GAS);
+      await ctx.route("https://script.google.com/**", (rt) => { const rq = rt.request();
+        return rt.fulfill({status: 200, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: G.handle(rq.method(), rq.url(), rq.postData())}); });
+      const page = await ctx.newPage(); const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.goto(APP);
+      await page.evaluate(() => { D = normalize({classes: [{name: "5-B", subject: "Tarix", dates: [], students: [{name: "Ali", marks: {}}]}]}); save(); go("today"); });
+      await page.click("[data-ekgo]");
+      await page.fill("#eku", "akmal"); await page.fill("#ekp", "maxfiy123"); await page.click("#ekf [type=submit]");
+      await page.waitForSelector("#ek2i", {timeout: 20000});
+      assert.match(await page.textContent(".modal.ek-sh .ek-sub"), /\+998 \*\* \*\*\* 12 34 raqamiga SMS/);
+      assert.equal(await page.getAttribute("#ek2i", "inputmode"), "numeric");
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      await page.fill("#ek2i", "000000"); await page.click("#ek2 [type=submit]");
+      await page.waitForSelector("text=Kod noto'g'ri bo'ldi");
+      await page.fill("#ek2i", "551234"); await page.click("#ek2 [type=submit]");
+      await page.waitForSelector("text=eMaktab'dan yangilandi", {timeout: 20000});
+      assert.deepEqual(await page.evaluate(() => D.classes.filter((c) => c.name !== "5-B").map((c) => [c.name, c.subject, c.students.length])), [["6-A", "Matematika", 36], ["9-A", "Algebra", 18]]);
+      assert.equal(st.posts.length, 1, "parol bir marta yuborildi"); assert.equal(st.codes.length, 2);
+      assert.equal(st.codes[1].RememberDevice, "true"); assert.equal(st.codes[1].ReturnUrl, "/v2/myclasses");
+      const store = await page.evaluate(() => JSON.stringify(Object.fromEntries(Object.entries(localStorage))));
+      assert.ok(!store.includes("maxfiy123") && !store.includes("551234"), "parol va kod saqlanmagan");
+      assert.deepEqual(errors, []);
+      await ctx.close();
+    }
+  } finally { await browser.close(); }
+});
+
 test("eMaktab: kirish sahifasi kutilmagan bo'lsa, xato oynasida nima qaytgani ko'rinadi (to'siq / formasiz sahifa)", async () => {
   const GAS = "https://script.google.com/macros/s/TEST/exec";
   const cases = [
