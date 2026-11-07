@@ -13,7 +13,7 @@ const EMKS = (() => {
   const store = (s) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* xotira yopiq — seans faqat shu safar */ } };
   const clear = () => { try { localStorage.removeItem(KEY); } catch (e) {} };
   let S = null;   // {u: login, c: [{n, v, d, h}]} — joriy seans
-  const on = () => typeof TGU !== "undefined" && TGU.gas();
+  const on = () => typeof TGU !== "undefined" && TGU.gas() && !need2fa();   // need2fa — pastda (kod so'ragan eMaktab → xatcho'p)
   const linked = () => !!(load() || {}).u;
 
   /* ───────── cookie ───────── */
@@ -92,67 +92,31 @@ const EMKS = (() => {
     let u = r.url; try { const x = new URL(r.url); u = x.host + x.pathname; } catch (e) { /* */ }
     return `Javob: ${r.s} · ${u}${t ? ` · «${t.replace(/\s+/g, " ").trim().slice(0, 60)}»` : ""} · ${Math.round(String(r.b || "").length / 1024)} KB`;
   }
+  // nosozlikni topish uchun sahifani faylga saqlash: login/parol qiymatlari o'chiriladi (dastur/emaktab_http.py hide_secrets kabi)
+  const scrub = (r) => `<!-- ${r.s} ${r.url} -->\n` + String(r.b || "")
+    .replace(/<input[^>]*>/gi, (t) => /name=["']?(login|user\w*|pass\w*|parol)["'\s>]|type=["']?password/i.test(t) ? t.replace(/value=("[^"]*"|'[^']*'|[^\s>]*)/i, 'value=""') : t)
+    .replace(/((?:\\x22|")(?:login|password|userName|parol)(?:\\x22|")\s*(?::|\\x3a)\s*(?:\\x22|"))((?:(?!\\x22)[^"])*)/gi, "$1");
   const blocked = (r) => r.s === 403 || r.s === 451 || r.s === 429 || r.s >= 500
     || /access denied|forbidden|blocked|cloudflare|ddos|captcha-delivery|доступ (запрещ|огранич)|ruxsat yo'q/i.test(String(r.b || "").slice(0, 20000).replace(/<script[\s\S]*?<\/script>/gi, ""));
-  /* ───────── ikki bosqichli tasdiqlash (login.emaktab.uz/login/2fa-verification, 2026-11-07) ─────────
-     Parol to'g'ri bo'lsa eMaktab telefon/pochtaga kod yuboradi va shu kodni so'raydi. Sahifadagi formadan kod maydoni topiladi,
-     foydalanuvchi kodni kiritadi, forma (yashirin maydonlari bilan) yuboriladi. «Qurilmani eslab qolish» belgisi yoqiladi. */
+  /* ───────── ikki bosqichli tasdiqlash (login.emaktab.uz/login/2fa-verification) ─────────
+     Akmal (2026-11-07): kod so'ralmasa — login/parol, so'ralsa — xatcho'p. Kod sahifasi JavaScript bilan chiziladi (forma yo'q),
+     shuning uchun kod so'ralganda shu qurilmada server orqali kirish o'chiriladi va xatcho'p usuli ochiladi. */
+  const F2 = "yoqlama_emk_2fa";
   const is2fa = (r) => /2fa|two-?factor|verif|confirm|otp/i.test(new URL(r.url).pathname);
-  function parse2fa(html, url) {
-    const doc = new DOMParser().parseFromString(html, "text/html");
-    const vis = (el) => !["hidden", "submit", "button", "checkbox", "radio", "file", "image", "reset"].includes((el.getAttribute("type") || "text").toLowerCase());
-    const forms = [...doc.querySelectorAll("form")].filter((f) => !/logout/i.test(f.getAttribute("action") || ""));
-    const fm = forms.find((f) => [...f.querySelectorAll("input")].some(vis)) || null;
-    const inputs = [...(fm || doc).querySelectorAll("input")];
-    const boxes = inputs.filter(vis).filter((i) => i.getAttribute("name"));
-    const code = boxes.find((i) => /code|kod|otp|token|pin|verif|secret/i.test(i.getAttribute("name"))) || boxes[0];
-    // matn: «Kod +998 ** *** 12 34 raqamiga yuborildi» kabi — foydalanuvchiga ko'rsatiladi
-    doc.querySelectorAll("script,style,noscript").forEach((x) => x.remove());
-    const words = (doc.body ? doc.body.textContent : "").replace(/\s+/g, " ").trim();
-    const hint = (words.match(/[^.!?]*(kod|код|code|sms|telefon|телефон|pochta|почт|e-?mail|telegram)[^.!?]*[.!?]?/i) || [""])[0].trim().slice(0, 220);
-    const shape = `maydonlar: ${inputs.map((i) => `${i.getAttribute("name") || "?"}:${(i.getAttribute("type") || "text").toLowerCase()}`).join(", ") || "yo'q"}; formalar: ${forms.length}`;
-    if (!code) return {hint, shape};
-    const data = {};
-    for (const i of inputs) { const n = i.getAttribute("name"), t = (i.getAttribute("type") || "text").toLowerCase(); if (!n) continue;
-      if (t === "checkbox") { if (/remember|trust|eslab|save|device|запомн/i.test(n) || i.hasAttribute("checked")) data[n] = i.getAttribute("value") || "true"; continue; }
-      if (!["submit", "button", "radio", "file", "image", "reset"].includes(t)) data[n] = i.getAttribute("value") || ""; }
-    const btn = fm && fm.querySelector("button[name][type=submit],button[name]:not([type]),input[type=submit][name]");
-    if (btn) data[btn.getAttribute("name")] = btn.getAttribute("value") || "";
-    return {action: new URL((fm && fm.getAttribute("action")) || url, url).href, data, code: code.getAttribute("name"), hint, shape,
-      num: /^(number|tel)$/i.test(code.getAttribute("type") || "") || /numeric/i.test(code.getAttribute("inputmode") || "")};
-  }
-  async function verify(r) {
-    for (let k = 0; k < 4; k++) {
-      const f = parse2fa(r.b, r.url);
-      if (!f.code) throw new Error(`eMaktab tasdiqlash kodini so'rayapti, lekin kod maydoni topilmadi. Hozircha xatcho'p usulidan foydalaning.\n${diag(r)}\n${f.shape}${f.hint ? `\n«${f.hint}»` : ""}`);
-      done();
-      const ans = await codeSheet(f.hint, k > 0, f.num);
-      if (ans === null) return null;
-      progress("Kod tekshirilmoqda…", 6);
-      f.data[f.code] = ans;
-      r = await req(f.action, {post: enc(f.data), ref: r.url});
-      if (!is2fa(r)) return r;
-    }
-    throw new Error("Tasdiqlash kodi bir necha marta noto'g'ri bo'ldi.");
-  }
+  const need2fa = () => { try { return localStorage.getItem(F2) === "1"; } catch (e) { return false; } };
   const enc = (o) => Object.entries(o).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&");
   async function login(user, pass) {
     S = {u: user, c: []};
     let r = await req(U.login);
     for (let attempt = 1; attempt <= 4; attempt++) {
-      if (attempt > 1 && is2fa(r)) {   // «Chiqish» tugmasi bo'lsa ham — avval kod
-        r = await verify(r); if (!r) return false;
-        if (!isLogin(r.url, r.b)) { store(S); return true; }
-        const m = await req(U.my); if (m.s < 400 && !isLogin(m.url, m.b)) { store(S); return true; }
-        r = m;
-      }
+      if (is2fa(r)) { try { localStorage.setItem(F2, "1"); } catch (e) { /* */ } clear(); S = null; throw Object.assign(new Error("2fa"), {twofa: true}); }
       if (!isLogin(r.url, r.b)) { store(S); return true; }
       const f = parseForm(r.b, r.url);
       if (!f || !f.pw || !f.us) {
         // parol yuborilgandan keyin oraliq sahifa (forma yo'q) — tizimga kirilganmi, «Sinflarim» orqali tekshiramiz
         if (attempt > 1) { const m = await req(U.my); if (m.s < 400 && !isLogin(m.url, m.b)) { store(S); return true; } }
         if (blocked(r)) throw new Error(`eMaktab Google serveridan kelgan so'rovni to'sib qo'ydi (chet el manzili bo'lishi mumkin). Hozircha xatcho'p usulidan foydalaning.\n${diag(r)}`);
-        throw new Error(`eMaktab kirish sahifasida login maydoni topilmadi${attempt > 1 ? " (parol yuborilgandan keyin)" : ""}. Hozircha xatcho'p usulidan foydalaning.\n${diag(r)}`);
+        throw Object.assign(new Error(`eMaktab kirish sahifasida login maydoni topilmadi${attempt > 1 ? " (parol yuborilgandan keyin)" : ""}. Hozircha xatcho'p usulidan foydalaning.\n${diag(r)}`), {page: scrub(r)});
       }
       f.data[f.us] = user; f.data[f.pw] = pass;
       if (attempt > 1) {
@@ -198,17 +162,6 @@ const EMKS = (() => {
       setTimeout(() => $("#ekci", mm).focus(), 50);
     }).then((v) => v === undefined ? null : v);
   }
-  function codeSheet(hint, again, num) {
-    return modal(`<div class="ek-res-in"><div class="ek-rh"><h2>Tasdiqlash kodi</h2></div>
-      <div class="ek-sub">${again ? "Kod noto'g'ri bo'ldi — qayta kiriting." : esc(hint || "eMaktab sizga tasdiqlash kodini yubordi (SMS, pochta yoki Telegram).")}</div>
-      <form class="ek-form" id="ek2"><label for="ek2i">Kod<input class="form-control" id="ek2i" ${num ? 'inputmode="numeric" ' : ""}autocomplete="one-time-code" required></label>
-        <div class="ek-acts"><button type="button" class="btn" data-x>Bekor qilish</button><button class="btn btn-primary" type="submit">Davom etish</button></div></form></div>`, (mm, close) => {
-      mm.classList.add("ek-sh");
-      $("[data-x]", mm).onclick = () => close(null);
-      $("#ek2", mm).onsubmit = (e) => { e.preventDefault(); const v = $("#ek2i", mm).value.trim(); if (v) close(v); };
-      setTimeout(() => $("#ek2i", mm).focus(), 50);
-    }).then((v) => v === undefined ? null : v);
-  }
   let prog = null;
   function progress(msg, pct) {
     if (!prog || !prog.isConnected) {
@@ -222,9 +175,12 @@ const EMKS = (() => {
   function fail(e) {
     done();
     if (e.old) { toast(e.message); emkDialog(); return; }   // server kodi eski (Code.gs v5 dan oldingi) — xatcho'p yo'riqnomasi
+    if (e.twofa) { toast("eMaktab qo'shimcha kod so'radi — jurnallar xatcho'p orqali olinadi"); EMK1.start(); return; }   // kod so'raldi — xatcho'p (Akmal, 2026-11-07)
     modal(`<div class="ek-res-in"><div class="ek-rh"><h2>eMaktab'dan olib bo'lmadi</h2></div><div class="ek-sub">${esc(e.message || String(e))}</div>
-      <div class="ek-acts"><button class="btn" data-bm>Xatcho'p orqali</button><button class="btn btn-primary" data-x>Yopish</button></div></div>`, (mm, close) => {
+      ${e.page ? `<div class="ek-note">Tuzatish uchun eMaktab sahifasini faylga saqlab, ishlab chiquvchiga yuboring (login va parol faylga yozilmaydi).</div>` : ""}
+      <div class="ek-acts">${e.page ? `<button class="btn" data-pg>Sahifani saqlash</button>` : ""}<button class="btn" data-bm>Xatcho'p orqali</button><button class="btn btn-primary" data-x>Yopish</button></div></div>`, (mm, close) => {
       mm.classList.add("ek-sh");
+      const pg = $("[data-pg]", mm); if (pg) pg.onclick = () => download(`emaktab-sahifa-${new Date().toISOString().slice(0, 16).replace(/\D/g, "")}.html`, e.page, "text/html");
       $("[data-x]", mm).onclick = () => close(); $("[data-bm]", mm).onclick = () => { close(); emkDialog(); };
     });
   }
