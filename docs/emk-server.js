@@ -54,6 +54,21 @@ const EMKS = (() => {
     }
     throw new Error("eMaktab sahifasi juda ko'p qayta yo'naltirdi");
   }
+  // bir nechta sahifa bitta so'rovda (server ularni parallel oladi — Code.gs VER 6); qayta yo'naltirilgani yoki xatosi — alohida req() bilan
+  async function reqMany(items, each) {
+    const out = new Array(items.length);
+    for (let i = 0; i < items.length; i += 8) {
+      const part = items.slice(i, i + 8);
+      const rs = await call(part.map((q) => ({u: q.u, m: "get", d: "", c: cookieFor(q.u), ref: q.ref || "", bin: q.bin ? 1 : 0})));
+      for (const [k, q] of part.entries()) {
+        const x = rs[k];
+        if (x && !x.e && !(x.s >= 300 && x.s < 400)) { setCookies(x.c, q.u); out[i + k] = {s: x.s, url: q.u, b: x.b, t: x.t || ""}; }
+        else { try { out[i + k] = await req(q.u, {bin: q.bin, ref: q.ref}); } catch (e) { out[i + k] = {e: e.message}; } }
+      }
+      if (each) each(Math.min(i + 8, items.length));
+    }
+    return out;
+  }
   const isLogin = (url, html) => /<input[^>]+(type=["']?password|name=["']?password["'\s>])/i.test(html) ? true
     : /<form[^>]+action=["'][^"']*\/logout/i.test(html) ? false : /^login\./i.test(new URL(url).hostname);
 
@@ -211,22 +226,30 @@ const EMKS = (() => {
       if (!jobs.length) throw new Error("«Mening sinflarim» sahifasida jurnal topilmadi.");
       const have = EMK1.have(), nk = (t) => String(t || "").toLowerCase().replace(/\(.*?\)/g, "").replace(/[^\p{L}\p{N}]/gu, "");
       const hasQ = (jb) => { const x = have.find((h) => nk(h.n) === nk(jb.cls) && nk(h.s) === nk(jb.subject)); return x ? x.q : null; };
-      const files = [], errs = [];
+      const files = [], errs = [], dl = [];
+      // 1) jurnal sahifalari (chorak ro'yxati uchun) — bir yo'la
+      progress(`Jurnallar: 0 / ${jobs.length}`, 10);
+      const pages = await reqMany(jobs.map((jb) => ({u: jb.url})), (k) => progress(`Jurnallar o'qilmoqda: ${k} / ${jobs.length}`, 10 + (k / jobs.length) * 35));
       for (const [n, jb] of jobs.entries()) {
-        progress(`Jurnallar: ${n + 1} / ${jobs.length}\n${jb.cls} · ${jb.subject}`, 10 + (n / jobs.length) * 85);
         try {
-          const pg = await req(jb.url), st = L.state(pg.b), hd = (st && st.journalHeader) || (jb.pid ? {currentPeriodId: jb.pid} : null);
+          const pg = pages[n]; if (pg.e) throw new Error(pg.e);
+          const st = L.state(pg.b), hd = (st && st.journalHeader) || (jb.pid ? {currentPeriodId: jb.pid} : null);
           if (!hd) throw new Error("chorak topilmadi");
           const [, school, group, subject] = jb.url.match(/\/school\/(\d+)\/group\/(\d+)\/subject\/(\d+)/);
           const ps = ((hd.periods || {})[hd.currentGroupId] || {}).periods || [], cur = ps.find((p) => p.id === hd.currentPeriodId);
           const ord = [...ps].sort((a, b) => a.number - b.number), hq = hasQ(jb);
           const want = cur ? ord.filter((p, i) => p.number < cur.number ? !(hq && hq.includes(i + 1)) : p.id === cur.id) : [{id: hd.currentPeriodId, name: ""}];
-          for (const p of want) {
-            const x = await req(`${U.excel}?action=gjsxls&school=${school}&group=${group}&subgroup=0&subject=${subject}&period=${p.id}`, {bin: true, ref: jb.url});
-            if (x.s !== 200 || /html/i.test(x.t) || !x.b) throw new Error(`Excel o'rniga javob keldi (HTTP ${x.s})`);
-            files.push(b2file(x.b, `${jb.cls}_${jb.subject}${p.name && want.length > 1 ? "_" + p.name : ""}.xls`));
-          }
+          for (const p of want) dl.push({jb, u: `${U.excel}?action=gjsxls&school=${school}&group=${group}&subgroup=0&subject=${subject}&period=${p.id}`, ref: jb.url, bin: true,
+            name: `${jb.cls}_${jb.subject}${p.name && want.length > 1 ? "_" + p.name : ""}.xls`});
         } catch (e) { errs.push(`${jb.cls} · ${jb.subject}: ${e.message}`); }
+      }
+      // 2) Excel fayllar — bir yo'la
+      const xs = await reqMany(dl, (k) => progress(`Excel fayllar: ${k} / ${dl.length}`, 45 + (k / Math.max(1, dl.length)) * 50));
+      for (const [n, d] of dl.entries()) {
+        const x = xs[n];
+        if (x.e) errs.push(`${d.jb.cls} · ${d.jb.subject}: ${x.e}`);
+        else if (x.s !== 200 || /html/i.test(x.t) || !x.b) errs.push(`${d.jb.cls} · ${d.jb.subject}: Excel o'rniga javob keldi (HTTP ${x.s})`);
+        else files.push(b2file(x.b, d.name));
       }
       store(S); done();
       if (!files.length) throw new Error("Hech bir jurnal yuklanmadi.\n" + errs.join("\n"));

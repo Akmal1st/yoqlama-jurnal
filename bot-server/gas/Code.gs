@@ -12,7 +12,7 @@
    Script Properties (qo'lda kiritiladi): BOT_TOKEN, ADMIN_IDS ("123,456"), SETUP_SECRET.  Yo'riqnoma: bot-server/gas/README.md */
 
 var APP_URL = "https://akmal1st.github.io/yoqlama-jurnal/";
-var VER = 5;   // kod versiyasi: manzil ochilganda ko'rinadi — Apps Script'da yangilangani shu bilan tekshiriladi
+var VER = 6;   // kod versiyasi: manzil ochilganda ko'rinadi — Apps Script'da yangilangani shu bilan tekshiriladi
 var LINK_TTL = 30 * 60;   // soniya: tugma bosilgandan «Boshlash» xabarigacha (xabar vaqti bo'yicha, serverga yetib kelish vaqti emas)
 var T_RE = /^[A-Za-z0-9_-]{16,64}$/;
 var METHODS = {sendMessage: 0, sendPhoto: 0, sendDocument: 0, pinChatMessage: 0, unpinChatMessage: 0, deleteMessage: 0,
@@ -125,23 +125,35 @@ function processUpdates_() {
 var EMK_RE = /^https:\/\/([a-z0-9-]+\.)*emaktab\.uz(\/|$)/i;
 var EMK_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 function hdr_(h, name) { for (var k in h) if (k.toLowerCase() === name) return h[k]; return null; }
+// Ro'yxatdagi so'rovlar UrlFetchApp.fetchAll bilan parallel bajariladi (VER 6, 2026-11-07: import tezlashdi);
+// fetchAll xato bersa (bitta manzil ulanmasa) — har biri alohida, xato faqat o'shanga yoziladi
+function emkOpt_(q) {
+  var h = {"User-Agent": EMK_UA, "Accept-Language": "uz,ru;q=0.8,en;q=0.5"};
+  if (q.c) h.Cookie = String(q.c);
+  if (q.ref && EMK_RE.test(String(q.ref))) h.Referer = String(q.ref);
+  var opt = {url: String(q.u), method: q.m === "post" ? "post" : "get", headers: h, followRedirects: false, muteHttpExceptions: true};
+  if (q.m === "post") { opt.payload = String(q.d || ""); opt.contentType = "application/x-www-form-urlencoded"; }
+  return opt;
+}
+function emkOut_(q, r) {
+  var hd = r.getAllHeaders(), sc = hdr_(hd, "set-cookie");
+  return {s: r.getResponseCode(), l: String(hdr_(hd, "location") || ""), c: sc ? [].concat(sc).map(String) : [], t: String(hdr_(hd, "content-type") || ""),
+    b: q.bin ? Utilities.base64Encode(r.getContent()) : r.getContentText()};
+}
 function emk_(b) {
-  var list = Array.isArray(b.r) ? b.r.slice(0, 20) : [];
-  return {ok: true, r: list.map(function (q) {
-    q = q || {};
-    var u = String(q.u || "");
-    if (!EMK_RE.test(u)) return {e: "faqat emaktab.uz"};
-    var h = {"User-Agent": EMK_UA, "Accept-Language": "uz,ru;q=0.8,en;q=0.5"};
-    if (q.c) h.Cookie = String(q.c);
-    if (q.ref && EMK_RE.test(String(q.ref))) h.Referer = String(q.ref);
-    var opt = {method: q.m === "post" ? "post" : "get", headers: h, followRedirects: false, muteHttpExceptions: true};
-    if (q.m === "post") { opt.payload = String(q.d || ""); opt.contentType = "application/x-www-form-urlencoded"; }
+  var list = (Array.isArray(b.r) ? b.r.slice(0, 20) : []).map(function (q) { return q || {}; });
+  var out = list.map(function (q) { return EMK_RE.test(String(q.u || "")) ? null : {e: "faqat emaktab.uz"}; });
+  var idx = [], reqs = [];
+  list.forEach(function (q, i) { if (!out[i]) { idx.push(i); reqs.push(emkOpt_(q)); } });
+  var res = null;
+  if (reqs.length > 1) { try { res = UrlFetchApp.fetchAll(reqs); } catch (err) { res = null; } }
+  idx.forEach(function (i, k) {
     try {
-      var r = UrlFetchApp.fetch(u, opt), hd = r.getAllHeaders(), sc = hdr_(hd, "set-cookie");
-      return {s: r.getResponseCode(), l: String(hdr_(hd, "location") || ""), c: sc ? [].concat(sc).map(String) : [], t: String(hdr_(hd, "content-type") || ""),
-        b: q.bin ? Utilities.base64Encode(r.getContent()) : r.getContentText()};
-    } catch (err) { return {e: String(err && err.message || err)}; }
-  })};
+      var r = res ? res[k] : UrlFetchApp.fetch(reqs[k].url, reqs[k]);
+      out[i] = emkOut_(list[i], r);
+    } catch (err) { out[i] = {e: String(err && err.message || err)}; }
+  });
+  return {ok: true, r: out};
 }
 
 /* ───────── ilova uchun ───────── */
