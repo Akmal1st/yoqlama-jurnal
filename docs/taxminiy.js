@@ -215,59 +215,75 @@ const TXB = (() => {
     const r = rng(seed + "#v"), L = TEST_L.slice(0, t.o);
     return on.map((ok, i) => { if (ok) return t.key[i]; const o = L.replace(t.key[i], ""); return o[Math.floor(r() * o.length)]; }).join("");
   }
+  // aynan yig'ib bo'lmasa — eng yaqin chiqadigan ball (teng uzoqlikda — pastrog'i)
+  function nearest(t, P, T, mode, seed) {
+    const top = Math.ceil(sum(P) - 1e-9);
+    for (let d = 0; d <= top; d++) for (const v of d ? [T - d, T + d] : [T]) {
+      if (v < 0 || v > top) continue;
+      const a = answers(t, P, v, mode, seed); if (a) return {a, v};
+    }
+    return null;
+  }
   const blankAns = (a) => !a || /^\.*$/.test(a);
   const TC = {};   // xotirada: {[ish id]: {ids: Set, mode, undo, skip}}
   const chsbCls = (w, s) => TC[w.id] && TC[w.id].ids.has(s.id) ? " tx-estc" : "";
   function chsbBanner(w) {
     const st = TC[w.id]; if (!st || (!st.ids.size && !st.undo)) return "";
-    return `<div class="tx-banner${st.skip.length ? "" : " ok"}" id="txc"><span>${st.ids.size ? `✓ Taxminiy javoblar: <b>${st.ids.size} ta o'quvchi</b>, har birining bali eMaktabdagi bilan bir xil.` : "Taxminiy javoblar yo'q."}${st.skip.length ? ` <b>${st.skip.length} tasiga</b> mos javob topilmadi (savol ballari bilan bu ballni yig'ib bo'lmaydi): ${esc(st.skip.slice(0, 6).join(", "))}${st.skip.length > 6 ? "…" : ""}.` : ""}</span><span class="sp"></span>${st.undo ? `<button class="btn btn-sm" data-txcundo>Bekor qilish</button>` : ""}</div>`;
+    return `<div class="tx-banner${st.skip.length || (st.near || []).length ? "" : " ok"}" id="txc"><span>${st.ids.size ? `✓ Taxminiy javoblar: <b>${st.ids.size} ta o'quvchi</b>, har birining bali eMaktabdagi bilan bir xil.` : "Taxminiy javoblar yo'q."}${(st.near || []).length ? ` <b>${st.near.length} tasiga</b> eng yaqin ball qo'yildi (savol ballari bilan aynan yig'ib bo'lmadi): ${esc(st.near.slice(0, 6).map((x) => `${x.name} ${gnum(x.from)} → ${gnum(x.to)}`).join(", "))}${st.near.length > 6 ? "…" : ""}.` : ""}${st.skip.length ? ` <b>${st.skip.length} tasiga</b> mos javob topilmadi (savol ballari bilan bu ballni yig'ib bo'lmaydi): ${esc(st.skip.slice(0, 6).join(", "))}${st.skip.length > 6 ? "…" : ""}.` : ""}</span><span class="sp"></span>${st.undo ? `<button class="btn btn-sm" data-txcundo>Bekor qilish</button>` : ""}</div>`;
   }
   async function chsbDialog(c, w, ensure, rescoreAll, rerender) {
     const t = ensure();
     if (/\./.test(t.key)) { toast("Avval barcha savollarning to'g'ri javobini belgilang"); return; }
+    if (typeof ARX !== "undefined" && ARX.scoreLocked(c, w.id)) { ARX.deny(ARX.scoreQ(c, w.id)); return; }   // arxivlangan chorak
     const P = testPts(w, t), out = new Set(t.out || []);
     const sc = (s) => { const v = (s.scores || {})[w.id]; return isNum(v) ? v : null; };
     const todo = c.students.filter((s) => !out.has(s.id) && blankAns(t.ans[s.id]) && sc(s) !== null);
     const miss = c.students.filter((s) => !out.has(s.id) && blankAns(t.ans[s.id]) && sc(s) === null);
     if (!todo.length && !miss.length) { toast("Javobi bo'sh, bali bor o'quvchi yo'q — eMaktabdan import qilingan CHSB ballari kerak"); return; }
-    let mode = (TC[w.id] && TC[w.id].mode) || "tabiiy", absent = true;
+    let mode = (TC[w.id] && TC[w.id].mode) || "tabiiy", absent = true, near = true;
     const res = await modal(`<div class="tx-dlg"></div>`, (mm, close) => {
       mm.querySelector(".card").classList.add("wide");
       const box = mm.querySelector(".tx-dlg");
       const draw = () => {
-        const sample = todo.slice(0, 5).map((s) => ({s, a: answers(t, P, sc(s), mode, s.name)}));
-        const bad = todo.filter((s) => !answers(t, P, sc(s), mode, s.name)).length;
+        const badL = todo.filter((s) => !answers(t, P, sc(s), mode, s.name)), bad = badL.length;
+        const show = badL.slice(0, 2).concat(todo.filter((s) => !badL.includes(s))).slice(0, 5);   // namunada mos kelmaydiganlar ham ko'rinsin
+        const sample = todo.filter((s) => show.includes(s)).map((s) => { const a = answers(t, P, sc(s), mode, s.name); if (a || !near) return {s, a, v: sc(s)}; const r = nearest(t, P, sc(s), mode, s.name); return {s, a: r && r.a, v: r && r.v}; });
+        const nOk = todo.length - (near ? badL.filter((s) => !nearest(t, P, sc(s), mode, s.name)).length : bad);
         const opt = (v, ttl, d) => `<label class="tx-opt${mode === v ? " on" : ""}"><input type="radio" name="txm" value="${v}" ${mode === v ? "checked" : ""}><span><b>${ttl}</b><small>${d}</small></span></label>`;
         box.innerHTML = `<h2>Taxminiy javoblar kiritish</h2>
           <div class="muted">Javoblari bo'sh, lekin «BSB / CHSB» sahifasida (eMaktabdan) bali bor o'quvchilarga to'g'ri va noto'g'ri variantlar shunday yoziladiki, savol ballari (${P.every((v) => Math.abs(v - P[0]) < 1e-9) ? `${t.n} × ${gnum(Math.round(P[0] * 100) / 100)}` : P.map((v) => gnum(Math.round(v * 100) / 100)).join(" + ")}) bo'yicha hisoblangan ball eMaktabdagi bal bilan aynan bir xil chiqadi.</div>
-          <div class="tx-info">CHSB · ${fmt(w.date)} · maks. ${fmtNum(w.max)} · ${t.n} ta savol, ${t.o} ta variant. Javobi bor ${c.students.filter((s) => !blankAns(t.ans[s.id])).length} ta o'quvchiga tegilmaydi.${bad ? ` <b>${bad} ta o'quvchi</b>ning balini savol ballari bilan aynan yig'ib bo'lmaydi — ular bo'sh qoladi.` : ""}</div>
+          <div class="tx-info">CHSB · ${fmt(w.date)} · maks. ${fmtNum(w.max)} · ${t.n} ta savol, ${t.o} ta variant. Javobi bor ${c.students.filter((s) => !blankAns(t.ans[s.id])).length} ta o'quvchiga tegilmaydi.${bad ? ` <b>${bad} ta o'quvchi</b>ning balini savol ballari bilan aynan yig'ib bo'lmaydi.` : ""}</div>
+          ${bad ? `<label class="tx-chk"><input type="checkbox" id="txn" ${near ? "checked" : ""}><span>Aynan yig'ib bo'lmasa, <b>eng yaqin ballni</b> qo'yish (bu ${bad} ta o'quvchining bali o'zgaradi, masalan ${(() => { const s0 = badL[0], r = nearest(t, P, sc(s0), mode, s0.name); return r ? `${gnum(sc(s0))} → ${gnum(r.v)}` : ""; })()}). Belgi olinsa, ular bo'sh qoladi.</span></label>` : ""}
           <div class="vcol" style="gap:6px"><div class="f">Taqsimlash usuli</div><div class="tx-opts">
             ${opt("tabiiy", "Tabiiy", "Oldingi savollar osonroq, oxirgilari qiyinroq; har o'quvchida biroz farqli — haqiqiy testga o'xshaydi.")}
             ${opt("teng", "Teng ulush", "To'g'ri javoblar butun test bo'ylab bir tekis tarqaladi.")}</div></div>
           ${miss.length ? `<label class="tx-chk"><input type="checkbox" id="txa" ${absent ? "checked" : ""}><span>Bali ham, javobi ham yo'q <b>${miss.length} ta o'quvchi</b>ni «ishtirok etmagan» deb belgilash (✔ olib tashlanadi)</span></label>` : ""}
           <div class="vcol" style="gap:6px"><div class="f">Namuna${sample.length ? ` (birinchi ${sample.length} ta)` : ""}</div>
           <div class="tx-pv"><table><tr><th>O'quvchi</th>${P.map((_, i) => `<th>${i + 1}</th>`).join("")}<th>Ball</th><th>eMaktab</th></tr>
-          ${sample.map((x) => `<tr><td>${esc(x.s.name)}</td>${x.a ? x.a.split("").map((ch, i) => `<td><span class="tx-c ${ch === t.key[i] ? "ok" : "wr"}">${ch}</span></td>`).join("") + `<td><b>${gnum(testScore(w, t, x.a).score)}</b></td><td><span class="tx-em ok">✓ ${esc(fmtNum(sc(x.s)))}</span></td>` : `<td colspan="${t.n + 1}" class="muted">mos javob topilmadi</td><td><span class="tx-em no">${esc(fmtNum(sc(x.s)))}</span></td>`}</tr>`).join("") || `<tr><td colspan="${t.n + 3}" class="muted">Javobi bo'sh, bali bor o'quvchi yo'q.</td></tr>`}</table></div></div>
+          ${sample.map((x) => `<tr><td>${esc(x.s.name)}</td>${x.a ? x.a.split("").map((ch, i) => `<td><span class="tx-c ${ch === t.key[i] ? "ok" : "wr"}">${ch}</span></td>`).join("") + `<td><b>${gnum(testScore(w, t, x.a).score)}</b></td><td>${x.v === sc(x.s) ? `<span class="tx-em ok">✓ ${esc(fmtNum(sc(x.s)))}</span>` : `<span class="tx-em no" title="eMaktabda ${esc(fmtNum(sc(x.s)))}, eng yaqin chiqadigan ball ${gnum(x.v)}">${esc(fmtNum(sc(x.s)))} → ${gnum(x.v)}</span>`}</td>` : `<td colspan="${t.n + 1}" class="muted">mos javob topilmadi</td><td><span class="tx-em no">${esc(fmtNum(sc(x.s)))}</span></td>`}</tr>`).join("") || `<tr><td colspan="${t.n + 3}" class="muted">Javobi bo'sh, bali bor o'quvchi yo'q.</td></tr>`}</table></div></div>
           <p class="muted tx-note">Javoblar taxminiy: kerak bo'lsa katakni qo'lda tuzating (ball shunga qarab qayta hisoblanadi). O'zgarishlar darhol saqlanadi; «Bekor qilish» bilan qaytarish mumkin.</p>
-          <div class="hrow tx-act"><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn btn-primary" data-ok ${todo.length - bad || (absent && miss.length) ? "" : "disabled"}><i class="bi bi-magic" aria-hidden="true"></i> ${todo.length - bad} ta o'quvchiga kiritish</button></div>`;
+          <div class="hrow tx-act"><span class="sp"></span><button class="btn" data-x>Bekor qilish</button><button class="btn btn-primary" data-ok ${nOk || (absent && miss.length) ? "" : "disabled"}><i class="bi bi-magic" aria-hidden="true"></i> ${nOk} ta o'quvchiga kiritish</button></div>`;
         box.querySelectorAll("[name=txm]").forEach((x) => x.onchange = () => { mode = x.value; draw(); });
         const ab = $("#txa", box); if (ab) ab.onchange = () => { absent = ab.checked; draw(); };
+        const nb = $("#txn", box); if (nb) nb.onchange = () => { near = nb.checked; draw(); };
         $("[data-x]", box).onclick = () => close(null);
-        $("[data-ok]", box).onclick = () => close({mode, absent});
+        $("[data-ok]", box).onclick = () => close({mode, absent, near});
       };
       draw();
     });
     if (!res) return;
-    const st = TC[w.id] = {ids: new Set(), mode: res.mode, skip: [], undo: {ans: clone(t.ans), out: (t.out || []).slice()}};
+    const st = TC[w.id] = {ids: new Set(), mode: res.mode, skip: [], near: [], undo: {ans: clone(t.ans), out: (t.out || []).slice()}};
     for (const s of todo) {
-      const a = answers(t, P, sc(s), res.mode, s.name);
-      if (!a || testScore(w, t, a).score !== sc(s)) { st.skip.push(s.name); continue; }
+      let a = answers(t, P, sc(s), res.mode, s.name), v = sc(s);
+      if (!a && res.near) { const r = nearest(t, P, sc(s), res.mode, s.name); if (r) { a = r.a; v = r.v; } }
+      if (!a || testScore(w, t, a).score !== v) { st.skip.push(s.name); continue; }
       t.ans[s.id] = a; st.ids.add(s.id);
+      if (v !== sc(s)) st.near.push({sid: s.id, name: s.name, from: sc(s), to: v});
     }
     let off = 0;
     if (res.absent) for (const s of miss) { out.add(s.id); off++; }
     t.out = [...out]; save(); await rescoreAll(); rerender();
-    toast(`${st.ids.size} ta o'quvchiga taxminiy javob kiritildi${off ? `; ${off} tasi ishtirok etmagan deb belgilandi` : ""}${st.skip.length ? `; ${st.skip.length} tasiga mos javob topilmadi` : ""}`);
+    toast(`${st.ids.size} ta o'quvchiga taxminiy javob kiritildi${off ? `; ${off} tasi ishtirok etmagan deb belgilandi` : ""}${st.near.length ? `; ${st.near.length} tasiga eng yaqin ball` : ""}${st.skip.length ? `; ${st.skip.length} tasiga mos javob topilmadi` : ""}`);
   }
   function chsbBind(m, c, w, ensure, rescoreAll, rerender) {
     const b = m.querySelector("[data-btxc]"); if (b) b.onclick = () => chsbDialog(c, w, ensure, rescoreAll, rerender);
@@ -275,6 +291,9 @@ const TXB = (() => {
       const st = TC[w.id]; if (!st || !st.undo) return;
       if (isLocked() && !await unlock()) return;
       const t = ensure(); t.ans = st.undo.ans; t.out = st.undo.out; delete TC[w.id]; cleanTest(w); save();
+      // eng yaqin ball qo'yilganlarning eMaktabdagi bali qaytariladi
+      const batch = []; for (const x of st.near || []) { const s = c.students.find((y) => y.id === x.sid); if (s) await putScore(c, s, w.id, x.from, batch); }
+      if (batch.length) pushUndo(batch);
       // taxminiy javoblar o'chirilganda ball eMaktabdagi bilan bir xil bo'lgani uchun o'zgarmaydi
       await rescoreAll(); rerender(); toast("Taxminiy javoblar bekor qilindi");
     };

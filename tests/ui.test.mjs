@@ -3969,6 +3969,7 @@ test("CHSB testi: «Taxminiy ball» eMaktab balini to'g'ri/noto'g'ri javoblarga 
   try {
     for (const [n, vw] of [[36, 1300], [18, 390]]) {
       const page = await browser.newPage({viewport: {width: vw, height: 844}});
+      await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // CHSB (16.10) arxivlanmagan chorakda
       const errors = []; page.on("pageerror", (e) => errors.push(String(e)));
       await page.goto(APP);
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
@@ -3985,20 +3986,24 @@ test("CHSB testi: «Taxminiy ball» eMaktab balini to'g'ri/noto'g'ri javoblarga 
       const before = await page.evaluate(() => { const c = D.classes[0], w = c.works.find((x) => x.type === "chsb"); return c.students.map((s) => s.scores[w.id] ?? null); });
       await page.click("[data-btxc]"); await page.waitForSelector(".tx-dlg");
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${vw}px: oyna sig'madi`);
-      assert.match(await page.textContent(".tx-dlg [data-ok]"), new RegExp(`${n - 3} ta`));
+      // toq ball (27) ni 2 ballik savollar bilan yig'ib bo'lmaydi: «eng yaqin ball» belgisi o'chirilsa — bo'sh qoladi, yoqilsa — 26
+      assert.match(await page.textContent(".tx-dlg [data-ok]"), new RegExp(`${n - 2} ta`));
+      assert.match(await page.textContent(".tx-dlg .tx-pv"), /27 → 26/);
+      await page.click("#txn"); assert.match(await page.textContent(".tx-dlg [data-ok]"), new RegExp(`${n - 3} ta`));
+      await page.click("#txn");
       await page.click(".tx-dlg [data-ok]"); await page.waitForSelector("#txc");
       const after = await page.evaluate(() => {
         const c = D.classes[0], w = c.works.find((x) => x.type === "chsb"), t = w.test;
         return {sc: c.students.map((s) => s.scores[w.id] ?? null), ans: c.students.map((s) => t.ans[s.id] || ""), out: t.out, calc: c.students.map((s) => t.ans[s.id] && !/^\.*$/.test(t.ans[s.id]) ? testScore(w, t, t.ans[s.id]).score : null)};
       });
       // eMaktab ballari o'zgarmadi; javoblardan hisoblangan ball ham aynan shu
-      assert.deepEqual(after.sc.map((v, i) => i === 1 ? before[i] : v), before.map((v, i) => i === 4 ? null : v));
+      assert.deepEqual(after.sc.map((v, i) => i === 1 ? before[i] : v), before.map((v, i) => i === 4 ? null : i === 0 ? 26 : v));
       after.ans.forEach((a, i) => { if (i > 1 && i !== 4) assert.ok(after.calc[i] === before[i], `${i}: ${a} → ${after.calc[i]} ≠ ${before[i]}`); });
-      assert.equal(after.ans[0], "", "toq ballni 2 ballik savollar bilan yig'ib bo'lmaydi — bo'sh qoladi");
+      assert.equal(after.calc[0], 26, "toq ball 27 → eng yaqin 26");
       assert.equal(after.ans[1], "ABCDABCDAB..........", "javobi bor o'quvchiga tegilmaydi");
       assert.deepEqual(after.out, ["t4"]);
-      assert.equal(await page.locator("table.tst tr[data-row] .ta.tx-estc").count(), (n - 3) * 20);
-      assert.match(await page.textContent("#txc"), /1 tasiga/);
+      assert.equal(await page.locator("table.tst tr[data-row] .ta.tx-estc").count(), (n - 2) * 20);
+      assert.match(await page.textContent("#txc"), /eng yaqin ball qo'yildi.*27 → 26/);
       // bekor qilish
       await page.click("[data-txcundo]");
       const undone = await page.evaluate(() => { const c = D.classes[0], w = c.works.find((x) => x.type === "chsb"); return {n: Object.keys(w.test.ans).length, out: w.test.out || [], sc: c.students.map((s) => s.scores[w.id] ?? null)}; });
