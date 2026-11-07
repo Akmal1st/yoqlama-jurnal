@@ -154,7 +154,7 @@ const EMKS = (() => {
     return modal(`<div class="ek-res-in"><div class="ek-rh"><h2>Rasmdagi kodni kiriting</h2></div>
       <div class="ek-sub">${again ? "Kod noto'g'ri bo'ldi — yangi rasmdagi kodni kiriting." : "eMaktab xavfsizlik uchun so'radi. Odatda faqat birinchi kirishda."}</div>
       <form class="ek-form" id="ekc"><img class="ek-cap" src="${src}" alt="eMaktab rasmidagi kod">
-        <label for="ekci">Kod<input class="form-control" id="ekci" inputmode="numeric" autocomplete="off" required></label>
+        <label for="ekci">Kod<input class="form-control" id="ekci" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>
         <div class="ek-acts"><button type="button" class="btn" data-x>Bekor qilish</button><button class="btn btn-primary" type="submit">Davom etish</button></div></form></div>`, (mm, close) => {
       mm.classList.add("ek-sh");
       $("[data-x]", mm).onclick = () => close(null);

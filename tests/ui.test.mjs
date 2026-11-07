@@ -3632,6 +3632,7 @@ test("eMaktab: ilovaning o'zidan import — login, rasmdagi kod, seans saqlanadi
       // birinchi urinish kodsiz, eMaktab sahifani qaytardi → rasmdagi kod so'raladi
       await page.waitForSelector("img.ek-cap");
       assert.match(await page.getAttribute("img.ek-cap", "src"), /^data:image\/png;base64,/);
+      assert.equal(await page.getAttribute("#ekci", "inputmode"), null, "kodda harf ham bo'lishi mumkin — telefonda to'liq klaviatura");
       await page.fill("#ekci", "4827"); await page.click("#ekc [type=submit]");
       await page.waitForSelector("text=eMaktab'dan yangilandi", {timeout: 20000});
       assert.deepEqual(await page.evaluate(() => D.classes.filter((c) => c.name !== "5-B").map((c) => [c.name, c.subject, c.students.length])), [["6-A", "Matematika", 36], ["9-A", "Algebra", 18]]);
