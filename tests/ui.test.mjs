@@ -176,6 +176,7 @@ test("emaktab.uz saytidan xatcho'p orqali import", async () => {
     const emk = await ctx.newPage(); await emk.goto("https://schools.emaktab.uz/v2/myclasses");
     const [pop] = await Promise.all([ctx.waitForEvent("page"), emk.evaluate(code)]);
     pop.on("pageerror", (e) => errors.push(e.message));
+    await pop.click(".modal.ek-pick [data-ekok]", {timeout: 20000});   // jurnallarni tanlash oynasi — hammasi belgilangan
     await pop.waitForSelector("text=eMaktab'dan yangilandi", {timeout: 20000});   // tasdiq oynasi yo'q — darhol import
     assert.ok(asked.includes("/v2/excel?action=gjsxls&school=11&group=22&subgroup=0&subject=33&period=77"), asked.join(" "));
     assert.ok(!asked.some((a) => a.includes("class=9")));
@@ -239,6 +240,7 @@ for (const kind of ["json", "cc"]) test(`emaktab: «Mening sinflarim» (${kind})
     const emk = await ctx.newPage(); await emk.goto("https://schools.emaktab.uz/v2/myclasses");
     const [pop] = await Promise.all([ctx.waitForEvent("page"), emk.evaluate(code)]);
     pop.on("pageerror", (e) => errors.push(e.message));
+    await pop.click(".modal.ek-pick [data-ekok]", {timeout: 20000});   // jurnallarni tanlash oynasi — hammasi belgilangan
     await pop.waitForSelector("text=eMaktab'dan yangilandi", {timeout: 20000});   // tasdiq oynasi yo'q — darhol import
     // 6-A: jurnal sahifasi schools.emaktab.uz dan o'qildi; 9-A: jurnal sahifasi yo'q — havoladagi periodId (78) olindi
     assert.ok(asked.includes("/v2/excel?action=gjsxls&school=11&group=22&subgroup=0&subject=33&period=77"), asked.join(" "));
@@ -2101,6 +2103,7 @@ test("emaktab: ilovada bor oldingi chorak qayta olinmaydi, bekor qilish ishlaydi
     await emk.goto("https://schools.emaktab.uz/v2/userfeed");   // «Sinflarim» emas — istalgan sahifa
     const [pop] = await Promise.all([ctx.waitForEvent("page"), emk.evaluate(code)]);
     pop.on("pageerror", (e) => errors.push(e.message));
+    await pop.click(".modal.ek-pick [data-ekok]", {timeout: 20000});   // jurnallarni tanlash oynasi — hammasi belgilangan
     await pop.waitForSelector("text=eMaktab'dan yangilandi", {timeout: 20000});
     assert.ok(asked.some((a) => a.includes("period=78")), asked.join(" "));
     assert.ok(!asked.some((a) => a.includes("period=77")), "1-chorak ilovada bor — qayta olinmaydi");
@@ -3635,6 +3638,7 @@ test("eMaktab: ilovaning o'zidan import — login, rasmdagi kod, seans saqlanadi
       assert.match(await page.getAttribute("img.ek-cap", "src"), /^data:image\/png;base64,/);
       assert.equal(await page.getAttribute("#ekci", "inputmode"), null, "kodda harf ham bo'lishi mumkin — telefonda to'liq klaviatura");
       await page.fill("#ekci", "4827"); await page.click("#ekc [type=submit]");
+      await page.click(".modal.ek-pick [data-ekok]", {timeout: 20000});   // jurnallarni tanlash oynasi — hammasi belgilangan
       await page.waitForSelector("text=eMaktab'dan yangilandi", {timeout: 20000});
       assert.deepEqual(await page.evaluate(() => D.classes.filter((c) => c.name !== "5-B").map((c) => [c.name, c.subject, c.students.length])), [["6-A", "Matematika", 36], ["9-A", "Algebra", 18]]);
       assert.equal(st.posts.length, 2); assert.ok(!st.posts[0]["Captcha.Input"]); assert.equal(st.posts[1]["Captcha.Id"], st.guid);
@@ -4086,3 +4090,50 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
     } finally { await browser.close(); }
   });
 }
+
+test("eMaktab importi: jurnallarni katakcha bilan tanlab qo'shish, belgisizlari eslab qolinadi (36 va 18 o'quvchi, telefon va kompyuter)", async () => {
+  const XLSX = (await import("xlsx")).default;
+  const xlsOf = (cls, subj, n) => { const rows = [[`Sinf: ${cls} 2026/2027`], [`Fan: ${subj}`], [], ["№", "F.I.Sh.", "Noyabr"], [null, null, 4]];
+    for (let i = 1; i <= n; i++) rows.push([i, `O'quvchi ${String(i).padStart(2, "0")}`, 5 + (i % 5)]);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), subj); return XLSX.write(wb, {type: "buffer", bookType: "xls"}).toString("base64"); };
+  const F = [["6-A.xls", xlsOf("6-A", "Matematika", 36)], ["9-A.xls", xlsOf("9-A", "Algebra", 18)], ["7-B.xls", xlsOf("7-B", "Geometriya", 18)]];
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const vp of [{width: 390, height: 844}, {width: 1280, height: 800}]) {
+      const page = await browser.newPage({viewport: vp}); const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.goto(APP);
+      await page.evaluate(() => { D = normalize({classes: [{name: "6-A", subject: "Matematika", dates: [], students: [{name: "O'quvchi 01", marks: {}}]}]}); save(); go("today"); });
+      const imp = () => page.evaluate((F) => { window._r = EMK1.run(F.map(([n, b]) => new File([Uint8Array.from(atob(b), (c) => c.charCodeAt(0))], n)), {auto: true}); }, F);
+      await imp();
+      await page.waitForSelector(".modal.ek-pick");
+      const pick = ".modal.ek-pick";
+      assert.match(await page.textContent(pick), /eMaktab'dan 3 ta jurnal o'qildi/);
+      assert.deepEqual(await page.$$eval(`${pick} .ek-prow`, (r) => r.map((x) => [x.querySelector("b").textContent, x.querySelector("small").textContent, x.querySelector(".ek-ptag").textContent])),
+        [["6-A · Matematika", "36 o'quvchi · 1 kun", "yangilanadi"], ["9-A · Algebra", "18 o'quvchi · 1 kun", "yangi"], ["7-B · Geometriya", "18 o'quvchi · 1 kun", "yangi"]]);
+      assert.equal(await page.textContent(`${pick} [data-ekcnt]`), "3 / 3 tanlandi");
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      // «Hammasi» olinsa — tugma o'chadi; qaytadan belgilab, 7-B ni olib tashlaymiz
+      await page.click("#ekpall");
+      assert.equal(await page.textContent(`${pick} [data-ekok]`), "Jurnal tanlanmagan"); assert.ok(await page.isDisabled(`${pick} [data-ekok]`));
+      await page.click("#ekpall"); await page.click(`${pick} .ek-prow:nth-child(3)`);
+      assert.equal(await page.textContent(`${pick} [data-ekcnt]`), "2 / 3 tanlandi");
+      assert.ok(await page.evaluate(() => document.querySelector("#ekpall").indeterminate));
+      assert.equal(await page.textContent(`${pick} [data-ekok]`), "2 ta jurnalni qo'shish");
+      await page.click(`${pick} [data-ekok]`);
+      await page.waitForSelector("text=eMaktab'dan yangilandi", {timeout: 20000});
+      assert.match(await page.textContent(".modal.ek-res .ek-sub"), /1 ta qo'shilmadi/);
+      assert.deepEqual(await page.evaluate(() => D.classes.map((c) => [c.name, c.students.length])), [["6-A", 36], ["9-A", 18]]);
+      assert.deepEqual(await page.evaluate(() => D.web.emk_skip), ["7-b|geometriya"], "7-B eslab qolindi");
+      // keyingi import: 7-B belgisiz chiqadi; «Bekor qilish» — hech narsa o'zgarmaydi
+      await page.evaluate(() => document.querySelectorAll(".modal").forEach((x) => x.remove()));
+      const before = await page.evaluate(() => JSON.stringify(D.classes));
+      await imp(); await page.waitForSelector(".modal.ek-pick");
+      assert.deepEqual(await page.$$eval(`${pick} .ek-prow input`, (r) => r.map((x) => x.checked)), [true, true, false]);
+      await page.click(`${pick} [data-x]`); await page.evaluate(() => window._r);
+      assert.equal(await page.evaluate(() => JSON.stringify(D.classes)), before);
+      assert.equal(await page.locator(".modal").count(), 0);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});

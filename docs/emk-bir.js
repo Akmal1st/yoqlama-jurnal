@@ -52,7 +52,9 @@ const EMK1 = (() => {
     try { files = await expandFiles(files); for (const f of files) found = found.concat(await readEmaktabFile(f)); }
     catch (e) { toast("Faylni o'qib bo'lmadi: " + e.message); return; }
     if (!found.length) { toast("Faylda emaktab «Fan jurnali» topilmadi (\"Sinf:\" qatori yo'q)"); return; }
-    const {out, skip} = opts.auto ? pickQuarters(found) : {out: found, skip: []};
+    let {out, skip} = opts.auto ? pickQuarters(found) : {out: found, skip: []};
+    let off = 0;
+    if (opts.auto) { const n = new Set(out.map(k2)).size; out = await choose(out); if (out) off = n - new Set(out.map(k2)).size; else { toast("Import bekor qilindi — hech narsa o'zgarmadi"); return; } }
     if (out.some((x) => findClass(x.name, x.subject)[0]) && isLocked() && !await unlock()) return;
     document.querySelectorAll(".modal.ek-res").forEach((x) => x.remove());
     const txt = JSON.stringify(D);
@@ -62,14 +64,51 @@ const EMK1 = (() => {
     save(); undo = {txt};
     S.ci = Math.max(0, D.classes.findIndex((c) => label(c) === reps[0].name));
     render();
-    result(reps, skip);
+    result(reps, skip, off);
   }
+  /* ───────── qaysi jurnallarni qo'shamiz? (tasdiqlangan maket, Akmal 2026-11-07, tanlash-maket.html) ─────────
+     eMaktab'dan (login/parol yoki xatcho'p) o'qilgan jurnallar ro'yxati katakchalar bilan; belgidan olinganlari D.web.emk_skip da
+     eslab qolinadi va keyingi importda ham belgisiz chiqadi. Bekor qilinsa — hech narsa o'zgarmaydi. */
+  function choose(out) {
+    const G = [], by = {};
+    for (const x of out) { const k = k2(x); if (!by[k]) { by[k] = {k, name: x.name + (x.subject ? " · " + x.subject : ""), n: x.students.length, days: 0, q: new Set(), isNew: !findClass(x.name, x.subject)[0]}; G.push(by[k]); }
+      by[k].n = Math.max(by[k].n, x.students.length); by[k].days += x.dates.length; if (x.quarter && x.quarter.q) by[k].q.add(x.quarter.q); }
+    const skip = new Set(D.web.emk_skip || []), on = new Set(G.filter((g) => !skip.has(g.k)).map((g) => g.k));
+    const qs = [...new Set(G.flatMap((g) => [...g.q]))].sort();
+    return modal(`<div class="ek-res-in"><h2>Qaysi jurnallarni qo'shamiz?</h2>
+      <div class="ek-sub">eMaktab'dan ${G.length} ta jurnal o'qildi${qs.length ? ` · ${qs.join(", ")}-chorak` : ""}</div>
+      <div class="ek-pbar"><label class="ek-pall"><input type="checkbox" id="ekpall"> Hammasi</label><span class="sp"></span><span class="ek-note" data-ekcnt></span></div>
+      <div class="ek-plist">${G.map((g, i) => `<label class="ek-prow" for="ekp${i}"><input type="checkbox" id="ekp${i}" data-k="${esc(g.k)}">
+        <span class="ek-ptx"><b>${esc(g.name)}</b><small>${g.n} o'quvchi · ${g.days} kun</small></span>
+        <span class="ek-ptag ${g.isNew ? "new" : "upd"}">${g.isNew ? "yangi" : "yangilanadi"}</span></label>`).join("")}</div>
+      <div class="ek-note">Belgisiz jurnallar ilovaga tegmaydi va keyingi safar ham belgisiz chiqadi.</div>
+      <div class="ek-acts"><button class="btn" data-x>Bekor qilish</button><button class="btn btn-primary" data-ekok></button></div></div>`, (mm, close) => {
+      mm.classList.add("ek-res", "ek-pick");
+      const boxes = [...mm.querySelectorAll("[data-k]")], all = $("#ekpall", mm), ok = $("[data-ekok]", mm);
+      const draw = () => {
+        boxes.forEach((b) => { b.checked = on.has(b.dataset.k); b.closest(".ek-prow").classList.toggle("off", !b.checked); });
+        all.checked = on.size === G.length; all.indeterminate = on.size > 0 && on.size < G.length;
+        $("[data-ekcnt]", mm).textContent = `${on.size} / ${G.length} tanlandi`;
+        ok.textContent = on.size ? `${on.size} ta jurnalni qo'shish` : "Jurnal tanlanmagan"; ok.disabled = !on.size;
+      };
+      boxes.forEach((b) => b.onchange = () => { if (b.checked) on.add(b.dataset.k); else on.delete(b.dataset.k); draw(); });
+      all.onchange = () => { G.forEach((g) => all.checked ? on.add(g.k) : on.delete(g.k)); draw(); };
+      $("[data-x]", mm).onclick = () => close(null);
+      ok.onclick = () => {
+        const off = G.filter((g) => !on.has(g.k)).map((g) => g.k);
+        D.web.emk_skip = [...new Set([...(D.web.emk_skip || []).filter((k) => !by[k]), ...off])];
+        close(out.filter((x) => on.has(k2(x))));
+      };
+      draw();
+    }).then((v) => v || null);
+  }
+
   // bitta jurnalning o'zgarishlari: «+41 baho, 6 almashtirildi»
   const chg = (r) => [r.filled ? `+${r.filled} belgi` : "", r.replaced ? `${r.replaced} almashtirildi` : "", r.removed ? `${r.removed} o'chirildi` : "",
     r.new_works || r.s_filled ? `BSB/CHSB: +${r.new_works} ish, ${r.s_filled} ball` : "", r.new_students.length ? `+${r.new_students.length} yangi o'quvchi` : ""].filter(Boolean).join(", ");
   const weight = (r) => r.filled + r.replaced + r.removed + r.s_filled + r.new_students.length * 5 + (r.created ? 1000 : 0);
   const warns = (r) => (r.absent.length || r.inactive) ? 1 : 0;
-  function result(reps, skip) {
+  function result(reps, skip, off) {
     const R = [...reps].sort((a, b) => warns(b) - warns(a) || weight(b) - weight(a));
     const main = R.filter((r, i) => i < 2 || warns(r) || r.created), rest = R.filter((r) => !main.includes(r));
     const qs = [...new Set(reps.map((r) => r.q).filter(Boolean))].sort();
@@ -84,7 +123,7 @@ const EMK1 = (() => {
       arx ? `Arxivdagi chorak tegilmadi (${arx} ta belgi).` : "",
       skip.length ? `Oldingi chorak jurnalda bor edi, tegilmadi: ${esc([...new Set(skip.map((x) => x.name + (x.subject ? " · " + x.subject : "")))].join(", "))}.` : ""].filter(Boolean).join(" ");
     modal(`<div class="ek-res-in"><div class="ek-rh"><span class="ek-ok" aria-hidden="true">✓</span><h2>eMaktab'dan yangilandi</h2></div>
-      <div class="ek-sub">${reps.length} jurnal${qs.length ? ` · ${qs.join(", ")}-chorak` : ""} · hozirgina</div>
+      <div class="ek-sub">${reps.length} jurnal${qs.length ? ` · ${qs.join(", ")}-chorak` : ""}${off ? ` · ${off} ta qo'shilmadi` : ""} · hozirgina</div>
       <div class="ek-list">${main.map(row).join("")}
         ${rest.length ? `<div class="ek-ri"><span>Yana ${rest.length} jurnal: ${esc(rest.map((r) => r.name).join(", "))}</span><span class="ek-ra"><button class="btn btn-sm" data-ekmore>Batafsil</button></span></div>
           <div class="ek-more" hidden>${rest.map(row).join("")}</div>` : ""}</div>
