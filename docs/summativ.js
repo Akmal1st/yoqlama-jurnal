@@ -110,6 +110,7 @@ const SMV = (() => {
 
   /* ── yangi ish ── */
   function newDialog(c) {
+    if (type() === "loyiha") { LYH.newDialog(c); return; }   // shablon tanlash bilan (loyiha.js)
     const t = type(), q = quarterOf(todayIso()) || [1, 2, 3, 4].find(qRange) || 1, r = qRange(q) || [todayIso(), todayIso()];
     const td = todayIso(), defD = r[0] <= td && td <= r[1] ? td : r[0];
     modal(`<h2><i class="sm-dot ${t}"></i> Yangi ${NAME[t]}</h2>
@@ -235,9 +236,11 @@ const SMV = (() => {
     const c = D.classes[S.ci], {t, w, a} = cur(c);
     if (!w && !a) {
       m.innerHTML = `<div class="vcol sm-page" style="gap:12px">${classChips()}<div class="hrow">${jpSeg()}</div>${top(c)}
-        <div class="card muted">«＋ Yangi» tugmasini bosing — ${t === "chsb" ? "test shaklidagi CHSB: to'g'ri javoblarni belgilab, o'quvchilarning variantlarini kiritasiz, ball o'zi hisoblanadi" : t === "loyiha" ? "loyiha ishi mezonlar bo'yicha baholanadi (BSB kabi)" : "bo'lim bo'yicha summativ: har topshiriqqa ball"}.</div></div>`;
+        <div class="card muted">«＋ Yangi» tugmasini bosing — ${t === "chsb" ? "test shaklidagi CHSB: to'g'ri javoblarni belgilab, o'quvchilarning variantlarini kiritasiz, ball o'zi hisoblanadi" : t === "loyiha" ? "loyiha ishi rasmiy mezonlar bo'yicha baholanadi: fan shablonini tanlaysiz (Darajalar, Oraliq, Bandlar, Ha/Yo'q, Xato soni)" : "bo'lim bo'yicha summativ: har topshiriqqa ball"}.</div></div>`;
       bindTop(m); bind(m, c, null); return;
     }
+    // Loyiha ishi — rasmiy mezonlar bo'yicha (loyiha.js, tasdiqlangan maket v9, 2026-11-08)
+    if (t === "loyiha" && w) { LYH.page(m); return ARX.decorate(m, c); }
     if (t === "chsb") { S.tw = w.id; pageChsbTest(m); return ARX.decorate(m, c); }
     const B = bFor(c, w, a);
     S.bas = S.bas || {}; S.bas[label(c)] = B;

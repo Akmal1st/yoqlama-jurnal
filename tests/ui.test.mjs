@@ -4088,12 +4088,16 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
       // ball kiritiladi → «Umumiy»dagi BSB ustuniga o'zi yoziladi
       const inp = page.locator("[data-bp]").first(); await inp.fill("4"); await inp.press("Tab");
       await page.waitForFunction(() => { const c = D.classes[0], w = c.works.at(-1); return c.students[0].scores[w.id] === 4; });
-      // Loyiha ishi: 5 mezon × 5 = 25, mezon nomlari sarlavhada
-      await mk("loyiha", 5);
-      assert.match(await page.inputValue("#smw").then(() => page.textContent("#smw option:checked")), /^Loyiha ishi-1/);
-      assert.equal(await page.locator("th .sm-qn").count(), 5);
-      const lp = page.locator("[data-bp]").nth(1); await lp.fill("5"); await lp.press("Tab");
-      await page.waitForFunction(() => { const c = D.classes[0], w = c.works.find((x) => x.type === "loyiha"); return w && w.max === 25 && c.students[0].scores[w.id] === 5; });
+      // Loyiha ishi: rasmiy shablon bilan (loyiha.js) — Informatika 11: 5 mezon × 10 (Ha/Yo'q) = 50
+      await page.click("[data-smt=loyiha]"); await page.click("[data-smnew]"); await page.waitForSelector("#ly-ov");
+      await page.fill("#ly-ov #ly-nd", "2026-10-15"); await page.click('#ly-ov [data-ly=tplall]').catch(() => {});
+      await page.click('#ly-ov [data-ly=pick][data-v=inf11]'); await page.click("#ly-ov [data-ly=apply]");
+      await page.waitForSelector("#ly-ov", {state: "detached"});
+      assert.match(await page.textContent("#smw option:checked"), /^Loyiha ishi-1/);
+      await page.click("[data-ly=view][data-v=j]");
+      assert.equal(await page.locator("table.ly-t th.ly-thc").count(), 5);
+      for (let k = 0; k < 5; k++) { await page.click(`button.ly-sc[data-r="0"][data-c="${k}"]`); await page.click('#ly-ov [data-ly=set][data-v="10"]'); await page.keyboard.press("Escape"); }
+      await page.waitForFunction(() => { const c = D.classes[0], w = c.works.find((x) => x.type === "loyiha"); return w && w.max === 50 && c.students[0].scores[w.id] === 50; });
       // CHSB: test jadvali shu sahifada
       await mk("chsb", 20);
       await page.waitForSelector("table.tst");
@@ -4104,7 +4108,7 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
       assert.equal(await page.evaluate(() => D.classes[0].works.filter((w) => w.type === "chsb").length), 0);
       // chorak hisobi: Loyiha BSB qismida
       const r = await page.evaluate(() => { const c = D.classes[0]; return quarterResult(c, c.students[0], 1, worksInQuarter(c, 1)); });
-      assert.deepEqual([r.bsb, r.max_bsb, r.max_chsb], [9, 75, 0]);
+      assert.deepEqual([r.bsb, r.max_bsb, r.max_chsb], [54, 100, 0]);
       await page.click("[data-jp=sum]"); await page.waitForSelector("table.sum");
       assert.match(await page.textContent("table.sum"), /Loyiha/);
       await page.click("[data-jp=sm]"); await page.click("[data-smt=loyiha]");
@@ -4456,5 +4460,100 @@ for (const n of [36, 18]) test(`Qo'shimcha funksiyalar: yangi bo'lim, taymer, na
     assert.equal(await page.locator(".fn-lbar").count(), 0, "o'chirilgan funksiyalar darsda yo'q");
     await page.evaluate(() => go("today")); assert.equal(await page.locator(".fn-dutyr").count(), 0); assert.equal(await page.locator(".fn-bsbr").count(), 1);
     assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36], ["telefon", {width: 390, height: 844}, 18]]) {
+  test(`${name}: Loyiha ishi — rasmiy mezonlar, 5 usul, Taxminiy ball, shablon almashtirish, eski ishlar (${n} o'quvchi)`, async () => {
+    const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+    try {
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message)); page.on("dialog", (d) => d.accept());
+      await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      // eski (shablonsiz) loyiha ishi: 2 mezon × 5, birinchi o'quvchida 4 + 3
+      await page.evaluate((n) => { D.settings.protect.enabled = false; const c = D.classes[0]; c.name = "8-A"; c.subject = "Geografiya";
+        while (c.students.length < n) c.students.push({id: "ly" + c.students.length, name: `Sinov O'quvchi ${c.students.length + 1}`, marks: {}, scores: {}});
+        c.students.length = n; c.students.forEach((s) => s.scores = {}); c.analyses = [];
+        c.works = [{id: "old", type: "loyiha", date: "2026-10-05", max: 10, title: ""}]; c.students[0].scores.old = 7;
+        c.analyses.push({id: "a1", w: "old", title: "", date: "2026-10-05", q: 2, max: [5, 5], names: ["Mazmun", "Taqdimot"], rows: {[c.students[0].name]: {in: true, pts: [4, 3]}}});
+        S.ci = 0; save(); go("journal"); S.jpage = "sm"; S.smt = "loyiha"; S.lyv = "j"; render(); }, n);
+      await page.waitForSelector(".ly-mz");
+      assert.match(await page.textContent(".ly-mz"), /shablon tanlanmagan/);
+      assert.deepEqual(await page.$$eval('tr[data-row="0"] button.ly-sc', (b) => b.map((x) => x.textContent)), ["4", "3"]);
+      assert.equal(await page.evaluate(() => D.classes[0].students[0].scores.old), 7);
+      // yangi ish: fan bo'yicha taklif qilingan shablon (Geografiya 8 — 6 mezon, Darajalar)
+      await page.click("[data-smnew]"); await page.waitForSelector("#ly-ov .ly-tp.on");
+      assert.match(await page.textContent("#ly-ov .ly-tp.on"), /Geografiya · 8-sinf/);
+      await page.fill("#ly-ov #ly-nd", "2026-10-15"); await page.click("#ly-ov [data-ly=apply]"); await page.waitForSelector("#ly-ov", {state: "detached"});
+      const W = () => page.evaluate(() => { const c = D.classes[0], w = c.works.find((x) => x.date === "2026-10-15"); return {w, a: c.analyses.find((a) => a.w === w.id), sc: c.students.map((s) => s.scores[w.id])}; });
+      assert.equal((await W()).w.max, 50);
+      assert.equal(await page.locator("table.ly-t th.ly-thc").count(), 6);
+      // «Umumiy»da eMaktabdan kelgan jami (har 5-o'quvchida yo'q)
+      await page.evaluate(() => { const c = D.classes[0], w = c.works.find((x) => x.date === "2026-10-15"); c.students.forEach((s, i) => { if (i % 5 !== 4) s.scores[w.id] = 15 + (i * 7) % 35; }); save(); render(); });
+      // baholash oynasi: daraja tanlash → keyingi o'quvchiga o'tadi; chala qatorda «Umumiy» o'zgarmaydi
+      await page.click('button.ly-sc[data-r="0"][data-c="0"]'); await page.click('#ly-ov [data-ly=set][data-v="6"]');
+      assert.equal(await page.evaluate(() => S.lyp.r), 1);
+      await page.keyboard.press("Escape");
+      let st = await W(); assert.deepEqual(st.a.rows[await page.evaluate(() => D.classes[0].students[0].name)].pts.slice(0, 2), [6, null]); assert.equal(st.sc[0], 15);
+      if (name === "kompyuter") {   // katakka raqam yozish: 7 yo'q → eng yaqini (6), keyingi qatorga o'tadi
+        await page.focus('button.ly-sc[data-r="2"][data-c="1"]'); await page.keyboard.press("7"); await page.waitForTimeout(50);
+        assert.equal((await W()).a.rows[await page.evaluate(() => D.classes[0].students[2].name)].pts[1], 6);
+        assert.equal(await page.evaluate(() => document.activeElement.dataset.r), "3");
+      }
+      // Taxminiy ball: eMaktab bali bor hammaga, yig'indi aynan teng (yoki eng yaqin)
+      await page.click("[data-ly=txo]"); await page.click("#ly-ov [data-ly=txgo]"); await page.waitForSelector(".ly-ban");
+      st = await W();
+      const sums = await page.evaluate(() => { const c = D.classes[0], w = c.works.find((x) => x.date === "2026-10-15"), a = c.analyses.find((x) => x.w === w.id), L = LYH.lyOf(c, a);
+        return c.students.map((s) => { const r = a.rows[s.name]; return r && r.x ? [LYH.stotal(L.subj[0].crit, r.x[0]).t, r.em ?? null, L.subj[0].crit.every((cr, k) => r.x[0][k] == null || LYH.optsOf(cr).includes(LYH.cval(cr, r.x[0][k])))] : null; }); });
+      sums.forEach((x, i) => { if (i % 5 === 4) return; assert.ok(x && x[2], `${i}: ruxsat etilmagan qiymat`); assert.ok(Math.abs(x[0] - x[1]) <= 1, `${i}: ${x[0]} ≠ ${x[1]}`); });
+      // qatnashmadi → «Umumiy»dagi ball o'chadi
+      await page.click('tr[data-row="1"] button.ly-sc >> nth=0'); await page.click("#ly-ov [data-ly=absr]"); await page.keyboard.press("Escape");
+      await page.waitForFunction(() => { const c = D.classes[0], w = c.works.find((x) => x.date === "2026-10-15"); return c.students[1].scores[w.id] === undefined; });
+      // shablon almashtirish: ogohlantiradi, mezon ballari o'chadi, ↶ qaytaradi
+      await page.click(".ly-mz [data-ly=tpl]"); await page.click("#ly-ov [data-ly=tplall]"); await page.click('#ly-ov [data-ly=pick][data-v=tab6]');
+      assert.ok(await page.isVisible("#ly-ov .ly-warn")); await page.click("#ly-ov [data-ly=apply]");
+      assert.equal(await page.locator("table.ly-t th.ly-thc").count(), 6); assert.equal((await W()).w.max, 30);
+      assert.equal(await page.locator("table.ly-t button.ly-sc:not(.e)").count(), 0);
+      await page.click(".ly-bar [data-ly=undo]"); assert.equal((await W()).w.max, 50);
+      assert.ok(await page.locator("table.ly-t button.ly-sc.est").count() > 0);
+      // mezonlar varaqasi va izoh
+      await page.click("[data-smmore]"); await page.click(".sm-menu [data-ly=rub]"); assert.equal(await page.locator("#ly-ov .ly-rub > li").count(), 6); await page.keyboard.press("Escape");
+      await page.click('[data-ly=view][data-v=k]'); await page.click(".ly-nq >> nth=0");
+      assert.equal(await page.evaluate(() => { const c = D.classes[0], a = c.analyses.find((x) => x.w === c.works.find((w) => w.date === "2026-10-15").id); return a.rows[c.students[S.lystu].name].nt; }), "Jamoa sardori");
+      // integratsiyalashgan (Tarbiya + Davlat va huquq): «Davlat va huquq» jurnalida huquq bali «Umumiy»ga yoziladi
+      await page.evaluate(() => { D.classes[0].subject = "Davlat va huquq asoslari"; save(); render(); });
+      await page.click("[data-smnew]"); await page.fill("#ly-ov .ly-srch", "10-sinf"); await page.click('#ly-ov [data-ly=pick][data-v=tar10]');
+      await page.fill("#ly-ov #ly-nd", "2026-10-16"); await page.click("#ly-ov [data-ly=apply]"); await page.waitForSelector("#ly-ov", {state: "detached"});
+      assert.equal(await page.evaluate(() => { const c = D.classes[0], w = c.works.find((x) => x.date === "2026-10-16"); return LYH.lyOf(c, c.analyses.find((a) => a.w === w.id)).out; }), 1);
+      assert.equal(await page.locator(".ly-subj .seg button").count(), 2);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
+      assert.deepEqual(errors, []);
+    } finally { await browser.close(); }
+  });
+}
+
+test("Loyiha ishi: Taxminiy ball hamma shablonda faqat ruxsat etilgan qiymatlarni qo'yadi va jamiga teng (0..maks.)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage(); const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const bad = await page.evaluate(() => {
+      const out = [];
+      for (const t of LYH.TPL) for (const sb of t.subj) for (let T = 0; T <= t.max; T++) {
+        const e = LYH.estimate(sb.crit, sb.crit.map(() => null), T, "tabiiy", "bosh", true, "Sinov " + T);
+        if (!e) { out.push(`${t.id} ${T}: null`); continue; }
+        const vals = sb.crit.map((c, i) => LYH.cval(c, e.cells[i]));
+        if (sb.crit.some((c, i) => !LYH.optsOf(c).includes(vals[i]))) out.push(`${t.id} ${T}: ruxsatsiz`);
+        if (Math.abs(vals.reduce((a, b) => a + b, 0) - e.sum) > 1e-9) out.push(`${t.id} ${T}: yig'indi`);
+        // aniq yig'indi mumkin bo'lsa — aynan T; bo'lmasa eng yaqini
+        if (LYH.estimate(sb.crit, sb.crit.map(() => null), T, "teng", "bosh", false, "x") && e.sum !== T) out.push(`${t.id} ${T}: ${e.sum}`);
+      }
+      return out;
+    });
+    assert.deepEqual(bad, []); assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
