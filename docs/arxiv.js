@@ -271,7 +271,7 @@ const ARX = (() => {
     if (d.axfix) { const [ci, q] = d.axfix.split("|").map(Number); S.ci = ci; S.jpage = "sum"; S.sq = q; return go("journal"); }
     if (d.axj) { const q = +d.axj, r = qRange(q); if (!r) return; const ci = D.classes.findIndex((c) => !isGrp(c)); if (ci < 0) return; if (isGrp(D.classes[S.ci])) S.ci = ci;
       S.jpage = "j"; V.mode = feat("vquarter") ? "quarter" : "month"; V.anchor = r[1]; return go("journal"); }
-    if (d.axpdf) { const q = +d.axpdf; if (!qRange(q)) return; return PTG.run(() => PTG.pagesPdf([pdfHtml(q)], false), `${q}-chorak natijalari`, `🗄 ${q}-chorak natijalari (arxiv)`, b); }
+    if (d.axpdf) { const q = +d.axpdf; if (!qRange(q)) return; return PTG.run(() => PTG.pagesPdf([pdfHtml(q)], false), `${q}-chorak natijalari`, `🗄 ${q}-chorak natijalari (arxiv)`, b).then((ok) => { if (ok) PTG.markQ(q); }); }
     if (d.axjson !== undefined) return exportJson();
     if (d.axoff) {
       const q = +d.axoff, r = qRange(q);

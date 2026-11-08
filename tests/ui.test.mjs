@@ -4256,6 +4256,55 @@ test("Bugun: chorak tugagandan keyin — yopish, ta'til, yangi chorak (bugun-tat
   } finally { await browser.close(); }
 });
 
+// «Yangi chorakka tayyorgarlik»: chorak hisoboti Telegram'ga yuborilgach band ✓ bo'ladi (Akmal, 2026-11-08)
+for (const [name, viewport, count] of [["kompyuter", {width: 1440, height: 900}, 36], ["telefon", {width: 390, height: 844}, 18]]) {
+  test(`${name}: ta'til — «1-chorak hisobotini yuborish» Telegram'dan keyin belgilanadi (${count} o'quvchi)`, async () => {
+    const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+    try {
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 10, 3, 9, 0));   // 1-chorak arxivlangan, 2-chorak 05.11 dan
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      await page.evaluate((n) => {
+        D.settings.protect.enabled = false;
+        const c = D.classes[0]; for (let i = c.students.length; i < n; i++) c.students.push({name: `Qo'shimcha O'quvchi ${i + 1}`, marks: {}, scores: {}}); c.students.length = n;
+        localStorage.setItem(TG_KEY, JSON.stringify({token: "1:x", chat: "42"}));
+        window.__sent = []; tgApi = async (m, fd) => { window.__sent.push([m, fd.get("caption")]); return {ok: true}; };
+        save(); ARX.tick(); render();
+      }, count);
+      await page.waitForSelector(".bt-vac");
+      const row = page.locator(".bt-pi", {hasText: "1-chorak hisobotini yuborish"});
+      await row.waitFor();
+      assert.equal(await row.locator(".bt-ic").textContent(), "○");
+      const cnt0 = await page.locator(".bt-ph .bn-cnt").textContent();
+      // «Ochish» → Hisobotlar «Sinflarni solishtirish» (1-chorak) → «✈ Telegram»
+      await row.locator("[data-baxrep='1']").click();
+      await page.waitForFunction(() => S.page === "reports" && S.rep.kind === "cmp" && S.rep.per === "q1");
+      await page.locator("[data-tgpdf]:visible").first().click();
+      await page.waitForFunction(() => window.__sent.length === 1 && PTG.sentQ(1), null, {timeout: 30000});
+      assert.equal(await page.evaluate(() => window.__sent[0][0]), "sendDocument");
+      // «Bugun»: band ✓, hisob bittaga oshgan; qayta yuklashdan keyin ham saqlanadi
+      await page.click(`${viewport.width < 600 ? ".tabbar" : ".side"} [data-go=today]`);
+      await page.waitForSelector(".bt-vac");
+      assert.equal(await row.locator(".bt-ic").textContent(), "✓");
+      assert.match(await row.textContent(), /Telegram'ga yuborilgan · 03\.11/);
+      assert.equal(await row.locator("[data-baxrep]").count(), 0);
+      const [a0, b0] = cnt0.split("/").map((x) => +x.trim()), [a1, b1] = (await page.locator(".bt-ph .bn-cnt").textContent()).split("/").map((x) => +x.trim());
+      assert.deepEqual([a1, b1], [a0 + 1, b0]);
+      await page.reload(); await page.waitForSelector(".bt-vac");
+      assert.equal(await page.locator(".bt-pi", {hasText: "1-chorak hisobotini yuborish"}).locator(".bt-ic").textContent(), "✓");
+      // boshqa davr (sinf hisoboti) yuborilsa 1-chorak belgisi o'zgarmaydi, 2-chorak belgilanmaydi
+      assert.equal(await page.evaluate(() => PTG.sentQ(2)), null);
+      // keyingi yil chorak sanasi o'zgarsa — eski belgi hisobga olinmaydi
+      assert.equal(await page.evaluate(() => { D.web.qrep_tg[1] = "2025-09-02|2025-11-03"; return PTG.sentQ(1); }), null);
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
+      assert.deepEqual(errors, []);
+    } finally { await browser.close(); }
+  });
+}
+
 test("Yangilaganda (F5) ochiq sahifa qoladi, yangi oynada «Bugun» (36 va 18 o'quvchi)", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {

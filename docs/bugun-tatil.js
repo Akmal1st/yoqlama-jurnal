@@ -147,7 +147,10 @@ const BTL = (() => {
     const at = D.web.emk_at, ea = at ? Math.floor((Date.now() - new Date(at)) / 864e5) : null;
     out.push(ea !== null && ea <= 3 ? ["ok", "eMaktab'dan yangilash", ea ? `${ea} kun oldin yangilangan` : "bugun yangilangan", ""]
       : ["warn", "eMaktab'dan yangilash", ea === null ? "hali yangilanmagan" : `oxirgisi ${ea} kun oldin`, `<button class="btn btn-sm" data-ekgo>🔄 Yangilash</button>`]);
-    out.push(["o", `${M.q}-chorak hisobotini yuborish`, "hisobotni oching va «✈ Telegram» tugmasini bosing", `<button class="btn btn-sm" data-baxrep="${M.q}">✈ Ochish</button>`]);
+    // Hisobotlar → «Sinflarni solishtirish» (shu chorak) yoki arxivdagi «PDF → Telegram» yuborilganda belgilanadi (pdf-tg.js markQ)
+    const sent = typeof PTG !== "undefined" ? PTG.sentQ(M.q) : null;
+    out.push(sent ? ["ok", `${M.q}-chorak hisobotini yuborish`, `Telegram'ga yuborilgan · ${d5(sent)}`, ""]
+      : ["o", `${M.q}-chorak hisobotini yuborish`, "hisobotni oching va «✈ Telegram» tugmasini bosing", `<button class="btn btn-sm" data-baxrep="${M.q}">✈ Ochish</button>`]);
     const a = backupAge(), tg = typeof tgAge === "function" ? tgAge() : null, b = [a, tg].filter((x) => x !== null), ba = b.length ? Math.min(...b) : null;
     out.push(ba !== null && ba <= 7 ? ["ok", "Zaxira nusxa", ba ? `${ba} kun oldin olingan` : "bugun olingan", ""] : ["warn", "Zaxira nusxa", ba === null ? "hali olinmagan" : `oxirgisi ${ba} kun oldin`, `<button class="btn btn-sm" data-backup2>💾 Saqlash</button>`]);
     return out;
