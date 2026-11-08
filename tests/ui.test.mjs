@@ -4724,3 +4724,39 @@ test("Jurnal: oy ikki chorakka bo'linsa, o'rtacha va davomat faqat oxirgi chorak
     }
   } finally { await browser.close(); }
 });
+
+test("Ta'til: arxivlangan chorakdan keyin «joriy davr» — keyingi chorak, eski yo'qlama xavf belgisiga tushmaydi (36 va 18 o'quvchi)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const [N, viewport] of [[36, {width: 1300, height: 900}], [18, {width: 390, height: 844}]]) {
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 10, 3, 10, 0));   // ta'til: 1-chorak 29.10 da tugagan va arxivlangan, 2-chorak 05.11 dan
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      const r = await page.evaluate((N) => {
+        ARX.tick();
+        const c = D.classes[0], base = c.students;
+        c.students = Array.from({length: N}, (_, i) => ({...structuredClone(base[i % base.length]), name: i < base.length ? base[i].name : `${base[i % base.length].name} ${Math.floor(i / base.length) + 1}`}));
+        // 30.10 — ta'til kuni (oy boshidan beri), 1-chorak oxiri: hammasi kelmagan (DQ)
+        c.students.forEach((s) => { s.marks["2026-10-30"] = "dq"; s.marks["2026-10-28"] = "s"; });
+        if (!c.dates.includes("2026-11-02")) { c.dates.push("2026-11-02"); c.dates.sort(); }
+        c.students[N - 1].marks["2026-11-02"] = "dq";   // oy boshidagi ta'til kuni ham hisobga kirmasin
+        save(); render();
+        const [lo, hi, q] = periodNow(), row = reportRows(c, lo, hi, q).rows[N - 1];
+        return {q, locked: ARX.lockedQ(1), absent: row.absent, why: row.why, risk: riskOverview().length};
+      }, N);
+      assert.equal(r.locked, true);
+      assert.equal(r.q, 2, "joriy davr — 2-chorak");
+      assert.equal(r.absent, 0); assert.deepEqual(r.why, []); assert.equal(r.risk, 0);
+      // o'quvchi kartochkasi: «2-chorak», davomat xavfi yo'q
+      await page.evaluate((N) => studentCard(0, D.classes[0].students[N - 1].name), N);
+      const txt = await page.locator(".modal").innerText();
+      assert.match(txt, /2-chorak/i); assert.doesNotMatch(txt, /davomat 0%|joriy oy/i);
+      await page.click(".modal [data-x]");
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});

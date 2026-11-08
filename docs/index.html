@@ -703,7 +703,16 @@ function memo(obj, key, fn) {
 }
 function periodNow() {
   const t = todayIso(), q = quarterOf(t);
-  return q ? [qRange(q)[0], t, q] : [t.slice(0, 8) + "01", t, null];
+  if (q) return [qRange(q)[0], t, q];
+  /* ta'til: «joriy oy» olinmaydi — oy oxirgi chorak darslarini ham o'z ichiga olardi va ular yangi chorakdagi
+     xavf belgilari, davomat va o'quvchi kartochkasiga ta'sir qilardi (Akmal, 2026-11-08).
+     Tugagan chorak arxivlangan bo'lsa — keyingi chorak (hali darsi yo'q, noldan); arxivlanmagan bo'lsa — o'sha chorak. */
+  const qs = [1, 2, 3, 4].filter(qRange), past = qs.filter((k) => qRange(k)[1] < t).pop(), next = qs.find((k) => qRange(k)[0] > t);
+  const locked = (k) => typeof ARX !== "undefined" && !!ARX.entry(k);
+  if (past && !locked(past)) return [qRange(past)[0], qRange(past)[1], past];
+  if (next) return [qRange(next)[0], qRange(next)[0], next];
+  if (past) return [qRange(past)[0], qRange(past)[1], past];
+  return [t.slice(0, 8) + "01", t, null];
 }
 /* Python'dagi f"{x:.1f}" bilan bir xil yaxlitlash (aniq o'rtada juft raqamga) */
 function pyFixed(x, d) {
