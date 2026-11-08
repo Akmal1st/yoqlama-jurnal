@@ -58,33 +58,78 @@ const unb64u = (t) => { const b = atob(t.replace(/-/g, "+").replace(/_/g, "/")),
 async function gzipTxt(t) { return new Uint8Array(await new Response(new Blob([t]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer()); }
 async function gunzipTxt(u8) { return new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream("gzip"))).text(); }
 /* Zaxirani parol bilan shifrlash (ixtiyoriy): PBKDF2-SHA256 → AES-GCM 256, brauzerning o'z crypto.subtle vositasi.
-   Telegram akkauntiga begona kirsa ham o'quvchilar ma'lumoti o'qilmaydi. Parol shu qurilmada (bot tokeni yonida) turadi. */
+   Telegram akkauntiga begona kirsa ham o'quvchilar ma'lumoti o'qilmaydi.
+   Parolning o'zi saqlanmaydi: undan yasalgan kalit IndexedDB'da «chiqarib bo'lmaydigan» (non-extractable) CryptoKey bo'lib turadi —
+   brauzer u bilan shifrlaydi, lekin kalitni ham, parolni ham hech kim (sahifa kodi ham) o'qiy olmaydi. Tuz (kslt) zaxiraga yoziladi,
+   boshqa qurilma parol + shu tuzdan xuddi shu kalitni yasaydi. IndexedDB ishlamasa — eski usul: parol shu qurilmada saqlanadi. */
 const SEAL_ITER = 310000;
 async function sealKey(pass, salt, use) {
   const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
-  return crypto.subtle.deriveKey({name: "PBKDF2", salt, iterations: SEAL_ITER, hash: "SHA-256"}, base, {name: "AES-GCM", length: 256}, false, [use]);
+  return crypto.subtle.deriveKey({name: "PBKDF2", salt, iterations: SEAL_ITER, hash: "SHA-256"}, base, {name: "AES-GCM", length: 256}, false, [].concat(use));
+}
+async function sealWith(txt, key, salt) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name: "AES-GCM", iv}, key, new TextEncoder().encode(txt)));
+  return JSON.stringify({type: "jurnal-sealed", v: 1, salt, iv: b64u(iv), ct: b64u(ct)});
 }
 async function sealTxt(txt, pass) {
-  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = new Uint8Array(await crypto.subtle.encrypt({name: "AES-GCM", iv}, await sealKey(pass, salt, "encrypt"), new TextEncoder().encode(txt)));
-  return JSON.stringify({type: "jurnal-sealed", v: 1, salt: b64u(salt), iv: b64u(iv), ct: b64u(ct)});
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  return sealWith(txt, await sealKey(pass, salt, "encrypt"), b64u(salt));
 }
 const isSealed = (d) => !!d && d.type === "jurnal-sealed";
-async function unsealTxt(d, pass) {
-  try {
-    const pt = await crypto.subtle.decrypt({name: "AES-GCM", iv: unb64u(d.iv)}, await sealKey(pass, unb64u(d.salt), "decrypt"), unb64u(d.ct));
-    return new TextDecoder().decode(pt);
-  } catch (e) { throw new Error("Parol noto'g'ri yoki zaxira buzilgan"); }
+async function unsealWith(d, key) {
+  try { return new TextDecoder().decode(await crypto.subtle.decrypt({name: "AES-GCM", iv: unb64u(d.iv)}, key, unb64u(d.ct))); }
+  catch (e) { throw new Error("Parol noto'g'ri yoki zaxira buzilgan"); }
 }
-// shifrlangan zaxirani ochish: saqlangan parol bilan, bo'lmasa so'raladi (3 marta)
+async function unsealTxt(d, pass) {
+  let key; try { key = await sealKey(pass, unb64u(d.salt), "decrypt"); } catch (e) { throw new Error("Parol noto'g'ri yoki zaxira buzilgan"); }
+  return unsealWith(d, key);
+}
+// shifrlash yoqilganmi: yangi usul (kslt — kalit IndexedDB'da) yoki eski usul (pass)
+const tgEnc = (c = tgCfg()) => !!(c.kslt || c.pass);
+const TGK = {key: null, salt: null};
+async function tgKeyGet() {
+  const s = tgCfg().kslt; if (!s) return null;
+  if (TGK.key && TGK.salt === s) return TGK.key;
+  try { const k = IDB.db && await idbReq("kv", "readonly", (st) => st.get("tg_key")); if (k) { TGK.key = k; TGK.salt = s; return k; } } catch (e) { /* yo'q */ }
+  return null;
+}
+// paroldan kalit yasab, IndexedDB'ga saqlash; salt berilsa (boshqa qurilma zaxirasidan) — o'sha tuz bilan
+async function tgKeySet(pass, salt) {
+  salt = salt || b64u(crypto.getRandomValues(new Uint8Array(16)));
+  if (IDB.db) {
+    try {
+      const key = await sealKey(pass, unb64u(salt), ["encrypt", "decrypt"]);
+      await idbReq("kv", "readwrite", (st) => st.put(key, "tg_key"));
+      TGK.key = key; TGK.salt = salt;
+      const c = tgCfg(); delete c.pass; c.kslt = salt; localStorage.setItem(TG_KEY, JSON.stringify(c));
+      return;
+    } catch (e) { console.warn("Telegram kaliti:", e); }
+  }
+  const c = tgCfg(); delete c.kslt; c.pass = pass; localStorage.setItem(TG_KEY, JSON.stringify(c));   // IndexedDB yo'q — eski usul
+}
+async function tgKeyDrop() {
+  TGK.key = null; TGK.salt = null;
+  try { if (IDB.db) await idbReq("kv", "readwrite", (st) => st.delete("tg_key")); } catch (e) { /* */ }
+}
+// zaxirani shifrlash: saqlangan kalit bilan; eski usulda saqlangan ochiq parol birinchi zaxirada kalitga almashtiriladi
+async function tgSeal(txt) {
+  let c = tgCfg();
+  if (c.pass && IDB.db) { await tgKeySet(c.pass); c = tgCfg(); }
+  if (c.kslt) { const key = await tgKeyGet(); if (key) return sealWith(txt, key, c.kslt); }
+  if (c.pass) return sealTxt(txt, c.pass);
+  throw new Error("Shifrlash kaliti topilmadi (brauzer xotirasi tozalangan bo'lishi mumkin). «Sozlamalar → Ma'lumotlar»da parolni qayta kiriting.");
+}
+// shifrlangan zaxirani ochish: saqlangan kalit (yoki eski usuldagi parol) bilan, bo'lmasa so'raladi (3 marta)
 async function openSealed(d) {
   if (!isSealed(d)) return d;
-  const saved = tgCfg().pass;
-  if (saved) try { return JSON.parse(await unsealTxt(d, saved)); } catch (e) { /* parol o'zgargan — so'raymiz */ }
+  const c = tgCfg();
+  if (c.kslt && c.kslt === d.salt) { const key = await tgKeyGet(); if (key) try { return JSON.parse(await unsealWith(d, key)); } catch (e) { /* so'raymiz */ } }
+  if (c.pass) try { return JSON.parse(await unsealTxt(d, c.pass)); } catch (e) { /* parol o'zgargan — so'raymiz */ }
   for (let i = 0; i < 3; i++) {
     const p = await ask("Shifrlangan zaxira", i ? "Parol noto'g'ri. Qayta kiriting:" : "Bu zaxira parol bilan shifrlangan. Parolni kiriting:", "", "password");
     if (p === null) throw new Error("Parol kiritilmadi — zaxira yuklanmadi");
-    try { const out = JSON.parse(await unsealTxt(d, p)); if (tgOn()) tgSet({pass: p}); return out; } catch (e) { /* yana */ }
+    try { const out = JSON.parse(await unsealTxt(d, p)); if (tgOn()) await tgKeySet(p, d.salt); return out; } catch (e) { /* yana */ }
   }
   throw new Error("Parol noto'g'ri — zaxira yuklanmadi");
 }
@@ -131,13 +176,13 @@ async function tgBackup(force) {
   if (!force && c.hash === hash) return false;
   tgBusy = true;
   try {
-    const json = c.pass ? await sealTxt(JSON.stringify(D), c.pass) : JSON.stringify(D);
+    const enc = tgEnc(c), json = enc ? await tgSeal(JSON.stringify(D)) : JSON.stringify(D);
     const now = new Date(), hm = `${pad(now.getHours())}:${pad(now.getMinutes())}`, fd = new FormData();
     let parts = [];
     try { parts = await tgSendParts(c.chat, json); } catch (e) { console.warn("Telegram bo'laklar:", e.message); }
     fd.append("chat_id", c.chat);
     fd.append("document", new Blob([json], {type: "application/json"}), `journal_${iso(now)}_${hm.replace(":", "")}.json`);
-    fd.append("caption", `📒 Yo'qlama jurnali zaxirasi\n${fmt(iso(now))} ${hm} · ${D.classes.length} ta sinf\n${c.pass ? "🔐 Parol bilan shifrlangan.\n" : ""}Tiklash: ilovada «Sozlamalar → Ma'lumotlar → Telegram'dan yuklash» yoki faylni «Fayldan yuklash» orqali oching.\n#q${tgDev()}${parts.length ? " #d" + parts.join(".") : ""}`);
+    fd.append("caption", `📒 Yo'qlama jurnali zaxirasi\n${fmt(iso(now))} ${hm} · ${D.classes.length} ta sinf\n${enc ? "🔐 Parol bilan shifrlangan.\n" : ""}Tiklash: ilovada «Sozlamalar → Ma'lumotlar → Telegram'dan yuklash» yoki faylni «Fayldan yuklash» orqali oching.\n#q${tgDev()}${parts.length ? " #d" + parts.join(".") : ""}`);
     fd.append("disable_notification", "true");
     const msg = await tgApi("sendDocument", fd);
     try { await tgApi("pinChatMessage", {chat_id: c.chat, message_id: msg.message_id, disable_notification: true}); } catch (e) { /* qadash shart emas */ }
@@ -255,10 +300,10 @@ async function tgAction(a) {
       const p1 = await ask("Zaxira paroli", "Kamida 6 belgi. Unutsangiz, shifrlangan zaxirani hech kim (biz ham) ocha olmaydi:", "", "password"); if (p1 === null) return;
       if (p1.length < 6) { toast("Parol kamida 6 belgidan iborat bo'lishi kerak"); return; }
       const p2 = await ask("Zaxira paroli", "Parolni takrorlang:", "", "password"); if (p2 !== p1) { toast("Parollar mos kelmadi"); return; }
-      tgSet({pass: p1}); toast("Yuborilmoqda…"); await tgBackup(true); render(); toast("Shifrlash yoqildi — zaxira parol bilan yuborildi");
+      await tgKeySet(p1); toast("Yuborilmoqda…"); await tgBackup(true); render(); toast("Shifrlash yoqildi — zaxira parol bilan yuborildi");
     } else if (a === "tgnopass") {
       if (!await confirmBox("Shifrlashni o'chirish", "Keyingi zaxiralar shifrlanmagan holda yuboriladi.", "O'chirish")) return;
-      const c = tgCfg(); delete c.pass; localStorage.setItem(TG_KEY, JSON.stringify(c)); await tgBackup(true); render(); toast("Shifrlash o'chirildi");
+      const c = tgCfg(); delete c.pass; delete c.kslt; localStorage.setItem(TG_KEY, JSON.stringify(c)); await tgKeyDrop(); await tgBackup(true); render(); toast("Shifrlash o'chirildi");
     }
     else if (a === "tguon") TGU.connect();   // await'siz: oyna bosish paytida ochilishi kerak
     else if (a === "tgucancel") TGU.cancel();
@@ -282,7 +327,7 @@ async function tgAction(a) {
     } else if (a === "tgkeep") { tgSet({seen: TG_NEW.message_id}); TG_NEW = null; await tgBackup(true); render(); toast("Shu qurilmadagi ma'lumotlar Telegram'ga yuborildi"); }
     else if (a === "tgoff") {
       if (!await confirmBox("Telegram'ni uzish", "Avtomatik zaxira to'xtaydi. Botdagi eski fayllar o'chmaydi.", "Uzish")) return;
-      const c = tgCfg(); localStorage.setItem(TG_KEY, JSON.stringify({dev: c.dev})); TG_NEW = null; render();
+      const c = tgCfg(); localStorage.setItem(TG_KEY, JSON.stringify({dev: c.dev})); await tgKeyDrop(); TG_NEW = null; render();
     }
   } catch (e) { toast(tgErrTxt(e)); }
 }

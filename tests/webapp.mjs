@@ -24,7 +24,7 @@ export function loadApp(today) {
     setTimeout, clearTimeout, setInterval: noop, matchMedia: () => ({matches: false}),
   });
   vm.runInContext(src + `
-    ;globalThis.__app = {setData: (x) => { D = normalize(x); }, get D() { return D; }, grade5, parseMark, parseScore, parsePlanText,
+    ;globalThis.__app = {setData: (x) => { D = migrate(normalize(x)); }, get D() { return D; }, grade5, parseMark, parseScore, parsePlanText,
       emaktabSheet, bsbStats, bsbRecs, worksInQuarter, quarterResult, yearResult, readiness, reportRows, periodNow, label,
       compareRows, compareTotal, sumData, gradedShare, qProgress, wTag, sumAoa, statsData, nowLocal, quarterOf, viewQuarter, workQuarter, SINX, normalize, migrate};`, ctx);
   return ctx.__app;

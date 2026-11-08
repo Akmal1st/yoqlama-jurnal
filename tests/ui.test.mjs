@@ -944,20 +944,29 @@ test("Telegram: ulash, avtomatik zaxira va boshqa qurilmadan yuklash (soxta bot 
     await page.evaluate(async () => { D.classes[0].name = "5-V"; await tgBackup(false); });
     assert.equal(docs.length, 2); assert.ok(deleted.includes(95) && deleted.includes(96), deleted.join());
     // parol bilan shifrlash: fayl ham, matn bo'laklari ham o'qib bo'lmaydi; parol bilan ochiladi
+    // eski usulda saqlangan ochiq parol: birinchi zaxirada IndexedDB'dagi kalitga almashtiriladi, parolning o'zi o'chadi
+    await page.waitForFunction(() => IDB.ready);
     await page.evaluate(async () => { tgSet({pass: "maxfiy123"}); D.classes[0].name = "5-G"; await tgBackup(false); });
     assert.equal(docs.length, 3);
+    assert.deepEqual(await page.evaluate(() => [tgCfg().pass, !!tgCfg().kslt, tgEnc()]), [undefined, true, true]);
+    assert.ok(!(await page.evaluate(() => JSON.stringify(Object.fromEntries(Object.entries(localStorage))))).includes("maxfiy123"), "parol localStorage'da yo'q");
+    assert.equal(await page.evaluate(async () => (await idbReq("kv", "readonly", (st) => st.get("tg_key"))).extractable), false, "kalitni o'qib bo'lmaydi");
     assert.ok(docs[2].includes("jurnal-sealed") && !docs[2].includes("\"5-G\"") && !docs[2].includes("Boshqa Qurilma"));
     const sp = (pinned.caption.match(/#d([\d.]+)/) || [])[1].split(".").map(Number);
     await page.evaluate(async (ids) => { window.__s = await tgReadParts(ids); }, sp);
     assert.equal(await page.evaluate(() => window.__s.type), "jurnal-sealed");
     assert.equal(await page.evaluate(async () => (await openSealed(window.__s)).classes[0].name), "5-G");
     // boshqa qurilma: parol saqlanmagan — so'raladi, noto'g'risi qabul qilinmaydi
-    await page.evaluate(() => { const c = tgCfg(); delete c.pass; localStorage.setItem(TG_KEY, JSON.stringify(c)); window.__o = null; openSealed(window.__s).then((d) => { window.__o = d; }); });
+    await page.evaluate(async () => { const c = tgCfg(); delete c.pass; delete c.kslt; localStorage.setItem(TG_KEY, JSON.stringify(c)); await tgKeyDrop(); window.__o = null; openSealed(window.__s).then((d) => { window.__o = d; }); });
     await page.fill("#ask", "notogri"); await page.click(".modal [data-ok]");
     await page.waitForSelector(".modal >> text=Qayta kiriting");
     await page.fill("#ask", "maxfiy123"); await page.click(".modal [data-ok]");
     await page.waitForFunction(() => window.__o && window.__o.classes[0].name === "5-G");
-    assert.equal(await page.evaluate(() => tgCfg().pass), "maxfiy123");
+    // to'g'ri parol kiritilgach: parol emas, kalit saqlanadi (zaxiradagi tuz bilan) — keyingisi so'ralmaydi
+    assert.deepEqual(await page.evaluate(() => [tgCfg().pass, tgCfg().kslt === window.__s.salt]), [undefined, true]);
+    assert.equal(await page.evaluate(async () => (await openSealed(window.__s)).classes[0].name), "5-G");
+    await page.evaluate(async () => { D.classes[0].name = "5-D"; await tgBackup(false); });
+    assert.ok(docs[3].includes(await page.evaluate(() => tgCfg().kslt)) && !docs[3].includes("\"5-D\""), "yangi zaxira saqlangan kalit bilan shifrlandi");
     // so'rovlar «oddiy» (OPTIONS'siz) ko'rinishda: JSON sarlavhasi yo'q
     assert.ok(ctypes.every((t) => !t.includes("application/json")), ctypes.join());
     // Telegram umuman ochilmasa — VPN haqida tushunarli xabar
@@ -4830,10 +4839,14 @@ test("ikki oyna: biri saqlagan baho ikkinchisida yo'qolmaydi", async () => {
     await a.waitForFunction(() => D.classes[0].students[0].marks["2026-10-20"] === "9", null, {timeout: 5000});
     // A oyna yangilanishni olmagan bo'lsa (masalan, oyna ochiq dialog bilan band edi): eski nusxa B ning bahosini bosib ketmaydi
     await b.evaluate(() => { D.classes[0].students[1].marks["2026-10-20"] = "s"; save(); });
-    await a.evaluate(() => { BASE_REV = 0; D.classes[0].students[2].marks["2026-10-20"] = "7"; save(); });
-    const kept = await a.evaluate(() => JSON.parse(localStorage.getItem(STORE_KEY)).classes[0].students.map((s) => s.marks["2026-10-20"] || ""));
-    assert.deepEqual(kept.slice(0, 3), ["9", "s", ""], "B oynaning baholari saqlanib qoldi, A ning eski nusxasi yozilmadi");
-    assert.equal(await a.evaluate(() => D.classes[0].students[1].marks["2026-10-20"]), "s", "A oyna yangi holatni yukladi");
+    // A oynaning o'z o'zgarishi ham yo'qolmaydi: ikkala oyna katak darajasida birlashtiriladi; bir katakni ikkalasi o'zgartirsa — A niki (oxirgisi)
+    await b.evaluate(() => { D.classes[0].students[3].marks["2026-10-20"] = "5"; save(); });
+    await a.evaluate(() => { BASE_REV = 0; D.classes[0].students[2].marks["2026-10-20"] = "7"; D.classes[0].students[3].marks["2026-10-20"] = "8"; save(); });
+    const stored = () => a.evaluate(() => JSON.parse(localStorage.getItem(STORE_KEY)).classes[0].students.map((s) => s.marks["2026-10-20"] || "").slice(0, 4).join(","));
+    await a.waitForFunction(() => JSON.parse(localStorage.getItem(STORE_KEY)).classes[0].students[2].marks["2026-10-20"] === "7", null, {timeout: 5000});
+    assert.equal(await stored(), "9,s,7,8", "B oynaning baholari ham, A oynaning o'zgarishi ham saqlandi");
+    assert.equal(await a.evaluate(() => D.classes[0].students[1].marks["2026-10-20"]), "s", "A oyna yangi holatni oldi");
+    await b.waitForFunction(() => D.classes[0].students[2].marks["2026-10-20"] === "7", null, {timeout: 5000});
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });

@@ -53,11 +53,13 @@ function migrate(d) {
 }
 // xotiradagi matn o'qilmasa (buzilgan) — u yo'qolib ketmasin: alohida kalitga ko'chiriladi, idbBoot zaxiradan tiklaydi yoki ogohlantiradi
 let LOAD_BROKEN = false;
+// shu oyna oxirgi marta o'qigan yoki yozgan holat (matn) — boshqa oyna bilan to'qnashganda birlashtirish asosi
+let LAST_TXT = null;
 function load() {
   let t = null; BASE_REV = revNow();
   try { t = localStorage.getItem(STORE_KEY); } catch (e) { console.warn(e); }
   if (t) {
-    try { return migrate(normalize(JSON.parse(t))); } catch (e) {
+    try { const d = migrate(normalize(JSON.parse(t))); LAST_TXT = t; return d; } catch (e) {
       console.warn(e); LOAD_BROKEN = true;
       try { localStorage.setItem(STORE_KEY + "_buzilgan", t); } catch (e2) { /* joy yo'q — IndexedDB'dagi nusxa qoladi */ }
     }
@@ -70,10 +72,30 @@ const REV_KEY = STORE_KEY + "_rev";
 let BASE_REV = 0;
 function revNow() { try { return +localStorage.getItem(REV_KEY) || 0; } catch (e) { return 0; } }
 const busyUi = () => !!document.querySelector(".modal") || /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || "");
-async function otherTabReload(why) {
+async function reloadState() {
   let d = load();
   // localStorage to'lgan bo'lsa, boshqa oyna faqat IndexedDB'ga yozgan bo'lishi mumkin
-  try { const txt = IDB.db && await idbReq("kv", "readonly", (st) => st.get("main")); const I = txt && JSON.parse(txt); if (I && savedAt(I) > savedAt(d)) d = migrate(normalize(I)); } catch (e) { /* localStorage nusxasi qoladi */ }
+  try { const txt = IDB.db && await idbReq("kv", "readonly", (st) => st.get("main")); const I = txt && JSON.parse(txt); if (I && savedAt(I) > savedAt(d)) { d = migrate(normalize(I)); LAST_TXT = txt; } } catch (e) { /* localStorage nusxasi qoladi */ }
+  return d;
+}
+// qayta yuklash davomida (IndexedDB javobini kutganda) saqlash to'xtatiladi: o'zgarish D da qoladi va birlashtiriladi
+const RELOADING = {on: false, dirty: false};
+/* why === "conflict": shu oyna eskirgan nusxada o'zgarish qildi. Uni tashlab yubormasdan, boshqa oynaning holati bilan
+   katak darajasida birlashtiriladi (sinx.js; asos — shu oyna oxirgi ko'rgan holat). Bir katakni ikkala oyna o'zgartirgan
+   bo'lsa, shu oynadagi (eng oxirgi) o'zgarish olinadi. Faqat sozlamalar o'zgarishi boshqa oynanikida qoladi. */
+async function otherTabReload(why) {
+  const cur = D, base = LAST_TXT;
+  RELOADING.on = true; RELOADING.dirty = false; let d;
+  try { d = await reloadState(); } finally { RELOADING.on = false; }
+  const mine = why === "conflict" || RELOADING.dirty ? cur : null;
+  if (mine && base && typeof SINX !== "undefined" && !NEWER) {
+    try {
+      const R = SINX.merge(migrate(normalize(JSON.parse(base))), mine, d);
+      D = SINX.resolve(R, "mine"); autoDates(); save(); render();
+      toast("Jurnal boshqa oynada ham o'zgartirilgan edi — ikkala oynadagi o'zgarishlar birlashtirildi");
+      return;
+    } catch (e) { console.warn("birlashtirish:", e); }
+  }
   D = d; EPOCH++; autoDates(); render();
   toast(why === "conflict" ? "Jurnal boshqa oynada o'zgartirilgan edi — oxirgi o'zgarish saqlanmadi, yangi holat yuklandi. Iltimos, qaytadan kiriting."
     : "Boshqa oynadagi o'zgarishlar yuklandi");
@@ -97,6 +119,7 @@ const LOG_MAX = 5000;   // o'zgarishlar tarixi: oxirgi 5000 yozuv (o'chirish, ti
 function save() {
   EPOCH++;
   if (SAVE_HOLD.n) { SAVE_HOLD.dirty = true; return; }
+  if (RELOADING.on) { RELOADING.dirty = true; return; }
   if (NEWER) { toast("Bu ma'lumot ilovaning yangiroq versiyasida saqlangan — o'zgarish saqlanmadi. Sahifani yangilang."); return; }
   const rev = revNow();
   if (rev > BASE_REV) { otherTabReload("conflict"); return; }   // boshqa oyna yangiroq saqlagan — uning ustidan yozilmaydi
@@ -104,6 +127,7 @@ function save() {
   D.web.dv = DATA_VER; D.web.saved = new Date().toISOString();
   const txt = JSON.stringify(D); let ok = true;
   try { localStorage.setItem(STORE_KEY, txt); } catch (e) { ok = false; }
+  LAST_TXT = txt;
   BASE_REV = rev + 1; try { localStorage.setItem(REV_KEY, String(BASE_REV)); } catch (e) { /* kichik kalit — odatda yoziladi */ }
   idbSave(txt);
   // asosiy xotiraga yozilmadi — yagona yangi nusxa IndexedDB'da: kutmasdan darhol yoziladi (sahifa yopilsa ham yo'qolmasin)
@@ -165,7 +189,7 @@ async function idbBoot() {
       const txt = await idbReq("kv", "readonly", (st) => st.get("main"));
       const I = txt ? JSON.parse(txt) : null;
       if (I && Array.isArray(I.classes) && (savedAt(I) > savedAt(D) || !D.classes.length && I.classes.length)) {
-        NEWER = false; D = migrate(normalize(I)); autoDates();
+        NEWER = false; D = migrate(normalize(I)); autoDates(); LAST_TXT = txt;
         try { localStorage.setItem(STORE_KEY, JSON.stringify(D)); } catch (e) { /* to'lgan bo'lsa ham IndexedDB'da bor */ }
         render(); toast("Ma'lumotlar zaxira xotiradan (IndexedDB) tiklandi");
       }

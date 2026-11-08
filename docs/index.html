@@ -67,7 +67,7 @@
 <script src="bugun-tatil.js?v=207"></script>
 <script src="bugun.js?v=215"></script>
 <script src="funksiyalar.js?v=204"></script>
-<script src="sozlamalar.js?v=213"></script>
+<script src="sozlamalar.js?v=216"></script>
 <script src="mezon.js?v=193"></script>
 <script src="kunlik.js?v=193"></script>
 <script src="pdf-tg.js?v=207"></script>
@@ -79,10 +79,10 @@
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=205"></script>
 <script src="loyiha.js?v=205"></script>
-<script src="yangilik.js?v=215"></script>
-<script src="saqlash.js?v=215"></script>
+<script src="yangilik.js?v=216"></script>
+<script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=214"></script>
-<script src="telegram.js?v=215"></script>
+<script src="telegram.js?v=216"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
@@ -488,11 +488,8 @@ function workQuarter(t = todayIso()) {
   const locked = (k) => typeof ARX !== "undefined" && ARX.lockedQ(k);
   return past && !locked(past) ? past : next || past;
 }
-function isNoLesson(c, s) {
-  if (c.extra_x.includes(s)) return true;
-  const mw = D.settings.method_weekday;
-  return mw !== null && mw !== undefined && mw >= 0 && pyWd(s) === mw && !c.held.includes(s);
-}
+// metod kuni olib tashlangan (2026-10-25, settings.method_weekday doim null): darssiz kun faqat qo'lda belgilangan
+function isNoLesson(c, s) { return c.extra_x.includes(s); }
 function holidaySet(y) {
   const out = new Set();
   for (let h of D.settings.holidays || []) { h = String(h).trim(); if (/^\d{2}-\d{2}$/.test(h)) out.add(`${y}-${h}`); else if (/^\d{4}-\d{2}-\d{2}$/.test(h)) out.add(h); }
@@ -1263,8 +1260,7 @@ function mergeImport(imp, replace) {
   }
   const qd = imp.quarter; if (qd && !D.settings.quarters[qd.q - 1]) { D.settings.quarters[qd.q - 1] = [qd.start, qd.end]; rep.quarter_new = qd.q; }
   rep.absent = c.students.filter((x) => !inFile.has(normName(x.name))).map((x) => x.name);
-  const mw = D.settings.method_weekday;
-  for (const d of touched) { c.extra_x = c.extra_x.filter((x) => x !== d); if (mw !== null && mw >= 0 && pyWd(d) === mw && !c.held.includes(d)) c.held.push(d); }
+  for (const d of touched) c.extra_x = c.extra_x.filter((x) => x !== d);
   if (created) { D.classes.push(c); D.classes.sort((a, b) => a.name.localeCompare(b.name, "uz", {numeric: true}) || a.subject.localeCompare(b.subject)); }
   if (!c.weekdays || !c.weekdays.length) { const seen = [...new Set(Object.values(c.students).flatMap((s) => Object.keys(s.marks)).map(pyWd))].filter((x) => x < 6).sort(); if (seen.length) c.weekdays = seen; }
   return rep;
@@ -2164,7 +2160,6 @@ function toggleX(c, d) {
   if (ARX.dateLocked(d, c)) return ARX.deny(quarterOf(d));
   if (isNoLesson(c, d)) {
     c.extra_x = c.extra_x.filter((x) => x !== d);
-    const mw = D.settings.method_weekday; if (mw !== null && mw >= 0 && pyWd(d) === mw && !c.held.includes(d)) c.held.push(d);
   } else {
     if (hasMarks(c, d)) { toast("Bu kunda baholar bor — avval ularni tozalang"); return; }
     c.held = c.held.filter((x) => x !== d); if (!c.extra_x.includes(d)) c.extra_x.push(d);
