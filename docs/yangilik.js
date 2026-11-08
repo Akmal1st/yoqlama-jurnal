@@ -8,7 +8,7 @@
    va NEWS boshiga yozuv qo'shing.
    Bu fayl asosiy skriptdan OLDIN ulanadi; S, go, render, renderNav, esc, $ … faqat chaqirilganda ishlatiladi. */
 const YNG = (() => {
-  const VER = 216, KEY = "yoqlama_yangilik";
+  const VER = 217, KEY = "yoqlama_yangilik";
   const P = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const IC = {
     spark: P('<path d="M12 3l1.8 4.9L19 9.7l-5.2 1.8L12 16.5l-1.8-5L5 9.7l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>'),
@@ -22,6 +22,9 @@ const YNG = (() => {
     bug: P('<rect x="7" y="7" width="10" height="13" rx="5"/><path d="M12 7v13M4 12h3M17 12h3"/>')};
   // go: [sahifa, Sozlamalar bo'limi] — «Ochish» shu joyga olib boradi
   const NEWS = [
+    {v: 217, d: "8-noyabr", items: [
+      {ic: "print", t: "Hisobotlar: yangi chop etish varag'i", s: "Sinf hisoboti, Chorakka tayyorlik va Sinflarni solishtirish endi bitta A4 varaqda: taqsimot, davomat polosasi, imzo joylari va oq-qora printer rejimi bor.", go: ["reports"], gl: "Hisobotlar"},
+      {ic: "bell", t: "Hisobotlarda belgilar tartibga keltirildi", s: "Ro'yxatdagi chalg'ituvchi raqamlar olib tashlandi, sinf tanlashda har sinf yonida xavf ostidagilar soni ko'rinadi. «Chorakka tayyorlik»da ish kiritilmagan sinf endi «tayyor» deb ko'rsatilmaydi, ismdoshlar alohida sanaladi.", go: ["reports"], gl: "Hisobotlar"}]},
     {v: 216, d: "8-noyabr", items: [
       {ic: "refresh", t: "Ikki oynada ishlash", s: "Jurnal ikki oynada ochiq bo'lsa, eskirgan oynadagi o'zgarish endi yo'qolmaydi — ikkala oynadagi baholar birlashtiriladi."},
       {ic: "star", t: "Zaxira paroli saqlanmaydi", s: "Telegram zaxirasini shifrlash paroli endi qurilmada ochiq holda turmaydi: undan yasalgan, o'qib bo'lmaydigan kalit saqlanadi.", go: ["settings", 5], gl: "Ma'lumotlar"}]},

@@ -223,22 +223,25 @@ const HSB = (() => {
   function repReady(X) {
     const {c, q, R} = X;
     if (!qRange(q)) return `<div class="hb-box"><h3>${q}-chorak sanalari belgilanmagan</h3><span class="hb-mut">Sozlamalar → Dars kunlari va choraklar.</span></div>`;
-    const [cp, per] = readiness(c, q), names = Object.keys(per), N = c.students.length, ok = N - names.length, p = N ? ok / N : 1, C = 2 * Math.PI * 26;
+    const [cp, list] = readinessRows(c, q), N = c.students.length, ok = N - list.length, p0 = N ? ok / N : 1, C = 2 * Math.PI * 26;
+    // sinfda ish yetishmasa yoki maksimal ball noto'g'ri bo'lsa, o'quvchilar «tayyor» bo'lsa ham halqa to'lmaydi
+    const p = cp.length ? Math.min(p0, .9) : p0;
     const works = worksInQuarter(c, q), nb = works.filter((w) => w.type !== "chsb").length, nc = works.length - nb, r = qRange(q), nl = works.filter((w) => w.type === "loyiha").length;
     const mxs = (t) => works.filter((w) => t(w.type)).map((w) => fmtNum(+w.max)), bTxt = nl ? `${nb - nl} BSB + ${nl} Loyiha ishi · ${mxs((t) => t !== "chsb").join(" + ")} = ${fmtNum(works.filter((w) => w.type !== "chsb").reduce((a, w) => a + +w.max, 0))} ball` : `${nb} ta ish`;
-    const miss = (n) => { const s = c.students.find((x) => x.name === n); return s ? works.find((w) => !isNum((s.scores || {})[w.id])) : null; };   // birinchi ball qo'yilmagan ish
-    const noScore = names.filter((n) => per[n].some((x) => x.includes("ball yo'q"))).length, fewFb = names.filter((n) => per[n].some((x) => x.startsWith("formativ"))).length;
+    const noScore = list.filter((x) => x.miss.length).length, fewFb = list.filter((x) => x.probs.some((t) => t.startsWith("formativ"))).length;
     const checks = [[1, "Chorak sanalari belgilangan", `${fmt(r[0])} – ${fmt(r[1])}`],
       [!cp.some((x) => x.startsWith("BSB")) && nb, nl ? "BSB va Loyiha ishlari kiritilgan" : "BSB ishlari kiritilgan", nb ? `${bTxt}${cp.find((x) => x.startsWith("BSB")) ? " · " + cp.find((x) => x.startsWith("BSB")) : ""}` : "Jurnal → Summativ → ＋ Yangi"],
       [!cp.some((x) => x.startsWith("CHSB")) && nc, "CHSB ishi kiritilgan", nc ? `${nc} ta ish${cp.find((x) => x.startsWith("CHSB")) ? " · " + cp.find((x) => x.startsWith("CHSB")) : ""}` : "Jurnal → Summativ → ＋ Yangi"],
       [!noScore, "Hamma ballar qo'yilgan", noScore ? `${noScore} o'quvchida yetishmaydi` : ""],
       [!fewFb, `Har o'quvchida kamida ${fbMin()} ta kundalik baho`, fewFb ? `${fewFb} o'quvchida kam (FB uchun)` : "FB uchun"]];
-    return `<div class="hb-two"><div class="hb-box"><div class="hb-prog"><svg class="hb-ring" viewBox="0 0 64 64"><circle class="bg" cx="32" cy="32" r="26"/><circle class="fg" cx="32" cy="32" r="26" stroke-dasharray="${(C * p).toFixed(1)} ${C.toFixed(1)}" style="stroke:${p === 1 ? "var(--ok)" : p > .6 ? "var(--hb-warn-b)" : "var(--danger)"}"/><text x="32" y="37" text-anchor="middle">${Math.round(p * 100)}%</text></svg>
+    const col = cp.length ? "var(--danger)" : p === 1 ? "var(--ok)" : p > .6 ? "var(--hb-warn-b)" : "var(--danger)";
+    const bad = checks.filter(([y]) => !y).length;
+    return `${cp.length || !nb || !nc ? `<div class="hb-box hb-why" style="color:var(--danger)">⛔ Sinf hali tayyor emas: ${esc(cp.length ? cp.join("; ") : !nb ? "BSB ishi kiritilmagan" : "CHSB ishi kiritilmagan")}. Bu tuzatilmaguncha chorak bahosi chiqmaydi.</div>` : ""}<div class="hb-two"><div class="hb-box"><div class="hb-prog"><svg class="hb-ring" viewBox="0 0 64 64"><circle class="bg" cx="32" cy="32" r="26"/><circle class="fg" cx="32" cy="32" r="26" stroke-dasharray="${(C * p).toFixed(1)} ${C.toFixed(1)}" style="stroke:${col}"/><text x="32" y="37" text-anchor="middle">${Math.round(p * 100)}%</text></svg>
         <div><h2>${ok} / ${N} o'quvchi tayyor</h2><span class="hb-mut" style="font-size:12.5px">${q}-chorak bahosiga tayyorlik</span></div></div>
-        ${!cp.length && !names.length ? `<div class="hb-okt">✓ Hammasi tayyor: chorak baholarini qo'yish mumkin.</div>` : ""}</div>
+        ${!bad && !list.length ? `<div class="hb-okt">✓ Hammasi tayyor: chorak baholarini qo'yish mumkin.</div>` : ""}</div>
         <div class="hb-box hb-chk">${checks.map(([y, t, s]) => `<div class="${y ? "y" : "n"}"><i>${y ? "✓" : "!"}</i><span>${t}${s ? `<small>${esc(s)}</small>` : ""}</span></div>`).join("")}</div></div>
-      ${names.length ? `<h3>Nima yetishmaydi · ${names.length} o'quvchi</h3>
-      <div class="hb-rows">${names.map((n) => `<div class="hb-li hb-rk hb-miss"><span><b class="hb-ell">${esc(n)}</b><span class="hb-why">${per[n].map(esc).join("; ")}</span></span>${(() => { const w = miss(n); return w ? `<button class="btn btn-sm" data-hwork="${esc(w.id)}" title="Summativ → ${esc(wTypeName(w))} ${fmt(w.date).slice(0, 5)}"><span class="hb-pc" style="display:inline">${esc(wTag(w))} · </span>Ball qo'yish ›</button>` : `<button class="btn btn-sm" data-hgo="j">Jurnalga ›</button>`; })()}</div>`).join("")}</div>` : ""}`;
+      ${list.length ? `<h3>Nima yetishmaydi · ${list.length} o'quvchi</h3>
+      <div class="hb-rows">${list.map((x) => `<div class="hb-li hb-rk hb-miss"><span><b class="hb-ell">${esc(x.name)}</b><span class="hb-why">${x.probs.map(esc).join("; ")}</span></span>${x.miss[0] ? `<button class="btn btn-sm" data-hwork="${esc(x.miss[0].id)}" title="Summativ → ${esc(wTypeName(x.miss[0]))} ${fmt(x.miss[0].date).slice(0, 5)}"><span class="hb-pc" style="display:inline">${esc(wTag(x.miss[0]))} · </span>Ball qo'yish ›</button>` : `<button class="btn btn-sm" data-hgo="j">Jurnalga ›</button>`}</div>`).join("")}</div>` : ""}`;
   }
   /* ───────── 7. Sinflarni solishtirish ───────── */
   function repCmp(X) {
@@ -258,19 +261,14 @@ const HSB = (() => {
   const repBlank = (X) => BVQ.body(X);
   const REP = {cls: repCls, sum: repSum, stats: repStats, att: repAtt, par: repPar, ready: repReady, cmp: repCmp, blank: repBlank};
 
-  // ro'yxatdagi belgilar: sinf hisobotida xavf ostidagilar, tayyorlikda kamchiligi borlar
-  function badge(k, X) {
-    try {
-      if (k === "cls") { const n = reportRows(X.c, X.lo, X.hi, X.rq).rows.filter((r) => r.risk).length; return n ? `<span class="hb-bd" title="Xavf ostida">${n}</span>` : ""; }
-      if (k === "ready" && qRange(X.q)) { const n = Object.keys(readiness(X.c, X.q)[1]).length; return n ? `<span class="hb-bd w" title="Kamchiligi bor o'quvchilar">${n}</span>` : ""; }
-    } catch (e) {}
-    return "";
-  }
-
   /* ───────── tanlov oynalari ───────── */
+  // sinf tanlashda har sinf yonida xavf ostidagilar soni: doim joriy chorak bo'yicha (tanlangan davrga qaramaydi), «Bugun» sahifasi bilan bir xil
+  function riskTag(c) {
+    try { const [lo, hi, q] = periodNow(), n = reportRows(c, lo, hi, q).rows.filter((r) => r.risk).length; return n ? `<span class="hb-bd" title="Joriy chorak: xavf ostidagi o'quvchilar">${n} xavf</span>` : ""; } catch (e) { return ""; }
+  }
   function sheetBody(k, X) {
     if (k === "kind") return ["Hisobot turi", KINDS.map(([g, l]) => `<div class="hb-ogt">${g}</div><div class="hb-kg">${l.map(([kk, ic, n]) => `<button class="hb-kt ${X.R.kind === kk ? "on" : ""}" data-kind="${kk}"><span class="hb-ic">${ic}</span><b class="hb-ell">${n}</b></button>`).join("")}</div>`).join("")];
-    if (k === "cls") return ["Sinf", `<div class="hb-opts">${X.R.kind === "blank" ? `<button class="hb-opt ${BVQ.isAll() ? "on" : ""}" data-ho="ci" data-v="all"><span class="hb-ic">📚</span><span><b class="hb-ell">Barcha sinflar</b><small>Har sinf alohida varaqda · ${X.CL.length} ta</small></span><span class="hb-ck">${BVQ.isAll() ? "✓" : ""}</span></button>` : ""}${X.CL.map((i) => { const c = D.classes[i]; return `<button class="hb-opt ${X.R.ci === i && !(X.R.kind === "blank" && BVQ.isAll()) ? "on" : ""}" data-ho="ci" data-v="${i}"><span class="hb-ic">${esc(c.name.slice(0, 4))}</span><span><b class="hb-ell">${esc(label(c))}</b><small>${c.students.length} o'quvchi · ${c.dates.length} dars kuni</small></span><span class="hb-ck">${X.R.ci === i && !(X.R.kind === "blank" && BVQ.isAll()) ? "✓" : ""}</span></button>`; }).join("")}</div>`];
+    if (k === "cls") return ["Sinf", `<div class="hb-opts">${X.R.kind === "blank" ? `<button class="hb-opt ${BVQ.isAll() ? "on" : ""}" data-ho="ci" data-v="all"><span class="hb-ic">📚</span><span><b class="hb-ell">Barcha sinflar</b><small>Har sinf alohida varaqda · ${X.CL.length} ta</small></span><span class="hb-ck">${BVQ.isAll() ? "✓" : ""}</span></button>` : ""}${X.CL.map((i) => { const c = D.classes[i]; return `<button class="hb-opt ${X.R.ci === i && !(X.R.kind === "blank" && BVQ.isAll()) ? "on" : ""}" data-ho="ci" data-v="${i}"><span class="hb-ic">${esc(c.name.slice(0, 4))}</span><span><b class="hb-ell">${esc(label(c))}</b><small>${c.students.length} o'quvchi · ${c.dates.length} dars kuni</small></span>${riskTag(c)}<span class="hb-ck">${X.R.ci === i && !(X.R.kind === "blank" && BVQ.isAll()) ? "✓" : ""}</span></button>`; }).join("")}</div>`];
     if (k === "sort") {
       const so = S.rsort || {}, sv = so.k ? `${so.k}|${so.dir}` : "", rt = S.rtype || "";
       const {rows} = reportRows(X.c, X.lo, X.hi, X.rq);
@@ -357,21 +355,24 @@ const HSB = (() => {
     const X = ctx(), K = KIND[X.R.kind], pl = perLabel(X), bot = typeof DZN !== "undefined" && DZN.cfg().act === "bot";
     const sub = `${X.R.kind === "cmp" || (X.R.kind === "blank" && BVQ.isAll()) ? "Barcha sinflar" : esc(label(X.c))}${pl ? ` · ${pl[0]}` : ""}`;
     let body;
-    try { body = REP[X.R.kind](X); } catch (e) { console.error(e); body = `<div class="hb-box hb-why">Hisobotni chizishda xato: ${esc(e.message)}</div>`; }
+    try { body = REP[X.R.kind](X); } catch (e) { console.error(e); setTimeout(() => { throw e; }); body = `<div class="hb-box hb-why">Hisobotni chizishda xato: ${esc(e.message)}</div>`; }
     m.innerHTML = `<div class="hb">
       <h1>Hisobotlar</h1>
       <button class="hb-kind hb-tel" data-hk="kind" aria-haspopup="true"><span class="hb-ic">${K[1]}</span><span><b class="hb-ell">${K[2]}</b><small class="hb-ell">${sub}</small></span><em>Almashtirish ▾</em></button>
       <div class="hb-g2 hb-tel">${pickers(X)}</div>${bot ? "" : `<div class="hb-g2 hb-tel ${XLS[X.R.kind] && X.R.kind !== "blank" ? "hb-g3" : ""}">${actions(X.R.kind)}</div>`}
       <div class="hb-grid">
-        <nav class="card hb-list hb-pc" aria-label="Hisobot turlari">${KINDS.map(([g, l]) => `<div class="hb-gt">${g}</div>${l.map(([k, ic, n, d]) => `<button class="hb-ri ${X.R.kind === k ? "on" : ""}" data-kind="${k}"><span class="hb-ic">${ic}</span><span><b class="hb-ell">${n}</b><small class="hb-ell">${d}</small></span>${badge(k, X)}</button>`).join("")}`).join("")}</nav>
-        <section class="card hb-panel">
+        <nav class="card hb-list hb-pc" aria-label="Hisobot turlari">${KINDS.map(([g, l]) => `<div class="hb-gt">${g}</div>${l.map(([k, ic, n, d]) => `<button class="hb-ri ${X.R.kind === k ? "on" : ""}" data-kind="${k}"><span class="hb-ic">${ic}</span><span><b class="hb-ell">${n}</b><small class="hb-ell">${d}</small></span></button>`).join("")}`).join("")}</nav>
+        <section class="card hb-panel${HPR.has(X.R.kind) ? " hb-hasprt" : ""}">
           <div class="hb-hd hb-pc"><div class="hb-top"><div><h2>${K[1]} ${K[2]}</h2><p>${K[3]}</p></div>${bot ? "" : `<div class="hb-acts">${actions(X.R.kind)}</div>`}</div><div class="hb-pks">${pickers(X)}</div></div>
           ${["blank", "par", "att"].includes(X.R.kind) ? "" : `<h2 class="pronly" style="margin:0 0 6px">${K[2]} · ${sub}${pl && NEED[X.R.kind] !== "mon" ? ` · ${pl[1]}` : ""}</h2>`}
+          ${HPR.has(X.R.kind) ? HPR.bar() : ""}
           <div class="hb-con">${body}</div>
+          ${HPR.has(X.R.kind) ? HPR.html(X.R.kind, X, pl, X.R.kind === "cmp" ? "Barcha sinflar" : label(X.c)) : ""}
           <div class="hb-src"><span>ℹ</span><span>${SRC[X.R.kind]}</span></div>
           ${bot ? `<div class="hb-stick">${actions(X.R.kind)}</div>` : ""}
         </section></div></div>`;
     bindPage(m, X);
+    m.querySelectorAll("[data-prt]").forEach((b) => b.onclick = () => { HPR.toggle(b.dataset.prt); render(); });
   }
   function bindPage(m, X) {
     const {R, c, lo, hi, rq} = X;
@@ -420,5 +421,5 @@ const HSB = (() => {
     });
     on("[data-sxlsx]", () => { const q = X.q; if (!qRange(q)) return toast(`${q}-chorak sanalari belgilanmagan`); saveTable(`${label(c)} ${q}-chorak BSB CHSB`, ...sumAoa(c, q)); });
   }
-  return {page, has, KINDS, leave: closePop, student};
+  return {page, has, KINDS, leave: closePop, student, why1};
 })();

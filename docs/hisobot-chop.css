@@ -1,0 +1,75 @@
+/* Hisobotlar → chop etish varaqlari (hisobot-chop.js): A4 tik, har doim bitta varaq. Varaq ekranda ko'rinmaydi;
+   chop etishda va PDF → Telegram rasmida chiqadi, hisobot paneli esa yashiriladi. Varaq doim oq qog'ozda (mavzuga bog'liq emas). */
+.hb-prt{display:none;flex-direction:column;gap:3.2mm;width:190mm;height:277mm;box-sizing:border-box;overflow:hidden;background:#fff;color:#111;font-size:9pt;
+  --pa:#0b7f86;--pg:#1f8f55;--pw:#c47a0a;--pr:#c0362c;--pl:#d9dfdf;--pm:#5b6a6c;--ps:#f1f5f5;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.hb-prt *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.hb-prt.bw{--pa:#111;--pg:#444;--pw:#777;--pr:#000;--pl:#bbb;--pm:#444;--ps:#eee}
+.hb-prt .hp-h{display:flex;justify-content:space-between;align-items:flex-end;gap:8mm;border-bottom:.6mm solid var(--pa);padding-bottom:2.2mm}
+.hb-prt h1{margin:0;font-size:17pt;letter-spacing:-.01em;color:#111}
+.hb-prt .hp-sub{font-size:9pt;color:var(--pm);margin-top:.8mm}
+.hb-prt .hp-meta{text-align:right;font-size:8.5pt;color:var(--pm);line-height:1.45}.hb-prt .hp-meta b{color:#111}
+.hb-prt .hp-k4{display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm}
+.hb-prt .hp-k4>div{border:.3mm solid var(--pl);border-radius:1.6mm;padding:1.6mm 2.6mm;display:flex;flex-direction:column;background:var(--ps);min-width:0}
+.hb-prt .hp-k4 small{font-size:7pt;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--pm)}
+.hb-prt .hp-k4 b{font-size:15pt;font-variant-numeric:tabular-nums;white-space:nowrap}.hb-prt .hp-k4 b.bad{color:var(--pr)}
+.hb-prt .hp-k4 b i{font-style:normal;font-size:8.5pt;color:var(--pm);font-weight:600}
+.hb-prt .hp-d{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:2.5mm}.hb-prt .hp-d2{grid-template-columns:1fr 1fr}
+.hb-prt .hp-d>div{border:.3mm solid var(--pl);border-radius:1.6mm;padding:1.8mm 2.6mm;display:flex;flex-direction:column;gap:1.2mm;min-width:0}
+.hb-prt h4{margin:0;font-size:7.5pt;text-transform:uppercase;letter-spacing:.06em;color:var(--pm)}
+.hb-prt .hp-bar{display:flex;height:3mm;border-radius:1.5mm;overflow:hidden;background:var(--ps);border:.2mm solid var(--pl)}.hb-prt .hp-bar i{display:block;height:100%}
+.hb-prt .hp-lg{display:flex;flex-wrap:wrap;gap:.6mm 3mm;font-size:7.5pt;color:var(--pm)}
+.hb-prt .hp-lg span::before{content:"";display:inline-block;width:2.2mm;height:2.2mm;border-radius:.6mm;margin-right:1mm;vertical-align:-.2mm;background:var(--c);border:.2mm solid #0003}
+.hb-prt .hp-lg b{color:#111}
+.hb-prt .hp-n{font-size:8pt;line-height:1.4}
+.hb-prt .hp-ck{display:flex;flex-direction:column;gap:.9mm;font-size:8pt}
+.hb-prt .hp-ck div{display:flex;gap:1.6mm;align-items:baseline}.hb-prt .hp-ck i{font-style:normal;font-weight:800;color:var(--pg);width:3mm}
+.hb-prt .hp-ck .n i{color:var(--pr)}.hb-prt .hp-ck small{color:var(--pm);font-size:7.3pt}
+.hb-prt .hp-warn{background:#fbe3e0;color:#a52a20;border-radius:1.6mm;padding:1.6mm 2.6mm;font-size:8.5pt;font-weight:600}
+.hb-prt.bw .hp-warn{background:#fff;color:#000;border:.4mm solid #000}
+.hb-prt .hp-okb{border:.3mm solid var(--pl);border-radius:1.6mm;padding:6mm;font-size:11pt;font-weight:700;color:var(--pg)}
+/* jadval qutisi: bo'sh joyni egallaydi, lekin qator balandligi 9.8 mm dan oshmasin */
+.hb-prt .hp-tb{flex:1 1 auto;min-height:0;max-height:var(--mh,200mm);display:flex;flex-direction:column}
+.hb-prt table{flex:1 1 auto;width:100%;border-collapse:collapse;table-layout:fixed;font-size:var(--fs,9pt);margin:0}
+.hb-prt th{font-size:6.6pt;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--pm);background:var(--ps);text-align:left;padding:0 .8mm;border-bottom:.4mm solid var(--pa);height:6.5mm;line-height:1.05;white-space:normal;overflow:hidden;vertical-align:middle}
+.hb-prt td{padding:0 1.6mm;border-bottom:.2mm solid var(--pl);vertical-align:middle;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.15;color:#111;background:none}
+.hb-prt td.iz{overflow:visible;text-overflow:clip}
+.hb-prt td.c,.hb-prt th.c{text-align:center}
+.hb-prt tbody tr:nth-child(even) td{background:#fafcfc}.hb-prt.bw tbody tr:nth-child(even) td{background:#f6f6f6}
+.hb-prt tr.hp-rk td:first-child{box-shadow:inset 1mm 0 var(--pr)}
+.hb-prt tfoot td{background:var(--ps);font-weight:700;border-top:.4mm solid var(--pa);height:6mm;border-bottom:0}
+.hb-prt .hp-mut{color:var(--pm)}.hb-prt .hp-bad{color:var(--pr)}
+.hb-prt .hp-gp{display:inline-block;min-width:9mm;text-align:center;border-radius:1mm;padding:.2mm 1.2mm;font-weight:800;font-variant-numeric:tabular-nums;border:.2mm solid transparent}
+.hb-prt .hp-gp.hi{background:#e3f4ea;color:#17683f}.hb-prt .hp-gp.mid{background:#fdf0d8;color:#8a5206}.hb-prt .hp-gp.lo{background:#fbe3e0;color:#a52a20}
+.hb-prt.bw .hp-gp.hi{background:#fff;color:#111;border-color:#888}
+.hb-prt.bw .hp-gp.mid{background:repeating-linear-gradient(45deg,#fff 0 1mm,#ddd 1mm 1.5mm);color:#111;border-color:#666}
+.hb-prt.bw .hp-gp.lo{background:#222;color:#fff}
+.hb-prt .hp-at{display:flex;align-items:center;gap:1.4mm}
+.hb-prt .hp-at .tr{flex:1;height:2mm;border-radius:1mm;background:var(--ps);border:.2mm solid var(--pl);overflow:hidden;min-width:6mm}.hb-prt .hp-at .tr i{display:block;height:100%}
+.hb-prt .hp-at b{width:12mm;text-align:right;font-variant-numeric:tabular-nums;font-size:.95em}
+.hb-prt .hp-ch1{font-size:7.5pt}.hb-prt .hp-ch1 .tr{height:2.4mm}.hb-prt .hp-cn{width:11mm;white-space:nowrap}
+.hb-prt .hp-ch{display:inline-block;border-radius:1mm;padding:0 1mm;line-height:1.2;font-size:min(.88em,7.4pt);font-weight:700;margin-right:.5mm;border:.2mm solid var(--pl);background:#fff}
+.hb-prt .hp-ch.r{background:#fbe3e0;color:#a52a20;border-color:#e8b8b3}
+.hb-prt.bw .hp-ch.r{background:#222;color:#fff;border-color:#000}
+.hb-prt .hp-w{font-weight:800}.hb-prt .hp-w.y{color:var(--pg)}.hb-prt .hp-w.n{color:var(--pr)}
+.hb-prt .hp-bot{margin-top:auto;display:flex;flex-direction:column;gap:2mm}
+.hb-prt .hp-leg{font-size:7.3pt;color:var(--pm);line-height:1.35}
+.hb-prt .hp-sig{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8mm;margin-top:1.5mm}
+.hb-prt .hp-sig>div{border-top:.3mm solid #111;padding-top:.8mm;font-size:7.5pt;color:var(--pm);display:flex;justify-content:space-between;gap:2mm;min-height:6mm}
+.hb-prt .hp-ft{display:flex;justify-content:space-between;font-size:7pt;color:var(--pm)}
+
+/* chop etish: faqat varaq, A4 tik (fitPrint @page ni beradi) */
+@media print{
+  .hb-hasprt>*:not(.hb-prt){display:none!important}
+  .hb-hasprt{padding:0!important;margin:0!important;border:0!important;box-shadow:none!important;background:none!important}
+  .hb-hasprt .hb-prt{display:flex;position:fixed;left:10mm;top:10mm}
+}
+/* PDF → Telegram (pdf-tg.js): panel rasmga olinadi — faqat varaq */
+.hb .hb-panel.pdfx.hb-hasprt>*:not(.hb-prt){display:none!important}
+.hb .pdfx .hb-prt{display:flex;position:relative;margin:0 auto}
+
+/* ekranda: varaq sozlamalari */
+.hb-prtopt{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px;color:var(--muted);margin:0 0 10px}
+.hb-prtopt .hb-seg button,.hb-prtopt .hb-tg{font-size:12.5px}
+.hb-tg{border:1px solid var(--line);background:var(--base);border-radius:8px;padding:5px 12px;font-weight:600;color:var(--muted)}
+.hb-tg.on{background:var(--acc-soft);border-color:var(--acc);color:var(--acc)}
+.hb .hb-opt>span.hb-bd:not(.hb-ic):not(.hb-ck){flex:none;display:inline-block;margin-left:auto;margin-right:8px}

@@ -4296,6 +4296,70 @@ test("Hisobotlar tuzatishlari (2026-11-07): Loyiha belgisi, qisqa izohlar, jami 
   } finally { await browser.close(); }
 });
 
+test("Hisobotlar (2026-11-08): belgilar tanlovga bog'liq emas, tayyorlik xatolari, yangi chop etish varaqlari bitta A4 ga sig'adi (36 va 18 o'quvchi)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const N of [36, 18]) {
+      const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      await page.evaluate((N) => {
+        const c = D.classes[0], [a] = qRange(1), d = c.dates.filter((x) => x >= a);
+        c.students = c.students.slice(0, N); while (c.students.length < N) c.students.push({name: `Qo'shimcha ${c.students.length + 1}`, marks: {}, scores: {}});
+        c.works = [{id: "tb", type: "bsb", date: d[0], max: 20, title: ""}, {id: "tl", type: "loyiha", date: d[1], max: 30, title: ""}, {id: "tc", type: "chsb", date: d[2], max: 40, title: ""}];
+        c.students.forEach((s, i) => { s.scores = {tb: 15, tl: 25, tc: 30}; if (i === 2 || i === 3) delete s.scores.tb; });
+        c.students[2].name = c.students[3].name = "Ismdosh Aziz";   // ismdoshlar ikkalasi ham sanalsin
+        D.web.bsb_hdr = Object.assign(D.web.bsb_hdr || {}, {teacher: "Aliyeva N.", school: "42-maktab"}); save();
+        S.rq = 1; S.rep = {ci: 0, per: "q1", kind: "cls"}; go("reports");
+      }, N);
+      // ro'yxatda qizil/sariq belgilar yo'q, varaq ekranda ko'rinmaydi
+      assert.equal(await page.locator(".hb-list .hb-bd").count(), 0, "turlar ro'yxatida belgi bo'lmasligi kerak");
+      assert.equal(await page.locator(".hb-prt").isVisible(), false);
+      // sinf tanlashda har sinf yonida xavf soni, tanlangan davrga qaramaydi
+      await page.click(".hb-pc [data-hk=cls]");
+      const tags = await page.$$eval(".hb-pop .hb-opt .hb-bd, .hb-opts .hb-opt .hb-bd", (x) => x.map((e) => e.textContent));
+      assert.ok(tags.length >= 1 && tags.every((t) => /^\d+ xavf$/.test(t)), JSON.stringify(tags));
+      await page.keyboard.press("Escape");
+      // tayyorlik: ish yetishmasa halqa to'lmaydi; ismdoshlar alohida sanaladi
+      await page.evaluate(() => { document.querySelector(".hb-list [data-kind=ready]").click(); });
+      const rows = await page.evaluate(() => readinessRows(D.classes[0], 1)[1].filter((r) => r.name === "Ismdosh Aziz").length);
+      assert.equal(rows, 2, "ismdoshlar alohida");
+      await page.evaluate(() => { const c = D.classes[0]; c.works = c.works.filter((w) => w.type !== "chsb"); save(); S.rq = 1; render(); });
+      assert.ok((await page.textContent(".hb-panel .hb-con")).includes("Sinf hali tayyor emas"), "CHSB yo'q — ogohlantirish");
+      assert.ok(await page.$eval(".hb-ring .fg", (e) => e.style.stroke.includes("danger")), "halqa qizil");
+      await page.evaluate(() => { const c = D.classes[0], [a] = qRange(1); c.works.push({id: "tc", type: "chsb", date: c.dates.filter((x) => x >= a)[2], max: 40, title: ""}); c.students.forEach((s) => { s.scores.tc = 30; }); save(); render(); });
+      // chop etish: uchala hisobot bitta A4 varaqda, katak kesilmaydi
+      for (const k of ["cls", "ready", "cmp"]) {
+        await page.click(`.hb-list [data-kind=${k}]`);
+        await page.evaluate(() => fitPrint()); await page.emulateMedia({media: "print"});
+        const pdf = await page.pdf({preferCSSPageSize: true});
+        assert.equal((pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length, 1, `${N} ${k}: bitta varaq`);
+        const bad = await page.evaluate(() => {
+          const p = document.querySelector(".hb-prt"), out = [], tb = p.querySelector(".hp-tb table");
+          if (tb && tb.offsetHeight > p.querySelector(".hp-tb").clientHeight + 2) out.push("jadval sig'madi");
+          p.querySelectorAll("td:not(.iz),th").forEach((e) => { if (e.scrollWidth > e.clientWidth + 1 && e.clientWidth) out.push("kesilgan: " + e.textContent.slice(0, 20)); });
+          p.querySelectorAll("td .hp-ch").forEach((c) => { if (c.getBoundingClientRect().right > c.closest("td").getBoundingClientRect().right + 0.5) out.push("belgi kesilgan: " + c.textContent); });
+          if (p.scrollHeight > p.clientHeight + 1) out.push("varaq to'lib ketdi");
+          return out;
+        });
+        assert.deepEqual(bad, [], `${N} ${k}`);
+        await page.emulateMedia({media: "screen"});
+      }
+      // oq-qora rejim saqlanadi, PDF → Telegram uchun ham varaq tayyor
+      await page.click(".hb-list [data-kind=cls]"); await page.click("[data-prt=bw1]");
+      assert.equal(await page.evaluate(() => D.web.prt.bw), 1);
+      assert.ok(await page.$(".hb-prt.bw"));
+      const pdfPages = await page.evaluate(async () => (await (await PTG.reportPdf()).text()).match(/\/Type\s*\/Page[^s]/g).length);
+      assert.equal(pdfPages, 1, "PDF → Telegram: bitta sahifa");
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});
+
 test("Bugun: chorak tugagandan keyin — yopish, ta'til, yangi chorak (bugun-tatil.js)", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
