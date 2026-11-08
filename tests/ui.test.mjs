@@ -4248,7 +4248,8 @@ test("Bugun: chorak tugagandan keyin — yopish, ta'til, yangi chorak (bugun-tat
         await page.goto(APP);
         const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
         await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
-        await page.evaluate(() => { ARX.tick(); render(); });
+        // yangi chorak: o'tgan chorak arxivlanmagan holat (avto-arxiv o'chiq) — arxivlangan holat alohida testda
+        await page.evaluate((k) => { if (k === "new") { ARX.cfg().auto = false; delete D.web.arx.q[1]; } ARX.tick(); render(); }, k);
         assert.equal(await page.evaluate(() => BTL.mode(todayIso()).k), k);
         if (k === "grace") {
           await page.waitForSelector(".bt-close");
@@ -4650,6 +4651,13 @@ test("Choraklar ajratilgan: oldingi chorak ma'lumoti yangi chorakka aralashmaydi
       }, N);
       assert.equal(await page.evaluate(() => D.classes[0].students.length), N);
       assert.ok(await page.evaluate(() => ARX.lockedQ(1)), "1-chorak arxivlangan");
+      // «Bugun»: arxivlangan 1-chorak natijasi, «1-ch» qiymatlari va «1-chorakda «2» olganlar» yangi chorakda ko'rinmaydi
+      assert.equal(await page.evaluate(() => BTL.mode(todayIso())), null);
+      if (N === 18) await page.click("[data-btab=cls]");
+      await page.waitForSelector(".clsstat");
+      assert.equal(await page.locator(".bt-strip, .bt-was").count(), 0);
+      assert.doesNotMatch(await page.innerText("main"), /1-ch[: ]|1-chorak natijasi|1-chorakda «2»/);
+      if (N === 18) await page.click("[data-btab=todo]");
       // «Bajarish kerak»: faqat 2-chorak darslari (avval 1-chorak va ta'til kunlari ham chiqardi)
       const gaps = await page.evaluate(() => lessonGaps().map((x) => x.d));
       assert.ok(gaps.length > 0 && gaps.every((d) => d >= "2026-11-05"), gaps.join(" "));
@@ -4675,6 +4683,41 @@ test("Choraklar ajratilgan: oldingi chorak ma'lumoti yangi chorakka aralashmaydi
       // Bajarish kerak: ta'til kunidagi (30.10) va arxivlangan chorak darslari yo'q
       const todo2 = await page.locator(".bn-todo").first().innerText();
       assert.doesNotMatch(todo2, /\d\d\.12\b/, "arxivlangan 2-chorak sanalari Bajarish kerak ro'yxatida");
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});
+
+test("Jurnal: oy ikki chorakka bo'linsa, o'rtacha va davomat faqat oxirgi chorakdan (36 va 18 o'quvchi)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const [N, viewport] of [[36, {width: 1300, height: 900}], [18, {width: 390, height: 844}]]) {
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 9, 28, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      const r = await page.evaluate((N) => {
+        // 1-chorak 16.10 da tugaydi, 2-chorak 19.10 dan: oktyabr oyi ikki chorakka bo'linadi
+        D.settings.quarters = [["2026-09-02", "2026-10-16"], ["2026-10-19", "2026-12-27"], null, null];
+        const c = D.classes[0], base = c.students;
+        c.students = Array.from({length: N}, (_, i) => ({...structuredClone(base[i % base.length]), name: i < base.length ? base[i].name : `${base[i % base.length].name} ${Math.floor(i / base.length) + 1}`}));
+        const s = c.students[N - 1], q1 = c.dates.filter((d) => "2026-10-01" <= d && d <= "2026-10-16"), q2 = c.dates.filter((d) => "2026-10-19" <= d && d <= "2026-10-28");
+        q1.forEach((d) => { s.marks[d] = "s"; }); q2.forEach((d) => { s.marks[d] = "9"; });
+        save(); S.ci = 0; S.jpage = "j"; V.mode = "month"; V.anchor = "2026-10-28"; go("journal");
+        const i = S.jord.indexOf(N - 1), ds = visDates(c);
+        return {q1: q1.length, q2: q2.length, spans: ds.some((d) => d <= "2026-10-16") && ds.some((d) => d >= "2026-10-19"), i};
+      }, N);
+      assert.ok(r.q1 > 0 && r.q2 > 0 && r.spans, JSON.stringify(r));
+      const row = await page.evaluate((N) => { const c = D.classes[0], ds = visDates(c), hi = ds.at(-1); return reportRows(c, qRange(quarterOf(hi))[0], hi).rows[N - 1]; }, N);
+      assert.equal(row.att, 100, "1-chorakdagi sababsizlar oktyabr ko'rinishida 2-chorak davomatiga kirmaydi");
+      assert.equal(row.avg, 9);
+      // jurnalda «Davomat: pastdan» saralash ham shu qiymat bo'yicha: bu o'quvchi oxirgi o'ringa tushmaydi
+      await page.evaluate(() => { S.jsort = "atta"; render(); });
+      assert.notEqual(await page.evaluate((N) => S.jord[0], N), N - 1);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
       assert.deepEqual(errors, []);
       await page.close();

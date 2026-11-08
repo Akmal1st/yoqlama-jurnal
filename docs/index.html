@@ -1850,7 +1850,9 @@ function pageJournal(m) {
   if (V.mode === "day") return pageDay(m);
   const c = D.classes[S.ci], t = todayIso(), grp = isGrp(c);
   const ds = visDates(c);
-  const {rows} = reportRows(c, ds[0] || t, ds[ds.length - 1] || t), order = S.jord = jOrder(c, rows);
+  // o'rtacha va davomat ustuni: ko'rinishda ikki chorak bo'lsa (hafta/oy chegarada) — faqat oxirgi chorak darslari, choraklar aralashmaydi
+  const jhi = ds[ds.length - 1] || t, jq = quarterOf(jhi), jlo = jq && qRange(jq)[0] > (ds[0] || t) ? qRange(jq)[0] : ds[0] || t;
+  const {rows} = reportRows(c, jlo, jhi), order = S.jord = jOrder(c, rows);
   const [plo, phi, pq] = periodNow(); const riskWhy = new Map(grp ? [] : reportRows(c, plo, phi, pq).rows.filter((r) => r.why.some((w) => !w.startsWith("baholar soni"))).map((r) => [r.name, r.why]));
   const modes = viewModes().map(([k, n]) => `<button class="${V.mode === k ? "on" : ""}" data-mode="${k}">${n}</button>`).join("");
   let head = `<tr><th class="nm">O'quvchi</th>`;

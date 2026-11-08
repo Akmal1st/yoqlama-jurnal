@@ -22,7 +22,9 @@ const BTL = (() => {
     const cq = quarterOf(t);
     if (cq) {
       const r = qRange(cq), p = cq > 1 ? qRange(cq - 1) : null, d = days(r[0], t);
-      return p && p[1] < r[0] && d < NEW_PREV ? {k: "new", q: cq, pq: cq - 1, d} : null;
+      // o'tgan chorak arxivlangan bo'lsa — yangi chorak noldan boshlanadi: «1-chorak natijasi», «1-ch» qiymatlari va
+      // «1-chorakda «2» olganlar» ko'rsatilmaydi (Akmal, 2026-11-08: «oldingi chorak ta'sir qilmasin»); u faqat arxivda
+      return p && p[1] < r[0] && d < NEW_PREV && !ARX.entry(cq - 1) ? {k: "new", q: cq, pq: cq - 1, d} : null;
     }
     const q = lastEnded(t); if (!q) return null;
     const nr = q < 4 ? qRange(q + 1) : null, next = nr && nr[0] > t ? nr : null;
