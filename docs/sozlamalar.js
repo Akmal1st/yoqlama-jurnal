@@ -133,9 +133,9 @@ const SZL = (() => {
         : on ? `Ulangan: @${esc(c.bot || "bot")} · oxirgi zaxira: ${lt}. Boshqa qurilmada ham shu botni ulasangiz, ma'lumotlar ular orasida almashinadi.`
         : "Ma'lumotlar har kuni o'zingizning Telegram botingizga fayl bo'lib boradi. Telefon yo'qolsa yoki brauzer tozalansa ham jurnal saqlanib qoladi.",
         on ? `<button class="btn btn-sm btn-primary" data-a="tgsend">📤 Yuborish</button><button class="btn btn-sm" data-a="tgload">📥 Yuklash</button><button class="btn btn-sm" data-a="tgoff">Uzish</button>` : `<button class="btn btn-sm btn-primary" data-a="tgon">🔗 Ulash</button>`, on ? "wide" : "")) +
-      (on ? row("tgp", "🔐 Zaxirani parol bilan shifrlash", c.pass ? "Yoqilgan. Boshqa qurilmada yuklashda shu parol so'raladi. Parolni unutsangiz, shifrlangan zaxirani ochib bo'lmaydi."
+      (on ? row("tgp", "🔐 Zaxirani parol bilan shifrlash", tgEnc(c) ? "Yoqilgan. Boshqa qurilmada yuklashda shu parol so'raladi. Parolni unutsangiz, shifrlangan zaxirani ochib bo'lmaydi."
         : "Telegram akkauntingizga begona kirsa ham o'quvchilar ma'lumoti o'qilmasin. Parolni unutsangiz, zaxirani ochib bo'lmaydi.",
-        `${c.pass ? `<button class="btn btn-sm" data-a="tgpass">O'zgartirish</button>` : ""}${tog(`data-a="${c.pass ? "tgnopass" : "tgpass"}"`, !!c.pass, "Zaxirani shifrlash")}`) : "") +
+        `${tgEnc(c) ? `<button class="btn btn-sm" data-a="tgpass">O'zgartirish</button>` : ""}${tog(`data-a="${tgEnc(c) ? "tgnopass" : "tgpass"}"`, !!tgEnc(c), "Zaxirani shifrlash")}`) : "") +
       row("exp", "💾 Faylga saqlash", `journal.json — boshqa qurilmada ochish yoki xavfsiz saqlab qo'yish uchun.${age === null ? "" : age > 7 ? ` <span class="sz-warn-t">Oxirgisi ${age} kun oldin.</span>` : ` Oxirgisi ${age ? `${age} kun oldin` : "bugun"}.`}`,
         `<button class="btn btn-sm ${age === null || age > 7 ? "btn-primary" : ""}" data-a="exp">Yuklab olish</button>`) +
       row("snaps", "🕒 Kunlik avtomatik nusxalar", `Ilova har kuni jurnal holatini o'zi saqlaydi (oxirgi ${SNAP_DAYS} kun) — xato o'chirilgan ma'lumotni qaytarish mumkin.${IDB.db ? "" : " <span class='sz-warn-t'>Bu brauzerda zaxira xotira ishlamayapti.</span>"}`, `<button class="btn btn-sm" data-a="snaps">Ko'rish</button>`);

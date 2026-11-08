@@ -2031,8 +2031,8 @@
        "bsb": 0,
        "chsb": 0,
        "fb": 7,
-       "n_fb": 6,
-       "avg": 6.833333,
+       "n_fb": 9,
+       "avg": 7.222222,
        "total": 7,
        "max_bsb": 25,
        "max_chsb": 0,
@@ -2044,8 +2044,8 @@
        "bsb": 0,
        "chsb": 0,
        "fb": 8,
-       "n_fb": 10,
-       "avg": 7.9,
+       "n_fb": 15,
+       "avg": 7.666667,
        "total": 8,
        "max_bsb": 25,
        "max_chsb": 0,
@@ -2057,35 +2057,9 @@
        "bsb": 0,
        "chsb": 0,
        "fb": 7,
-       "n_fb": 5,
-       "avg": 6.6,
-       "total": 7,
-       "max_bsb": 25,
-       "max_chsb": 0,
-       "missing": 1,
-       "complete": false,
-       "grade": null
-      },
-      {
-       "bsb": 0,
-       "chsb": 0,
-       "fb": 8,
        "n_fb": 8,
-       "avg": 7.5,
-       "total": 8,
-       "max_bsb": 25,
-       "max_chsb": 0,
-       "missing": 1,
-       "complete": false,
-       "grade": null
-      },
-      {
-       "bsb": 0,
-       "chsb": 0,
-       "fb": 8,
-       "n_fb": 5,
-       "avg": 7.8,
-       "total": 8,
+       "avg": 7.125,
+       "total": 7,
        "max_bsb": 25,
        "max_chsb": 0,
        "missing": 1,
@@ -2096,7 +2070,98 @@
        "bsb": 0,
        "chsb": 0,
        "fb": 7,
-       "n_fb": 5,
+       "n_fb": 9,
+       "avg": 7.444444,
+       "total": 7,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 7,
+       "n_fb": 9,
+       "avg": 7.222222,
+       "total": 7,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 7,
+       "n_fb": 7,
+       "avg": 6.857143,
+       "total": 7,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 7,
+       "n_fb": 13,
+       "avg": 6.769231,
+       "total": 7,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 4,
+       "n_fb": 6,
+       "avg": 3.833333,
+       "total": 4,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 7,
+       "n_fb": 7,
+       "avg": 7.428571,
+       "total": 7,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 7,
+       "n_fb": 11,
+       "avg": 7.272727,
+       "total": 7,
+       "max_bsb": 25,
+       "max_chsb": 0,
+       "missing": 1,
+       "complete": false,
+       "grade": null
+      },
+      {
+       "bsb": 0,
+       "chsb": 0,
+       "fb": 7,
+       "n_fb": 9,
        "avg": 7,
        "total": 7,
        "max_bsb": 25,
@@ -2109,60 +2174,8 @@
        "bsb": 0,
        "chsb": 0,
        "fb": 7,
-       "n_fb": 8,
-       "avg": 6.875,
-       "total": 7,
-       "max_bsb": 25,
-       "max_chsb": 0,
-       "missing": 1,
-       "complete": false,
-       "grade": null
-      },
-      {
-       "bsb": 0,
-       "chsb": 0,
-       "fb": 0,
-       "n_fb": 3,
-       "avg": 4.666667,
-       "total": 0,
-       "max_bsb": 25,
-       "max_chsb": 0,
-       "missing": 1,
-       "complete": false,
-       "grade": null
-      },
-      {
-       "bsb": 0,
-       "chsb": 0,
-       "fb": 7,
-       "n_fb": 5,
-       "avg": 7.4,
-       "total": 7,
-       "max_bsb": 25,
-       "max_chsb": 0,
-       "missing": 1,
-       "complete": false,
-       "grade": null
-      },
-      {
-       "bsb": 0,
-       "chsb": 0,
-       "fb": 7,
-       "n_fb": 7,
-       "avg": 6.857143,
-       "total": 7,
-       "max_bsb": 25,
-       "max_chsb": 0,
-       "missing": 1,
-       "complete": false,
-       "grade": null
-      },
-      {
-       "bsb": 0,
-       "chsb": 0,
-       "fb": 7,
-       "n_fb": 7,
-       "avg": 6.857143,
+       "n_fb": 12,
+       "avg": 7,
        "total": 7,
        "max_bsb": 25,
        "max_chsb": 0,
@@ -2174,20 +2187,7 @@
        "bsb": 0,
        "chsb": 0,
        "fb": 8,
-       "n_fb": 7,
-       "avg": 7.571429,
-       "total": 8,
-       "max_bsb": 25,
-       "max_chsb": 0,
-       "missing": 1,
-       "complete": false,
-       "grade": null
-      },
-      {
-       "bsb": 0,
-       "chsb": 0,
-       "fb": 8,
-       "n_fb": 6,
+       "n_fb": 10,
        "avg": 8,
        "total": 8,
        "max_bsb": 25,
@@ -2200,8 +2200,8 @@
        "bsb": 0,
        "chsb": 0,
        "fb": 7,
-       "n_fb": 8,
-       "avg": 6.625,
+       "n_fb": 11,
+       "avg": 6.545455,
        "total": 7,
        "max_bsb": 25,
        "max_chsb": 0,
@@ -2238,8 +2238,7 @@
         "BSB 23.10 — ball yo'q"
        ],
        "Mirzayeva Dilnoza": [
-        "BSB 23.10 — ball yo'q",
-        "formativ baholar 3 ta (kamida 4 ta kerak)"
+        "BSB 23.10 — ball yo'q"
        ],
        "Karimov Otabek": [
         "BSB 23.10 — ball yo'q"
@@ -2502,8 +2501,8 @@
    "year": [
     {
      "sb": 0,
-     "avg_fb": 6.833333,
-     "year": 6.833333,
+     "avg_fb": 7.222222,
+     "year": 7.222222,
      "ready": false,
      "year_grade": null,
      "exam": null,
@@ -2518,8 +2517,8 @@
     },
     {
      "sb": 0,
-     "avg_fb": 7.9,
-     "year": 7.9,
+     "avg_fb": 7.666667,
+     "year": 7.666667,
      "ready": false,
      "year_grade": null,
      "exam": null,
@@ -2534,8 +2533,8 @@
     },
     {
      "sb": 0,
-     "avg_fb": 6.6,
-     "year": 6.6,
+     "avg_fb": 7.125,
+     "year": 7.125,
      "ready": false,
      "year_grade": null,
      "exam": null,
@@ -2550,8 +2549,8 @@
     },
     {
      "sb": 0,
-     "avg_fb": 7.5,
-     "year": 7.5,
+     "avg_fb": 7.444444,
+     "year": 7.444444,
      "ready": false,
      "year_grade": null,
      "exam": null,
@@ -2566,8 +2565,88 @@
     },
     {
      "sb": 0,
-     "avg_fb": 7.8,
-     "year": 7.8,
+     "avg_fb": 7.222222,
+     "year": 7.222222,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 6.857143,
+     "year": 6.857143,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 6.769231,
+     "year": 6.769231,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 3.833333,
+     "year": 3.833333,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 7.428571,
+     "year": 7.428571,
+     "ready": false,
+     "year_grade": null,
+     "exam": null,
+     "final": null,
+     "final_grade": null,
+     "q": [
+      null,
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "sb": 0,
+     "avg_fb": 7.272727,
+     "year": 7.272727,
      "ready": false,
      "year_grade": null,
      "exam": null,
@@ -2598,88 +2677,8 @@
     },
     {
      "sb": 0,
-     "avg_fb": 6.875,
-     "year": 6.875,
-     "ready": false,
-     "year_grade": null,
-     "exam": null,
-     "final": null,
-     "final_grade": null,
-     "q": [
-      null,
-      null,
-      null,
-      null
-     ]
-    },
-    {
-     "sb": 0,
-     "avg_fb": 4.666667,
-     "year": 4.666667,
-     "ready": false,
-     "year_grade": null,
-     "exam": null,
-     "final": null,
-     "final_grade": null,
-     "q": [
-      null,
-      null,
-      null,
-      null
-     ]
-    },
-    {
-     "sb": 0,
-     "avg_fb": 7.4,
-     "year": 7.4,
-     "ready": false,
-     "year_grade": null,
-     "exam": null,
-     "final": null,
-     "final_grade": null,
-     "q": [
-      null,
-      null,
-      null,
-      null
-     ]
-    },
-    {
-     "sb": 0,
-     "avg_fb": 6.857143,
-     "year": 6.857143,
-     "ready": false,
-     "year_grade": null,
-     "exam": null,
-     "final": null,
-     "final_grade": null,
-     "q": [
-      null,
-      null,
-      null,
-      null
-     ]
-    },
-    {
-     "sb": 0,
-     "avg_fb": 6.857143,
-     "year": 6.857143,
-     "ready": false,
-     "year_grade": null,
-     "exam": null,
-     "final": null,
-     "final_grade": null,
-     "q": [
-      null,
-      null,
-      null,
-      null
-     ]
-    },
-    {
-     "sb": 0,
-     "avg_fb": 7.571429,
-     "year": 7.571429,
+     "avg_fb": 7,
+     "year": 7,
      "ready": false,
      "year_grade": null,
      "exam": null,
@@ -2710,8 +2709,8 @@
     },
     {
      "sb": 0,
-     "avg_fb": 6.625,
-     "year": 6.625,
+     "avg_fb": 6.545455,
+     "year": 6.545455,
      "ready": false,
      "year_grade": null,
      "exam": null,
@@ -2726,28 +2725,35 @@
     }
    ],
    "report": {
-    "lessons": 14,
+    "lessons": 21,
     "dates": [
+     "2026-09-03",
      "2026-09-07",
      "2026-09-08",
+     "2026-09-10",
      "2026-09-14",
      "2026-09-15",
+     "2026-09-17",
      "2026-09-21",
      "2026-09-22",
+     "2026-09-24",
      "2026-09-28",
      "2026-09-29",
      "2026-10-05",
      "2026-10-06",
+     "2026-10-08",
      "2026-10-12",
      "2026-10-13",
+     "2026-10-15",
      "2026-10-19",
-     "2026-10-20"
+     "2026-10-20",
+     "2026-10-22"
     ],
     "rows": [
      {
       "name": "Rahimova Nilufar",
-      "n": 6,
-      "avg": 6.83,
+      "n": 9,
+      "avg": 7.22,
       "att": 100,
       "s": 0,
       "dq": 0,
@@ -2756,14 +2762,14 @@
       "ch": 0,
       "absent": 0,
       "why": [
-       "baholar pasaymoqda (7.7 → 6.0)"
+       "baholar pasaymoqda (8.5 → 6.2)"
       ]
      },
      {
       "name": "Saidov Aziz",
-      "n": 10,
-      "avg": 7.9,
-      "att": 92.9,
+      "n": 15,
+      "avg": 7.67,
+      "att": 95.2,
       "s": 1,
       "dq": 0,
       "k": 0,
@@ -2774,24 +2780,21 @@
      },
      {
       "name": "Umarova Sevara",
-      "n": 5,
-      "avg": 6.6,
-      "att": 78.6,
+      "n": 8,
+      "avg": 7.12,
+      "att": 85.7,
       "s": 2,
       "dq": 0,
       "k": 1,
       "kq": 0,
       "ch": 0,
       "absent": 3,
-      "why": [
-       "davomat 79% < 80%",
-       "baholar pasaymoqda (7.5 → 6.0)"
-      ]
+      "why": []
      },
      {
       "name": "Zokirov Islom",
-      "n": 8,
-      "avg": 7.5,
+      "n": 9,
+      "avg": 7.44,
       "att": 100,
       "s": 0,
       "dq": 0,
@@ -2803,9 +2806,9 @@
      },
      {
       "name": "Aliyeva Madina",
-      "n": 5,
-      "avg": 7.8,
-      "att": 92.9,
+      "n": 9,
+      "avg": 7.22,
+      "att": 95.2,
       "s": 1,
       "dq": 0,
       "k": 0,
@@ -2816,9 +2819,9 @@
      },
      {
       "name": "Hasanov Bekzod",
-      "n": 5,
-      "avg": 7,
-      "att": 85.7,
+      "n": 7,
+      "avg": 6.86,
+      "att": 90.5,
       "s": 0,
       "dq": 1,
       "k": 1,
@@ -2829,8 +2832,8 @@
      },
      {
       "name": "Olimova Gulnoza",
-      "n": 8,
-      "avg": 6.88,
+      "n": 13,
+      "avg": 6.77,
       "att": 100,
       "s": 0,
       "dq": 0,
@@ -2842,9 +2845,9 @@
      },
      {
       "name": "Mirzayeva Dilnoza",
-      "n": 3,
-      "avg": 4.67,
-      "att": 85.7,
+      "n": 6,
+      "avg": 3.83,
+      "att": 90.5,
       "s": 0,
       "dq": 2,
       "k": 0,
@@ -2852,14 +2855,13 @@
       "ch": 0,
       "absent": 2,
       "why": [
-       "o'rtacha 4.7 < 5",
-       "shu kungacha 3 ta baho (< 4)"
+       "o'rtacha 3.8 < 5"
       ]
      },
      {
       "name": "Karimov Otabek",
-      "n": 5,
-      "avg": 7.4,
+      "n": 7,
+      "avg": 7.43,
       "att": 100,
       "s": 0,
       "dq": 0,
@@ -2871,8 +2873,8 @@
      },
      {
       "name": "G'aniyeva Nodira",
-      "n": 7,
-      "avg": 6.86,
+      "n": 11,
+      "avg": 7.27,
       "att": 100,
       "s": 0,
       "dq": 0,
@@ -2884,21 +2886,21 @@
      },
      {
       "name": "Toshmatov Jasur",
-      "n": 7,
-      "avg": 6.86,
-      "att": 92.9,
-      "s": 0,
+      "n": 9,
+      "avg": 7,
+      "att": 90.5,
+      "s": 1,
       "dq": 1,
       "k": 0,
       "kq": 0,
       "ch": 0,
-      "absent": 1,
+      "absent": 2,
       "why": []
      },
      {
       "name": "Yusupov Bekzod",
-      "n": 7,
-      "avg": 7.57,
+      "n": 12,
+      "avg": 7,
       "att": 100,
       "s": 0,
       "dq": 0,
@@ -2910,21 +2912,21 @@
      },
      {
       "name": "Abdullayev Sardor",
-      "n": 6,
+      "n": 10,
       "avg": 8,
-      "att": 100,
-      "s": 0,
+      "att": 95.2,
+      "s": 1,
       "dq": 0,
       "k": 0,
       "kq": 0,
       "ch": 0,
-      "absent": 0,
+      "absent": 1,
       "why": []
      },
      {
       "name": "Nazarov Sherzod",
-      "n": 8,
-      "avg": 6.62,
+      "n": 11,
+      "avg": 6.55,
       "att": 100,
       "s": 0,
       "dq": 0,
@@ -4033,10 +4035,10 @@
      }
     ],
     "grades": {
-     "5": 2,
-     "4": 2,
+     "2": 2,
      "3": 2,
-     "2": 2
+     "4": 2,
+     "5": 2
     },
     "mean_total": 10.1875,
     "mean_pct": 50.9375,
@@ -4162,10 +4164,10 @@
      }
     ],
     "grades": {
-     "5": 2,
-     "4": 0,
+     "2": 0,
      "3": 1,
-     "2": 0
+     "4": 0,
+     "5": 2
     },
     "mean_total": 15.5,
     "mean_pct": 77.5,
@@ -4226,10 +4228,10 @@
     "students": [],
     "questions": [],
     "grades": {
-     "5": 0,
-     "4": 0,
+     "2": 0,
      "3": 0,
-     "2": 0
+     "4": 0,
+     "5": 0
     }
    },
    "rec": {
@@ -4521,10 +4523,10 @@
      }
     ],
     "grades": {
-     "5": 0,
-     "4": 0,
+     "2": 0,
      "3": 12,
-     "2": 0
+     "4": 0,
+     "5": 0
     },
     "mean_total": 18.5,
     "mean_pct": 52.857143,

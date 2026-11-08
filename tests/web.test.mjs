@@ -73,8 +73,9 @@ test("Hisobotlar: solishtirish, ishlar, to'lish, hisob daftari, moliya = hisobot
 test("Bugun: joriy o'zlashtirish (qProgress) — chorak yopilmaganda ham bo'sh qolmaydi", () => {
   const H = JSON.parse(read("fixtures/hisobot.json")), B = loadApp("2026-11-20"); B.setData(structuredClone(H));
   const c = B.D.classes[0], st = B.D.settings.quarters[0][0];
-  // BSB/CHSB hali yo'q (birinchi ish 25-sentabr): faqat FB — formativ baholar o'rtachasi / 10 (metodik kun va «dars yo'q» kunlari hisobga kirmaydi)
-  assert.equal(norm(B.qProgress(c, 1, "2026-09-20")), 62.5);
+  // BSB/CHSB hali yo'q (birinchi ish 25-sentabr): faqat FB — formativ baholar o'rtachasi / 10 («dars yo'q» kunlari hisobga kirmaydi;
+  // metod kuni ilovadan olib tashlangan — fixture'dagi method_weekday yuklashda o'chadi, juma oddiy dars kuni)
+  assert.equal(norm(B.qProgress(c, 1, "2026-09-20")), 61.027778);
   // 1-BSB qo'yilgan: ball qo'yilganlar shu ishning maksimali bilan qo'shiladi
   const r = B.compareRows(st, "2026-10-10", 1)[0];
   assert.equal(norm(r.qp), norm(B.qProgress(c, 1, "2026-10-10")));
