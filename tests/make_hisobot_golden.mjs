@@ -1,6 +1,5 @@
 // hisobot_golden.json ni web ilova asosida qayta yaratadi (hisob qoidasi ATAYLAB o'zgartirilgandagina):
 //   node tests/make_hisobot_golden.mjs
-// so'ng dastur/hisobot_sqlite.py ham shunga mos bo'lishi kerak (pytest tests/test_sqlite.py).
 import {readFileSync, writeFileSync} from "node:fs";
 import {loadApp} from "./webapp.mjs";
 import {hisobotWeb, H_TODAY} from "./hisobot_web.mjs";

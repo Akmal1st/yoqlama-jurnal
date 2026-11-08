@@ -74,7 +74,7 @@ const EMKS = (() => {
   const isLogin = (url, html) => /<input[^>]+(type=["']?password|name=["']?password["'\s>])/i.test(html) ? true
     : /<form[^>]+action=["'][^"']*\/logout/i.test(html) ? false : /^login\./i.test(new URL(url).hostname);
 
-  /* ───────── kirish (dastur/emaktab_http.py dagi tartib) ─────────
+  /* ───────── kirish (avvalgi Python botdagi tartib) ─────────
      1) login va parol bilan «Kirish»; 2) yana kirish sahifasi chiqsa — rasmdagi kod so'raladi; kod yo'q bo'lsa — parol noto'g'ri */
   const unjs = (t) => t.replace(/\\x([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/\\\//g, "/");
   const isPw = (i) => i.type === "password" || (i.type === "text" && (/^(pass(word)?|parol)$/i.test(i.name) || /password/i.test(i.cls)));
@@ -109,7 +109,7 @@ const EMKS = (() => {
     let u = r.url; try { const x = new URL(r.url); u = x.host + x.pathname; } catch (e) { /* */ }
     return `Javob: ${r.s} · ${u}${t ? ` · «${t.replace(/\s+/g, " ").trim().slice(0, 60)}»` : ""} · ${Math.round(String(r.b || "").length / 1024)} KB`;
   }
-  // nosozlikni topish uchun sahifani faylga saqlash: login/parol qiymatlari o'chiriladi (dastur/emaktab_http.py hide_secrets kabi)
+  // nosozlikni topish uchun sahifani faylga saqlash: login/parol qiymatlari o'chiriladi (parol va login hech qayerga yozilmaydi)
   const scrub = (r) => `<!-- ${r.s} ${r.url} -->\n` + String(r.b || "")
     .replace(/<input[^>]*>/gi, (t) => /name=["']?(login|user\w*|pass\w*|parol)["'\s>]|type=["']?password/i.test(t) ? t.replace(/value=("[^"]*"|'[^']*'|[^\s>]*)/i, 'value=""') : t)
     .replace(/((?:\\x22|")(?:login|password|userName|parol)(?:\\x22|")\s*(?::|\\x3a)\s*(?:\\x22|"))((?:(?!\\x22)[^"])*)/gi, "$1");

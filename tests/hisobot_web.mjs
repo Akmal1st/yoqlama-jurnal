@@ -1,5 +1,4 @@
 // Hisobotlarning web ilovadagi natijasi (hisobot_golden.json shu yerdan yaratiladi va tekshiriladi).
-// Bir xil natijani dastur/hisobot_sqlite.py SQL so'rovlari bilan qaytarishi kerak (tests/test_sqlite.py).
 export const H_TODAY = "2026-11-20";
 const pick = (o, keys) => Object.fromEntries(keys.map((k) => [k, o[k] ?? null]));
 export function hisobotWeb(A, H) {
