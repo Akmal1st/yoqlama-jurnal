@@ -622,7 +622,7 @@ const LYH = (() => {
   }
   // «＋ Yangi» (summativ.js shu yerga yo'naltiradi)
   function newDialog(c) {
-    const q = quarterOf(todayIso()) || [1, 2, 3, 4].find(qRange) || 1, rg = qRange(q) || [todayIso(), todayIso()], td = todayIso();
+    const q = workQuarter(), rg = qRange(q) || [todayIso(), todayIso()], td = todayIso();
     const sug = TPL.filter((t) => fanMatch(c, t)).sort((a, b) => gradeMatch(c, b) - gradeMatch(c, a));
     S.lyp = null; S.lyd = {mode: "new", sel: sug.length ? sug[0].id : "own", q: "", all: false, own: [{n: "", m: 10, k: "dr"}], max: 50, date: rg[0] <= td && td <= rg[1] ? td : rg[0]};
     drawDlg();

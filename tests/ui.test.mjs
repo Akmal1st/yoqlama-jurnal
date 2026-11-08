@@ -4632,3 +4632,52 @@ test("Loyiha ishi: Taxminiy ball hamma shablonda faqat ruxsat etilgan qiymatlarn
     assert.deepEqual(bad, []); assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Choraklar ajratilgan: oldingi chorak ma'lumoti yangi chorakka aralashmaydi (36 va 18 o'quvchi)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const [N, viewport] of [[36, {width: 1300, height: 900}], [18, {width: 390, height: 844}]]) {
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 10, 9, 10, 0));   // 2-chorak (05.11 dan) 1-haftasi; 1-chorak 29.10 da tugagan va arxivlangan
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      await page.evaluate((N) => {
+        const c = D.classes[0], base = c.students;
+        c.students = Array.from({length: N}, (_, i) => ({...structuredClone(base[i % base.length]), name: i < base.length ? base[i].name : `${base[i % base.length].name} ${Math.floor(i / base.length) + 1}`}));
+        D.settings.quarters[2] = ["2027-01-11", "2027-03-20"]; save(); ARX.tick(); render();
+      }, N);
+      assert.equal(await page.evaluate(() => D.classes[0].students.length), N);
+      assert.ok(await page.evaluate(() => ARX.lockedQ(1)), "1-chorak arxivlangan");
+      // «Bajarish kerak»: faqat 2-chorak darslari (avval 1-chorak va ta'til kunlari ham chiqardi)
+      const gaps = await page.evaluate(() => lessonGaps().map((x) => x.d));
+      assert.ok(gaps.length > 0 && gaps.every((d) => d >= "2026-11-05"), gaps.join(" "));
+      const todo = await page.locator(".bn-todo").first().innerText();
+      assert.doesNotMatch(todo, /\d\d\.10\b/, "1-chorak sanalari Bajarish kerak ro'yxatida");
+      // o'quvchi kartochkasi: oxirgi belgilar faqat joriy chorakdan
+      await page.evaluate((N) => studentCard(0, D.classes[0].students[N - 1].name), N);
+      const pills = await page.evaluate(() => [...document.querySelectorAll(".modal .pill")].map((x) => x.title));
+      assert.ok(pills.every((t) => /\.(11|12)\.2026$/.test(t)), pills.join(" "));
+      await page.click(".modal [data-x]");
+      assert.deepEqual(await page.evaluate(() => [curQuarter(), workQuarter()]), [2, 2]);
+      // ta'til (2-chorak tugagan, hali arxivlanmagan): ko'rinish va yangi ish — 2-chorak (avval 1-chorak edi)
+      await page.clock.setFixedTime(new Date(2026, 11, 28, 10, 0));
+      await page.evaluate(() => { S.sq = 0; ARX.tick(); render(); });
+      assert.deepEqual(await page.evaluate(() => [ARX.lockedQ(2), viewQuarter(), curQuarter(), workQuarter()]), [false, 2, 2, 2]);
+      // arxivlangandan keyin: yangi BSB arxivlangan 2-chorakka emas, 3-chorak boshiga tushadi
+      await page.clock.setFixedTime(new Date(2027, 0, 5, 10, 0));
+      await page.evaluate(() => { S.sq = 0; ARX.tick(); render(); });
+      assert.deepEqual(await page.evaluate(() => [ARX.lockedQ(2), viewQuarter(), workQuarter()]), [true, 2, 3]);
+      await page.evaluate(() => workDialog(D.classes[0]));
+      assert.equal(await page.inputValue(".modal #wd"), "2027-01-11");
+      await page.click(".modal [data-x]");
+      // Bajarish kerak: ta'til kunidagi (30.10) va arxivlangan chorak darslari yo'q
+      const todo2 = await page.locator(".bn-todo").first().innerText();
+      assert.doesNotMatch(todo2, /\d\d\.12\b/, "arxivlangan 2-chorak sanalari Bajarish kerak ro'yxatida");
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth) <= 1);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});
