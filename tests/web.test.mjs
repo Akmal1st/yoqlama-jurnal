@@ -1,4 +1,4 @@
-// Web ilova (docs/index.html) hisob-kitoblari golden.json bilan bir xilmi — ya'ni kompyuter dasturi bilan.
+// Web ilova (docs/index.html) hisob-kitoblari golden.json bilan bir xilmi (golden.json: node tests/make_golden.mjs).
 // Ishga tushirish: node --test tests/
 import {test} from "node:test";
 import assert from "node:assert/strict";
@@ -12,7 +12,7 @@ const INPUTS = JSON.parse(read("inputs.json"));
 const GOLDEN = JSON.parse(read("golden.json"));
 const FIXTURE = JSON.parse(read("fixtures/journal.json"));
 
-// Python bilan bir xil ko'rinishga keltirish: 6 xonagacha, undefined → null, butun kasr → butun son
+// golden.json bilan bir xil ko'rinishga keltirish: 6 xonagacha, undefined → null, butun kasr → butun son
 function norm(v) {
   if (v === undefined || v === null) return null;
   if (typeof v === "number") { const r = Math.round(v * 1e6) / 1e6; return Object.is(r, -0) ? 0 : r; }
@@ -64,7 +64,7 @@ test("docs/emk.js index.html dagi emkGrab bilan bir xil (node tests/make_emk.mjs
   assert.equal(read("../docs/emk.js"), emkJs());
 });
 
-// Hisobotlar (sinf, to'garak, pullik ta'lim) — hisobot_golden.json bilan; SQLite moduli (dastur/hisobot_sqlite.py) ham shu faylga solishtiriladi
+// Hisobotlar (sinf, to'garak, pullik ta'lim) — hisobot_golden.json bilan
 test("Hisobotlar: solishtirish, ishlar, to'lish, hisob daftari, moliya = hisobot_golden.json", () => {
   const H = JSON.parse(read("fixtures/hisobot.json")), G = JSON.parse(read("hisobot_golden.json"));
   assert.deepEqual(norm(hisobotWeb(loadApp(G.today), H)), G);
@@ -122,7 +122,7 @@ test("Hisobotlar: Loyiha ishi «Loyiha» deb yoziladi va solishtirishda BSB foiz
   assert.equal(Math.round(r.chsb), 50);   // 20 / 40
 });
 
-test("O'zgarishlar tarixi vaqti mahalliy vaqtda yoziladi (UTC emas, kompyuter dasturi bilan bir xil)", () => {
+test("O'zgarishlar tarixi vaqti mahalliy vaqtda yoziladi (UTC emas)", () => {
   // loadApp: sana qotirilgan — bugun, mahalliy soat 12:00. toISOString() Toshkentda 07:00 berardi
   assert.equal(A.nowLocal(), `${INPUTS.today}T12:00:00`);
   assert.equal(A.nowLocal(16), `${INPUTS.today}T12:00`);
