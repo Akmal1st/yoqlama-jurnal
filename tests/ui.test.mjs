@@ -4787,3 +4787,29 @@ test("ikki oyna: biri saqlagan baho ikkinchisida yo'qolmaydi", async () => {
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
+
+test("Telegram: ikki qurilmada o'zgarish bo'lsa — «Birlashtirish», ikkalasidagi baholar saqlanadi (sinx.js)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}}), errors = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE);
+    await page.waitForSelector(".bn-hd");
+    await page.waitForFunction(() => IDB.ready);
+    await page.evaluate(async () => {
+      // oxirgi almashish: shu holat; keyin bu qurilmada 1-o'quvchiga, boshqa qurilmada 2-o'quvchiga baho qo'yilgan
+      await SINX.setBase(JSON.stringify(D)); tgSet({hash: djbData()});
+      const remote = JSON.parse(JSON.stringify(D)); remote.classes[0].students[1].marks["2026-10-20"] = "7";
+      window.tgData = async () => remote; window.tgBackup = async () => true;
+      batch(() => { D.classes[0].students[0].marks["2026-10-20"] = "9"; save(); });
+      TG_NEW = {date: Date.now() / 1000, message_id: 99}; render();
+    });
+    await page.click("[data-tg=tgmerge]");
+    await page.waitForFunction(() => !TG_NEW);
+    assert.deepEqual(await page.evaluate(() => [D.classes[0].students[0].marks["2026-10-20"], D.classes[0].students[1].marks["2026-10-20"]]), ["9", "7"]);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});

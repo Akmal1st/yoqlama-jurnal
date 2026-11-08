@@ -10,11 +10,13 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # versiya.test.mjs asosiy shox bilan solishtiradi
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
       - name: Web ilova = golden.json
-        run: node --test tests/web.test.mjs tests/qoidalar.test.mjs
+        run: node --test tests/web.test.mjs tests/qoidalar.test.mjs tests/sinx.test.mjs tests/versiya.test.mjs
       - name: Umumiy Telegram bot serveri (bot-server/worker.js)
         run: node --test tests/bot_server.test.mjs tests/gas_server.test.mjs
 
