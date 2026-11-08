@@ -63,6 +63,9 @@ const BGN = (() => {
         : `<span class="bn-two"><button class="btn btn-sm" data-tg="tgkeep">Yo'q</button><button class="btn btn-sm btn-primary" data-tg="tgnew">Yuklash</button></span>`, ""]); }
     const a = backupAge(), tg = tgAge();
     if ((a === null || a > 7) && (tg === null || tg > 7)) R.push(["info", "💾", a === null ? (tel ? "Ma'lumotlar hali faylga saqlanmagan" : "Ma'lumotlar hali faylga saqlanmagan. Brauzer tozalansa, ma'lumot yo'qolishi mumkin.") : (tel ? `Oxirgi zaxira <b>${a} kun</b> oldin olingan` : `Oxirgi zaxira <b>${a} kun</b> oldin olingan. Brauzer tozalansa, ma'lumot yo'qolishi mumkin.`), `<button class="btn btn-sm btn-primary" data-backup2>Saqlash</button>`, ""]);
+    // o'rnatish taklifi: brauzer ilovani o'rnatishga tayyor bo'lsa (Chrome/Edge), bir marta — «Yo'q» bosilsa boshqa chiqmaydi
+    if (installEvt && !isStandalone() && !D.web.inst_hint && D.classes.length) R.push(["info", "📲", tel ? "Ilovani telefonga o'rnating — internetsiz ham ochiladi" : "Jurnalni kompyuterga ilova sifatida o'rnating: ish stolidan bir bosishda va internetsiz ochiladi.",
+      `<span class="bn-two"><button class="btn btn-sm" data-inst="0">Yo'q</button><button class="btn btn-sm btn-primary" data-inst="1">O'rnatish</button></span>`, ""]);
     const b = feat("bday") ? birthdays(0) : [];
     if (b.length) R.push(["pink", "🎂", `Bugun tug'ilgan kun: ${b.map((x) => `<button class="bn-lnk" data-stud="${x.ci}|${esc(x.s.name)}">${esc(x.s.name)}</button> <span class="bn-mut">(${esc(D.classes[x.ci].name)}${x.age ? `, ${x.age} yosh` : ""})</span>`).join(", ")}${tel ? "" : ". Tabriklashni unutmang!"}`, "", "bday"]);
     if (typeof FNK !== "undefined") R.push(...FNK.rems(tel));   // navbatchi va yaqinlashayotgan BSB/CHSB (funksiyalar.js)
@@ -286,6 +289,7 @@ const BGN = (() => {
     on("[data-backup]", () => exportJson());
     on("[data-backup2]", () => { exportJson(); render(); });
     on("[data-tg]", (b) => tgAction(b.dataset.tg));
+    on("[data-inst]", (b) => { if (b.dataset.inst === "1" && installEvt) { installEvt.prompt(); installEvt.userChoice.finally(() => { installEvt = null; render(); }); } else { D.web.inst_hint = 1; save(); render(); } });
     on("[data-bsrch]", () => searchSheet());
     const f = $("#find", m);
     if (f) {

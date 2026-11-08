@@ -4,7 +4,7 @@
   "description": "Yo'qlama jurnali — web ilova testlari",
   "type": "module",
   "scripts": {
-    "test": "node --test tests/web.test.mjs tests/qoidalar.test.mjs tests/sinx.test.mjs tests/versiya.test.mjs",
+    "test": "node --test tests/web.test.mjs tests/qoidalar.test.mjs tests/sinx.test.mjs tests/saqlash.test.mjs tests/versiya.test.mjs",
     "test:ui": "node --test tests/ui.test.mjs"
   },
   "devDependencies": {
