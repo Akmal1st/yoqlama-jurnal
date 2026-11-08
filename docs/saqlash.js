@@ -28,16 +28,27 @@ const MIGRATE = {
 };
 let NEWER = false;
 const tooNew = (d) => (+((d && d.web) || {}).dv || 0) > DATA_VER;
+/* Bir martalik sozlama o'zgarishlari (tuzilma o'zgarmaydi, shuning uchun DATA_VER oshirilmaydi — hali yangilanmagan
+   qurilmalar faqat o'qish rejimiga tushmasin). Har biri o'z nomi bilan D.web.once ga yoziladi va qaytib bajarilmaydi;
+   yangi qadam ro'yxat oxiriga qo'shiladi, eskilari o'chirilmaydi. */
+const ONCE = [
+  // o'xshash shriftlar olib tashlandi: Times New Roman → Liberation Serif, Liberation Sans → tizim shrifti; ixcham dizayn olib tashlandi
+  ["fonts", (w) => { if (w.font === "times") w.font = "lserif"; else if (w.font === "lsans") w.font = "system"; delete w.density; }],
+  // 2026-10: yangi «Zamonaviy» dizayn hammaga bir marta yoqiladi; eski uslublar Sozlamalar → Dizayn'da qoladi
+  ["ui26", (w) => { if (!w.ui26) { w.ui26 = 1; w.style = "dash"; if (!w.font || w.font === "lserif" || w.font === "times") w.font = "system"; } }],
+  // metod kuni ilovadan olib tashlangan (Akmal, 2026-10-25): o'sha kunlar oddiy dars kuni
+  ["nomethod", (w, d) => { d.settings.method_weekday = null; }],
+];
+function runOnce(d) {
+  const w = d.web, done = new Set(Array.isArray(w.once) ? w.once : []);
+  for (const [id, fn] of ONCE) if (!done.has(id)) { fn(w, d); done.add(id); }
+  w.once = [...done];
+}
 function migrate(d) {
   let v = +d.web.dv || 0;
   if (v > DATA_VER) { NEWER = true; return d; }
   while (v < DATA_VER) { d = (MIGRATE[v] || ((x) => x))(d); v++; }
-  // 2026-10: yangi «Zamonaviy» dizayn hammaga bir marta yoqiladi (Akmal: dizaynni tubdan yangila); eski uslublar Sozlamalar → Dizayn'da qoladi
-  // o'xshash shriftlar olib tashlandi: Times New Roman → Liberation Serif, Liberation Sans → tizim shrifti; ixcham dizayn olib tashlandi
-  if (d.web.font === "times") d.web.font = "lserif"; else if (d.web.font === "lsans") d.web.font = "system";
-  delete d.web.density;
-  if (!d.web.ui26) { d.web.ui26 = 1; d.web.style = "dash"; if (!d.web.font || d.web.font === "lserif") d.web.font = "system"; }
-  d.settings.method_weekday = null;   // metod kuni ilovadan olib tashlangan (Akmal, 2026-10-25): o'sha kunlar oddiy dars kuni
+  runOnce(d);
   d.web.dv = DATA_VER; return d;
 }
 // xotiradagi matn o'qilmasa (buzilgan) — u yo'qolib ketmasin: alohida kalitga ko'chiriladi, idbBoot zaxiradan tiklaydi yoki ogohlantiradi
@@ -95,6 +106,8 @@ function save() {
   try { localStorage.setItem(STORE_KEY, txt); } catch (e) { ok = false; }
   BASE_REV = rev + 1; try { localStorage.setItem(REV_KEY, String(BASE_REV)); } catch (e) { /* kichik kalit — odatda yoziladi */ }
   idbSave(txt);
+  // asosiy xotiraga yozilmadi — yagona yangi nusxa IndexedDB'da: kutmasdan darhol yoziladi (sahifa yopilsa ham yo'qolmasin)
+  if (!ok && IDB.ready) { clearTimeout(IDB.timer); idbFlush(); }
   if (!ok) toast(IDB.ok ? "Brauzerning asosiy xotirasi to'lgan — ma'lumot zaxira xotiraga (IndexedDB) saqlandi. «Sozlamalar → Ma'lumotlar»dan faylga ham saqlab qo'ying."
     : "Saqlab bo'lmadi: brauzer xotirasi to'lgan yoki yopiq. «Sozlamalar → Ma'lumotlar»dan faylga saqlang.");
 }

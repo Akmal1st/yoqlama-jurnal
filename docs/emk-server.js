@@ -266,7 +266,7 @@ const EMKS = (() => {
   /* ───────── eMaktab oynasining «Login va parol» bo'limi (tasdiqlangan maket 2026-11-07, ikki-bolim-maket.html) ───────── */
   function pane() {
     if (need2fa()) return `<div class="ek-warn"><span aria-hidden="true">⚠</span><span><b>eMaktab tasdiqlash kodini so'radi</b>Login va parol to'g'ri, lekin eMaktab qo'shimcha kod so'radi. Bu bo'lim kodni kirita olmaydi. Hozircha «Xatcho'p» bo'limidan foydalaning.</span></div>
-      <div class="ek-acts"><button class="btn" data-ekre>Qayta urinish</button><button class="btn btn-primary" data-ektop="bm">Xatcho'p bo'limiga o'tish</button></div>`;
+      <div class="ek-acts"><button class="btn" data-ekre>Qayta urinish</button><button class="btn btn-primary" data-ektop="bm">Boshqa usullar (xatcho'p, fayl)</button></div>`;
     if (linked()) { const at = typeof D !== "undefined" && D && D.web.emk_at;
       return `<div class="card ek-acc"><span class="ek-ic" aria-hidden="true">e</span><span class="ek-tx"><b>${esc(EMKS.user())}</b><small>Hisob ulangan${at ? ` · oxirgi yangilash: ${esc(new Date(at).toLocaleDateString("uz"))}` : ""}</small></span><button class="btn btn-sm" data-ekun>Uzish</button></div>
       <button class="btn btn-primary ek-wide" data-eksync>Jurnallarni yangilash</button>`; }

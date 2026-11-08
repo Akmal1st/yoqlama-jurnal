@@ -1475,6 +1475,56 @@ test("Zaxira xotira (IndexedDB): tiklash, kunlik nusxalar va ma'lumot versiyasi"
   } finally { await browser.close(); }
 });
 
+test("Brauzer xotirasi (localStorage) to'lsa: o'zgarish IndexedDB'ga yoziladi va qayta ochilganda tiklanadi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 390, height: 844}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+    await page.waitForFunction(() => IDB.ready);
+    // xotira to'ldi: asosiy kalitga yozish QuotaExceededError beradi
+    await page.evaluate(() => {
+      const orig = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (k, v) { if (k === "yoqlama_jurnal") throw new DOMException("full", "QuotaExceededError"); return orig.call(this, k, v); };
+      D.classes[0].students[0].marks[todayIso()] = "9"; D.classes[0].students[0].name = "Xotira To'lgan"; save();
+    });
+    await page.waitForSelector("text=zaxira xotiraga (IndexedDB) saqlandi");
+    // darhol yozilgan bo'lishi kerak (300 ms kutilmaydi)
+    await page.waitForFunction(async () => { const t = await idbReq("kv", "readonly", (st) => st.get("main")); return t && t.includes("Xotira To'lgan"); }, null, {timeout: 2000});
+    assert.ok(!(await page.evaluate(() => localStorage.getItem("yoqlama_jurnal").includes("Xotira To'lgan"))), "localStorage'da eski nusxa qolgan");
+    await page.reload(); await page.waitForFunction(() => IDB.ready);
+    await page.waitForSelector("text=zaxira xotiradan");
+    assert.equal(await page.evaluate(() => D.classes[0].students[0].name), "Xotira To'lgan");
+    assert.equal(await page.evaluate(() => D.classes[0].students[0].marks[todayIso()]), "9");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("«Bugun»da ilovani o'rnatish taklifi: O'rnatish brauzer oynasini ochadi, «Yo'q» dan keyin chiqmaydi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+    assert.equal(await page.locator("[data-inst]").count(), 0, "brauzer taklif qilmasa — karta yo'q");
+    // brauzer «o'rnatish mumkin» deb xabar berdi
+    await page.evaluate(() => { const e = new Event("beforeinstallprompt"); e.prompt = () => { window.__asked = (window.__asked || 0) + 1; }; e.userChoice = Promise.resolve({outcome: "dismissed"}); window.dispatchEvent(e); });
+    await page.waitForSelector("[data-inst='1']");
+    await page.click("[data-inst='1']");
+    assert.equal(await page.evaluate(() => window.__asked), 1);
+    await page.evaluate(() => { const e = new Event("beforeinstallprompt"); e.prompt = () => {}; e.userChoice = Promise.resolve({}); window.dispatchEvent(e); });
+    await page.waitForSelector("[data-inst='0']");
+    await page.click("[data-inst='0']");
+    assert.equal(await page.locator("[data-inst]").count(), 0);
+    assert.equal(await page.evaluate(() => D.web.inst_hint), 1);
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
 test("Uy vazifasi tekshiruvi: darsda belgilash, kartochka va «E'tibor talab qiladi»", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
@@ -3760,10 +3810,10 @@ test("eMaktab: tasdiqlash kodi (2fa) so'ralsa — «Login va parol» bo'limida o
       assert.deepEqual(await page.evaluate(() => [EMKS.linked(), localStorage.getItem("yoqlama_emk_2fa")]), [false, "1"]);
       assert.ok(!(await page.evaluate(() => JSON.stringify(Object.fromEntries(Object.entries(localStorage))))).includes("maxfiy123"));
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-      // «Xatcho'p bo'limiga o'tish» — foydalanuvchi o'zi tanlaydi; keyingi safar oyna shu bo'limda ochiladi
+      // «Boshqa usullar (xatcho'p, fayl)» — foydalanuvchi o'zi tanlaydi; keyingi safar oyna shu bo'limda ochiladi
       await page.click(".modal.ek-dlg [data-ektop=bm]");
       await page.waitForSelector(".modal.ek-dlg [data-et]");
-      assert.match(await page.textContent(".modal.ek-dlg .ek-top .on"), /Xatcho'p/);
+      assert.match(await page.textContent(".modal.ek-dlg .ek-top .on"), /Boshqa usullar/);
       await page.click(".modal.ek-dlg [data-x]");
       await page.click("[data-ekgo]");
       await page.waitForSelector(".modal.ek-dlg [data-et]");
