@@ -26,7 +26,7 @@ const BAX = (() => {
     const T = compareTotal(compareRows(lo, hi, q).filter((r) => r.n));
     const by = [0, 1, 2, 3].map((i) => R.reduce((a, r) => a + r.by[i], 0));
     const wq = R.filter((r) => r.qu !== null), qu = wq.length ? wq.reduce((a, r) => a + r.qu, 0) / wq.length : null;
-    return {q, lo, hi, R, att: T.att, sq: T.qq, qu, by, st: R.reduce((a, r) => a + r.n, 0), avgOf: (k) => { const x = R.filter((r) => r[k] !== null && r[k] !== undefined); return x.length ? x.reduce((a, r) => a + r[k], 0) / x.length : null; }};
+    return {q, lo, hi, R, att: T.att, sq: T.qq, qu, by, st: uniqStudents(R.map((r) => r.c)), avgOf: (k) => { const x = R.filter((r) => r[k] !== null && r[k] !== undefined); return x.length ? x.reduce((a, r) => a + r[k], 0) / x.length : null; }};
   }
   const nm = (r) => esc(label(r.c));
   function dist(by) {
@@ -36,7 +36,7 @@ const BAX = (() => {
   function banner(X) {
     const W = X.R.filter((r) => r.qu !== null), best = [...W].sort((a, b) => b.qu - a.qu)[0], low = [...W].sort((a, b) => a.qu - b.qu)[0];
     return `<section class="ba-x"><div class="ba-xl">
-        <h2>${X.q}-chorak yakunlandi 🔒</h2><p class="ba-xs">${d5(X.lo)} – ${d5(X.hi)} · ${X.R.length} sinf, ${X.st} o'quvchi · natijalar arxivda saqlandi</p>
+        <h2>${X.q}-chorak yakunlandi 🔒</h2><p class="ba-xs">${d5(X.lo)} – ${d5(X.hi)} · ${uniqClasses(X.R.map((r) => r.c))} sinf, ${X.st} o'quvchi · natijalar arxivda saqlandi</p>
         <div class="ba-k"><div><small>O'zlashtirish</small><b>${pc(X.qu)}</b></div><div><small>Davomat</small><b>${pc(X.att)}</b></div><div><small>Sifat (4–5)</small><b>${pc(X.sq)}</b></div><div><small>«2» olganlar</small><b class="${X.by[3] ? "ba-bad" : ""}">${X.by[3]}</b></div></div>
         ${best && W.length > 1 ? `<div class="ba-h"><button data-cls="${best.ci}">🏆<span><b>${nm(best)}</b> — eng yuqori o'zlashtirish</span><b>${pc(best.qu)}</b></button>${low !== best ? `<button data-cls="${low.ci}">⚠<span><b>${nm(low)}</b> — e'tibor kerak${low.risk ? `, ${low.risk} o'quvchi xavfda` : ""}</span><b>${pc(low.qu)}</b></button>` : ""}</div>` : ""}
         <div class="ba-a"><button class="btn btn-primary" data-baxrep="${X.q}">Chorak hisoboti</button><button class="btn" data-axpage="${X.q}">Choraklar arxivi</button></div>

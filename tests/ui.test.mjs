@@ -2107,6 +2107,32 @@ test("emaktab: ilovada bor oldingi chorak qayta olinmaydi, bekor qilish ishlaydi
   } finally { await browser.close(); }
 });
 
+test("Sozlamalar: bir sinfga bir necha fandan kirilsa, o'quvchilar bir marta sanaladi (36 va 18)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+    const r = await page.evaluate(() => {
+      const st = (n, p) => Array.from({length: n}, (_, i) => ({name: `${p} O'quvchi ${i + 1}`}));
+      const mk = (name, subject, n, off = 0) => { const c = JSON.parse(JSON.stringify(D.classes.find((x) => !isGrp(x)))); c.name = name; c.subject = subject;
+        c.students = st(n, name).map((s, i) => ({...c.students[0], ...s, id: name + subject + i, marks: {}})); c.students_off = st(off, name + " ketgan").map((s, i) => ({...c.students[0], ...s, id: "o" + name + subject + i, marks: {}})); return c; };
+      // 9-A (36 o'quvchi) — 3 fan, 5-B (18 o'quvchi) — 2 fan; 5-B nomi boshqacha yozilgan («5-b »)
+      D.classes = D.classes.filter(isGrp).concat([mk("9-A", "Matematika", 36, 2), mk("9-A", "Fizika", 36, 2), mk("9-A", "Algebra", 36), mk("5-B", "Ona tili", 18, 1), mk("5-b ", "Adabiyot", 18)]);
+      S.sec = 0; go("settings");
+      return {tiles: [...document.querySelectorAll(".sz-sum b")].map((b) => +b.textContent),
+        rows: [...document.querySelectorAll(".sz-cls small")].map((x) => parseInt(x.textContent)), u: [uniqStudents(D.classes.filter((c) => !isGrp(c))), uniqClasses(D.classes.filter((c) => !isGrp(c)))]};
+    });
+    assert.deepEqual(r.tiles, [2, 54, 3], "sinf / o'quvchi / faolsiz: 36 + 18 = 54, takrorlanmaydi");
+    assert.deepEqual(r.rows, [36, 36, 36, 18, 18], "har fan qatorida o'z sinfi soni");
+    assert.deepEqual(r.u, [54, 2]);
+    assert.ok(await page.evaluate(() => document.body.innerText.includes("2 sinf · 54 o'quvchi")), "bo'limlar ro'yxatidagi holat ham 54");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
 test("Sozlamalar: bo'limlar guruhlangan, kalitlar holatni ko'rsatadi, telefonda qator sig'adi", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
@@ -2312,7 +2338,7 @@ test("Bugun: sinflar ko'rsatkichi kartasi (davomat, o'zlashtirish)", async () =>
 });
 
 test("Bugun: arxivlangan chorak — xulosa bloki, Kartalar | Reyting (bugun-arxiv.js)", async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     for (const [w, tel] of [[1300, false], [390, true]]) {
       const page = await browser.newPage({viewport: {width: w, height: 900}});
@@ -4212,7 +4238,7 @@ test("Hisobotlar tuzatishlari (2026-11-07): Loyiha belgisi, qisqa izohlar, jami 
 });
 
 test("Bugun: chorak tugagandan keyin — yopish, ta'til, yangi chorak (bugun-tatil.js)", async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     for (const [w, tel] of [[1300, false], [390, true]]) {
       for (const [day, k] of [[31, "grace"], [3, "arx"], [5, "new"]]) {
