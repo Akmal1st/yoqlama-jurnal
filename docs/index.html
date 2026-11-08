@@ -42,6 +42,7 @@
 <link rel="stylesheet" href="loyiha.css?v=205">
 <link rel="stylesheet" href="funksiyalar.css">
 <link rel="stylesheet" href="kalit.css">
+<link rel="stylesheet" href="yangilik.css?v=206">
 </head>
 <body>
 <div class="app" id="app">
@@ -77,6 +78,7 @@
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=205"></script>
 <script src="loyiha.js?v=205"></script>
+<script src="yangilik.js?v=206"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
@@ -1529,7 +1531,7 @@ function renderNav() {
   const cur = S.page === "lesson" ? "journal" : S.page;
   const btns = NAV.map(([k, t]) => `<button class="nav ${cur === k ? "on" : ""}" data-go="${k}" title="${t}">${ICONS[k]}<span class="lbl">${t}</span></button>`).join("");
   const lockTxt = !D.settings.protect.enabled ? "⚠ Himoya o'chiq" : isLocked() ? "🔒 Himoyalangan" : "🔓 Ochiq — qulflash";
-  const hb = `<button class="nav hlp" data-help title="Shu sahifa bo'yicha qo'llanma">${ICONS.help}<span class="lbl">Yordam</span></button>`;
+  const hb = `<button class="nav hlp" data-help title="Shu sahifa bo'yicha qo'llanma">${ICONS.help}<span class="lbl">Yordam</span>${YNG.dot()}</button>`;
   // tartib va yashirilganlar — Sozlamalar → Dizayn → Tugmalar
   const one = Object.fromEntries(NAV.map(([k, t]) => [k, `<button class="nav ${cur === k ? "on" : ""}" data-go="${k}" title="${t}">${ICONS[k]}<span class="lbl">${t}</span></button>`]));
   const navs = DZN.navList().map((k) => k === "help" ? hb : one[k] || "").join("");
@@ -1544,7 +1546,7 @@ function renderNav() {
     if (b.dataset.go === "settings" && SZL.phone()) S.sec = -1;
     go(b.dataset.go);
   });
-  document.querySelectorAll("[data-help]").forEach((b) => b.onclick = () => helpDialog());
+  document.querySelectorAll("[data-help]").forEach((b) => b.onclick = () => YNG.help(() => helpDialog()));
   document.querySelectorAll("[data-cmdk]").forEach((b) => b.onclick = () => cmdPalette());
   const lb = $("[data-lock]"); if (lb) lb.onclick = toggleLock;
   document.querySelectorAll("[data-alf-chip]").forEach((b) => b.onclick = () => ALF.toggle());
@@ -1657,8 +1659,9 @@ function helpDialog(topic = helpTopic()) {
   modal(`<h2>❓ Qo'llanma</h2>
     <div class="hrow chips" style="gap:6px">${HELP.map(([k, n]) => `<button class="chip ${k === topic ? "on" : ""}" data-ht="${k}">${n}</button>`).join("")}</div>
     <div id="hb" class="vcol" style="gap:10px">${body(topic)}</div>
-    <div class="hrow"><span class="sp"></span><button class="btn btn-primary" data-x>Yopish</button></div>`, (m, close) => {
+    <div class="hrow">${YNG.helpBtn()}<span class="sp"></span><button class="btn btn-primary" data-x>Yopish</button></div>`, (m, close) => {
     $(".card", m).classList.add("wide");
+    $("[data-yng-help]", m).onclick = () => { close(); YNG.open(); };
     m.querySelectorAll("[data-ht]").forEach((b) => b.onclick = () => { m.querySelectorAll("[data-ht]").forEach((x) => x.classList.toggle("on", x === b)); $("#hb", m).innerHTML = body(b.dataset.ht); });
     $("[data-x]", m).onclick = () => close();
   });
@@ -1701,7 +1704,7 @@ function render() {
   document.body.classList.toggle("tpt-on", S.page === "groups"); if (S.page !== "groups" && typeof TPT !== "undefined") TPT.leave(); if (typeof HSB !== "undefined") HSB.leave();
   ({today: pageToday, journal: pageJournal, groups: (x) => TPT.page(x), lesson: pageLesson, reports: pageReports, settings: pageSettings, archive: (x) => ARX.page(x)})[S.page](m);
   const pp = $(".perpop"); if (pp) pp.remove();
-  labelTables(m); snapCols();
+  labelTables(m); snapCols(); YNG.mount(m);
 }
 // sahifani yangi holatda chizib, eskisidan faqat o'zgargan qismlarini almashtiradi — butun sahifa «yangilangandek» bo'lmaydi,
 // aylantirish va bosilmagan tugmalar joyida qoladi (o'zgargan qismlar yangi tugmalari bilan keladi)
@@ -1722,7 +1725,7 @@ function softRender() {
   const m = $("#main"), y = window.scrollY, tmp = document.createElement("div");
   EPOCH++; document.querySelectorAll(".bpop").forEach((x) => x.remove());
   ({today: pageToday, journal: pageJournal, groups: (x) => TPT.page(x), lesson: pageLesson, reports: pageReports, settings: pageSettings, archive: (x) => ARX.page(x)})[S.page](tmp);
-  morphKids(m, tmp); labelTables(m); window.scrollTo(0, y);
+  YNG.mount(tmp); morphKids(m, tmp); labelTables(m); window.scrollTo(0, y);
 }
 
 /* ───────── 1. Bugun ───────── */
