@@ -391,7 +391,9 @@ const HSB = (() => {
     // PDF → Telegram (pdf-tg.js)
     m.querySelectorAll("[data-tgpdf]").forEach((b) => b.onclick = () => { const K = KIND[R.kind], pl = perLabel(X), who = R.kind === "cmp" || (R.kind === "blank" && BVQ.isAll()) ? "Barcha sinflar" : label(c);
       const per = (pl ? `${pl[0]}${NEED[R.kind] !== "mon" && pl[1] ? ` · ${pl[1]}` : ""}` : "").replace(/<[^>]+>/g, "").replace(/&[a-z]+;/g, " ");
-      PTG.run(() => R.kind === "blank" ? BVQ.pdfPages(ctx()) : R.kind === "att" ? DVM.pdfPages(ctx()) : PTG.reportPdf(), `${K[2]} ${who} ${per}`, `📄 ${K[2]}\n${who}${per ? "\n" + per : ""}`, b); });
+      const q = R.kind === "cmp" ? rq : null;   // «Sinflarni solishtirish» chorak bo'yicha — chorak hisoboti
+      PTG.run(() => R.kind === "blank" ? BVQ.pdfPages(ctx()) : R.kind === "att" ? DVM.pdfPages(ctx()) : PTG.reportPdf(), `${K[2]} ${who} ${per}`, `📄 ${K[2]}\n${who}${per ? "\n" + per : ""}`, b)
+        .then((ok) => { if (ok && q) PTG.markQ(q); }); });
     // Excel: hisob-kitob va ustunlar avvalgidek
     const on = (sel, fn) => m.querySelectorAll(sel).forEach((b) => b.onclick = fn);
     on("[data-xlsx]", () => {

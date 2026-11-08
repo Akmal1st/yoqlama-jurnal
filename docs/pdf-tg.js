@@ -466,12 +466,22 @@ const PTG = (() => {
     return tgApi("sendDocument", fd);
   }
   let busy = false;
+  // muvaffaqiyatli yuborilsa true qaytaradi (masalan, «Bugun» ta'til ro'yxatidagi «chorak hisobotini yuborish» belgisi uchun)
   async function run(make, name, caption, btn) {
     if (!tgOn()) { if (await confirmBox("Telegram ulanmagan", "PDF hisobot «Telegram'ga zaxira» ulangan botingizga boradi. Hozir ulaysizmi?", "Ulash")) { S.sec = 5; go("settings"); } return; }
     if (busy) return; busy = true; const t0 = btn && btn.textContent; if (btn) { btn.disabled = true; btn.textContent = "⏳ PDF…"; }
-    try { toast("PDF tayyorlanmoqda…"); const b = await make(); await send(b, name, caption); toast("📄 PDF hisobot Telegram'ga yuborildi"); }
+    try { toast("PDF tayyorlanmoqda…"); const b = await make(); await send(b, name, caption); toast("📄 PDF hisobot Telegram'ga yuborildi"); return true; }
     catch (e) { console.warn("PDF/Telegram:", e); toast(e.net ? tgErrTxt(e) : e.message && /Telegram|Bad Request|Forbidden|Unauthorized/.test(e.message) ? tgErrTxt(e) : `PDF yuborilmadi: ${e.message}`); }
     finally { busy = false; if (btn) { btn.disabled = false; btn.textContent = t0; } }
   }
-  return {reportPdf, pagesPdf, send, run, loadLib, parsePath, measure};
+  // chorak hisoboti Telegram'ga yuborildi: D.web.qrep_tg[q] = "chorak boshi|yuborilgan sana" (keyingi yil chorak sanasi o'zgarsa eskiradi)
+  function markQ(q) {
+    const r = q && qRange(q); if (!r) return;
+    D.web.qrep_tg = Object.assign({}, D.web.qrep_tg, {[q]: `${r[0]}|${todayIso()}`}); save();
+  }
+  function sentQ(q) {
+    const r = qRange(q), v = r && (D.web.qrep_tg || {})[q];
+    return v && v.split("|")[0] === r[0] ? v.split("|")[1] : null;
+  }
+  return {reportPdf, pagesPdf, send, run, markQ, sentQ, loadLib, parsePath, measure};
 })();
