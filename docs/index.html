@@ -67,7 +67,7 @@
 <script src="bugun-tatil.js?v=207"></script>
 <script src="bugun.js?v=203"></script>
 <script src="funksiyalar.js?v=204"></script>
-<script src="sozlamalar.js?v=212"></script>
+<script src="sozlamalar.js?v=213"></script>
 <script src="mezon.js?v=193"></script>
 <script src="kunlik.js?v=193"></script>
 <script src="pdf-tg.js?v=207"></script>
@@ -75,7 +75,7 @@
 <script src="arxiv.js?v=207"></script>
 <script src="emk-bir.js?v=197"></script>
 <script src="emk-server.js?v=204"></script>
-<script src="boshlash.js?v=194"></script>
+<script src="boshlash.js?v=213"></script>
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=205"></script>
 <script src="loyiha.js?v=205"></script>
@@ -626,8 +626,8 @@ const pdate = (s) => { const [y, m, d] = s.split("-").map(Number); return new Da
 const pyWd = (s) => (pdate(s).getDay() + 6) % 7;
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const todayIso = () => iso(new Date());
-// o'zgarishlar tarixi va eslatmalar vaqti — MAHALLIY vaqt (kompyuter dasturi ham shunday yozadi). toISOString() UTC beradi:
-// Toshkentda 5 soat orqada ko'rinardi va kompyuter dasturi yozganlari bilan aralashib ketardi
+// o'zgarishlar tarixi va eslatmalar vaqti — MAHALLIY vaqt. toISOString() UTC beradi:
+// Toshkentda 5 soat orqada ko'rinardi
 const nowLocal = (n = 19) => { const d = new Date(); return `${iso(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`.slice(0, n); };
 const fmt = (s) => ISO_D.test(s) ? `${s.slice(8)}.${s.slice(5, 7)}.${s.slice(0, 4)}` : esc(String(s).slice(0, 12));   // HTMLga to'g'ridan-to'g'ri tushadi: noto'g'ri sana hech qachon markup bo'lmaydi
 const longDate = (s) => `${WD_FULL[pyWd(s)]}, ${+s.slice(8)}-${MONTHS_GEN[+s.slice(5, 7) - 1]}`;
@@ -1082,7 +1082,7 @@ function worksInQuarter(c, q) {
 function newWorkId(c) { const ids = c.works.map((w) => String(w.id)).filter((x) => /^w\d+$/.test(x)).map((x) => +x.slice(1)); return "w" + (Math.max(0, ...ids) + 1); }
 function formativeGrades(c, s, rng) {
   if (!rng) return [];
-  // BSB/CHSB kuni oddiy dars o'tilmaydi — o'sha kunga avval qo'yilgan baho ham FBga kirmaydi (kompyuter dasturida ham shunday)
+  // BSB/CHSB kuni oddiy dars o'tilmaydi — o'sha kunga avval qo'yilgan baho ham FBga kirmaydi
   return Object.entries(s.marks).filter(([d]) => rng[0] <= d && d <= rng[1] && !isNoLesson(c, d) && !sumOn(c, d)).flatMap(([, m]) => gradesOf(m));
 }
 function fbInfo(c, s, rng) {
@@ -2793,7 +2793,7 @@ async function renameStudent(ci, si) {
   s.name = n.trim(); save(); render();
 }
 /* ───────── o'quvchini faolsizlantirish: jurnal, hisobot va hisob-kitoblardan yashiriladi, ma'lumoti saqlanadi ─────────
-   Faolsizlar c.students_off da turadi (kompyuter dasturi bu kalitni bilmaydi, shuning uchun u yerda ham ko'rinmaydi). */
+   Faolsizlar c.students_off da turadi. */
 const nMarks = (s) => Object.keys(s.marks).length + Object.keys(s.scores || {}).length;
 const offLog = (c, s, kind) => (D.changelog = D.changelog || []).push({t: nowLocal(), cls: label(c), student: s.name, date: "", old: kind === "off" ? "faol" : "faolsiz", new: kind === "off" ? "faolsiz" : "faol", kind: kind === "off" ? "deactivate" : "activate"});
 function deactivate(c, idx, join = false) {
@@ -3440,7 +3440,7 @@ function ktrDialog(ci) {
   });
 }
 
-/* ───────── BSB tahlili: savollar bo'yicha ballar (kompyuter dasturidagi bsb_stats / bsb_recommendations bilan bir xil) ───────── */
+/* ───────── BSB tahlili: savollar bo'yicha ballar ───────── */
 const gnum = (v) => String(+(+v).toPrecision(6));
 const sumOf = (a) => a.reduce((x, y) => x + y, 0);
 function bsbStats(qmax, rows, ceilTotal) {   // ceilTotal: CHSB testi — umumiy ball yuqoriga butunga yaxlitlanadi
@@ -4783,7 +4783,7 @@ function seatsDialog(ci) {
 }
 
 /* ───────── tug'ilgan kunlar ───────── */
-// s.bday = "YYYY-MM-DD" (yil noma'lum bo'lsa "0000-MM-DD"); kompyuter dasturi o'quvchidagi qo'shimcha kalitlarni saqlab qoladi
+// s.bday = "YYYY-MM-DD" (yil noma'lum bo'lsa "0000-MM-DD")
 // matndan sana: 12.03.2013, 12/03/2013, 2013-03-12, 12.03
 function parseBday(txt) {
   const t = String(txt || "").trim(); let m;

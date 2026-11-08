@@ -136,10 +136,10 @@ const SZL = (() => {
       (on ? row("tgp", "🔐 Zaxirani parol bilan shifrlash", c.pass ? "Yoqilgan. Boshqa qurilmada yuklashda shu parol so'raladi. Parolni unutsangiz, shifrlangan zaxirani ochib bo'lmaydi."
         : "Telegram akkauntingizga begona kirsa ham o'quvchilar ma'lumoti o'qilmasin. Parolni unutsangiz, zaxirani ochib bo'lmaydi.",
         `${c.pass ? `<button class="btn btn-sm" data-a="tgpass">O'zgartirish</button>` : ""}${tog(`data-a="${c.pass ? "tgnopass" : "tgpass"}"`, !!c.pass, "Zaxirani shifrlash")}`) : "") +
-      row("exp", "💾 Faylga saqlash", `journal.json — kompyuterdagi dastur yoki boshqa qurilmada ochish uchun.${age === null ? "" : age > 7 ? ` <span class="sz-warn-t">Oxirgisi ${age} kun oldin.</span>` : ` Oxirgisi ${age ? `${age} kun oldin` : "bugun"}.`}`,
+      row("exp", "💾 Faylga saqlash", `journal.json — boshqa qurilmada ochish yoki xavfsiz saqlab qo'yish uchun.${age === null ? "" : age > 7 ? ` <span class="sz-warn-t">Oxirgisi ${age} kun oldin.</span>` : ` Oxirgisi ${age ? `${age} kun oldin` : "bugun"}.`}`,
         `<button class="btn btn-sm ${age === null || age > 7 ? "btn-primary" : ""}" data-a="exp">Yuklab olish</button>`) +
       row("snaps", "🕒 Kunlik avtomatik nusxalar", `Ilova har kuni jurnal holatini o'zi saqlaydi (oxirgi ${SNAP_DAYS} kun) — xato o'chirilgan ma'lumotni qaytarish mumkin.${IDB.db ? "" : " <span class='sz-warn-t'>Bu brauzerda zaxira xotira ishlamayapti.</span>"}`, `<button class="btn btn-sm" data-a="snaps">Ko'rish</button>`);
-    const imp = row("imp", "📂 Fayldan yuklash", "Kompyuterdagi dasturning journal.json fayli yoki oldin saqlangan zaxira. Hozirgi ma'lumotlar almashtiriladi.", `<button class="btn btn-sm" data-a="imp">Faylni tanlash</button>`) +
+    const imp = row("imp", "📂 Fayldan yuklash", "Oldin saqlangan zaxira (journal.json, eski kompyuter dasturiniki ham). Hozirgi ma'lumotlar almashtiriladi.", `<button class="btn btn-sm" data-a="imp">Faylni tanlash</button>`) +
       row("emk", "🌐 emaktab'dan import", "Saytdan to'g'ridan-to'g'ri yoki «Fan jurnali» Excel fayli: o'quvchilar, baholar, yo'qlama va BSB/CHSB ballari mavjud jurnalga qo'shiladi.",
         pairBtns([["📊 Excel", 'data-a="xls"', 0], ["🌐 emaktab.uz", 'data-a="emk"', 1]]), "wide");
     const yr = row("roll", "🎓 Yangi o'quv yiliga o'tish", "Jurnal arxivlanadi, sinflar o'quvchilari bilan yangi bo'sh jurnalga o'tadi (6-A → 7-A).", `<button class="btn btn-sm" data-a="roll">Boshlash</button>`) +

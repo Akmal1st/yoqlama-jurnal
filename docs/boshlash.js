@@ -9,7 +9,7 @@ const BSH = (() => {
       <div class="bs-main"><div class="bs-mh"><span class="bs-ic e" aria-hidden="true">e</span><span><b>eMaktab'dan olish<span class="bs-rt">Tavsiya</span></b><small>Barcha sinflar, o'quvchilar, baholar va yo'qlama bir yo'la keladi.</small></span></div>
         <button class="btn btn-primary" data-w="emk">eMaktab'ga kirish</button>
         <span class="bs-hint">${typeof EMKS !== "undefined" && EMKS.on() ? "Login va parol yoki xatcho'p orqali. Parol saqlanmaydi." : "eMaktab sahifasidagi xatcho'p orqali."}</span></div>
-      <button class="bs-card" data-w="import"><span class="bs-ic f" aria-hidden="true">📂</span><span><b>Fayldan</b><small>Kompyuter dasturidagi <code>journal.json</code>, zaxira fayli yoki eMaktab Excel fayli. Turi o'zi aniqlanadi.</small></span><span class="bs-ar" aria-hidden="true">›</span></button>
+      <button class="bs-card" data-w="import"><span class="bs-ic f" aria-hidden="true">📂</span><span><b>Fayldan</b><small>Zaxira fayli (<code>journal.json</code>, eski kompyuter dasturiniki ham) yoki eMaktab Excel fayli. Turi o'zi aniqlanadi.</small></span><span class="bs-ar" aria-hidden="true">›</span></button>
       <div class="bs-links"><button class="bs-lnk" data-w="hand">Qo'lda qo'shish</button><span aria-hidden="true">·</span><button class="bs-lnk" data-w="demo">Namuna bilan sinab ko'rish</button></div>
       <p class="bs-hint bs-c">Ma'lumotlar shu qurilmada saqlanadi. Zaxira: «Sozlamalar → Ma'lumotlar».</p></div>`;
   }
