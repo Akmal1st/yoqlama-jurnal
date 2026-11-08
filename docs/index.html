@@ -19,7 +19,8 @@
 <link rel="stylesheet" href="tpt-tema.css?v=213">
 <link rel="stylesheet" href="dizayn.css?v=202">
 <link rel="stylesheet" href="tugmalar.css?v=213">
-<link rel="stylesheet" href="hisobotlar.css?v=213">
+<link rel="stylesheet" href="hisobotlar.css?v=217">
+<link rel="stylesheet" href="hisobot-chop.css?v=217">
 <link rel="stylesheet" href="bosh-varaq.css?v=202">
 <link rel="stylesheet" href="davomat.css?v=213">
 <link rel="stylesheet" href="bsb-eksport.css?v=213">
@@ -58,7 +59,8 @@
 <script src="guruhlar.js?v=213"></script>
 <script src="tugmalar.js?v=213"></script>
 <script src="dizayn.js?v=202"></script>
-<script src="hisobotlar.js?v=207"></script>
+<script src="hisobot-chop.js?v=217"></script>
+<script src="hisobotlar.js?v=217"></script>
 <script src="bosh-varaq.js?v=205"></script>
 <script src="davomat.js?v=213"></script>
 <script src="bsb-eksport.js?v=202"></script>
@@ -79,7 +81,7 @@
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=205"></script>
 <script src="loyiha.js?v=205"></script>
-<script src="yangilik.js?v=216"></script>
+<script src="yangilik.js?v=217"></script>
 <script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=214"></script>
 <script src="telegram.js?v=216"></script>
@@ -948,18 +950,24 @@ function yearResult(c, s) {
           final: fin, final_grade: fin !== null ? grade5(fin) : null};
 }
 function readiness(c, q) {
+  const [cp, rows] = readinessRows(c, q), per = {};
+  for (const r of rows) per[r.name] = r.probs;
+  return [cp, per];
+}
+// o'quvchi tartib raqami bilan (ismdoshlar qo'shilib ketmasin): [sinf muammolari, [{i, name, probs, miss, nfb}]]
+function readinessRows(c, q) {
   const works = worksInQuarter(c, q), cp = [];
   const mb = works.filter((w) => w.type !== "chsb").reduce((a, w) => a + +w.max, 0), mc = works.filter((w) => w.type === "chsb").reduce((a, w) => a + +w.max, 0);
   if (mb !== BSB_TOTAL) cp.push(`${works.some((w) => w.type === "loyiha") ? "BSB + Loyiha ishi" : "BSB"} maksimal ballari yig'indisi ${fmtNum(mb)} (kerak: ${BSB_TOTAL})`);
   if (mc !== CHSB_TOTAL) cp.push(`CHSB maksimal ballari yig'indisi ${fmtNum(mc)} (kerak: ${CHSB_TOTAL})`);
-  const per = {};
-  for (const s of c.students) {
-    const res = quarterResult(c, s, q, works), probs = [];
-    for (const w of works) if (!isNum((s.scores || {})[w.id])) probs.push(`${wTypeName(w)} ${fmt(w.date).slice(0, 5)} — ball yo'q`);
+  const rows = [];
+  c.students.forEach((s, i) => {
+    const res = quarterResult(c, s, q, works), probs = [], miss = [];
+    for (const w of works) if (!isNum((s.scores || {})[w.id])) { probs.push(`${wTypeName(w)} ${fmt(w.date).slice(0, 5)} — ball yo'q`); miss.push(w); }
     if (res.n_fb < fbMin()) probs.push(`formativ baholar ${res.n_fb} ta (kamida ${fbMin()} ta kerak)`);
-    if (probs.length) per[s.name] = probs;
-  }
-  return [cp, per];
+    if (probs.length) rows.push({i, name: s.name, probs, miss, nfb: res.n_fb});
+  });
+  return [cp, rows];
 }
 
 /* ───────── kalendar-tematik reja (KTR) ───────── */
@@ -4265,6 +4273,11 @@ function compareTotal(L) {
 function fitPrint() {
   const sec = $("main section.card"), kind = S.rep && S.rep.kind;
   let st = document.getElementById("pfit-css"); if (st) st.remove();
+  // yangi varaqlar (hisobot-chop.js): o'zi bitta A4 ga mos chiziladi, faqat sahifa o'lchami kerak
+  if (S.page === "reports" && sec && HPR.has(kind)) {
+    st = document.createElement("style"); st.id = "pfit-css"; st.textContent = "@media print{@page{size:A4 portrait;margin:0}}"; document.head.appendChild(st);
+    return 1;
+  }
   if (S.page !== "reports" || !sec || kind === "blank" || kind === "par" || kind === "att") return;
   const mm = 96 / 25.4;
   sec.classList.add("pfit"); document.body.classList.add("pmeas");
