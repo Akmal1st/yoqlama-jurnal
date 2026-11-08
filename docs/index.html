@@ -609,6 +609,22 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({"&": "&amp;", "
 
 function qRange(q) { const r = D.settings.quarters[q - 1]; return r && r[0] && r[1] ? r : null; }
 function quarterOf(s) { for (let q = 1; q <= 4; q++) { const r = qRange(q); if (r && r[0] <= s && s <= r[1]) return q; } return null; }
+/* ta'til kunlari (hech qaysi chorakka kirmaydi): oxirgi tugagan chorak — u bo'lmasa birinchi belgilangani.
+   Avval doim 1-chorak qaytardi: qishki ta'tilda 1-chorak ko'rinardi va yangi ish 1-chorak sanasiga tushardi */
+function viewQuarter(t = todayIso()) {
+  const q = quarterOf(t); if (q) return q;
+  const qs = [1, 2, 3, 4].filter(qRange); if (!qs.length) return 1;
+  return qs.filter((k) => qRange(k)[1] < t).pop() || qs[0];
+}
+/* yangi summativ ish uchun chorak: joriy; ta'tilda — tugagan chorak hali arxivlanmagan bo'lsa o'sha, aks holda keyingisi
+   (arxivlangan chorakka yangi ish qo'shib bo'lmaydi — oldingi chorak keyingisiga aralashmasin) */
+function workQuarter(t = todayIso()) {
+  const q = quarterOf(t); if (q) return q;
+  const qs = [1, 2, 3, 4].filter(qRange); if (!qs.length) return 1;
+  const past = qs.filter((k) => qRange(k)[1] < t).pop(), next = qs.find((k) => qRange(k)[0] > t);
+  const locked = (k) => typeof ARX !== "undefined" && ARX.lockedQ(k);
+  return past && !locked(past) ? past : next || past;
+}
 function isNoLesson(c, s) {
   if (c.extra_x.includes(s)) return true;
   const mw = D.settings.method_weekday;
@@ -878,7 +894,9 @@ function lessonsToday() {
 // to'ldirilmagan darslar: o'tgan dars kunlarida yo'qlama belgilanmagan yoki (mavzu yozib boradigan sinfda) mavzu yo'q
 const GAP_DAYS = 14;
 function lessonGaps(upto = iso(addDays(new Date(), -1)), days = GAP_DAYS) {
-  const lo = iso(addDays(pdate(upto), -days + 1)), out = [];
+  let lo = iso(addDays(pdate(upto), -days + 1)); const out = [];
+  // chorak ichida — faqat shu chorak darslari: o'tgan chorak (va ta'til) kunlari yangi chorak ro'yxatiga aralashmaydi
+  const cq = quarterOf(upto) || quarterOf(todayIso()); if (cq && qRange(cq)[0] > lo) lo = qRange(cq)[0];
   D.classes.forEach((c, ci) => {
     if (isGrp(c)) return;   // to'garak va pullik guruhlarda yo'qlama va mavzu yo'q: faqat kelgan kunlar yoziladi
     // mavzu faqat oxirgi 30 kunda kamida bitta mavzu yozilgan sinflarda so'raladi
@@ -2909,7 +2927,7 @@ function bindTop(m) {
 }
 const g5pill = (g, title = "") => g ? `<span class="pill" title="${esc(title)}" style="background:${gradeColor(G5COL[g])};color:${contrast(gradeColor(G5COL[g]))}">${g}</span>` : `<span class="muted">—</span>`;
 const g5select = (attr, v) => `<select ${attr} class="g5">${["", 5, 4, 3, 2].map((g) => `<option value="${g}" ${String(v ?? "") === String(g) ? "selected" : ""}>${g || "—"}</option>`).join("")}</select>`;
-function curQuarter() { return S.sq || quarterOf(todayIso()) || [1, 2, 3, 4].find(qRange) || 1; }
+function curQuarter() { return S.sq || viewQuarter(); }
 
 function pageSum(m) {
   const c = D.classes[S.ci], q = S.sq = curQuarter(), rng = qRange(q);
@@ -2993,7 +3011,7 @@ function pageSum(m) {
   };
 }
 function workDialog(c, w) {
-  const isNew = !w, q = curQuarter(), r = qRange(q) || [todayIso(), todayIso()];
+  const isNew = !w, q = S.sq && !(typeof ARX !== "undefined" && ARX.lockedQ(S.sq)) ? S.sq : workQuarter(), r = qRange(q) || [todayIso(), todayIso()];
   const t = todayIso(), defDate = w ? w.date : (r[0] <= t && t <= r[1] ? t : r[0]);
   const scored = w && c.students.some((s) => ((s.scores || {})[w.id] ?? "") !== "");
   modal(`<h2>${isNew ? "Summativ ish qo'shish" : "Summativ ish"}</h2>
@@ -4228,7 +4246,7 @@ function studentCard(ci, name, tab = "sum") {
   const tabs = [["sum", "Umumiy"], ["grow", "O'sish"], noteTab, ["msg", "Ota-onaga xabar"]];
   let body = "";
   if (tab === "sum") {
-    const last = c.dates.filter((d) => s.marks[d]).slice(-14), sc = s.scores || {};
+    const last = c.dates.filter((d) => lo <= d && d <= hi && s.marks[d]).slice(-14), sc = s.scores || {};   // faqat joriy chorak belgilari
     const qw = q ? worksInQuarter(c, q) : [], qr = q ? quarterResult(c, s, q, qw) : null;
     body = `<div class="tiles"><div class="tile"><div class="muted">O'rtacha</div><div>${r.avg !== null ? r.avg.toFixed(1) : "—"}</div></div>
       <div class="tile"><div class="muted">Davomat</div><div>${r.att !== null ? Math.round(r.att) + "%" : "—"}</div></div>

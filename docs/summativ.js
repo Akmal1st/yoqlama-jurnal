@@ -111,7 +111,7 @@ const SMV = (() => {
   /* ── yangi ish ── */
   function newDialog(c) {
     if (type() === "loyiha") { LYH.newDialog(c); return; }   // shablon tanlash bilan (loyiha.js)
-    const t = type(), q = quarterOf(todayIso()) || [1, 2, 3, 4].find(qRange) || 1, r = qRange(q) || [todayIso(), todayIso()];
+    const t = type(), q = workQuarter(), r = qRange(q) || [todayIso(), todayIso()];
     const td = todayIso(), defD = r[0] <= td && td <= r[1] ? td : r[0];
     modal(`<h2><i class="sm-dot ${t}"></i> Yangi ${NAME[t]}</h2>
       <div class="muted">${t === "chsb" ? "Test: to'g'ri javob — savolning to'liq bali, noto'g'ri — 0." : t === "loyiha" ? "Mezonlar bo'yicha ball, BSB kabi baholanadi." : "Kriteriali topshiriqlar: har topshiriqqa 0 dan maksimalgacha ball."}</div>

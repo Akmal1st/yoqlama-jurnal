@@ -182,7 +182,8 @@ const BTL = (() => {
   }
   function filterTodo(T, M) {
     if (!M || M.k !== "arx") return T;
-    const gaps = T.gaps.filter((x) => !ARX.dateLocked(x.d, x.c)), an = ARX.lockedQ(T.an.q) ? {q: T.an.q, rows: []} : T.an;
+    const gaps = T.gaps.filter((x) => !ARX.dateLocked(x.d, x.c) && quarterOf(x.d)),   // ta'til kunidagi (hech qaysi chorakka kirmagan) darslar ham chiqmaydi
+      an = ARX.lockedQ(T.an.q) ? {q: T.an.q, rows: []} : T.an;
     return {...T, gaps, an, lk: lockedInfo(M), n: gaps.length + an.rows.length + T.qrows.length + T.ktr.length};
   }
   const lockedRow = (M, lk) => lk ? `<div class="bt-lock"><span class="bt-li">🔒</span><span class="bt-tx"><b>${M.q}-chorakdan qolgan: ${[lk.g ? `${lk.g} ta dars` : "", lk.a ? `${lk.a} ta tahlil` : ""].filter(Boolean).join(", ")}</b><small>Chorak arxivlangan — o'zgartirish uchun vaqtincha oching.</small></span><button class="btn btn-sm" data-axopen="${M.q}">🔓 Ochish</button></div>` : "";
