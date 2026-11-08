@@ -1309,6 +1309,12 @@ function emaktabSheet(rows, sheetName) {
   return out;
 }
 const normName = (n) => String(n).normalize("NFKC").toLowerCase().replace(/[‘’ʻʼ`´′]/g, "'").replace(/\s+/g, " ").trim();
+// bir sinfga bir necha fandan kirilsa, sinf (6-A · Matematika, 6-A · Fizika) ro'yxatda bir necha marta bo'ladi —
+// jami sonlarda o'quvchi va sinf bir marta sanaladi (sinf nomi + o'quvchi ismi bo'yicha)
+const stuKeys = (cl, k = "students") => { const s = new Set(); for (const c of cl) for (const x of c[k] || []) s.add(normName(c.name) + "\u0001" + normName(x.name)); return s; };
+const uniqStudents = (cl) => stuKeys(cl).size;
+const uniqOff = (cl) => { const on = stuKeys(cl); return [...stuKeys(cl, "students_off")].filter((k) => !on.has(k)).length; };
+const uniqClasses = (cl) => new Set(cl.map((c) => normName(c.name))).size;
 const clsKey = (n) => String(n || "").replace(/\s+/g, "").toLowerCase();
 function findClass(name, subject) {
   const same = D.classes.filter((c) => clsKey(c.name) === clsKey(name)), sk = clsKey(subject);

@@ -34,7 +34,7 @@ const SZL = (() => {
   // bo'lim holati (ro'yxatda nom ostida): [matn, e'tibor kerakmi]
   function status(i) {
     const st = D.settings, cl = userCls();
-    if (i === 0) return [`${cl.length} sinf · ${cl.reduce((a, c) => a + c.students.length, 0)} o'quvchi`, 0];
+    if (i === 0) return [`${uniqClasses(cl)} sinf · ${uniqStudents(cl)} o'quvchi`, 0];
     if (i === 1) { const n = noDays().length; return n ? [`${n} ta sinfda dars kunlari yo'q`, 1] : [sched() ? "Jadval kiritilgan" : "Jadval kiritilmagan", 0]; }
     if (i === 2) return [`${RISK_TYPES.filter(([k]) => st.risk.on[k]).length} / ${RISK_TYPES.length} xavf turi yoqilgan`, 0];
     if (i === 3) { const z = dz(), t = typeof DZN !== "undefined" ? DZN.THEMES[z.theme] : null; return [t ? `${t[0]} · ${DZN.isDark() ? "tungi" : "kunduzgi"}` : "", 0]; }
@@ -46,8 +46,8 @@ const SZL = (() => {
   /* ───────── bo'limlar: {body, acts, what} ───────── */
   function sec0() {
     const cl = D.classes.map((c, i) => [c, i]).filter(([c]) => !isGrp(c)), tel = phone();
-    const nS = cl.reduce((a, [c]) => a + c.students.length, 0), nO = cl.reduce((a, [c]) => a + c.students_off.length, 0);
-    const sum = `<div class="sz-sum"><div><b>${cl.length}</b><small>sinf</small></div><div><b>${nS}</b><small>o'quvchi</small></div><div><b>${nO}</b><small>faolsiz</small></div></div>`;
+    const cc = cl.map(([c]) => c), nS = uniqStudents(cc), nO = uniqOff(cc);
+    const sum = `<div class="sz-sum"><div><b>${uniqClasses(cc)}</b><small>sinf</small></div><div><b>${nS}</b><small>o'quvchi</small></div><div><b>${nO}</b><small>faolsiz</small></div></div>`;
     const rows = cl.map(([c, i]) => {
       const off = c.students_off.length, sub = `${c.students.length} o'quvchi${off ? ` · +${off} faolsiz` : ""} · ${c.dates.length ? `${c.dates.length} dars kuni` : `<span class="sz-warn-t">dars kunlari yo'q</span>`}`;
       return tel
