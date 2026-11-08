@@ -4760,3 +4760,30 @@ test("Ta'til: arxivlangan chorakdan keyin «joriy davr» — keyingi chorak, esk
     }
   } finally { await browser.close(); }
 });
+
+test("ikki oyna: biri saqlagan baho ikkinchisida yo'qolmaydi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const ctx = await browser.newContext({viewport: {width: 1440, height: 900}});
+    const a = await ctx.newPage(), errors = [];
+    a.on("pageerror", (e) => errors.push(e.message));
+    await a.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await a.goto(APP);
+    const [chooser] = await Promise.all([a.waitForEvent("filechooser"), a.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE);
+    await a.waitForSelector(".bn-hd");
+    const b = await ctx.newPage(); b.on("pageerror", (e) => errors.push(e.message));
+    await b.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await b.goto(APP); await b.waitForSelector(".bn-hd");
+    // B oynada baho qo'yildi → A oyna o'zi yangilanadi
+    await b.evaluate(() => { D.classes[0].students[0].marks["2026-10-20"] = "9"; save(); });
+    await a.waitForFunction(() => D.classes[0].students[0].marks["2026-10-20"] === "9", null, {timeout: 5000});
+    // A oyna yangilanishni olmagan bo'lsa (masalan, oyna ochiq dialog bilan band edi): eski nusxa B ning bahosini bosib ketmaydi
+    await b.evaluate(() => { D.classes[0].students[1].marks["2026-10-20"] = "s"; save(); });
+    await a.evaluate(() => { BASE_REV = 0; D.classes[0].students[2].marks["2026-10-20"] = "7"; save(); });
+    const kept = await a.evaluate(() => JSON.parse(localStorage.getItem(STORE_KEY)).classes[0].students.map((s) => s.marks["2026-10-20"] || ""));
+    assert.deepEqual(kept.slice(0, 3), ["9", "s", ""], "B oynaning baholari saqlanib qoldi, A ning eski nusxasi yozilmadi");
+    assert.equal(await a.evaluate(() => D.classes[0].students[1].marks["2026-10-20"]), "s", "A oyna yangi holatni yukladi");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});

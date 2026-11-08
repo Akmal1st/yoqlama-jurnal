@@ -11,37 +11,37 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Yo'qlama jurnali</title>
-<link rel="stylesheet" href="vendor/bootstrap-5.3.3.css">
-<link rel="stylesheet" href="vendor/bootstrap-icons-1.11.3.css">
-<link rel="stylesheet" href="app.css">
-<link rel="stylesheet" href="guruhlar.css">
-<link rel="stylesheet" href="tpt-mavzu.css">
-<link rel="stylesheet" href="tpt-tema.css">
+<link rel="stylesheet" href="vendor/bootstrap-5.3.3.css?v=213">
+<link rel="stylesheet" href="vendor/bootstrap-icons-1.11.3.css?v=213">
+<link rel="stylesheet" href="app.css?v=213">
+<link rel="stylesheet" href="guruhlar.css?v=213">
+<link rel="stylesheet" href="tpt-mavzu.css?v=213">
+<link rel="stylesheet" href="tpt-tema.css?v=213">
 <link rel="stylesheet" href="dizayn.css?v=202">
-<link rel="stylesheet" href="tugmalar.css">
-<link rel="stylesheet" href="hisobotlar.css">
+<link rel="stylesheet" href="tugmalar.css?v=213">
+<link rel="stylesheet" href="hisobotlar.css?v=213">
 <link rel="stylesheet" href="bosh-varaq.css?v=202">
-<link rel="stylesheet" href="davomat.css">
-<link rel="stylesheet" href="bsb-eksport.css">
+<link rel="stylesheet" href="davomat.css?v=213">
+<link rel="stylesheet" href="bsb-eksport.css?v=213">
 <link rel="stylesheet" href="bsb-yangi.css?v=202">
-<link rel="stylesheet" href="bugun.css">
-<link rel="stylesheet" href="bajarish.css">
-<link rel="stylesheet" href="bugun-arxiv.css">
+<link rel="stylesheet" href="bugun.css?v=213">
+<link rel="stylesheet" href="bajarish.css?v=213">
+<link rel="stylesheet" href="bugun-arxiv.css?v=213">
 <link rel="stylesheet" href="bugun-tatil.css?v=199">
-<link rel="stylesheet" href="sozlamalar.css">
-<link rel="stylesheet" href="mezon.css">
-<link rel="stylesheet" href="kunlik.css">
-<link rel="stylesheet" href="arxiv.css">
-<link rel="stylesheet" href="arxiv-tekshir.css">
-<link rel="stylesheet" href="ikon.css">
+<link rel="stylesheet" href="sozlamalar.css?v=213">
+<link rel="stylesheet" href="mezon.css?v=213">
+<link rel="stylesheet" href="kunlik.css?v=213">
+<link rel="stylesheet" href="arxiv.css?v=213">
+<link rel="stylesheet" href="arxiv-tekshir.css?v=213">
+<link rel="stylesheet" href="ikon.css?v=213">
 <link rel="stylesheet" href="emk-bir.css?v=197">
-<link rel="stylesheet" href="boshlash.css">
-<link rel="stylesheet" href="alifbo.css">
+<link rel="stylesheet" href="boshlash.css?v=213">
+<link rel="stylesheet" href="alifbo.css?v=213">
 <link rel="stylesheet" href="taxminiy.css?v=193">
 <link rel="stylesheet" href="summativ.css?v=193">
 <link rel="stylesheet" href="loyiha.css?v=205">
-<link rel="stylesheet" href="funksiyalar.css">
-<link rel="stylesheet" href="kalit.css">
+<link rel="stylesheet" href="funksiyalar.css?v=213">
+<link rel="stylesheet" href="kalit.css?v=213">
 <link rel="stylesheet" href="yangilik.css?v=206">
 </head>
 <body>
@@ -51,38 +51,40 @@
   <nav class="tabbar" id="tabbar"></nav>
 </div>
 <input type="file" id="file" accept=".json,application/json" class="hide">
-<script src="alifbo.js"></script>
-<script src="ikon.js"></script>
-<script src="tpt-mavzu.js"></script>
-<script src="guruhlar.js"></script>
-<script src="tugmalar.js"></script>
+<script src="xato.js?v=212"></script>
+<script src="alifbo.js?v=213"></script>
+<script src="ikon.js?v=213"></script>
+<script src="tpt-mavzu.js?v=213"></script>
+<script src="guruhlar.js?v=213"></script>
+<script src="tugmalar.js?v=213"></script>
 <script src="dizayn.js?v=202"></script>
 <script src="hisobotlar.js?v=207"></script>
 <script src="bosh-varaq.js?v=205"></script>
-<script src="davomat.js"></script>
+<script src="davomat.js?v=213"></script>
 <script src="bsb-eksport.js?v=202"></script>
 <script src="bsb-yangi.js?v=202"></script>
-<script src="bugun-arxiv.js"></script>
+<script src="bugun-arxiv.js?v=213"></script>
 <script src="bugun-tatil.js?v=207"></script>
 <script src="bugun.js?v=203"></script>
 <script src="funksiyalar.js?v=204"></script>
-<script src="sozlamalar.js?v=203"></script>
+<script src="sozlamalar.js?v=213"></script>
 <script src="mezon.js?v=193"></script>
 <script src="kunlik.js?v=193"></script>
 <script src="pdf-tg.js?v=207"></script>
-<script src="tg-umumiy.js"></script>
+<script src="tg-umumiy.js?v=213"></script>
 <script src="arxiv.js?v=207"></script>
 <script src="emk-bir.js?v=197"></script>
 <script src="emk-server.js?v=204"></script>
-<script src="boshlash.js?v=194"></script>
+<script src="boshlash.js?v=213"></script>
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=205"></script>
 <script src="loyiha.js?v=205"></script>
 <script src="yangilik.js?v=207"></script>
+<script src="saqlash.js?v=213"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
-const STORE_KEY = "yoqlama_jurnal";
+// STORE_KEY, load/save, migratsiya va IndexedDB — saqlash.js da (asosiy skriptdan oldin ulanadi)
 const WD = ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"];
 const WD_FULL = ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"];
 const MONTHS = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
@@ -382,147 +384,6 @@ function normalize(d) {
   if (!d.v2.ranges3 && !d.web.ranges3) { st.ranges = clone(DEFAULTS.ranges); d.web.ranges3 = true; }
   return d;
 }
-/* Ma'lumot versiyasi: D.web.dv. Tuzilma o'zgarsa DATA_VER oshiriladi va MIGRATE ga [eski dv] → yangi qadam qo'shiladi.
-   Yangiroq ilovada saqlangan ma'lumotni eski ilova ustidan yozmaydi (NEWER). */
-const DATA_VER = 2;
-const MIGRATE = {
-  0: (d) => d,   // 0 → 1: versiya belgisi va saqlash vaqti qo'shildi, tuzilma o'zgarmagan
-  // 1 → 2: guruhlarda yo'qlama o'rniga «dars o'tildi» (ot) / «o'tilmadi» (ox). Yo'qlama qilingan kunlarda:
-  // belgisiz yoki kech qolgan → o'tildi, kelmagan (s/dq/k) → o'tilmadi
-  1: (d) => {
-    const t = todayIso();
-    for (const c of d.classes) {
-      if (!(c.kind === "club" || c.kind === "paid")) continue;
-      for (const dt of c.dates) {
-        if (dt > t || !((c.att_ok || []).includes(dt) || c.students.some((s) => s.marks[dt]))) continue;
-        for (const s of c.students) {
-          if (s.joined && dt < s.joined) continue;
-          const mk = s.marks[dt] || "";
-          if (["s", "dq", "k"].includes(mk)) s.marks[dt] = "ox"; else if (!mk || mk === "kq") s.marks[dt] = "ot";
-        }
-      }
-    }
-    return d;
-  },
-};
-let NEWER = false;
-const tooNew = (d) => (+((d && d.web) || {}).dv || 0) > DATA_VER;
-function migrate(d) {
-  let v = +d.web.dv || 0;
-  if (v > DATA_VER) { NEWER = true; return d; }
-  while (v < DATA_VER) { d = (MIGRATE[v] || ((x) => x))(d); v++; }
-  // 2026-10: yangi «Zamonaviy» dizayn hammaga bir marta yoqiladi (Akmal: dizaynni tubdan yangila); eski uslublar Sozlamalar → Dizayn'da qoladi
-  // o'xshash shriftlar olib tashlandi: Times New Roman → Liberation Serif, Liberation Sans → tizim shrifti; ixcham dizayn olib tashlandi
-  if (d.web.font === "times") d.web.font = "lserif"; else if (d.web.font === "lsans") d.web.font = "system";
-  delete d.web.density;
-  if (!d.web.ui26) { d.web.ui26 = 1; d.web.style = "dash"; if (!d.web.font || d.web.font === "lserif") d.web.font = "system"; }
-  d.settings.method_weekday = null;   // metod kuni ilovadan olib tashlangan (Akmal, 2026-10-25): o'sha kunlar oddiy dars kuni
-  d.web.dv = DATA_VER; return d;
-}
-// xotiradagi matn o'qilmasa (buzilgan) — u yo'qolib ketmasin: alohida kalitga ko'chiriladi, idbBoot zaxiradan tiklaydi yoki ogohlantiradi
-let LOAD_BROKEN = false;
-function load() {
-  let t = null;
-  try { t = localStorage.getItem(STORE_KEY); } catch (e) { console.warn(e); }
-  if (t) {
-    try { return migrate(normalize(JSON.parse(t))); } catch (e) {
-      console.warn(e); LOAD_BROKEN = true;
-      try { localStorage.setItem(STORE_KEY + "_buzilgan", t); } catch (e2) { /* joy yo'q — IndexedDB'dagi nusxa qoladi */ }
-    }
-  }
-  return migrate(normalize({web: {off: Object.fromEntries(SIMPLE_OFF.map((k) => [k, 1]))}}));
-}
-// ko'p belgini birdan qo'yishda (hammasi keldi) har biri uchun butun jurnalni qayta yozmaslik: oxirida bir marta saqlanadi
-const SAVE_HOLD = {n: 0, dirty: false};
-function batch(fn) {
-  SAVE_HOLD.n++;
-  try { return fn(); } finally { if (!--SAVE_HOLD.n && SAVE_HOLD.dirty) { SAVE_HOLD.dirty = false; save(); } }
-}
-// hisobot keshi davri — har saqlashda yangilanadi (pastda: memo)
-let EPOCH = 0; const MEMO = new WeakMap();
-function save() {
-  EPOCH++;
-  if (SAVE_HOLD.n) { SAVE_HOLD.dirty = true; return; }
-  if (NEWER) { toast("Bu ma'lumot ilovaning yangiroq versiyasida saqlangan — o'zgarish saqlanmadi. Sahifani yangilang."); return; }
-  D.web.dv = DATA_VER; D.web.saved = new Date().toISOString();
-  const txt = JSON.stringify(D); let ok = true;
-  try { localStorage.setItem(STORE_KEY, txt); } catch (e) { ok = false; }
-  idbSave(txt);
-  if (!ok) toast(IDB.ok ? "Brauzerning asosiy xotirasi to'lgan — ma'lumot zaxira xotiraga (IndexedDB) saqlandi. «Sozlamalar → Ma'lumotlar»dan faylga ham saqlab qo'ying."
-    : "Saqlab bo'lmadi: brauzer xotirasi to'lgan yoki yopiq. «Sozlamalar → Ma'lumotlar»dan faylga saqlang.");
-}
-
-/* ───────── IndexedDB: asosiy xotiraning nusxasi va kunlik avtomatik nusxalar ───────── */
-// "kv": main → oxirgi holat (JSON matn); "snap": YYYY-MM-DD → {at, txt} — oxirgi SNAP_DAYS kun
-const IDB = {db: null, ok: false, ready: false, pend: null, timer: null, pruned: ""};
-const SNAP_DAYS = 14;
-function idbOpen() {
-  return new Promise((res) => {
-    if (typeof indexedDB === "undefined") return res(null);
-    try {
-      const r = indexedDB.open("yoqlama_jurnal", 1);
-      r.onupgradeneeded = () => { const db = r.result; if (!db.objectStoreNames.contains("kv")) db.createObjectStore("kv"); if (!db.objectStoreNames.contains("snap")) db.createObjectStore("snap"); };
-      r.onsuccess = () => res(r.result); r.onerror = () => res(null); r.onblocked = () => res(null);
-    } catch (e) { res(null); }
-  });
-}
-function idbReq(store, mode, fn) {
-  return new Promise((res, rej) => {
-    if (!IDB.db) return res(null);
-    try { const tx = IDB.db.transaction(store, mode), st = tx.objectStore(store), r = fn(st); tx.oncomplete = () => res(r && r.result); tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error); }
-    catch (e) { rej(e); }
-  });
-}
-function idbSave(txt) {
-  IDB.pend = txt; if (!IDB.ready) return;
-  clearTimeout(IDB.timer); IDB.timer = setTimeout(idbFlush, 300);
-}
-async function idbFlush() {
-  const txt = IDB.pend; if (txt === null || !IDB.db) return; IDB.pend = null;
-  const day = todayIso();
-  try {
-    await idbReq("kv", "readwrite", (st) => st.put(txt, "main"));
-    await idbReq("snap", "readwrite", (st) => st.put({at: new Date().toISOString(), txt}, day));
-    // eski nusxalarni tozalash — kuniga bir marta yetadi
-    if (IDB.pruned !== day) {
-      const keys = (await idbReq("snap", "readonly", (st) => st.getAllKeys())) || [];
-      // oxirgi SNAP_DAYS KUN saqlanadi: «tiklashdan oldingi» nusxalar (kalit oxirida «~») kunlar sonini kamaytirmaydi
-      const days = [...new Set(keys.map((k) => String(k).slice(0, 10)))].sort(), keep = new Set(days.slice(-SNAP_DAYS));
-      const old = keys.filter((k) => !keep.has(String(k).slice(0, 10)));
-      if (old.length) await idbReq("snap", "readwrite", (st) => old.forEach((k) => st.delete(k)));
-      IDB.pruned = day;
-    }
-    IDB.ok = true;
-  } catch (e) { IDB.ok = false; console.warn("IndexedDB:", e); }
-}
-window.addEventListener("pagehide", () => { if (IDB.pend !== null) idbFlush(); });
-const savedAt = (d) => Date.parse((d && d.web && d.web.saved) || "") || 0;
-// ishga tushganda: localStorage bo'sh, buzilgan yoki eskiroq bo'lsa — IndexedDB'dagi nusxadan tiklash
-async function idbBoot() {
-  IDB.db = await idbOpen(); IDB.ok = !!IDB.db;
-  if (IDB.db) {
-    try {
-      const txt = await idbReq("kv", "readonly", (st) => st.get("main"));
-      const I = txt ? JSON.parse(txt) : null;
-      if (I && Array.isArray(I.classes) && (savedAt(I) > savedAt(D) || !D.classes.length && I.classes.length)) {
-        NEWER = false; D = migrate(normalize(I)); autoDates();
-        try { localStorage.setItem(STORE_KEY, JSON.stringify(D)); } catch (e) { /* to'lgan bo'lsa ham IndexedDB'da bor */ }
-        render(); toast("Ma'lumotlar zaxira xotiradan (IndexedDB) tiklandi");
-      }
-    } catch (e) { console.warn("IndexedDB:", e); }
-  }
-  if (LOAD_BROKEN && !D.classes.length) toast("Brauzer xotirasidagi jurnal buzilgan, zaxira xotirada ham nusxa topilmadi. Buzilgan matn alohida saqlab qo'yildi. Faylga yoki Telegram'ga saqlangan zaxiradan yuklang (Sozlamalar → Ma'lumotlar).");
-  IDB.ready = true;
-  if (!NEWER) idbSave(JSON.stringify(D));
-  // brauzer joy tanqisligida ma'lumotni o'chirib yubormasligi uchun
-  try { if (navigator.storage && navigator.storage.persist && !(await navigator.storage.persisted())) await navigator.storage.persist(); } catch (e) { /* qo'llab-quvvatlanmaydi */ }
-}
-// jurnal butunlay almashtirilishidan oldin (fayldan, Telegram'dan, nusxadan tiklash) hozirgi holat alohida nusxa bo'lib qoladi:
-// aks holda keyingi saqlash bugungi kunlik nusxani yangi ma'lumot bilan bosib ketadi va bugungi ish qaytarib bo'lmaydi
-async function keepBefore() {
-  if (!IDB.db || !D.classes.length) return;
-  try { const cur = JSON.stringify(D); await idbReq("snap", "readwrite", (st) => st.put({at: new Date().toISOString(), txt: cur}, todayIso() + "~")); } catch (e) { /* bo'lmasa ham davom etamiz */ }
-}
 async function snapsDialog() {
   if (!IDB.db) { toast("Bu brauzerda zaxira xotira (IndexedDB) ishlamayapti"); return; }
   await idbFlush();
@@ -599,8 +460,8 @@ const pdate = (s) => { const [y, m, d] = s.split("-").map(Number); return new Da
 const pyWd = (s) => (pdate(s).getDay() + 6) % 7;
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const todayIso = () => iso(new Date());
-// o'zgarishlar tarixi va eslatmalar vaqti — MAHALLIY vaqt (kompyuter dasturi ham shunday yozadi). toISOString() UTC beradi:
-// Toshkentda 5 soat orqada ko'rinardi va kompyuter dasturi yozganlari bilan aralashib ketardi
+// o'zgarishlar tarixi va eslatmalar vaqti — MAHALLIY vaqt. toISOString() UTC beradi:
+// Toshkentda 5 soat orqada ko'rinardi
 const nowLocal = (n = 19) => { const d = new Date(); return `${iso(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`.slice(0, n); };
 const fmt = (s) => ISO_D.test(s) ? `${s.slice(8)}.${s.slice(5, 7)}.${s.slice(0, 4)}` : esc(String(s).slice(0, 12));   // HTMLga to'g'ridan-to'g'ri tushadi: noto'g'ri sana hech qachon markup bo'lmaydi
 const longDate = (s) => `${WD_FULL[pyWd(s)]}, ${+s.slice(8)}-${MONTHS_GEN[+s.slice(5, 7) - 1]}`;
@@ -1055,7 +916,7 @@ function worksInQuarter(c, q) {
 function newWorkId(c) { const ids = c.works.map((w) => String(w.id)).filter((x) => /^w\d+$/.test(x)).map((x) => +x.slice(1)); return "w" + (Math.max(0, ...ids) + 1); }
 function formativeGrades(c, s, rng) {
   if (!rng) return [];
-  // BSB/CHSB kuni oddiy dars o'tilmaydi — o'sha kunga avval qo'yilgan baho ham FBga kirmaydi (kompyuter dasturida ham shunday)
+  // BSB/CHSB kuni oddiy dars o'tilmaydi — o'sha kunga avval qo'yilgan baho ham FBga kirmaydi
   return Object.entries(s.marks).filter(([d]) => rng[0] <= d && d <= rng[1] && !isNoLesson(c, d) && !sumOn(c, d)).flatMap(([, m]) => gradesOf(m));
 }
 function fbInfo(c, s, rng) {
@@ -1456,7 +1317,7 @@ function log(c, s, date, old, nw) {
   if (!old) return;
   const lg = D.changelog = D.changelog || [];
   lg.push({t: nowLocal(), cls: label(c), student: s.name, sid: s.id, date, old, new: nw, kind: nw ? "edit" : "clear"});
-  if (lg.length > 5000) lg.splice(0, lg.length - 5000);
+  if (lg.length > LOG_MAX) lg.splice(0, lg.length - LOG_MAX);
 }
 /* bitta katakka belgi: faqat bugungi kun; mavjud baho — qulf ochiq bo'lsa */
 // qulf faqat qo'yilgan bahoni o'zgartirishni to'sadi: baho qo'shish va KQ (kech qoldi) katagiga baho qo'yish mumkin
@@ -2628,6 +2489,16 @@ async function settingsAction(a, i) {
   else if (a === "remt") { const p = remPlan()[0] || {title: "1-soat · 08:00 — Sinov", body: "Eslatma shunday ko'rinadi"}; remShow(Object.assign({}, p, {key: "test" + Date.now()})); }
   else if (a === "exp") exportJson();
   else if (a === "snaps") snapsDialog();
+  else if (a === "errs") {
+    const list = ERRLOG.list().reverse(), txt = list.map((e) => `${e.t} ${e.src} ${e.msg}`).join("\n");
+    modal(`<h2>Xatolar ro'yxati</h2><div class="muted">Oxirgi ${list.length} ta kutilmagan xato. Bu yerda o'quvchilar ma'lumoti yo'q.</div>
+      <textarea class="form-control" readonly rows="10" style="font:12px monospace">${esc(txt)}</textarea>
+      <div class="hrow"><button class="btn btn-outline-danger" data-clr>Tozalash</button><span class="sp"></span><button class="btn" data-x>Yopish</button><button class="btn btn-primary" data-cp>Nusxalash</button></div>`, (mm, close) => {
+      $("[data-x]", mm).onclick = () => close();
+      $("[data-cp]", mm).onclick = async () => { try { await navigator.clipboard.writeText(`Yo'qlama jurnali · ${navigator.userAgent.slice(0, 120)}\n${txt}`); toast("Nusxalandi"); } catch (e) { $("textarea", mm).select(); } };
+      $("[data-clr]", mm).onclick = () => { ERRLOG.clear(); close(); render(); toast("Xatolar ro'yxati tozalandi"); };
+    });
+  }
   else if (a === "imp") importJson();
   else if (a === "hist") {
     const all = D.changelog || [], lg = all.map((e, k) => [e, k]).slice(-300).reverse();
@@ -2756,7 +2627,7 @@ async function renameStudent(ci, si) {
   s.name = n.trim(); save(); render();
 }
 /* ───────── o'quvchini faolsizlantirish: jurnal, hisobot va hisob-kitoblardan yashiriladi, ma'lumoti saqlanadi ─────────
-   Faolsizlar c.students_off da turadi (kompyuter dasturi bu kalitni bilmaydi, shuning uchun u yerda ham ko'rinmaydi). */
+   Faolsizlar c.students_off da turadi. */
 const nMarks = (s) => Object.keys(s.marks).length + Object.keys(s.scores || {}).length;
 const offLog = (c, s, kind) => (D.changelog = D.changelog || []).push({t: nowLocal(), cls: label(c), student: s.name, date: "", old: kind === "off" ? "faol" : "faolsiz", new: kind === "off" ? "faolsiz" : "faol", kind: kind === "off" ? "deactivate" : "activate"});
 function deactivate(c, idx, join = false) {
@@ -3403,7 +3274,7 @@ function ktrDialog(ci) {
   });
 }
 
-/* ───────── BSB tahlili: savollar bo'yicha ballar (kompyuter dasturidagi bsb_stats / bsb_recommendations bilan bir xil) ───────── */
+/* ───────── BSB tahlili: savollar bo'yicha ballar ───────── */
 const gnum = (v) => String(+(+v).toPrecision(6));
 const sumOf = (a) => a.reduce((x, y) => x + y, 0);
 function bsbStats(qmax, rows, ceilTotal) {   // ceilTotal: CHSB testi — umumiy ball yuqoriga butunga yaxlitlanadi
@@ -4746,7 +4617,7 @@ function seatsDialog(ci) {
 }
 
 /* ───────── tug'ilgan kunlar ───────── */
-// s.bday = "YYYY-MM-DD" (yil noma'lum bo'lsa "0000-MM-DD"); kompyuter dasturi o'quvchidagi qo'shimcha kalitlarni saqlab qoladi
+// s.bday = "YYYY-MM-DD" (yil noma'lum bo'lsa "0000-MM-DD")
 // matndan sana: 12.03.2013, 12/03/2013, 2013-03-12, 12.03
 function parseBday(txt) {
   const t = String(txt || "").trim(); let m;

@@ -136,3 +136,15 @@ test("Belgi son (8) yoki null bo'lsa ham jurnal ochiladi: normalize belgini matn
   assert.equal(m0["2026-09-09"], "8"); assert.ok(!("2026-09-11" in m0)); assert.ok(!("2026-09-09" in B.D.classes[0].students[1].marks));
   assert.doesNotThrow(() => B.reportRows(B.D.classes[0], ...B.periodNow()));
 });
+
+test("index.html: har JS/CSS faylda ?v= bor va u sw.js CORE ro'yxatida (oflayn ochilishi uchun)", () => {
+  const html = read("../docs/index.html"), sw = read("../docs/sw.js");
+  const refs = [...html.matchAll(/(?:<script src|<link rel="stylesheet" href)="([^"]+)"/g)].map((m) => m[1]);
+  assert.ok(refs.length > 50, "fayllar topildi");
+  for (const r of refs) {
+    assert.match(r, /\?v=\d+$/, `${r}: ?v= yo'q — yangilanishda brauzer eski faylni ko'rsatishi mumkin`);
+    const f = r.replace(/\?.*$/, "");
+    assert.ok(sw.includes(`"./${f}"`), `${f} sw.js CORE ro'yxatida yo'q`);
+    assert.doesNotThrow(() => read(`../docs/${f}`), `${f} fayli yo'q`);
+  }
+});

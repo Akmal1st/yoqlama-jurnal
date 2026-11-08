@@ -7,7 +7,7 @@ const read = (p) => readFileSync(new URL(p, new URL(".", import.meta.url)), "utf
 export function loadApp(today) {
   const html = read("../docs/index.html");
   // dizayn.js va mezon.js asosiy skriptdan oldin ulanadi (normalize D.web.dz ni shu yerda tekshiradi)
-  const src = read("../docs/tugmalar.js") + "\n" + read("../docs/funksiyalar.js") + "\n" + read("../docs/dizayn.js") + "\n" + read("../docs/mezon.js") + "\n" + read("../docs/arxiv.js") + "\n" + read("../docs/taxminiy.js") + "\n" + read("../docs/summativ.js") + "\n" + html.slice(html.indexOf("<script>") + 8, html.lastIndexOf("</script>"));
+  const src = read("../docs/tugmalar.js") + "\n" + read("../docs/funksiyalar.js") + "\n" + read("../docs/dizayn.js") + "\n" + read("../docs/mezon.js") + "\n" + read("../docs/arxiv.js") + "\n" + read("../docs/taxminiy.js") + "\n" + read("../docs/summativ.js") + "\n" + read("../docs/saqlash.js") + "\n" + html.slice(html.indexOf("<script>") + 8, html.lastIndexOf("</script>"));
   const [y, m, d] = today.split("-").map(Number);
   const FIXED = new Date(y, m - 1, d, 12).getTime();
   class FixedDate extends Date {
@@ -26,7 +26,7 @@ export function loadApp(today) {
   vm.runInContext(src + `
     ;globalThis.__app = {setData: (x) => { D = normalize(x); }, get D() { return D; }, grade5, parseMark, parseScore, parsePlanText,
       emaktabSheet, bsbStats, bsbRecs, worksInQuarter, quarterResult, yearResult, readiness, reportRows, periodNow, label,
-      compareRows, compareTotal, sumData, gradedShare, qProgress, wTag, sumAoa, statsData, nowLocal};`, ctx);
+      compareRows, compareTotal, sumData, gradedShare, qProgress, wTag, sumAoa, statsData, nowLocal, quarterOf, viewQuarter, workQuarter};`, ctx);
   return ctx.__app;
 }
 
