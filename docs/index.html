@@ -51,6 +51,7 @@
   <nav class="tabbar" id="tabbar"></nav>
 </div>
 <input type="file" id="file" accept=".json,application/json" class="hide">
+<script src="xato.js?v=212"></script>
 <script src="alifbo.js"></script>
 <script src="ikon.js"></script>
 <script src="tpt-mavzu.js"></script>
@@ -66,7 +67,7 @@
 <script src="bugun-tatil.js?v=207"></script>
 <script src="bugun.js?v=203"></script>
 <script src="funksiyalar.js?v=204"></script>
-<script src="sozlamalar.js?v=203"></script>
+<script src="sozlamalar.js?v=212"></script>
 <script src="mezon.js?v=193"></script>
 <script src="kunlik.js?v=193"></script>
 <script src="pdf-tg.js?v=207"></script>
@@ -422,7 +423,7 @@ function migrate(d) {
 // xotiradagi matn o'qilmasa (buzilgan) — u yo'qolib ketmasin: alohida kalitga ko'chiriladi, idbBoot zaxiradan tiklaydi yoki ogohlantiradi
 let LOAD_BROKEN = false;
 function load() {
-  let t = null;
+  let t = null; BASE_REV = revNow();
   try { t = localStorage.getItem(STORE_KEY); } catch (e) { console.warn(e); }
   if (t) {
     try { return migrate(normalize(JSON.parse(t))); } catch (e) {
@@ -432,6 +433,27 @@ function load() {
   }
   return migrate(normalize({web: {off: Object.fromEntries(SIMPLE_OFF.map((k) => [k, 1]))}}));
 }
+/* Bir nechta oyna (tab): har saqlash umumiy hisoblagichni (REV_KEY) oshiradi. Oyna o'zi oxirgi ko'rgan raqamdan katta
+   raqam ko'rsa, demak jurnalni boshqa oyna o'zgartirgan: eski nusxa ustidan yozilmaydi, yangi holat yuklanadi. */
+const REV_KEY = STORE_KEY + "_rev";
+let BASE_REV = 0;
+function revNow() { try { return +localStorage.getItem(REV_KEY) || 0; } catch (e) { return 0; } }
+const busyUi = () => !!document.querySelector(".modal") || /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || "");
+async function otherTabReload(why) {
+  let d = load();
+  // localStorage to'lgan bo'lsa, boshqa oyna faqat IndexedDB'ga yozgan bo'lishi mumkin
+  try { const txt = IDB.db && await idbReq("kv", "readonly", (st) => st.get("main")); const I = txt && JSON.parse(txt); if (I && savedAt(I) > savedAt(d)) d = migrate(normalize(I)); } catch (e) { /* localStorage nusxasi qoladi */ }
+  D = d; EPOCH++; autoDates(); render();
+  toast(why === "conflict" ? "Jurnal boshqa oynada o'zgartirilgan edi — oxirgi o'zgarish saqlanmadi, yangi holat yuklandi. Iltimos, qaytadan kiriting."
+    : "Boshqa oynadagi o'zgarishlar yuklandi");
+}
+let REV_WAIT = false;
+function onOtherTab() {
+  if (revNow() <= BASE_REV) return;
+  if (busyUi()) { if (!REV_WAIT) { REV_WAIT = true; setTimeout(() => { REV_WAIT = false; onOtherTab(); }, 1500); } return; }
+  otherTabReload("sync");
+}
+window.addEventListener("storage", (e) => { if (e.key === REV_KEY && D) onOtherTab(); });
 // ko'p belgini birdan qo'yishda (hammasi keldi) har biri uchun butun jurnalni qayta yozmaslik: oxirida bir marta saqlanadi
 const SAVE_HOLD = {n: 0, dirty: false};
 function batch(fn) {
@@ -440,13 +462,18 @@ function batch(fn) {
 }
 // hisobot keshi davri — har saqlashda yangilanadi (pastda: memo)
 let EPOCH = 0; const MEMO = new WeakMap();
+const LOG_MAX = 5000;   // o'zgarishlar tarixi: oxirgi 5000 yozuv (o'chirish, tiklash yozuvlari ham shu chegarada)
 function save() {
   EPOCH++;
   if (SAVE_HOLD.n) { SAVE_HOLD.dirty = true; return; }
   if (NEWER) { toast("Bu ma'lumot ilovaning yangiroq versiyasida saqlangan — o'zgarish saqlanmadi. Sahifani yangilang."); return; }
+  const rev = revNow();
+  if (rev > BASE_REV) { otherTabReload("conflict"); return; }   // boshqa oyna yangiroq saqlagan — uning ustidan yozilmaydi
+  if (D.changelog && D.changelog.length > LOG_MAX) D.changelog.splice(0, D.changelog.length - LOG_MAX);
   D.web.dv = DATA_VER; D.web.saved = new Date().toISOString();
   const txt = JSON.stringify(D); let ok = true;
   try { localStorage.setItem(STORE_KEY, txt); } catch (e) { ok = false; }
+  BASE_REV = rev + 1; try { localStorage.setItem(REV_KEY, String(BASE_REV)); } catch (e) { /* kichik kalit — odatda yoziladi */ }
   idbSave(txt);
   if (!ok) toast(IDB.ok ? "Brauzerning asosiy xotirasi to'lgan — ma'lumot zaxira xotiraga (IndexedDB) saqlandi. «Sozlamalar → Ma'lumotlar»dan faylga ham saqlab qo'ying."
     : "Saqlab bo'lmadi: brauzer xotirasi to'lgan yoki yopiq. «Sozlamalar → Ma'lumotlar»dan faylga saqlang.");
@@ -1456,7 +1483,7 @@ function log(c, s, date, old, nw) {
   if (!old) return;
   const lg = D.changelog = D.changelog || [];
   lg.push({t: nowLocal(), cls: label(c), student: s.name, sid: s.id, date, old, new: nw, kind: nw ? "edit" : "clear"});
-  if (lg.length > 5000) lg.splice(0, lg.length - 5000);
+  if (lg.length > LOG_MAX) lg.splice(0, lg.length - LOG_MAX);
 }
 /* bitta katakka belgi: faqat bugungi kun; mavjud baho — qulf ochiq bo'lsa */
 // qulf faqat qo'yilgan bahoni o'zgartirishni to'sadi: baho qo'shish va KQ (kech qoldi) katagiga baho qo'yish mumkin
@@ -2628,6 +2655,16 @@ async function settingsAction(a, i) {
   else if (a === "remt") { const p = remPlan()[0] || {title: "1-soat · 08:00 — Sinov", body: "Eslatma shunday ko'rinadi"}; remShow(Object.assign({}, p, {key: "test" + Date.now()})); }
   else if (a === "exp") exportJson();
   else if (a === "snaps") snapsDialog();
+  else if (a === "errs") {
+    const list = ERRLOG.list().reverse(), txt = list.map((e) => `${e.t} ${e.src} ${e.msg}`).join("\n");
+    modal(`<h2>Xatolar ro'yxati</h2><div class="muted">Oxirgi ${list.length} ta kutilmagan xato. Bu yerda o'quvchilar ma'lumoti yo'q.</div>
+      <textarea class="form-control" readonly rows="10" style="font:12px monospace">${esc(txt)}</textarea>
+      <div class="hrow"><button class="btn btn-outline-danger" data-clr>Tozalash</button><span class="sp"></span><button class="btn" data-x>Yopish</button><button class="btn btn-primary" data-cp>Nusxalash</button></div>`, (mm, close) => {
+      $("[data-x]", mm).onclick = () => close();
+      $("[data-cp]", mm).onclick = async () => { try { await navigator.clipboard.writeText(`Yo'qlama jurnali · ${navigator.userAgent.slice(0, 120)}\n${txt}`); toast("Nusxalandi"); } catch (e) { $("textarea", mm).select(); } };
+      $("[data-clr]", mm).onclick = () => { ERRLOG.clear(); close(); render(); toast("Xatolar ro'yxati tozalandi"); };
+    });
+  }
   else if (a === "imp") importJson();
   else if (a === "hist") {
     const all = D.changelog || [], lg = all.map((e, k) => [e, k]).slice(-300).reverse();

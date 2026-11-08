@@ -146,8 +146,11 @@ const SZL = (() => {
       row("hist", "🕘 O'zgarishlar tarixi", `${n} ta yozuv (qo'yilgan bahoni o'zgartirish yoki o'chirish)`, `<button class="btn btn-sm" data-a="hist">Ko'rish</button>`);
     const app = installEvt ? row("inst", "📲 Ilovani o'rnatish", "Telefon yoki kompyuter ekraniga ilova sifatida qo'shiladi va internetsiz ochiladi.", `<button class="btn btn-sm btn-primary" data-a="inst">O'rnatish</button>`)
       : isStandalone() ? "" : row("inst", "📲 Telefonga o'rnatish", /iPhone|iPad/.test(navigator.userAgent) ? "Safari'da «Ulashish» → «Bosh ekranga qo'shish» (Add to Home Screen)" : "Brauzer menyusi (⋮) → «Ilovani o'rnatish» yoki «Bosh ekranga qo'shish»", "");
+    const errs = typeof ERRLOG !== "undefined" ? ERRLOG.list() : [];
+    const er = errs.length ? row("errs", "🐞 Xatolar ro'yxati", `${errs.length} ta kutilmagan xato yozib qolingan (oxirgisi: ${esc(String(errs[errs.length - 1].t).replace("T", " ").slice(0, 16))}). Nusxalab, dasturchiga yuboring.`,
+      `<button class="btn btn-sm" data-a="errs">Ko'rish</button>`) : "";
     const dzr = `<details class="sz-dz" ${flash === "wipe" ? "open" : ""}><summary>⚠ Xavfli amallar</summary>${row("wipe", "Hammasini o'chirish", "Shu brauzerdagi barcha sinflar, baholar va sozlamalar o'chadi. Oldin faylga saqlab qo'ying.", `<button class="btn btn-sm btn-outline-danger" data-a="wipe">O'chirish</button>`)}</details>`;
-    return {body: `<section class="sz-sg"><h3 class="sz-sgt">Zaxira holati</h3>${bst}</section>` + grp("Zaxira", z) + grp("Kunlik hisobot", KUN.rows(row, tog)) + grp("Yuklash va import", imp) + grp("O'quv yili", yr) + grp("Ilova", app) + dzr,
+    return {body: `<section class="sz-sg"><h3 class="sz-sgt">Zaxira holati</h3>${bst}</section>` + grp("Zaxira", z) + grp("Kunlik hisobot", KUN.rows(row, tog)) + grp("Yuklash va import", imp) + grp("O'quv yili", yr) + grp("Ilova", app + er) + dzr,
       acts: [["📂 Fayldan", 'data-a="imp"', 0], ["💾 Zaxira olish", 'data-a="exp"', 1]], what: "Zaxira"};
   }
   // «Qo'shimcha funksiyalar» — alohida faylda: funksiyalar.js / funksiyalar.css (tasdiqlangan maket v2.1, 2026-11-07)
