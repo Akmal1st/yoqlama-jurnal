@@ -323,7 +323,8 @@ const BVQ = (() => {
   function checkFit(m) {
     const pgs = [...m.querySelectorAll(".bv-scale .bv-pg")];
     const ok = pgs.length ? pgs.every((p) => { const i = p.querySelector(".bv-in"); return i.scrollHeight <= i.clientHeight + 1 && ![...p.querySelectorAll("td.bv-nm, thead th")].some((x) => x.scrollWidth > x.clientWidth + 1); }) : null;
-    if (ok !== B.ok) { B.ok = ok; softRender(); }
+    // ochiq tanlov ro'yxati (Hisobotlar: sinf, davr…) bo'lsa — sahifa qayta chizilmaydi, aks holda ro'yxat yopilib qoladi
+    if (ok !== B.ok) { B.ok = ok; if (!document.querySelector(".hb-popw")) softRender(); }
   }
   async function savePdf(X, btn) {
     const t0 = btn && btn.textContent; if (btn) { btn.disabled = true; btn.textContent = "⏳ PDF…"; }
