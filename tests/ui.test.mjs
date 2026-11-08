@@ -4162,7 +4162,7 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
       // jurnal tablari: Kundalik · Umumiy · Summativ tahlili · Yillik (eski «BSB tahlili» / «CHSB testi» yo'q)
       assert.deepEqual(await page.$$eval(".jtabs [data-jp], [data-jp]", (bs) => [...new Set(bs.map((b) => b.textContent.trim()))]), ["Kundalik", "Umumiy", "Summativ tahlili", "Yillik"]);
       await page.click("[data-jp=sm]"); await page.waitForSelector(".sm-ts");
-      assert.match(await page.textContent(".sm-tb"), /Hali BSB yo'q/);
+      assert.match(await page.textContent(".sm-tb"), /1-chorakda BSB yo'q/);
       const mk = async (t, cnt) => {
         await page.click(`[data-smt=${t}]`); await page.click("[data-smnew]");
         await page.fill(".modal #smn", String(cnt)); await page.fill(".modal #smd", "2026-10-15"); await page.click(".modal [data-ok]");
