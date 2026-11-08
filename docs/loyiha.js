@@ -622,7 +622,7 @@ const LYH = (() => {
   }
   // «＋ Yangi» (summativ.js shu yerga yo'naltiradi)
   function newDialog(c) {
-    const q = workQuarter(), rg = qRange(q) || [todayIso(), todayIso()], td = todayIso();
+    const q = newWorkQuarter(), rg = qRange(q) || [todayIso(), todayIso()], td = todayIso();
     const sug = TPL.filter((t) => fanMatch(c, t)).sort((a, b) => gradeMatch(c, b) - gradeMatch(c, a));
     S.lyp = null; S.lyd = {mode: "new", sel: sug.length ? sug[0].id : "own", q: "", all: false, own: [{n: "", m: 10, k: "dr"}], max: 50, date: rg[0] <= td && td <= rg[1] ? td : rg[0]};
     drawDlg();
@@ -650,7 +650,7 @@ const LYH = (() => {
     const T = S.lyd, c = D.classes[S.ci], t = chosenTpl(); if (!t) return;
     if (T.mode === "new") {
       const w = createWork(c, T.date, t); if (!w) return;
-      S.smw = w.id; S.lyd = null; S.lysj = 0; S.lyf = "all"; S.lysort = null; S.lystu = 0; save(); render(); drawDlg(); toast(`${SMV.wname(c, w)} yaratildi`); return;
+      S.smw = w.id; S.sq = quarterOf(w.date) || S.sq; S.lyd = null; S.lysj = 0; S.lyf = "all"; S.lysort = null; S.lystu = 0; save(); render(); drawDlg(); toast(`${SMV.wname(c, w)} yaratildi`); return;
     }
     const X = ctx(); if (!X) return;
     if (T.sel !== "own" && T.sel === X.L.tpl) { S.lyd = null; drawDlg(); return; }

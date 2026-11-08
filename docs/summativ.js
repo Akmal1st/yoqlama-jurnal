@@ -25,10 +25,12 @@ const SMV = (() => {
     return A.find((a) => a.w === w.id) || A.find((a) => !a.w && a.date === w.date && !worksOf(c, "bsb").concat(worksOf(c, "loyiha")).some((x) => x !== w && x.date === w.date && A.some((b) => b.w === x.id))) || null;
   }
   // hech bir BSB / Loyiha ishiga bog'lanmagan, ball kiritilgan eski tahlillar — yo'qolib qolmasin (BSB ro'yxatida alohida)
-  function orphans(c) {
+  function orphans(c, q = null) {
     const linked = new Set(["bsb", "loyiha"].flatMap((t) => worksOf(c, t)).map((w) => { const a = anOf(c, w); return a && a.id; }).filter(Boolean));
-    return (c.analyses || []).filter((a) => !linked.has(a.id) && hasPts(a)).sort(byDate);
+    return (c.analyses || []).filter((a) => !linked.has(a.id) && hasPts(a) && (q === null || quarterOf(a.date) === q)).sort(byDate);
   }
+  /* Har chorak — alohida: sahifa faqat tanlangan chorak (S.sq, «Umumiy» sahifasi bilan bitta) ishlarini ko'rsatadi */
+  const qSel = () => (S.sq = curQuarter());
   // teng bo'lib: 25 → 5×5, 23 → 4,5×4 + 5
   function split(max, n) {
     n = Math.max(1, n | 0); const b = Math.floor(max / n * 2) / 2;
@@ -44,10 +46,11 @@ const SMV = (() => {
   }
   // joriy tanlov: S.smt — tur, S.smw — ish id si (yoki "a:<tahlil id>" — ishsiz eski tahlil)
   function cur(c) {
-    const t = type(), L = worksOf(c, t);
-    if (S.smw && String(S.smw).startsWith("a:") && t === "bsb") { const a = (c.analyses || []).find((x) => x.id === S.smw.slice(2)); if (a) return {t, w: null, a}; }
+    const t = type(), q = qSel(), L = worksOf(c, t).filter((x) => quarterOf(x.date) === q);
+    if (S.smw && String(S.smw).startsWith("a:") && t === "bsb") { const a = orphans(c, q).find((x) => x.id === S.smw.slice(2)); if (a) return {t, w: null, a}; }
+    // faqat tanlangan chorak ishlari: chorakda ish bo'lmasa, boshqa chorak ishi ochilmaydi
     let w = L.find((x) => x.id === S.smw);
-    if (!w && L.length) { const q = quarterOf(todayIso()), inQ = L.filter((x) => quarterOf(x.date) === q); w = (inQ.length ? inQ : L).at(-1); }
+    if (!w && L.length) w = L.at(-1);
     S.smw = w ? w.id : null;
     return {t, w: w || null, a: null};
   }
@@ -67,14 +70,14 @@ const SMV = (() => {
 
   /* ── yuqori qism: tur · ish · ＋ Yangi ── */
   function top(c, sel) {
-    const t = type(), L = worksOf(c, t), O = t === "bsb" ? orphans(c) : [];
-    const qs = [...new Set(L.map((w) => quarterOf(w.date) || 0))];
+    const t = type(), q = qSel(), L = worksOf(c, t).filter((w) => quarterOf(w.date) === q), O = t === "bsb" ? orphans(c, q) : [];
     const opt = (w) => `<option value="${esc(w.id)}" ${w.id === S.smw ? "selected" : ""}>${esc(wname(c, w))} · ${fmt(w.date)}${done(c, w) ? " ✓" : ""}</option>`;
     const list = L.length || O.length
-      ? `<select id="smw" class="form-select sm-sel" aria-label="Ish">${qs.map((q) => `<optgroup label="${q ? `${q}-chorak` : "Chorakdan tashqari"}">${L.filter((w) => (quarterOf(w.date) || 0) === q).map(opt).join("")}</optgroup>`).join("")}
+      ? `<select id="smw" class="form-select sm-sel" aria-label="Ish">${L.length ? `<optgroup label="${q}-chorak">${L.map(opt).join("")}</optgroup>` : ""}
           ${O.length ? `<optgroup label="Ishga bog'lanmagan tahlillar">${O.map((a) => `<option value="a:${esc(a.id)}" ${S.smw === "a:" + a.id ? "selected" : ""}>Tahlil · ${fmt(a.date)}${a.title ? " · " + esc(a.title) : ""}</option>`).join("")}</optgroup>` : ""}</select>`
-      : `<span class="sm-none muted">Hali ${NAME[t]} yo'q</span>`;
+      : `<span class="sm-none muted">${q}-chorakda ${NAME[t]} yo'q</span>`;
     return `<div class="sm-ts seg" role="tablist" aria-label="Ish turi">${TYPES.map((k) => `<button type="button" role="tab" aria-selected="${t === k}" class="${t === k ? "on" : ""}" data-smt="${k}"><i class="sm-dot ${k}"></i>${NAME[k]}</button>`).join("")}</div>
+      <div class="sm-qs seg" role="tablist" aria-label="Chorak">${[1, 2, 3, 4].map((k) => `<button type="button" role="tab" aria-selected="${k === q}" class="${k === q ? "on" : ""}" data-smq="${k}">${k}-chorak</button>`).join("")}</div>
       <div class="sm-tb">${list}<button type="button" class="btn btn-primary" data-smnew><i class="bi bi-plus-lg" aria-hidden="true"></i> Yangi</button></div>`;
   }
   // Jadval · Tahlil · Xatolar + «⋯ Amallar» (menyudagi tugmalarni sahifa o'zi bog'laydi: eksport, taxminiy ball, nomlar, teng ball)
@@ -94,6 +97,7 @@ const SMV = (() => {
   /* ── bog'lash ── */
   function bind(m, c, ctx) {
     m.querySelectorAll("[data-smt]").forEach((b) => b.onclick = () => { if (S.smt === b.dataset.smt) return; S.smt = b.dataset.smt; S.smw = null; render(); });
+    m.querySelectorAll("[data-smq]").forEach((b) => b.onclick = () => { if (S.sq === +b.dataset.smq) return; S.sq = +b.dataset.smq; S.smw = null; render(); });
     const sel = $("#smw", m); if (sel) sel.onchange = () => { S.smw = sel.value; render(); };
     $("[data-smnew]", m).onclick = () => newDialog(c);
     const more = $("[data-smmore]", m), mn = $(".sm-menu", m);
@@ -111,7 +115,7 @@ const SMV = (() => {
   /* ── yangi ish ── */
   function newDialog(c) {
     if (type() === "loyiha") { LYH.newDialog(c); return; }   // shablon tanlash bilan (loyiha.js)
-    const t = type(), q = workQuarter(), r = qRange(q) || [todayIso(), todayIso()];
+    const t = type(), q = newWorkQuarter(), r = qRange(q) || [todayIso(), todayIso()];
     const td = todayIso(), defD = r[0] <= td && td <= r[1] ? td : r[0];
     modal(`<h2><i class="sm-dot ${t}"></i> Yangi ${NAME[t]}</h2>
       <div class="muted">${t === "chsb" ? "Test: to'g'ri javob — savolning to'liq bali, noto'g'ri — 0." : t === "loyiha" ? "Mezonlar bo'yicha ball, BSB kabi baholanadi." : "Kriteriali topshiriqlar: har topshiriqqa 0 dan maksimalgacha ball."}</div>

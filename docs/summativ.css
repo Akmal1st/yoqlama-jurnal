@@ -8,6 +8,9 @@
 /* 1-qator: ish turi */
 .sm-ts{display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr));max-width:460px;width:100%}
 .sm-ts button{justify-content:center;white-space:nowrap}
+/* chorak: har chorak alohida, faqat shu chorak ishlari */
+.sm-qs{display:grid !important;grid-template-columns:repeat(4,minmax(0,1fr));max-width:460px;width:100%}
+.sm-qs button{justify-content:center;white-space:nowrap;padding-left:4px;padding-right:4px}
 /* 2-qator: ish + ＋ Yangi */
 .sm-tb{display:flex;gap:8px;align-items:center;min-width:0}
 .sm-tb .sm-sel{flex:1 1 auto;min-width:0;width:auto;font-weight:600}
@@ -23,7 +26,7 @@
 .sm-menu>button:disabled{opacity:.45;cursor:not-allowed}
 .sm-menu .dng{color:var(--danger) !important}
 @media (max-width:820px){
-  .sm-ts{max-width:none}
+  .sm-ts,.sm-qs{max-width:none}
   .sm-bar>.seg{flex:1 1 auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
   .sm-bar>.seg button{justify-content:center;padding-left:4px;padding-right:4px}
   .sm-bar .sm-l{display:none}

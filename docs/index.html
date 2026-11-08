@@ -39,7 +39,7 @@
 <link rel="stylesheet" href="boshlash.css?v=213">
 <link rel="stylesheet" href="alifbo.css?v=213">
 <link rel="stylesheet" href="taxminiy.css?v=193">
-<link rel="stylesheet" href="summativ.css?v=193">
+<link rel="stylesheet" href="summativ.css?v=218">
 <link rel="stylesheet" href="loyiha.css?v=205">
 <link rel="stylesheet" href="funksiyalar.css?v=213">
 <link rel="stylesheet" href="kalit.css?v=213">
@@ -79,9 +79,9 @@
 <script src="emk-server.js?v=215"></script>
 <script src="boshlash.js?v=213"></script>
 <script src="taxminiy.js?v=193"></script>
-<script src="summativ.js?v=205"></script>
-<script src="loyiha.js?v=205"></script>
-<script src="yangilik.js?v=217"></script>
+<script src="summativ.js?v=218"></script>
+<script src="loyiha.js?v=218"></script>
+<script src="yangilik.js?v=218"></script>
 <script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=214"></script>
 <script src="telegram.js?v=216"></script>
@@ -698,7 +698,7 @@ function openAnalysis(ci, wid) {
   const c = D.classes[ci], w = c && c.works.find((x) => x.id === wid); if (!w) return;
   S.ci = ci; S.page = "journal";
   // «Summativ tahlili» sahifasi (summativ.js): ish turi va shu ish tanlanadi
-  S.jpage = "sm"; S.smt = w.type; S.smw = w.id;
+  S.jpage = "sm"; S.smt = w.type; S.smw = w.id; S.sq = quarterOf(w.date) || S.sq;
   if (w.type === "chsb") { S.tw = w.id; S.cttab = "tbl"; } else S.batab = "tbl";
   go("journal");
 }
@@ -768,10 +768,11 @@ function lessonGaps(upto = iso(addDays(new Date(), -1)), days = GAP_DAYS) {
   let lo = iso(addDays(pdate(upto), -days + 1)); const out = [];
   // chorak ichida — faqat shu chorak darslari: o'tgan chorak (va ta'til) kunlari yangi chorak ro'yxatiga aralashmaydi
   const cq = quarterOf(upto) || quarterOf(todayIso()); if (cq && qRange(cq)[0] > lo) lo = qRange(cq)[0];
+  let tlo = iso(addDays(pdate(upto), -30)); if (cq && qRange(cq)[0] > tlo) tlo = qRange(cq)[0];
   D.classes.forEach((c, ci) => {
     if (isGrp(c)) return;   // to'garak va pullik guruhlarda yo'qlama va mavzu yo'q: faqat kelgan kunlar yoziladi
-    // mavzu faqat oxirgi 30 kunda kamida bitta mavzu yozilgan sinflarda so'raladi
-    const usesTopic = Object.entries(c.lessons || {}).some(([d, l]) => l && l.topic && d >= iso(addDays(pdate(upto), -30)));
+    // mavzu faqat oxirgi 30 kunda (shu chorak ichida) kamida bitta mavzu yozilgan sinflarda so'raladi
+    const usesTopic = Object.entries(c.lessons || {}).some(([d, l]) => l && l.topic && d >= tlo && d <= upto);
     for (const d of c.dates) {
       if (d < lo || d > upto || isNoLesson(c, d)) continue;
       const noAtt = !hasMarks(c, d) && !c.att_ok.includes(d), noTopic = usesTopic && !((c.lessons[d] || {}).topic);
@@ -1772,7 +1773,7 @@ function pageJournal(m) {
     ${jHead(perNav(), "", tools)}${ARX.banner(c, ds)}
     ${ds.length ? `<div class="tblwrap" id="tw"><table class="j">${head}${body}</table></div>` : `<div class="card muted">Tanlangan davrda dars sanalari yo'q. «⋯ → Sana qo'shish (dars kunlari bo'yicha)» yoki «Sozlamalar → Dars kunlari va choraklar».</div>`}
     ${ds.length ? `<p class="muted jhint" style="margin:0">Katakni bossangiz o'sha kunning kunlik rejimi ochiladi: belgi va baho shu yerda qo'yiladi.</p>` : ""}
-    ${grp ? "" : todayCard(c)}
+    ${grp || !(vRange()[0] <= todayIso() && todayIso() <= vRange()[1]) ? "" : todayCard(c)}
 </div>`;
   bindJHead(m);
   m.querySelectorAll("[data-sh]").forEach((b) => b.onclick = () => { vShift(+b.dataset.sh); render(); });
@@ -1786,7 +1787,7 @@ function pageJournal(m) {
   if (!grp) { fitJournal(m); requestAnimationFrame(() => { if (document.body.contains(m)) fitJournal(m); }); }
   window.onscroll = null;
 }
-// jurnal tagida: bugungi dars bo'yicha sinf ma'lumoti (ixcham: ekranga sig'ishi uchun)
+// jurnal tagida: bugungi dars bo'yicha sinf ma'lumoti (ixcham: ekranga sig'ishi uchun); boshqa chorak/davr ko'rilayotganda chiqmaydi
 function todayCard(c) {
   const t = todayIso(); if (!c.dates.includes(t) || isNoLesson(c, t) || !c.students.length) return "";
   const n = c.students.length, sw = sumOn(c, t), l = c.lessons[t] || {}, no = c.dates.filter((d) => d <= t && !isNoLesson(c, d)).length;
@@ -2815,6 +2816,8 @@ function bindTop(m) {
 const g5pill = (g, title = "") => g ? `<span class="pill" title="${esc(title)}" style="background:${gradeColor(G5COL[g])};color:${contrast(gradeColor(G5COL[g]))}">${g}</span>` : `<span class="muted">—</span>`;
 const g5select = (attr, v) => `<select ${attr} class="g5">${["", 5, 4, 3, 2].map((g) => `<option value="${g}" ${String(v ?? "") === String(g) ? "selected" : ""}>${g || "—"}</option>`).join("")}</select>`;
 function curQuarter() { return S.sq || viewQuarter(); }
+// yangi summativ ish qaysi chorakka: ochiq turgan (tanlangan) chorak, u arxivlangan yoki sanasiz bo'lsa — workQuarter()
+function newWorkQuarter() { return S.sq && qRange(S.sq) && !(typeof ARX !== "undefined" && ARX.lockedQ(S.sq)) ? S.sq : workQuarter(); }
 
 function pageSum(m) {
   const c = D.classes[S.ci], q = S.sq = curQuarter(), rng = qRange(q);
@@ -2898,7 +2901,7 @@ function pageSum(m) {
   };
 }
 function workDialog(c, w) {
-  const isNew = !w, q = S.sq && !(typeof ARX !== "undefined" && ARX.lockedQ(S.sq)) ? S.sq : workQuarter(), r = qRange(q) || [todayIso(), todayIso()];
+  const isNew = !w, q = newWorkQuarter(), r = qRange(q) || [todayIso(), todayIso()];
   const t = todayIso(), defDate = w ? w.date : (r[0] <= t && t <= r[1] ? t : r[0]);
   const scored = w && c.students.some((s) => ((s.scores || {})[w.id] ?? "") !== "");
   modal(`<h2>${isNew ? "Summativ ish qo'shish" : "Summativ ish"}</h2>

@@ -4162,7 +4162,7 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
       // jurnal tablari: Kundalik · Umumiy · Summativ tahlili · Yillik (eski «BSB tahlili» / «CHSB testi» yo'q)
       assert.deepEqual(await page.$$eval(".jtabs [data-jp], [data-jp]", (bs) => [...new Set(bs.map((b) => b.textContent.trim()))]), ["Kundalik", "Umumiy", "Summativ tahlili", "Yillik"]);
       await page.click("[data-jp=sm]"); await page.waitForSelector(".sm-ts");
-      assert.match(await page.textContent(".sm-tb"), /Hali BSB yo'q/);
+      assert.match(await page.textContent(".sm-tb"), /1-chorakda BSB yo'q/);
       const mk = async (t, cnt) => {
         await page.click(`[data-smt=${t}]`); await page.click("[data-smnew]");
         await page.fill(".modal #smn", String(cnt)); await page.fill(".modal #smd", "2026-10-15"); await page.click(".modal [data-ok]");
@@ -4938,5 +4938,79 @@ test("Telegram: ikki qurilmada o'zgarish bo'lsa — «Birlashtirish», ikkalasid
     await page.waitForFunction(() => !TG_NEW);
     assert.deepEqual(await page.evaluate(() => [D.classes[0].students[0].marks["2026-10-20"], D.classes[0].students[1].marks["2026-10-20"]]), ["9", "7"]);
     assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+/* «Chorak devori» (Akmal, 2026-11-08: «o'quv yili — papka, har chorak — alohida fayl, faqat sinf va o'quvchilar umumiy»):
+   boshqa choraklarga tasodifiy baho, yo'qlama, mavzu, uy vazifasi, BSB/CHSB/Loyiha ballari va chorak baholari yoziladi —
+   tanlangan chorakning jurnali, Umumiy, Summativ, barcha hisobotlari, xavf belgilari va chorak natijalari bir belgi ham o'zgarmasligi kerak.
+   Yil bo'yicha bo'lishi kerak bo'lganlar tekshirilmaydi: «Yillik» sahifasi va KTR dars raqami («44-dars» — yillik rejadagi tartib). */
+test("Chorak devori: boshqa choraklar o'zgarsa, tanlangan chorak hech narsasi o'zgarmaydi (36 va 18 o'quvchi)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    // [o'quvchilar, ekran, bugungi sana, tekshiriladigan chorak, o'zgartiriladigan choraklar]
+    const CASES = [[36, {width: 1300, height: 900}, [2026, 10, 20], 2, [1, 3]], [18, {width: 390, height: 844}, [2026, 10, 20], 2, [1, 3]],
+      [36, {width: 1300, height: 900}, [2026, 10, 20], 1, [2, 3]], [18, {width: 390, height: 844}, [2026, 11, 26], 2, [1, 3]]];
+    for (const [N, viewport, [y, mo, d], tq, others] of CASES) {
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message)); page.on("dialog", (x) => x.accept());
+      await page.clock.setFixedTime(new Date(y, mo, d, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      await page.evaluate((N) => {
+        D.settings.quarters[2] = ["2027-01-11", "2027-03-20"]; D.settings.quarters[3] = ["2027-03-29", "2027-05-25"];
+        for (const c of D.classes) { const base = c.students;
+          c.students = Array.from({length: N}, (_, i) => ({...structuredClone(base[i % base.length]), id: undefined, name: i < base.length ? base[i].name : `${base[i % base.length].name} ${Math.floor(i / base.length) + 1}`})); }
+        D = normalize(D); autoDates(); save(); ARX.tick(); render();
+      }, N);
+      const snap = () => page.evaluate((tq) => {
+        const out = {}, now = quarterOf(todayIso()) === tq;
+        const txt = () => ((document.querySelector("main") || document.body).innerText + "\n" + [...document.querySelectorAll(".modal")].map((x) => x.innerText).join("\n")).replace(/\b\d+-dars\b/g, "N-dars");
+        const view = (k, fn) => { fn(); render(); out[k] = txt(); };
+        if (now) view("bugun", () => go("today"));
+        D.classes.forEach((c, ci) => {
+          view(`jurnal ${ci}`, () => { S.page = "journal"; S.ci = ci; S.jpage = "j"; V.mode = "quarter"; V.anchor = now ? todayIso() : qRange(tq)[1]; });
+          view(`umumiy ${ci}`, () => { S.page = "journal"; S.ci = ci; S.jpage = "sum"; S.sq = tq; });
+          for (const t of ["bsb", "chsb", "loyiha"]) view(`summativ ${t} ${ci}`, () => { S.page = "journal"; S.ci = ci; S.jpage = "sm"; S.sq = tq; S.smt = t; S.smw = null; });
+          for (const k of ["cls", "stats", "att", "sum", "ready", "par", "cmp"].concat(now ? ["blank"] : [])) view(`hisobot ${k} ${ci}`, () => { S.page = "reports"; S.rep.kind = k; S.rep.ci = ci; S.rep.per = "q" + tq; });
+          if (now) { S.page = "journal"; S.jpage = "j"; S.ci = ci; render(); studentCard(ci, c.students.at(-1).name); out[`kartochka ${ci}`] = txt(); document.querySelectorAll(".modal [data-x]").forEach((b) => b.click()); }
+          const [lo, hi] = qRange(tq), top = hi < todayIso() ? hi : todayIso();
+          out[`hisob ${ci}`] = JSON.stringify({r: reportRows(c, lo, top, tq).rows, q: c.students.map((s) => quarterResult(c, s, tq, worksInQuarter(c, tq))), rd: readiness(c, tq)});
+        });
+        if (now) out.gaps = JSON.stringify(lessonGaps().map((x) => [x.ci, x.d, x.noAtt, x.noTopic]));
+        return out;
+      }, tq);
+      const before = await snap();
+      await page.evaluate((others) => {
+        let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647, pick = (a) => a[Math.floor(rnd() * a.length)];
+        const MK = ["2", "3", "5", "7", "8/9", "10", "s", "dq", "k", "kq", "kq9", "ch", ""];
+        for (const c of D.classes) for (const q of others) {
+          const r = qRange(q);
+          for (let x = pdate(r[0]); iso(x) <= r[1]; x = addDays(x, 1)) { const s = iso(x); if (pyWd(s) < 6 && rnd() < 0.5 && !c.dates.includes(s)) c.dates.push(s); }
+          c.dates.sort();
+          for (const dt of c.dates) {
+            if (quarterOf(dt) !== q) continue;
+            c.students.forEach((s) => { s.marks[dt] = pick(MK); (s.hwd = s.hwd || {})[dt] = rnd() < 0.5 ? 1 : 0; (s.act = s.act || {})[dt] = [1, 0]; });
+            c.lessons[dt] = {topic: "BEGONA " + dt, hw: "begona uy vazifasi"}; if (!c.att_ok.includes(dt)) c.att_ok.push(dt);
+          }
+          for (const [type, max] of [["bsb", 25], ["chsb", 40], ["loyiha", 25], ["bsb", 25]]) {
+            const id = "z" + Math.floor(rnd() * 1e9), date = pick(c.dates.filter((dt) => quarterOf(dt) === q)) || r[0];
+            c.works.push({id, type, date, max, title: "BEGONA " + type});
+            c.students.forEach((s) => { (s.scores = s.scores || {})[id] = Math.round(rnd() * max); s.scores[`final:q${q}`] = pick([2, 3, 4, 5]); });
+          }
+        }
+        save(); render();
+      }, others);
+      const after = await snap();
+      const bad = Object.keys(before).filter((k) => before[k] !== after[k]).map((k) => {
+        const a = before[k].split("\n"), b = after[k].split("\n"), sa = new Set(a), sb = new Set(b);
+        return `${k}: −[${a.filter((l) => !sb.has(l)).slice(0, 4).join(" | ")}] +[${b.filter((l) => !sa.has(l)).slice(0, 4).join(" | ")}]`;
+      });
+      assert.deepEqual(bad, [], `${N} o'quvchi, ${tq}-chorak: boshqa chorak ma'lumoti aralashdi`);
+      assert.ok(Object.keys(before).length >= 40);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
   } finally { await browser.close(); }
 });
