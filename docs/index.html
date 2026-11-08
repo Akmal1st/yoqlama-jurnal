@@ -65,7 +65,7 @@
 <script src="bsb-yangi.js?v=202"></script>
 <script src="bugun-arxiv.js?v=213"></script>
 <script src="bugun-tatil.js?v=207"></script>
-<script src="bugun.js?v=203"></script>
+<script src="bugun.js?v=214"></script>
 <script src="funksiyalar.js?v=204"></script>
 <script src="sozlamalar.js?v=213"></script>
 <script src="mezon.js?v=193"></script>
@@ -81,6 +81,7 @@
 <script src="loyiha.js?v=205"></script>
 <script src="yangilik.js?v=207"></script>
 <script src="saqlash.js?v=213"></script>
+<script src="sinx.js?v=214"></script>
 <script>
 "use strict";
 /* ───────── ma'lumot: 1-versiyadagi journal.json bilan bir xil tuzilma ───────── */
@@ -5072,6 +5073,7 @@ async function tgBackup(force) {
     // oldingi zaxiraning matn bo'laklari endi kerak emas (fayllar tarix uchun qoladi)
     if (c.parts && c.parts.length) try { await tgApi("deleteMessages", {chat_id: c.chat, message_ids: c.parts}); } catch (e) { /* 48 soatdan eski xabar o'chmaydi — zarari yo'q */ }
     tgSet({hash, last: now.toISOString(), seen: msg.message_id, parts});
+    await SINX.setBase(JSON.stringify(D));   // ikki qurilmani birlashtirish uchun oxirgi umumiy holat (sinx.js)
     return true;
   } finally { tgBusy = false; }
 }
@@ -5081,7 +5083,7 @@ async function tgPinned() {
 }
 // saqlash vaqti (web.saved) o'zgarishi «yangi ma'lumot» hisoblanmasin
 function djbData() { const w = D.web.saved; delete D.web.saved; const h = djb(JSON.stringify(D)); if (w) D.web.saved = w; return h; }
-async function tgPull(pm) {
+async function tgData(pm) {
   const ids = tgPartIds(pm);
   let data;
   if (await tgSrvFile()) data = JSON.parse((await tgApi("backupFile", {file_id: pm.document.file_id})).text);
@@ -5095,9 +5097,39 @@ async function tgPull(pm) {
   data = await openSealed(data);
   if (!data || !Array.isArray(data.classes)) throw new Error("bu jurnal fayli emas");
   if (tooNew(data)) throw new Error("zaxira ilovaning yangiroq versiyasida saqlangan — sahifani yangilang");
+  return data;
+}
+async function tgPull(pm) {
+  const data = await tgData(pm);
   await keepBefore();
   D = migrate(normalize(data)); autoDates(); save(); TG_NEW = null;
-  tgSet({seen: pm.message_id, hash: djbData(), last: new Date(pm.date * 1000).toISOString(), parts: ids});
+  await SINX.setBase(JSON.stringify(D));
+  tgSet({seen: pm.message_id, hash: djbData(), last: new Date(pm.date * 1000).toISOString(), parts: tgPartIds(pm)});
+}
+// shu qurilmada oxirgi almashishdan keyin o'zgarish bormi (bo'lsa — almashtirish o'rniga birlashtirish taklif qilinadi)
+const tgLocalChanged = () => tgCfg().hash !== djbData();
+/* ikki qurilmani birlashtirish (sinx.js): Telegram'dagi + shu qurilmadagi o'zgarishlar; ziddiyat bo'lsa o'qituvchi tanlaydi.
+   Natija saqlanadi va darhol Telegram'ga yuboriladi — ikkala qurilma bir xil holatga keladi */
+async function tgMerge(pm) {
+  toast("Telegram'dagi zaxira olinmoqda…");
+  const theirs = migrate(normalize(await tgData(pm))), base0 = await SINX.getBase(), base = base0 && migrate(normalize(base0));
+  const R = SINX.merge(base, JSON.parse(JSON.stringify(D)), theirs);
+  let pick = "theirs";
+  if (R.clash.length) {
+    const rows = R.clash.slice(0, 40).map((x) => `<tr><td>${esc(x.cls)}</td><td>${esc(x.student || x.what)}</td><td>${/^\d{4}-\d\d-\d\d$/.test(x.key) ? fmt(x.key) : esc(x.key)}</td><td><b>${esc(SINX.show(x.mine))}</b></td><td><b>${esc(SINX.show(x.theirs))}</b></td></tr>`).join("");
+    pick = await modal(`<h2>Bir xil katak ikki qurilmada turlicha</h2>
+      <div class="muted">${R.clash.length} ta katakda ikkala qurilmada ham har xil qiymat qo'yilgan. Qolgan ${R.n + R.added} ta o'zgarish ziddiyatsiz birlashtiriladi. Ziddiyatli kataklar uchun qaysi qurilmanikini olay?</div>
+      <div style="overflow:auto;max-height:50vh"><table class="table table-sm"><thead><tr><th>Sinf</th><th>O'quvchi</th><th>Sana</th><th>Shu qurilmada</th><th>Telegram'da</th></tr></thead><tbody>${rows}</tbody></table>${R.clash.length > 40 ? `<div class="muted">… yana ${R.clash.length - 40} ta</div>` : ""}</div>
+      <div class="hrow wrap"><button class="btn" data-x>Bekor qilish</button><span class="sp"></span><button class="btn" data-p="theirs">Telegram'dagini olish</button><button class="btn btn-primary" data-p="mine">Shu qurilmanikini olish</button></div>`,
+      (m, close) => { $("[data-x]", m).onclick = () => close(null); m.querySelectorAll("[data-p]").forEach((b) => b.onclick = () => close(b.dataset.p)); });
+    if (!pick) return false;
+  }
+  await keepBefore();
+  D = migrate(normalize(SINX.resolve(R, pick))); autoDates(); save(); TG_NEW = null;
+  tgSet({seen: pm.message_id});
+  await tgBackup(true);   // birlashgan holat — yangi umumiy asos
+  toast(`Birlashtirildi: shu qurilmadan ${R.n + R.added} ta o'zgarish qo'shildi${R.clash.length ? `, ${R.clash.length} ta ziddiyat — ${pick === "mine" ? "shu qurilmaniki" : "Telegram'dagi"} olindi` : ""}`);
+  return true;
 }
 // ilova ochilganda: avval boshqa qurilmada yangiroq zaxira bormi — bo'lsa, so'ramasdan ustidan yozmaymiz
 async function tgAuto() {
@@ -5163,9 +5195,19 @@ async function tgAction(a) {
     else if (a === "tgload" || a === "tgnew") {
       const pm = a === "tgnew" ? TG_NEW : await tgPinned();
       if (!pm) { toast("Botda qadalgan zaxira topilmadi"); return; }
-      const when = new Date(pm.date * 1000);
-      if (!await confirmBox("Telegram'dan yuklash", `${fmt(iso(when))} ${pad(when.getHours())}:${pad(when.getMinutes())} dagi zaxira yuklanadi.\nShu qurilmadagi hozirgi ma'lumotlar uning o'rniga almashtiriladi.`, "Yuklash")) return;
+      const when = new Date(pm.date * 1000), at = `${fmt(iso(when))} ${pad(when.getHours())}:${pad(when.getMinutes())}`;
+      if (tgLocalChanged() && D.classes.length) {
+        // shu qurilmada ham o'zgarish bor: almashtirsak, ular yo'qoladi — birlashtirish taklif qilinadi
+        const k = await modal(`<h2>Telegram'dan yuklash</h2><div>${at} dagi zaxira. Shu qurilmada ham oxirgi almashishdan keyin o'zgarishlar bor.</div>
+          <div class="muted"><b>Birlashtirish</b> — ikkala qurilmadagi baholar saqlanadi. <b>Almashtirish</b> — shu qurilmadagi o'zgarishlar o'chadi.</div>
+          <div class="hrow wrap"><button class="btn" data-x>Bekor qilish</button><span class="sp"></span><button class="btn" data-k="swap">Almashtirish</button><button class="btn btn-primary" data-k="merge">Birlashtirish</button></div>`,
+          (m, close) => { $("[data-x]", m).onclick = () => close(null); m.querySelectorAll("[data-k]").forEach((b) => b.onclick = () => close(b.dataset.k)); });
+        if (!k) return;
+        if (k === "merge") { if (await tgMerge(pm)) { S.ci = 0; go("today"); } return; }
+      } else if (!await confirmBox("Telegram'dan yuklash", `${at} dagi zaxira yuklanadi.\nShu qurilmadagi hozirgi ma'lumotlar uning o'rniga almashtiriladi.`, "Yuklash")) return;
       await tgPull(pm); S.ci = 0; go("today"); toast(`${D.classes.length} ta sinf Telegram'dan yuklandi`);
+    } else if (a === "tgmerge") {
+      if (TG_NEW && await tgMerge(TG_NEW)) { S.ci = 0; go("today"); }
     } else if (a === "tgkeep") { tgSet({seen: TG_NEW.message_id}); TG_NEW = null; await tgBackup(true); render(); toast("Shu qurilmadagi ma'lumotlar Telegram'ga yuborildi"); }
     else if (a === "tgoff") {
       if (!await confirmBox("Telegram'ni uzish", "Avtomatik zaxira to'xtaydi. Botdagi eski fayllar o'chmaydi.", "Uzish")) return;
