@@ -76,3 +76,26 @@ test("Davomat: 10 dars, 2 sababsiz + 1 kasal → 70 %; kech qolish (kq) davomatn
   assert.equal(A.reportRows(c, Q[0][0], Q[0][1], 1).lessons, 10);
   assert.deepEqual([r.s, r.k, r.kq, r.att, r.avg], [2, 1, 1, 70, 8]);
 });
+
+// Chorak chegaralari: 1-chorak 02.09–31.10, ta'til, 2-chorak 09.11 dan. Asosiy qoida 3 funksiyada (index.html):
+// quarterOf — sana qaysi chorakda; viewQuarter — ko'rsatiladigan chorak; workQuarter — yangi summativ ish qaysi chorakka tushadi.
+function qapp(arx) {
+  const A = loadApp("2026-11-03");
+  A.setData({version: 2, settings: {quarters: Q}, classes: [], web: arx ? {arx: {q: {1: {r: Q[0], at: "2026-11-03", by: "auto", snap: []}}}} : {}});
+  return A;
+}
+test("Chorak: sana chegarada (31.10 — 1-chorak, 01.11 — ta'til, 09.11 — 2-chorak)", () => {
+  const A = qapp(false);
+  assert.deepEqual(["2026-09-02", "2026-10-31", "2026-11-01", "2026-11-08", "2026-11-09", "2026-08-31"].map(A.quarterOf), [1, 1, null, null, 2, null]);
+});
+test("Chorak: ta'tilda oxirgi tugagan chorak ko'rsatiladi, o'quv yili boshlanmagan bo'lsa — 1-chorak", () => {
+  const A = qapp(false);
+  assert.equal(A.viewQuarter("2026-11-03"), 1);
+  assert.equal(A.viewQuarter("2026-12-30"), 2);
+  assert.equal(A.viewQuarter("2026-08-20"), 1);
+});
+test("Chorak: ta'tilda yangi ish — 1-chorak arxivlanmagan bo'lsa unga, arxivlangan bo'lsa 2-chorakka", () => {
+  assert.equal(qapp(false).workQuarter("2026-11-03"), 1);
+  assert.equal(qapp(true).workQuarter("2026-11-03"), 2);
+  assert.equal(qapp(true).workQuarter("2026-10-20"), 1, "chorak ichida — doim o'sha chorak");
+});
