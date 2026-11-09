@@ -5016,3 +5016,100 @@ test("Chorak devori: boshqa choraklar o'zgarsa, tanlangan chorak hech narsasi o'
     }
   } finally { await browser.close(); }
 });
+
+// Kriterial (+/−) formativ baho (kriterial.js): 1 + darsdagi ish 5 deskriptor + uy vazifasi 4 deskriptor = 1–10
+for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36], ["kompyuter", {width: 1440, height: 900}, 18], ["telefon", {width: 390, height: 844}, 36], ["telefon", {width: 390, height: 844}, 18]]) {
+  test(`${name}: kriterial (+/−) formativ baho, davomat, deskriptorlar, chop etish (${n} o'quvchi)`, async () => {
+    const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+    try {
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      const t = await page.evaluate((n) => { const c = D.classes[0], t = todayIso(); D.settings.method_weekday = null; c.extra_x = [];
+        if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } D.settings.protect.enabled = false;
+        while (c.students.length < n) c.students.push({id: "kr" + c.students.length, name: `Sinov O'quvchi ${c.students.length + 1}`, marks: {}, scores: {}});
+        c.students.length = n; for (const s of c.students) { delete s.marks[t]; delete s.joined; }
+        D.web.fmode = "krit"; S.ci = 0; V.mode = "day"; V.anchor = t; save();
+        window.print = () => { window.__printed = document.getElementById("pdoc").textContent; }; return t; }, n);
+      await page.click(`${viewport.width < 600 ? ".tabbar" : ".side"} [data-go=journal]`);
+      await page.evaluate((d) => { S.ci = 0; V.mode = "day"; V.anchor = d; render(); }, t);
+      await page.waitForSelector(".dlist.kr .kr-box");
+      const st = (i) => page.evaluate(([d, i]) => { const s = D.classes[0].students[i]; return [s.marks[d] || "", (s.fk || {})[d] || "", JSON.stringify((s.fp || {})[d] || null)]; }, [t, i]);
+      const tel = viewport.width < 600;
+      assert.equal(await page.locator("[data-mzmode=krit].on").count(), 1, "«Kriterial (+/−)» tanlangan");
+      assert.equal(await page.locator(".kr-t tbody tr[data-krr]").count(), n, "hamma o'quvchi jadvalda");
+      // bitta katak: + (chala — baho yo'q), keyin qator menyusi «Bo'sh kataklarga +» → 10
+      await page.click("[data-krc='0|0']");
+      assert.deepEqual(await st(0), ["", "+........", "null"]);
+      assert.match(await page.textContent('tr[data-krr="0"] td.tot'), /chala/);
+      await page.click("[data-krrow='0']"); await page.click(".kr-pop [data-v=p]");
+      assert.deepEqual(await st(0), ["10", "+++++++++", "[6,4]"]);
+      // + → − : 9 (6 + 3)
+      await page.click("[data-krc='0|8']");
+      assert.deepEqual(await st(0), ["9", "++++++++-", "[6,3]"]);
+      assert.match(await page.textContent('tr[data-krr="0"] td.tot'), /6 \+ 3/);
+      if (!tel) {
+        // klaviatura: − yozilsa keyingi o'quvchiga o'tadi
+        await page.focus("[data-krc='1|0']"); await page.keyboard.press("-"); await page.keyboard.press("+");
+        assert.equal((await st(1))[1], "-........"); assert.equal((await st(2))[1], "+........");
+        assert.equal(await page.evaluate(() => document.activeElement.dataset.krc), "3|0");
+        await page.keyboard.press("Delete"); await page.keyboard.press("ArrowUp"); await page.keyboard.press("Delete");
+        assert.equal((await st(2))[1], "");
+      }
+      // davomat: S — baho qo'yilmaydi; KQ — baho bilan birga
+      await page.click("[data-a='3|s']");
+      assert.equal((await st(3))[0], "s");
+      assert.equal(await page.locator("[data-krc^='3|']").count(), 0);
+      assert.match(await page.textContent('tr[data-krr="3"]'), /Sababsiz kelmadi — baho qo'yilmaydi/);
+      assert.match(await page.textContent(".kr-att"), new RegExp(`Keldi ${n - 1} / ${n}`));
+      await page.click("[data-a='0|kq']"); assert.equal((await st(0))[0], "9kq");
+      await page.click("[data-krc='0|8']"); assert.deepEqual(await st(0), ["kq", "++++++++.", "null"]);
+      // ustun menyusi: U1 bo'sh kataklarga +
+      await page.click("th[data-krcol='5']"); await page.click(".kr-pop [data-v=p]");
+      assert.equal((await st(4))[1], ".....+...");
+      assert.equal((await st(3))[1], "", "kelmagan o'quvchiga tegilmaydi");
+      // hammasi: bo'sh kataklarga +
+      await page.click("[data-krall]");
+      assert.deepEqual(await st(4), ["10", "+++++++++", "[6,4]"]);
+      assert.deepEqual(await st(0), ["10kq", "+++++++++", "[6,4]"]);
+      assert.equal(await page.evaluate((d) => D.classes[0].students.filter((s) => /^\d/.test(s.marks[d] || "")).length, t), n - 1, "kelmagandan boshqa hammaga baho");
+      // «Mezon bo'yicha» rejimi xuddi shu qismlarni ko'radi; «Oddiy» bilan o'zgartirilgan baho kriterialda «boshqa usul»
+      await page.click("[data-mzmode=crit]"); await page.waitForSelector(".dlist.mz");
+      assert.match(await page.textContent('.drow[data-dr="4"] .mz-tot'), /6 \+ 4/);
+      await page.click("[data-mzmode=plain]"); await page.click("[data-g='4|7']");
+      await page.click("[data-mzmode=krit]"); await page.waitForSelector(".dlist.kr");
+      assert.match(await page.textContent('tr[data-krr="4"] td.tot'), /7\s*boshqa usul/);
+      assert.equal(await page.locator("[data-krc='4|0'].e").count(), 1);
+      // deskriptorlar matni (sinf bo'yicha)
+      await page.click("[data-kred]"); await page.fill("#kr-d0", "Darsda savol berdi"); await page.click(".modal [data-ok]");
+      assert.equal(await page.evaluate(() => D.classes[0].kd[0]), "Darsda savol berdi");
+      assert.match(await page.getAttribute("th[data-krcol='0']", "title"), /Darsda savol berdi/);
+      // chop etish: bo'sh va to'ldirilgan varaq
+      await page.click("[data-krpr]"); await page.click(".kr-pop [data-v=f]");
+      const pr = await page.evaluate(() => window.__printed || document.getElementById("pdoc").textContent);
+      assert.match(pr, /Formativ baholash varaqasi/); assert.match(pr, /Darsda savol berdi/);
+      // telefon: o'quvchi va deskriptor rejimlari
+      if (tel) {
+        await page.click("[data-krv=stu]"); await page.waitForSelector("[data-krset]");
+        await page.selectOption("[data-krstusel]", "1"); await page.click("[data-krset='1|0|m']");
+        assert.equal((await st(1))[1], "-++++++++"); assert.equal((await st(1))[0], "9");
+        await page.click("[data-krv=des]"); await page.click("[data-krset='1|0|m']");
+        assert.equal((await st(1))[1], ".++++++++");
+        await page.click("[data-krcolfill='0|p']"); assert.equal((await st(1))[0], "10");
+        await page.click("[data-krv=tab]");
+      }
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
+      // saqlanib qayta yuklanganda belgilar qoladi; buzilgan ma'lumot tozalanadi
+      await page.reload(); await page.waitForFunction(() => S.page === "journal");
+      assert.deepEqual(await st(0), ["10kq", "+++++++++", "[6,4]"]);
+      assert.deepEqual(await page.evaluate(() => { const s = {fk: {"2026-10-20": "++", "x": "+++++++++", "2026-10-21": "........."}}, s2 = {fk: {"2026-10-20": "+-+-+-+-."}}; KRT.clean(s); KRT.clean(s2);
+        const c = {kd: ["a", "", 5, "d", "e", "f", "g", "h", "i"]}, c2 = {kd: ["x"]}; KRT.cleanCls(c); KRT.cleanCls(c2); return [s.fk, s2.fk, c.kd[1], c.kd[2], c2.kd]; }),
+        [undefined, {"2026-10-20": "+-+-+-+-."}, "Savollarga to'g'ri javob beradi", "5", undefined]);
+      assert.deepEqual(errors, []);
+    } finally { await browser.close(); }
+  });
+}

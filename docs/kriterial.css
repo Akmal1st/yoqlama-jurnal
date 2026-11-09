@@ -1,0 +1,110 @@
+/* Kriterial (+/−) formativ baho (kriterial.js) — tasdiqlangan maket v3, 2026-11-09.
+   Hamma narsa .kr-* sinflarida; ilova ranglari (--base, --acc, --ok, --danger …) ishlatiladi. */
+.kr-box{display:flex;flex-direction:column;gap:10px;padding:12px}
+.kr-plus{color:var(--ok)}
+/* davomat xulosasi */
+.kr-att{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13px;padding:8px 12px;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));background:var(--alt)}
+.kr-att>span{display:inline-flex;gap:5px;align-items:center}
+.kr-att i{display:inline-grid;place-items:center;min-width:26px;height:20px;padding:0 4px;border-radius:5px;font-style:normal;font-weight:800;font-size:11px;background:var(--soft,var(--line))}
+.kr-bar2{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.kr-lg{display:inline-flex;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+.kr-lg i,.kr-pop i{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:5px;font-style:normal;font-weight:800;background:var(--soft,var(--alt));color:var(--muted)}
+.kr-lg i.p,.kr-pop i.p{background:color-mix(in srgb,var(--ok) 18%,var(--base));color:var(--ok)}
+.kr-lg i.m,.kr-pop i.m{background:color-mix(in srgb,var(--danger) 16%,var(--base));color:var(--danger)}
+.kr-lg i.m{margin-left:8px}
+.kr-seg{align-self:flex-start}
+/* jadval */
+.kr-tw{overflow:auto;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));max-height:calc(100vh - 140px)}
+table.kr-t{border-collapse:separate;border-spacing:0;font-size:13px;width:max-content;min-width:100%}
+.kr-t th,.kr-t td{border-bottom:1px solid var(--line);padding:0;text-align:center;background:var(--base)}
+.kr-t thead th{position:sticky;z-index:2;background:var(--alt);font-weight:700}
+.kr-t tr.g th{top:0;height:36px}
+.kr-t tr.d th{top:36px;border-top:1px solid var(--line);padding:4px 2px;min-width:42px;font-size:12px;cursor:pointer}
+.kr-t tr.d th.base{cursor:default;color:var(--muted)}
+.kr-t tr.d th:not(.base):hover{background:var(--soft,var(--line))}
+.kr-t th small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+.kr-t tr.g th.gh{border-left:2px solid var(--line);padding:4px 6px;font-size:12px;line-height:1.2}
+.kr-t .gs{border-left:2px solid var(--line)}
+.kr-t .nm{position:sticky;left:0;z-index:1;text-align:left;border-right:1px solid var(--line);min-width:200px;max-width:240px;padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kr-t thead th.nm{z-index:3;padding-left:12px}
+.kr-t td.nm{height:42px}
+.kr-nmw{display:flex;align-items:center;gap:2px;min-width:0}
+.kr-nmw .dn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kr-rm{display:inline-block;border:0;background:transparent;color:var(--muted);font-weight:800;width:22px;height:28px;border-radius:6px;flex:none;padding:0}
+.kr-rm:hover{background:var(--alt);color:var(--text)}
+.kr-t .att{padding:0 8px;border-right:1px solid var(--line)}
+.kr-t td.att .datt{display:inline-flex;gap:3px;padding:0;border:0}
+.kr-t td.att .da{height:30px;min-width:32px;font-size:11.5px}
+.kr-t td.c{padding:2px}
+.kr-t td.base{color:var(--muted);font-weight:800;min-width:42px}
+.kr-t .tot{min-width:64px;border-left:2px solid var(--line);padding:2px 6px}
+.kr-t td.tot small{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+.kr-t tbody tr:nth-child(even)>td{background:var(--zebra,var(--alt))}
+.kr-t tbody tr.risk td.nm .dn i{color:var(--danger)}
+.kr-t tr.off td{color:var(--muted)}
+.kr-t td.abs{font-style:italic;font-size:12px;color:var(--muted)}
+.kr-t tfoot td{position:sticky;bottom:0;background:var(--alt);font-size:11.5px;font-weight:700;padding:5px 2px;border-top:2px solid var(--line);z-index:1}
+.kr-t tfoot td.nm{z-index:2;height:auto;padding-left:12px}
+.kr-c{width:36px;height:30px;border-radius:7px;border:1px solid transparent;background:transparent;font-weight:800;font-size:17px;line-height:1;display:inline-grid;place-items:center;padding:0;color:var(--muted)}
+.kr-c.p{background:color-mix(in srgb,var(--ok) 18%,var(--base));color:var(--ok)}
+.kr-c.m{background:color-mix(in srgb,var(--danger) 16%,var(--base));color:var(--danger)}
+.kr-c.e{border:1px dashed var(--line);font-size:13px}
+.kr-c:not(:disabled):hover{border-color:var(--acc)}
+.kr-c:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.kr-c:disabled{cursor:default}
+.kr-bh{display:inline-grid;place-items:center;min-width:34px;height:28px;padding:0 6px;border-radius:8px;font-weight:800;font-size:15px}
+.kr-bh.none{background:var(--soft,var(--alt));color:var(--muted);font-size:13px}
+.kr-bar{display:block;height:4px;border-radius:3px;background:var(--soft,var(--line));margin:3px 4px 0;overflow:hidden}
+.kr-bar>i{display:block;height:100%}
+/* yon kartalar */
+.kr-side{display:flex;flex-direction:column;gap:12px}
+.kr-card{display:flex;flex-direction:column;gap:6px}
+.kr-av{display:flex;justify-content:space-between;gap:8px;font-size:13px}
+.kr-dist{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:13px}
+.kr-dist span{display:inline-flex;gap:5px;align-items:center}
+.kr-dist i{font-style:normal;font-weight:800;font-size:12px;padding:2px 7px;border-radius:6px}
+.kr-wk{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:13px;align-items:center}
+.kr-wk .kr-bar{grid-column:1/-1;margin:0}
+.kr-small{font-size:12.5px;line-height:1.45}
+/* telefon: o'quvchi / deskriptor rejimlari */
+.kr-stuh{display:flex;gap:6px;align-items:center}
+.kr-stuh .form-select{flex:1;min-width:0}
+.kr-tot2{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));padding:8px 10px}
+.kr-tot2 .datt{display:inline-flex;gap:3px;padding:0;border:0}
+.kr-tot2 small{font-size:11px;color:var(--muted);font-weight:600}
+.kr-mg,.kr-sl{border:1px solid var(--line);border-radius:calc(10px*var(--rk,1));overflow:hidden}
+.kr-mh{display:flex;justify-content:space-between;gap:8px;padding:8px 12px;background:var(--alt);font-weight:700;font-size:13px}
+.kr-dr{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--line)}
+.kr-sl .kr-dr:first-child{border-top:0}
+.kr-sl .kr-dr:nth-child(even){background:var(--zebra,var(--alt))}
+.kr-dr .t{flex:1;min-width:0;font-size:13.5px}
+.kr-dr .t small{display:block;color:var(--muted);font-size:11.5px}
+.kr-pm{display:inline-flex;gap:6px;flex:none}
+.kr-pm button{width:46px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--base);font-size:20px;font-weight:800;color:var(--muted);padding:0}
+.kr-pm button.p.on{background:var(--ok);border-color:var(--ok);color:var(--base)}
+.kr-pm button.m.on{background:var(--danger);border-color:var(--danger);color:var(--base)}
+.kr-cnt{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12.5px}
+.kr-cnt .a{color:var(--ok)}.kr-cnt .b{color:var(--danger)}.kr-cnt .c{color:var(--muted)}
+.kr-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.kr-nav .sp,.kr-bar2 .sp,.kr-tot2 .sp,.kr-cnt .sp,.kr-foot .sp{flex:1}
+.kr-pad{padding:12px;margin:0}
+/* menyu va oyna */
+.kr-pop{position:absolute;z-index:1000;background:var(--base);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh);padding:6px;min-width:220px;max-width:290px;display:flex;flex-direction:column}
+.kr-pop>b{padding:4px 8px 0;font-size:13px}
+.kr-pop>small{padding:0 8px 6px;color:var(--muted);font-size:12px}
+.kr-pop button{display:flex;gap:8px;align-items:center;width:100%;border:0;background:none;text-align:left;padding:8px;border-radius:8px;font-weight:600}
+.kr-pop button:hover{background:var(--alt)}
+.kr-dlg{display:flex;flex-direction:column;gap:8px;max-width:520px}
+.kr-dlg h2{font-size:18px;margin:0}
+.kr-ed{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:center;margin:0}
+.kr-ed b{font-size:12px;color:var(--muted)}
+.kr-edh{font-weight:800;font-size:13px;margin-top:4px}
+.kr-chk{display:flex;gap:8px;align-items:center;font-size:13px}
+.kr-foot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px}
+@media screen and (max-width:700px){
+  .kr-box{padding:10px 8px}
+  .kr-tw{max-height:none}
+  .kr-t .nm{min-width:128px;max-width:140px}
+  .kr-t td.att .da{min-width:28px;font-size:11px}
+}
+@media print{.kr-tw{max-height:none;overflow:visible}}
