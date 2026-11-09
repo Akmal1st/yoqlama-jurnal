@@ -2,7 +2,7 @@
    Formativ baho = darsdagi ish (1–6) + uy vazifasi (0–4) = 10 ballgacha. Yig'indi jurnalga oddiy baho bo'lib tushadi
    (s.marks[sana] = "8"), shuning uchun FB, chorak bahosi va hisobotlar o'zgarishsiz ishlaydi.
    Qismlar: s.fp[sana] = [darsdagi ish | null, uy vazifasi | null]; izoh: s.fc[sana] = "matn" (cleanStudent tozalaydi).
-   Rejim: D.web.fmode = "plain" — eski «Oddiy (1–10)» tugmalari; boshqa holda — mezon bo'yicha.
+   Rejim: D.web.fmode = "plain" — eski «Oddiy (1–10)» tugmalari; "krit" — kriterial jadval (+/−, kriterial.js); boshqa holda — mezon bo'yicha.
    Asosiy skriptdan oldin ulanadi; ichidagi funksiyalar faqat chaqirilganda index.html dagi umumiy funksiyalardan foydalanadi. */
 const MZN = (() => {
   const P = [
@@ -20,7 +20,7 @@ const MZN = (() => {
      sh: {4: "to'liq, xatosiz", 3: "ayrim xatolar", 2: "qisman / ko'p xato", 1: "deyarli bajarilmagan", 0: "bajarilmagan"}},
   ];
   const vals = (p) => Array.from({length: p.m - p.min + 1}, (_, i) => p.min + i);
-  const on = () => (D.web || {}).fmode !== "plain";
+  const on = () => !["plain", "krit"].includes((D.web || {}).fmode);
   const absent = (mk) => ["s", "dq", "k", "ox"].includes(attPart(mk || ""));
 
   // saqlangan qismlar faqat jurnaldagi baho bilan mos kelsa ishlatiladi (baho boshqa joyda o'zgartirilgan bo'lsa — e'tiborsiz)
@@ -63,11 +63,13 @@ const MZN = (() => {
       <div class="datt" role="group" aria-label="Yo'qlama">${o.att}</div><div class="mz-crits" role="group" aria-label="Baho">${cr}</div>${badge(c, s, si, d)}${hint.length ? `<div class="mz-hint">${hint.join("")}</div>` : ""}</div>`;
   }
 
-  function tools() {
+  // kr — kriterial rejim (kriterial.js) yoqilgan bo'lsa, o'ng tomonda uning tugmalari
+  function tools(kr) {
+    const fm = (D.web || {}).fmode, md = fm === "plain" ? "plain" : fm === "krit" ? "krit" : "crit";
     return `<div class="mz-tools"><div class="mz-seg" role="group" aria-label="Baho qo'yish usuli">
-      <button type="button" class="${on() ? "on" : ""}" data-mzmode="crit">Mezon bo'yicha</button><button type="button" class="${on() ? "" : "on"}" data-mzmode="plain">Oddiy (1–10)</button></div>
-      <span class="mz-lbl">${on() ? "Darsdagi ish 6 + Uy vazifasi 4 = 10" : "Tayyor bahoni 1–10 qo'yish"}</span><span class="mz-sp"></span>
-      <button class="btn" type="button" data-mzrub>📋 Mezonlar jadvali</button></div>`;
+      <button type="button" class="${md === "crit" ? "on" : ""}" data-mzmode="crit">Mezon bo'yicha</button><button type="button" class="${md === "krit" ? "on" : ""}" data-mzmode="krit">Kriterial (+/−)</button><button type="button" class="${md === "plain" ? "on" : ""}" data-mzmode="plain">Oddiy (1–10)</button></div>
+      <span class="mz-lbl">${md === "crit" ? "Darsdagi ish 6 + Uy vazifasi 4 = 10" : md === "krit" ? "1 + darsdagi ish «+» (5) + uy vazifasi «+» (4) = 10" : "Tayyor bahoni 1–10 qo'yish"}</span><span class="mz-sp"></span>
+      ${kr || `<button class="btn" type="button" data-mzrub>📋 Mezonlar jadvali</button>`}</div>`;
   }
 
   // o'ng panel kartalari (kompyuter) va ro'yxat tepasidagi qisqa xulosa (telefon)
@@ -115,6 +117,7 @@ const MZN = (() => {
     if (np[0] == null && np[1] == null) delete s.fp[d]; else s.fp[d] = np;
     if (nw !== old && !putFn(si, nw)) { if (prev) s.fp[d] = prev; else delete s.fp[d]; if (!Object.keys(s.fp).length) delete s.fp; return false; }
     if (!Object.keys(s.fp).length) delete s.fp;
+    if (s.fk) { delete s.fk[d]; if (!Object.keys(s.fk).length) delete s.fk; }   // kriterial (+/−) belgilar endi eskirdi (kriterial.js)
     if (nw === old) save();
     return true;
   }
@@ -122,6 +125,7 @@ const MZN = (() => {
     const s = c.students[si], old = s.marks[d] || "", nw = lateOf(old) ? "kq" : gradesOf(old).length ? "" : old;
     if (nw !== old && !putFn(si, nw)) return false;
     if (s.fp) delete s.fp[d];
+    if (s.fk) { delete s.fk[d]; if (!Object.keys(s.fk).length) delete s.fk; }
     save(); return true;
   }
   function fill(c, d, i) {

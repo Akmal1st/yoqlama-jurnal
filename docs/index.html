@@ -30,7 +30,8 @@
 <link rel="stylesheet" href="bugun-arxiv.css?v=213">
 <link rel="stylesheet" href="bugun-tatil.css?v=199">
 <link rel="stylesheet" href="sozlamalar.css?v=213">
-<link rel="stylesheet" href="mezon.css?v=213">
+<link rel="stylesheet" href="mezon.css?v=220">
+<link rel="stylesheet" href="kriterial.css?v=220">
 <link rel="stylesheet" href="kunlik.css?v=213">
 <link rel="stylesheet" href="arxiv.css?v=213">
 <link rel="stylesheet" href="arxiv-tekshir.css?v=213">
@@ -70,7 +71,8 @@
 <script src="bugun.js?v=215"></script>
 <script src="funksiyalar.js?v=204"></script>
 <script src="sozlamalar.js?v=216"></script>
-<script src="mezon.js?v=193"></script>
+<script src="mezon.js?v=220"></script>
+<script src="kriterial.js?v=220"></script>
 <script src="kunlik.js?v=193"></script>
 <script src="pdf-tg.js?v=207"></script>
 <script src="tg-umumiy.js?v=213"></script>
@@ -81,7 +83,7 @@
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=218"></script>
 <script src="loyiha.js?v=218"></script>
-<script src="yangilik.js?v=219"></script>
+<script src="yangilik.js?v=220"></script>
 <script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=214"></script>
 <script src="telegram.js?v=216"></script>
@@ -291,6 +293,7 @@ function cleanStudent(s) {
     id: String(p.id), no: Math.trunc(num0(p.no)) || "", d: ISO_D.test(String(p.d)) ? String(p.d) : "", m: ISO_M.test(String(p.m)) ? String(p.m) : "", sum: num0(p.sum), pk: Math.max(0, Math.trunc(num0(p.pk))) || undefined, how: p.how == null ? "" : String(p.how), note: p.note == null ? "" : String(p.note)}));
   else delete s.pays;
   MZN.clean(s);   // mezon bo'yicha baho qismlari (s.fp) va izohlar (s.fc) — mezon.js
+  KRT.clean(s);   // kriterial (+/−) belgilar (s.fk) — kriterial.js
   return s;
 }
 /* CHSB test shakli: w.test = {n: savollar soni, o: variantlar soni, key: "ABCD.." (to'g'ri javoblar), ans: {o'quvchi id: "AB.D.."}}; "." — bo'sh */
@@ -345,6 +348,7 @@ function cleanClass(c) {
   c.wdel = (Array.isArray(c.wdel) ? c.wdel : []).filter((k) => /^(bsb|chsb)\|\d{4}-\d{2}-\d{2}$/.test(String(k))).map(String).slice(0, 500); if (!c.wdel.length) delete c.wdel;
   c.analyses = c.analyses.filter((a) => a && typeof a === "object" && SAFE_ID.test(String(a.id)) && ISO_D.test(String(a.date)));
   c.students.forEach(cleanStudent); c.students_off = c.students_off.filter((s) => s && typeof s === "object").map(cleanStudent);
+  KRT.cleanCls(c);   // kriterial deskriptor matnlari (c.kd)
 }
 const FIN_CATS = ["Ijara", "Kommunal", "Reklama", "O'quv materiallari", "Transport", "Soliq", "Boshqa"];
 function cleanFin(f) {
@@ -1227,7 +1231,7 @@ function mergeImport(imp, replace) {
   if (adopt) { const old = label(c); c.subject = imp.subject; (D.changelog || []).forEach((e) => { if (e.cls === old) e.cls = label(c); }); }
   const rep = {name: label(c), created, new_dates: imp.dates.filter((d) => !c.dates.includes(d)), new_students: [], matched: 0, filled: 0, replaced: 0, removed: 0, kept: 0, same: 0, new_works: 0, s_filled: 0, s_kept: 0, skipped: imp.skipped};
   const lo = imp.dates[0], hi = imp.dates[imp.dates.length - 1];
-  const dropFp = (cs, d) => { if (cs.fp && cs.fp[d]) delete cs.fp[d]; };
+  const dropFp = (cs, d) => { if (cs.fp && cs.fp[d]) delete cs.fp[d]; if (cs.fk && cs.fk[d]) delete cs.fk[d]; };
   c.dates = [...new Set([...c.dates, ...imp.dates])].sort();
   const idx = {}; c.students.forEach((s) => idx[normName(s.name)] = s); c.students_off.forEach((s) => idx[normName(s.name)] = idx[normName(s.name)] || s);
   let prev = null; const touched = new Set(), pairs = [], inFile = new Set();
@@ -1651,7 +1655,7 @@ function jOrder(c, rows) {
 }
 function jFilter(root) {
   const q = normName(S.jq || ""); let n = 0;
-  root.querySelectorAll("table.j tr[data-q], .drow[data-q]").forEach((tr) => { const ok = !q || tr.dataset.q.includes(q); tr.style.display = ok ? "" : "none"; n += ok; });
+  root.querySelectorAll("table.j tr[data-q], .drow[data-q], .kr-t tr[data-q]").forEach((tr) => { const ok = !q || tr.dataset.q.includes(q); tr.style.display = ok ? "" : "none"; n += ok; });
   const ft = root.querySelector("table.j tr.ft"); if (ft) ft.style.display = q ? "none" : "";
 }
 function colStat(c, d) {
@@ -1932,42 +1936,47 @@ function pageDay(m) {
     return `<button class="dday ${x === d ? "on" : ""} ${x === t ? "today" : ""} ${k}" data-dd="${x}" title="${fmt(x)} · ${WD_FULL[pyWd(x)]}${lb ? " · " + lb : ""}"><small>${WD[pyWd(x)]}</small><b>${+x.slice(8)}</b><i>${lb}</i></button>`; }).join("");
   const x = isNoLesson(c, d), ed = canEdit(d) && !x, l = c.lessons[d] || {};
   const [plo, phi, pq] = periodNow(), pr = reportRows(c, plo, phi, pq).rows, order = S.jord = jOrder(c, pr);
-  const sw = sumOn(c, d), grp = isGrp(c), mz = !grp && !sw && !x && MZN.on(), risk = new Set(grp ? [] : pr.filter((r) => r.why.some((w) => !w.startsWith("baholar soni"))).map((r) => r.name));
+  const sw = sumOn(c, d), grp = isGrp(c), mz = !grp && !sw && !x && MZN.on(), kr = !grp && !sw && !x && KRT.on(), risk = new Set(grp ? [] : pr.filter((r) => r.why.some((w) => !w.startsWith("baholar soni"))).map((r) => r.name));
   const absentOf = () => c.students.filter((s) => ["s", "dq", "k", "ox"].includes(attPart(s.marks[d] || "")));
   const btn = (cls, data, v, on, title) => { const col = on && markColors(v), base = markColors(v); return `<button class="${cls} ${on ? "on" : ""}" ${data} style="${base ? `--c:${esc(base[0])};` : ""}${col ? `background:${col[0]};color:${col[1]};border-color:transparent` : ""}"${title ? ` title="${title}"` : ""}>${GRP_ATT[v] ? `${GRP_ATT[v][1]} ${GRP_ATT[v][2]}` : v.toUpperCase()}</button>`; };
+  const attHtml = (si) => { const mk = c.students[si].marks[d] || "", ap = attPart(mk);
+    return (grp ? GRP_KEYS.map((v) => [v, GRP_ATT[v][3]]) : DAY_ATT).map(([v, ti]) => btn(grp ? "da wide" : "da", `data-a="${si}|${v}"`, v, v === "kq" ? lateOf(mk) : ap === v, ti)).join(""); };
+  const dnHtml = (si) => { const s = c.students[si]; return `<span class="dn" data-st="${si}" title="${esc(s.name)} — kartochkani ochish"><i>${si + 1}</i>${s.star ? "⭐ " : ""}${nmHtml(s.name)}</span>`; };
+  // kriterial jadval (kriterial.js): ism, yo'qlama tugmalari va xavf belgisi shu sahifadan
+  const krCtx = {ed, att: attHtml, dn: dnHtml, risk};
   const rowHtml = (si) => {
-    const s = c.students[si], mk = s.marks[d] || "", ap = attPart(mk), gs = gradesOf(mk);
+    const s = c.students[si], mk = s.marks[d] || "", gs = gradesOf(mk);
     if (preJoin(c, s, d)) return `<div class="drow" data-dr="${si}" data-q="${esc(normName(s.name))}"><span class="dn" data-st="${si}"><i>${si + 1}</i>${nmHtml(s.name)}</span><span class="muted">${fmt(s.joined)} dan qo'shilgan</span></div>`;
-    const att = (grp ? GRP_KEYS.map((v) => [v, GRP_ATT[v][3]]) : DAY_ATT).map(([v, ti]) => btn(grp ? "da wide" : "da", `data-a="${si}|${v}"`, v, v === "kq" ? lateOf(mk) : ap === v, ti)).join("");
+    const att = attHtml(si);
     // mezon bo'yicha baho (mezon.js): darsdagi ish 1–6 + uy vazifasi 0–4
     if (mz) return MZN.row(c, si, d, {att, risk: risk.has(s.name), dn: `<span class="dn" data-st="${si}" title="${esc(s.name)} — kartochkani ochish"><i>${si + 1}</i>${s.star ? "⭐ " : ""}${nmHtml(s.name)}</span>`});
     const gr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((g) => btn("dg", `data-g="${si}|${g}"`, String(g), gs.includes(g))).join("");
     return `<div class="drow ${risk.has(s.name) ? "risk" : ""}" data-dr="${si}" data-q="${esc(normName(s.name))}"><span class="dn" data-st="${si}" title="${esc(s.name)} — kartochkani ochish"><i>${si + 1}</i>${s.star ? "⭐ " : ""}${nmHtml(s.name)}</span>
       <div class="datt" role="group" aria-label="Yo'qlama">${att}</div>${grp || sw ? "" : `<div class="dgr" role="group" aria-label="Baho">${gr}</div>`}</div>`;
   };
-  const rows = (mz ? MZN.head(ed) : "") + order.map(rowHtml).join("");
+  const rows = kr ? KRT.view(c, d, krCtx) : (mz ? MZN.head(ed) : "") + order.map(rowHtml).join("");
   const tile = (k, v) => `<div><small>${k}</small><b>${v}</b></div>`;
   const statsHtml = () => { const absent = absentOf(), cs = colStat(c, d); return grp ? tile("O'tildi", c.students.filter((s) => s.marks[d] === "ot").length) + tile("O'tilmadi", absent.length)
-    : tile("Keldi", `${c.students.length - absent.length} / ${c.students.length}`) + (mz ? tile("Chala", c.students.filter((s) => { const p = MZN.parts(s, d); return (p[0] == null) !== (p[1] == null); }).length) : tile("Qoldirgan", absent.length)) + tile("Baholar", cs.n) + tile("O'rtacha", cs.avg !== null ? cs.avg.toFixed(1) : "—"); };
+    : tile("Keldi", `${c.students.length - absent.length} / ${c.students.length}`) + (mz ? tile("Chala", c.students.filter((s) => { const p = MZN.parts(s, d); return (p[0] == null) !== (p[1] == null); }).length) : kr ? tile("Chala", KRT.partial(c, d)) : tile("Qoldirgan", absent.length)) + tile("Baholar", cs.n) + tile("O'rtacha", cs.avg !== null ? cs.avg.toFixed(1) : "—"); };
   const actsHtml = () => { const absent = absentOf(); return `${grp ? (ed && c.students.some((s) => !s.marks[d] && !preJoin(c, s, d)) ? `<button class="btn" data-ok title="Belgisiz qolganlarga «dars o'tildi»">✓ Qolganlarga o'tildi</button>` : "")
           : `${ed && !absent.length && !c.att_ok.includes(d) ? `<button class="btn" data-ok title="Hech kim qoldirmagan — yo'qlama tugadi">✓ Hamma keldi</button>` : ""}
           ${!x && c.att_ok.includes(d) ? `<span class="ok">✓ Yo'qlama tugagan</span>` : ""}`}
-          ${ed && !grp && !sw && !mz ? `<button class="btn ${S.second ? "btn-primary" : ""}" data-two2 title="Keyingi bosilgan baho ikkinchi baho bo'ladi (masalan 8/9)">＋2 baho</button>` : ""}
+          ${ed && !grp && !sw && !mz && !kr ? `<button class="btn ${S.second ? "btn-primary" : ""}" data-two2 title="Keyingi bosilgan baho ikkinchi baho bo'ladi (masalan 8/9)">＋2 baho</button>` : ""}
           <button class="btn" data-colm>⋯ Dars menyusi</button>`; };
   m.innerHTML = `<div class="vcol" style="gap:12px">
     ${jHead(perNav(), `<div class="dstrip">${strip}</div>`, jTools(c))}${ARX.banner(c, [d])}
-    ${!grp && !sw && !x ? MZN.tools() : ""}${mz ? MZN.top(c, d, ed) : ""}
+    ${!grp && !sw && !x ? MZN.tools(kr ? KRT.tools() : "") : ""}${mz ? MZN.top(c, d, ed) : ""}
     <div class="dview">
-      <div class="dlist ${ed ? "" : "ro"} ${mz ? "mz" : ""}">${sw && !x ? `<div class="warn" style="padding:10px 14px">📝 ${sumTag(sw)} kuni${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars o'tilmaydi — faqat yo'qlama. Ballar «Umumiy» sahifasida.</div>` : ""}${x ? `<div class="muted" style="padding:14px">${fmt(d)} — dars yo'q (X). «Dars menyusi»dan dars kuni qilishingiz mumkin.</div>` : rows}</div>
+      <div class="dlist ${ed ? "" : "ro"} ${mz ? "mz" : ""} ${kr ? "kr" : ""}">${sw && !x ? `<div class="warn" style="padding:10px 14px">📝 ${sumTag(sw)} kuni${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars o'tilmaydi — faqat yo'qlama. Ballar «Umumiy» sahifasida.</div>` : ""}${x ? `<div class="muted" style="padding:14px">${fmt(d)} — dars yo'q (X). «Dars menyusi»dan dars kuni qilishingiz mumkin.</div>` : rows}</div>
       <aside class="dinfo" aria-label="Dars">
         <div class="card vcol"><b>${WD_FULL[pyWd(d)]}, ${fmt(d)}${d === t ? " · bugun" : ""}</b>
           ${x ? `<span class="muted">Dars yo'q (X)</span>` : `<label class="vcol"><span class="muted">Mavzu</span><input class="form-control" type="text" id="dmt" value="${esc(l.topic || "")}" placeholder="Dars mavzusi" ${ARX.dateLocked(d, c) ? "readonly" : ""}></label>
           <label class="vcol"><span class="muted">Uy vazifasi</span><input class="form-control" type="text" id="dmh" value="${esc(l.hw || "")}" placeholder="Uy vazifasi" ${ARX.dateLocked(d, c) ? "readonly" : ""}></label>`}
           ${ed || x ? "" : `<span class="muted">${ARX.dateLocked(d, c) ? `🔒 ${quarterOf(d)}-chorak arxivda — faqat ko'rish` : d > t ? "Kelgusi dars — belgi qo'yib bo'lmaydi" : "Faqat ko'rish: o'tgan darslarga belgi qo'yish Sozlamalar → Baholash da yoqiladi"}</span>`}</div>
         ${x ? "" : `<div class="card dstats">${statsHtml()}</div>`}
-        ${mz ? MZN.side(c, d, ed) : ""}
+        ${mz ? MZN.side(c, d, ed) : ""}${kr ? KRT.side(c, d) : ""}
         <div class="hrow wrap dacts" style="gap:8px">${actsHtml()}</div>
-        <p class="muted dtip">${grp ? "Har o'quvchiga: «✓ O'tildi» yoki «✗ O'tilmadi». Uyida o'qiydiganlarga faqat «o'tildi» darslar hisoblanadi. Belgini qayta bossangiz o'chadi." : mz ? "Yo'qlama chapda. Baho: darsdagi ish (1–6) + uy vazifasi (0–4) — ikkalasi bosilganda yig'indisi jurnalga tushadi. Baho kvadratini bossangiz — tafsilot va izoh." : "Yo'qlama chapda, baho o'ngda. Kelgan o'quvchiga hech narsa bosmang — bo'sh qolsa «keldi» hisoblanadi. Belgini qayta bossangiz o'chadi."}</p>
+        <p class="muted dtip">${grp ? "Har o'quvchiga: «✓ O'tildi» yoki «✗ O'tilmadi». Uyida o'qiydiganlarga faqat «o'tildi» darslar hisoblanadi. Belgini qayta bossangiz o'chadi." : kr ? "Katakni bosing: bo'sh → + → − → bo'sh. Kompyuterda katakni tanlab + yoki − yozing (keyingi o'quvchiga o'tadi), Del — tozalash. Sarlavhadagi deskriptorni yoki ism yonidagi ⋯ ni bosing — ustun/qatorni to'ldirish. 9 tasi belgilansa baho jurnalga tushadi." : mz ? "Yo'qlama chapda. Baho: darsdagi ish (1–6) + uy vazifasi (0–4) — ikkalasi bosilganda yig'indisi jurnalga tushadi. Baho kvadratini bossangiz — tafsilot va izoh." : "Yo'qlama chapda, baho o'ngda. Kelgan o'quvchiga hech narsa bosmang — bo'sh qolsa «keldi» hisoblanadi. Belgini qayta bossangiz o'chadi."}</p>
       </aside></div></div>`;
   bindJHead(m); bindJTools(m);
   m.querySelectorAll("[data-sh]").forEach((b) => b.onclick = () => { V.anchor = L[Math.min(Math.max(i + +b.dataset.sh, 0), L.length - 1)]; render(); });
@@ -1975,7 +1984,17 @@ function pageDay(m) {
   m.querySelectorAll("[data-dd]").forEach((b) => b.onclick = () => { V.anchor = b.dataset.dd; render(); });
   // baho/yo'qlama bosilganda butun sahifa qayta chizilmaydi — faqat o'sha qator, kun katagi va hisob (sahifa «yangilangandek» bo'lmasin)
   const put = (si, nw) => { if (putMark(c, si, d, nw)) patch(si); };
+  const krRefresh = () => {
+    const box = $(".kr-box", m); if (!box) return;
+    const n = h(KRT.view(c, d, krCtx)); box.replaceWith(n); bindRow(n); KRT.bind(n, c, d, krCtx); jFilter(m);
+    const st = $(".dstats", m); if (st) st.innerHTML = statsHtml();
+    const ac = $(".dacts", m); if (ac) { ac.innerHTML = actsHtml(); bindActs(); }
+    const sd = $(".kr-side", m); if (sd) sd.replaceWith(h(KRT.side(c, d)));
+    const db = $(`[data-dd="${d}"]`, m); if (db) { const [k, lb] = dayState(c, d); db.classList.remove("ok", "half"); if (k) db.classList.add(k); const ib = $("i", db); if (ib) ib.textContent = lb; }
+  };
+  krCtx.refresh = krRefresh;
   const patch = (si) => {
+    if (kr) return krRefresh();
     const old = $(`.drow[data-dr="${si}"]`, m); if (!old) { const y = window.scrollY; render(); window.scrollTo(0, y); return; }
     const nr = h(rowHtml(si)); old.replaceWith(nr); bindRow(nr); jFilter(m);
     const st = $(".dstats", m); if (st) st.innerHTML = statsHtml();
@@ -2004,8 +2023,9 @@ function pageDay(m) {
   });
   };
   bindRow($(".dlist", m));
+  if (kr) { KRT.bind($(".kr-box", m), c, d, krCtx); KRT.bindTools(m, c, d, () => { const y = window.scrollY; render(); window.scrollTo(0, y); }); }
   // mezon bo'yicha baho: rejim, mezonlar jadvali, «Qolganlarga» tugmalari va yon kartalar
-  m.querySelectorAll("[data-mzmode]").forEach((b) => b.onclick = () => { D.web.fmode = b.dataset.mzmode === "plain" ? "plain" : "crit"; save(); render(); });
+  m.querySelectorAll("[data-mzmode]").forEach((b) => b.onclick = () => { D.web.fmode = ["plain", "krit"].includes(b.dataset.mzmode) ? b.dataset.mzmode : "crit"; save(); render(); });
   { const rb = $("[data-mzrub]", m); if (rb) rb.onclick = () => MZN.rubric(); }
   const bindFill = (root) => root.querySelectorAll("[data-mzfill]").forEach((b) => b.onclick = () => { MZN.fill(c, d, +b.dataset.mzfill); const y = window.scrollY; render(); window.scrollTo(0, y); });
   const mzSide = () => {
@@ -2757,6 +2777,7 @@ async function undoLast() {
   for (const u of live) {
     const b = u.kind === "mark" ? u.s.marks : (u.s.scores = u.s.scores || {});
     if (u.old === "") delete b[u.key]; else b[u.key] = u.old;
+    if (u.kx) for (const [f, v] of [["fk", u.kx[0]], ["fp", u.kx[1]]]) { if (v) (u.s[f] = u.s[f] || {})[u.key] = v; else if (u.s[f]) { delete u.s[f][u.key]; if (!Object.keys(u.s[f]).length) delete u.s[f]; } }   // kriterial belgilar (kriterial.js)
     if (u.nw !== "" && u.old !== "") (u.kind === "mark" ? log(u.c, u.s, u.key, u.nw, u.old) : logScore(u.c, u.s, u.key, u.nw, u.old));
   }
   save(); render(); toast(`Bekor qilindi: ${live.length} ta katak`);
