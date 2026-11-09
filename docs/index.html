@@ -13,7 +13,7 @@
 <title>Yo'qlama jurnali</title>
 <link rel="stylesheet" href="vendor/bootstrap-5.3.3.css?v=213">
 <link rel="stylesheet" href="vendor/bootstrap-icons-1.11.3.css?v=213">
-<link rel="stylesheet" href="app.css?v=213">
+<link rel="stylesheet" href="app.css?v=219">
 <link rel="stylesheet" href="guruhlar.css?v=213">
 <link rel="stylesheet" href="tpt-mavzu.css?v=213">
 <link rel="stylesheet" href="tpt-tema.css?v=213">
@@ -81,7 +81,7 @@
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=218"></script>
 <script src="loyiha.js?v=218"></script>
-<script src="yangilik.js?v=218"></script>
+<script src="yangilik.js?v=219"></script>
 <script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=214"></script>
 <script src="telegram.js?v=216"></script>
@@ -4129,10 +4129,15 @@ async function copyText(t) {
   try { await navigator.clipboard.writeText(t); toast("Nusxalandi — messenjerga qo'ying"); }
   catch (e) { const ta = h(`<textarea style="position:fixed;opacity:0"></textarea>`); ta.value = t; document.body.append(ta); ta.select(); try { document.execCommand("copy"); toast("Nusxalandi"); } catch (e2) { toast("Nusxalab bo'lmadi — matnni belgilab nusxalang"); } ta.remove(); }
 }
-function studentCard(ci, name, tab = "sum") {
+function studentCard(ci, name, tab = "sum", cq = null) {
   const c = D.classes[ci], s = c.students.find((x) => x.name === name); if (!s) return;
   const noteTab = ["notes", `Eslatmalar${(s.notes || []).length ? " (" + s.notes.length + ")" : ""}`];
-  const [lo, hi, q] = periodNow(), r = reportRows(c, lo, hi, q).rows.find((x) => x.name === name), per = q ? `${q}-chorak` : "joriy oy";
+  // chorak tanlovi (cq): har chorak alohida — tanlangan chorak sanalari ichida; boshlanmagan chorakni tanlab bo'lmaydi
+  const t0 = todayIso(), qOk = (k) => !!qRange(k) && qRange(k)[0] <= t0;
+  let [lo, hi, q] = periodNow();
+  if (cq && qOk(cq) && cq !== q) { const rg = qRange(cq); lo = rg[0]; hi = rg[1] < t0 ? rg[1] : t0; q = cq; }
+  const r = reportRows(c, lo, hi, q).rows.find((x) => x.name === name), per = q ? `${q}-chorak` : "joriy oy";
+  const qSeg = [1, 2, 3, 4].some(qOk) ? `<div class="seg sc-qs" role="tablist" aria-label="Chorak">${[1, 2, 3, 4].map((k) => `<button type="button" role="tab" aria-selected="${k === q}" class="${k === q ? "on" : ""}" data-scq="${k}" ${qOk(k) ? "" : "disabled title=\"Chorak hali boshlanmagan\""}>${k}-chorak</button>`).join("")}</div>` : "";
   const tabs = [["sum", "Umumiy"], ["grow", "O'sish"], noteTab, ["msg", "Ota-onaga xabar"]];
   let body = "";
   if (tab === "sum") {
@@ -4170,10 +4175,11 @@ function studentCard(ci, name, tab = "sum") {
   document.querySelectorAll(".modal").forEach((x) => x.remove());
   modal(`<div class="hrow"><div class="vcol sp" style="gap:0"><span class="tag">${esc(label(c))} · ${per}</span><h2>${s.star ? "⭐ " : ""}${esc(name)}</h2></div>
       <button class="btn btn-sm" data-star title="Kuzatuv ro'yxati">${s.star ? "★ Kuzatuvda" : "☆ Kuzatish"}</button></div>
-    <div class="seg tabs">${tabs.map(([k, n]) => `<button class="${k === tab ? "on" : ""}" data-tab="${k}">${n}</button>`).join("")}</div>${body}
+    <div class="seg tabs">${tabs.map(([k, n]) => `<button class="${k === tab ? "on" : ""}" data-tab="${k}">${n}</button>`).join("")}</div>${tab === "sum" || tab === "msg" ? qSeg : ""}${body}
     <div class="hrow"><span class="sp"></span><button class="btn" data-x>Yopish</button></div>`, (mm, close) => {
     mm.querySelector(".card").classList.add("wide");
-    const again = (t) => { close(); studentCard(ci, name, t); };
+    const again = (t) => { close(); studentCard(ci, name, t, q); };
+    mm.querySelectorAll("[data-scq]").forEach((b) => b.onclick = () => { if (+b.dataset.scq === q) return; close(); studentCard(ci, name, tab, +b.dataset.scq); });
     $("[data-x]", mm).onclick = () => close();
     mm.querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => again(b.dataset.tab));
     $("[data-star]", mm).onclick = () => { s.star = !s.star; save(); render(); again(tab); };
