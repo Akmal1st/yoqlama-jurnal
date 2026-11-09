@@ -4975,6 +4975,8 @@ test("Chorak devori: boshqa choraklar o'zgarsa, tanlangan chorak hech narsasi o'
           for (const t of ["bsb", "chsb", "loyiha"]) view(`summativ ${t} ${ci}`, () => { S.page = "journal"; S.ci = ci; S.jpage = "sm"; S.sq = tq; S.smt = t; S.smw = null; });
           for (const k of ["cls", "stats", "att", "sum", "ready", "par", "cmp"].concat(now ? ["blank"] : [])) view(`hisobot ${k} ${ci}`, () => { S.page = "reports"; S.rep.kind = k; S.rep.ci = ci; S.rep.per = "q" + tq; });
           if (now) { S.page = "journal"; S.jpage = "j"; S.ci = ci; render(); studentCard(ci, c.students.at(-1).name); out[`kartochka ${ci}`] = txt(); document.querySelectorAll(".modal [data-x]").forEach((b) => b.click()); }
+          // kartochkada chorak tanlovi: tanlangan chorak (Umumiy va Ota-onaga xabar)
+          for (const tb of ["sum", "msg"]) { S.page = "journal"; S.jpage = "j"; S.ci = ci; render(); studentCard(ci, c.students.at(-1).name, tb, tq); out[`kartochka ${tq}-chorak ${tb} ${ci}`] = txt() + ($(".modal #pm") || {}).value; document.querySelectorAll(".modal [data-x]").forEach((b) => b.click()); }
           const [lo, hi] = qRange(tq), top = hi < todayIso() ? hi : todayIso();
           out[`hisob ${ci}`] = JSON.stringify({r: reportRows(c, lo, top, tq).rows, q: c.students.map((s) => quarterResult(c, s, tq, worksInQuarter(c, tq))), rd: readiness(c, tq)});
         });
