@@ -2777,6 +2777,7 @@ async function undoLast() {
   for (const u of live) {
     const b = u.kind === "mark" ? u.s.marks : (u.s.scores = u.s.scores || {});
     if (u.old === "") delete b[u.key]; else b[u.key] = u.old;
+    if (u.kx) for (const [f, v] of [["fk", u.kx[0]], ["fp", u.kx[1]]]) { if (v) (u.s[f] = u.s[f] || {})[u.key] = v; else if (u.s[f]) { delete u.s[f][u.key]; if (!Object.keys(u.s[f]).length) delete u.s[f]; } }   // kriterial belgilar (kriterial.js)
     if (u.nw !== "" && u.old !== "") (u.kind === "mark" ? log(u.c, u.s, u.key, u.nw, u.old) : logScore(u.c, u.s, u.key, u.nw, u.old));
   }
   save(); render(); toast(`Bekor qilindi: ${live.length} ta katak`);

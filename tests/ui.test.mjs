@@ -5079,10 +5079,21 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
       // «Mezon bo'yicha» rejimi xuddi shu qismlarni ko'radi; «Oddiy» bilan o'zgartirilgan baho kriterialda «boshqa usul»
       await page.click("[data-mzmode=crit]"); await page.waitForSelector(".dlist.mz");
       assert.match(await page.textContent('.drow[data-dr="4"] .mz-tot'), /6 \+ 4/);
+      await page.click("[data-mzp='5|0|5']"); assert.deepEqual(await st(5), ["9", "", "[5,4]"], "mezon bo'yicha o'zgartirilsa eski +/− belgilar o'chadi");
       await page.click("[data-mzmode=plain]"); await page.click("[data-g='4|7']");
       await page.click("[data-mzmode=krit]"); await page.waitForSelector(".dlist.kr");
       assert.match(await page.textContent('tr[data-krr="4"] td.tot'), /7\s*boshqa usul/);
       assert.equal(await page.locator("[data-krc='4|0'].e").count(), 1);
+      // boshqa usuldagi bahoga tasodifan tegilmaydi; faqat «Bahoni o'chirish» bilan
+      await page.click("[data-krc='4|0']"); assert.equal((await st(4))[0], "7"); assert.match(await page.textContent(".toast"), /boshqa usulda/);
+      await page.click("th[data-krcol='1']"); await page.click(".kr-pop [data-v=p]"); assert.equal((await st(4))[0], "7", "ustun to'ldirish ham tegmaydi");
+      await page.click("[data-krrow='4']"); await page.click(".kr-pop [data-v=clr]"); assert.deepEqual(await st(4), ["", "", "null"]);
+      // ↶ bekor qilish belgilarni ham qaytaradi: 10 → 9 → ↶ → 10 (+++++++++)
+      await page.click("[data-krrow='4']"); await page.click(".kr-pop [data-v=allp]"); await page.click("[data-krc='4|2']");
+      assert.deepEqual(await st(4), ["9", "++-++++++", "[5,4]"]);
+      await page.evaluate(() => undoLast()); await page.waitForFunction((d) => D.classes[0].students[4].marks[d] === "10", t);
+      assert.deepEqual(await st(4), ["10", "+++++++++", "[6,4]"]);
+      assert.match(await page.textContent('tr[data-krr="4"] td.tot'), /6 \+ 4/);
       // deskriptorlar matni (sinf bo'yicha)
       await page.click("[data-kred]"); await page.fill("#kr-d0", "Darsda savol berdi"); await page.click(".modal [data-ok]");
       assert.equal(await page.evaluate(() => D.classes[0].kd[0]), "Darsda savol berdi");

@@ -25,9 +25,15 @@ const KRT = (() => {
   function marks(s, d) {
     const blank = Array(N).fill(null), k = s.fk && s.fk[d]; if (!k) return blank;
     const a = [...k].map((ch) => ch === "+" ? "p" : ch === "-" ? "m" : null), gs = gradesOf(s.marks[d] || "");
-    if (a.every(Boolean)) { const [x, y] = sum(a); return gs.length === 1 && gs[0] === x + y ? a : blank; }
+    if (a.every(Boolean)) {   // baho va mezon qismlari (s.fp) ham shu belgilarga mos bo'lishi kerak
+      const [x, y] = sum(a), fp = s.fp && s.fp[d];
+      return gs.length === 1 && gs[0] === x + y && (!fp || (fp[0] === x && fp[1] === y)) ? a : blank;
+    }
     return gs.length ? blank : a;
   }
+  // baho boshqa usulda (Oddiy / Mezon bo'yicha) qo'yilgan: belgilar unga mos emas — katak bosilsa baho tasodifan o'chmasin
+  const other = (s, d) => gradesOf(s.marks[d] || "").length > 0 && !marks(s, d).some(Boolean);
+  const OTHER = "Bu o'quvchiga baho boshqa usulda qo'yilgan. Kriterial baholash uchun avval ⋯ → «Bahoni o'chirish».";
   function info(s, d) {
     const a = marks(s, d), [dd, uu] = sum(a), e = a.filter((v) => !v).length;
     return {a, d: dd, u: uu, g: dd + uu, e, pl: a.filter((v) => v === "p").length, mi: a.filter((v) => v === "m").length, full: !e, any: e < N};
@@ -57,16 +63,19 @@ const KRT = (() => {
       tidy(); return false;
     }
     tidy(); if (nw === old) save();
+    else { const u = typeof UNDO !== "undefined" && UNDO[UNDO.length - 1]; if (u && u.length === 1 && u[0].kind === "mark" && u[0].s === s && u[0].key === d) u[0].kx = [pk || null, pp || null]; }   // ↶ belgilarni ham qaytaradi
     return true;
   }
   function setCell(c, si, d, k, v, putFn) {
     if (!canEdit(d)) { putMark(c, si, d, c.students[si].marks[d] || ""); return false; }   // sababini toast bilan aytadi
     const s = c.students[si]; if (absent(s.marks[d])) return false;
+    if (other(s, d)) { toast(OTHER); return false; }
     const a = marks(s, d); a[k] = v; return write(c, si, d, a, putFn);
   }
   function fillRow(c, si, d, how, putFn) {
     if (!canEdit(d)) { putMark(c, si, d, c.students[si].marks[d] || ""); return false; }
     const s = c.students[si]; if (absent(s.marks[d])) return false;
+    if (how !== "clr" && other(s, d)) { toast(OTHER); return false; }
     const a = marks(s, d).map((v) => how === "clr" ? null : how === "allp" ? "p" : v || how);
     return write(c, si, d, a, putFn);
   }
@@ -76,7 +85,7 @@ const KRT = (() => {
     for (const si of liveOf(c, d)) {
       const s = c.students[si], a = marks(s, d);
       if (how === "clr" ? !a[k] : a[k]) continue;
-      if (gradesOf(s.marks[d] || "").length && !(s.fk && s.fk[d])) continue;   // boshqa usulda qo'yilgan bahoga tegilmaydi
+      if (other(s, d)) continue;   // boshqa usulda qo'yilgan bahoga tegilmaydi
       a[k] = how === "clr" ? null : how; if (write(c, si, d, a, putFn)) n++;
     }
     save(); return n;
@@ -107,7 +116,7 @@ const KRT = (() => {
   }
   // ctx: {ed, att(si) — yo'qlama tugmalari, dn(si) — ism, risk: Set}
   function table(c, d, ctx) {
-    const R = rowsOf(c, d).filter((si) => st.flt === "all" || (!absent(c.students[si].marks[d]) && !info(c.students[si], d).full));
+    const R = rowsOf(c, d).filter((si) => st.flt === "all" || (!absent(c.students[si].marks[d]) && !info(c.students[si], d).full && !other(c.students[si], d)));
     const ds = descs(c);
     let body = "";
     for (const si of R) {
@@ -225,8 +234,8 @@ const KRT = (() => {
         const [si, k] = b.dataset.krc.split("|").map(Number), rows = [...root.querySelectorAll("tr[data-krr]")].filter((r) => r.style.display !== "none" && r.querySelector("[data-krc]")).map((r) => +r.dataset.krr), ri = rows.indexOf(si);
         const mv = (dr, dc) => { st.f = [rows[Math.max(0, Math.min(rows.length - 1, ri + dr))], Math.max(0, Math.min(N - 1, k + dc))]; };
         let ch = false;
-        if (["+", "=", "1"].includes(e.key)) { ch = setCell(c, si, d, k, "p", put); mv(1, 0); }
-        else if (["-", "0", "2"].includes(e.key)) { ch = setCell(c, si, d, k, "m", put); mv(1, 0); }
+        if (["+", "="].includes(e.key)) { ch = setCell(c, si, d, k, "p", put); mv(1, 0); }
+        else if (["-", "_"].includes(e.key)) { ch = setCell(c, si, d, k, "m", put); mv(1, 0); }
         else if (e.key === "Delete" || e.key === "Backspace") { ch = setCell(c, si, d, k, null, put); st.f = [si, k]; }
         else if (e.key === "ArrowDown") mv(1, 0); else if (e.key === "ArrowUp") mv(-1, 0); else if (e.key === "ArrowRight") mv(0, 1); else if (e.key === "ArrowLeft") mv(0, -1);
         else return;
@@ -241,7 +250,7 @@ const KRT = (() => {
       th.onclick = open; th.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } };
     });
     root.querySelectorAll("[data-krrow]").forEach((b) => b.onclick = () => { if (!ctx.ed) return; const si = +b.dataset.krrow, i = info(c.students[si], d);
-      openPop(b, `<b>${si + 1}. ${esc(c.students[si].name)}</b><small>${i.full ? `Baho ${i.g} (${i.d} + ${i.u})` : "Baho hali to'liq emas"}</small><button type="button" data-v="p"><i class="p">+</i>Bo'sh kataklarga +</button><button type="button" data-v="allp"><i class="p">+</i>Hammasiga + (10)</button><button type="button" data-v="clr"><i>·</i>Bahoni o'chirish</button>`,
+      openPop(b, `<b>${si + 1}. ${esc(c.students[si].name)}</b><small>${other(c.students[si], d) ? `Baho boshqa usulda: ${esc(gradesOf(c.students[si].marks[d] || "").join("/"))}` : i.full ? `Baho ${i.g} (${i.d} + ${i.u})` : "Baho hali to'liq emas"}</small><button type="button" data-v="p"><i class="p">+</i>Bo'sh kataklarga +</button><button type="button" data-v="allp"><i class="p">+</i>Hammasiga + (10)</button><button type="button" data-v="clr"><i>·</i>Bahoni o'chirish</button>`,
         (p) => p.querySelectorAll("[data-v]").forEach((x) => x.onclick = () => { if (fillRow(c, si, d, x.dataset.v, put)) ref(); else closePop(); })); });
     root.querySelectorAll("[data-krrowfill]").forEach((b) => b.onclick = () => { const [si, v] = b.dataset.krrowfill.split("|"); if (fillRow(c, +si, d, v, put)) ref(); });
     root.querySelectorAll("[data-krcolfill]").forEach((b) => b.onclick = () => { const [k, v] = b.dataset.krcolfill.split("|"); fillCol(c, d, +k, v, put); ref(); });

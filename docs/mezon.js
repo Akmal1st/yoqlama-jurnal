@@ -117,6 +117,7 @@ const MZN = (() => {
     if (np[0] == null && np[1] == null) delete s.fp[d]; else s.fp[d] = np;
     if (nw !== old && !putFn(si, nw)) { if (prev) s.fp[d] = prev; else delete s.fp[d]; if (!Object.keys(s.fp).length) delete s.fp; return false; }
     if (!Object.keys(s.fp).length) delete s.fp;
+    if (s.fk) { delete s.fk[d]; if (!Object.keys(s.fk).length) delete s.fk; }   // kriterial (+/−) belgilar endi eskirdi (kriterial.js)
     if (nw === old) save();
     return true;
   }
@@ -124,6 +125,7 @@ const MZN = (() => {
     const s = c.students[si], old = s.marks[d] || "", nw = lateOf(old) ? "kq" : gradesOf(old).length ? "" : old;
     if (nw !== old && !putFn(si, nw)) return false;
     if (s.fp) delete s.fp[d];
+    if (s.fk) { delete s.fk[d]; if (!Object.keys(s.fk).length) delete s.fk; }
     save(); return true;
   }
   function fill(c, d, i) {
