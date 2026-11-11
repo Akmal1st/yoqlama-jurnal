@@ -5100,10 +5100,20 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
       await page.click("[data-kred]"); await page.fill("#kr-d0", "Darsda savol berdi"); await page.click(".modal [data-ok]");
       assert.equal(await page.evaluate(() => D.classes[0].kd[0]), "Darsda savol berdi");
       assert.match(await page.getAttribute("th[data-krcol='0']", "title"), /Darsda savol berdi/);
-      // chop etish: bo'sh va to'ldirilgan varaq
-      await page.click("[data-krpr]"); await page.click(".kr-pop [data-v=f]");
+      // chop etish / Telegram oynasi: oldindan ko'rish, bo'sh va to'ldirilgan varaq, PDF tugmasi
+      await page.click("[data-krpr]"); await page.waitForSelector(".krp-pv .bx-pg.krp");
+      let pv = await page.textContent(".krp-pv");
+      assert.match(pv, /Darsda savol berdi/); assert.match(pv, /«\+» ulushi/); assert.match(pv, /Keldi:/); assert.match(pv, /O'qituvchi:/);
+      assert.ok(await page.$(".kr-pdlg [data-ktg]"), "Telegram tugmasi bor");
+      await page.click(".kr-pdlg [data-kv=blank]"); await page.waitForTimeout(50);
+      pv = await page.textContent(".krp-pv");
+      assert.ok(!/«\+» ulushi/.test(pv), "bo'sh varaqda xulosa yo'q"); assert.match(pv, /202__-y/);
+      await page.click(".kr-pdlg [data-kv=fill]"); await page.waitForTimeout(50);
+      await page.click(".kr-pdlg [data-kpr]");
       const pr = await page.evaluate(() => window.__printed || document.getElementById("pdoc").textContent);
-      assert.match(pr, /Formativ baholash varaqasi/); assert.match(pr, /Darsda savol berdi/);
+      assert.match(pr, /Formativ baholash varaqasi/); assert.match(pr, /Darsda savol berdi/); assert.match(pr, /«\+» ulushi/);
+      assert.ok((await page.locator("#pdoc .bx-pg.bx-land").count()) === 1, "bitta albom varaq");
+      await page.click(".kr-pdlg [data-x]");
       // telefon: o'quvchi va deskriptor rejimlari
       if (tel) {
         await page.click("[data-krv=stu]"); await page.waitForSelector("[data-krset]");
