@@ -21,7 +21,7 @@ const MZN = (() => {
   ];
   const vals = (p) => Array.from({length: p.m - p.min + 1}, (_, i) => p.min + i);
   const on = () => !["plain", "krit"].includes((D.web || {}).fmode);
-  const absent = (mk) => ["s", "dq", "k", "ox"].includes(attPart(mk || ""));
+  const absent = (mk) => ["s", "dq", "k", "ch", "ox"].includes(attPart(mk || ""));
 
   // saqlangan qismlar faqat jurnaldagi baho bilan mos kelsa ishlatiladi (baho boshqa joyda o'zgartirilgan bo'lsa — e'tiborsiz)
   function parts(s, d) {

@@ -102,7 +102,7 @@ table.j tr:nth-child(even of tr[data-q]):not(.risk) .cell:not([style*="backgroun
 @container (max-width:720px){
   .mz-head{display:none}
   .dlist>.drow.mz-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"nm tot" "att att" "cr cr" "hn hn";gap:8px 10px;padding:12px}
-  .mz-row .mz-nm{grid-area:nm}.mz-row .datt{grid-area:att;display:grid;grid-template-columns:repeat(4,1fr)}.mz-row .mz-crits{grid-area:cr}.mz-row .mz-hint{grid-area:hn}
+  .mz-row .mz-nm{grid-area:nm}.mz-row .datt{grid-area:att;display:grid;grid-template-columns:repeat(5,1fr)}.mz-row .mz-crits{grid-area:cr}.mz-row .mz-hint{grid-area:hn}
   .mz-row .mz-tot{grid-area:tot;flex-direction:row;gap:8px}
   .mz-row .mz-tot small{order:-1}
   .mz-row .datt .da{width:100%;height:36px}

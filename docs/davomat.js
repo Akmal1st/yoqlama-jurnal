@@ -12,7 +12,7 @@ const DVM = (() => {
   if (!["list", "paper"].includes(V.view)) V.view = "list";
   if (!["s", "m", "l"].includes(V.fs)) V.fs = "m";
   const keep = () => { try { const o = {}; for (const k of Object.keys(DEF)) o[k] = V[k]; localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} };
-  const CODES = {s: "S", dq: "DQ", k: "K", kq: "KQ"}, ABS = ["s", "dq", "k"], KS = ["s", "dq", "k", "kq"];
+  const CODES = {s: "S", dq: "DQ", k: "K", kq: "KQ", ch: "CH"}, ABS = ["s", "dq", "k"], KS = ["s", "dq", "k", "kq"];
   const FS = {s: 8.5, m: 9.5, l: 10.5};   // varaqdagi jadval shrifti, pt
   const d5 = (s) => fmt(s).slice(0, 5);
   const hdr = () => D.web.bsb_hdr || {};
@@ -28,14 +28,14 @@ const DVM = (() => {
     if (r[0] > t) return {future: true, q, lo: r[0], hi: r[1]};
     const lo = r[0], hi = r[1] < t ? r[1] : t;
     const dates = c.dates.filter((d) => lo <= d && d <= hi && !isNoLesson(c, d)).sort();
-    const tot = {s: 0, dq: 0, k: 0, kq: 0}; let own = 0, abs = 0;
+    const tot = {s: 0, dq: 0, k: 0, kq: 0, ch: 0}; let own = 0, abs = 0;
     const rows = c.students.map((st, i) => {
-      const cells = dates.map((d) => attPart(st.marks[d] || "")), r1 = {i, name: st.name, s: 0, dq: 0, k: 0, kq: 0};
+      const cells = dates.map((d) => attPart(st.marks[d] || "")), r1 = {i, name: st.name, s: 0, dq: 0, k: 0, kq: 0, ch: 0};
       r1.marks = dates.map((d, j) => [d, cells[j]]).filter(([, v]) => CODES[v]);
       for (const [, v] of r1.marks) r1[v]++;
       const o = cells.filter((v) => v !== "ch").length; r1.abs = r1.s + r1.dq + r1.k;
       r1.att = o ? +pyFixed(100 * (o - r1.abs) / o, 1) : null; own += o; abs += r1.abs;
-      for (const k of KS) tot[k] += r1[k];
+      for (const k of KS) tot[k] += r1[k]; tot.ch += r1.ch;
       return r1;
     });
     return {q, lo, hi, end: r[1], running: r[1] >= t, dates, rows, tot, abs, att: own ? +pyFixed(100 * (own - abs) / own, 1) : null,
@@ -55,7 +55,7 @@ const DVM = (() => {
     const body = L.map((r) => `<tr><td class="dv-no">${r.i + 1}</td><td class="dv-nm">${esc(r.name)}</td><td class="dv-mk">${mk(r)}</td>${KS.map((k) => `<td>${r[k] || ""}</td>`).join("")}<td class="dv-bt ${low(r) ? "dv-lw" : ""}">${r.att === null ? "" : Math.round(r.att)}${low(r) ? "*" : ""}</td></tr>`).join("");
     const sum = V.sum ? `<div class="dv-sum">
         <div><h5>Chorak bo'yicha</h5><p>Dars kunlari: <b>${A.dates.length}</b> · O'quvchilar: <b>${A.rows.length}</b></p><p>Sinf davomati: <b>${pctTxt(A.att)}</b></p><p>Hamma darsda bo'lgan: <b>${A.clean}</b> nafar</p></div>
-        <div><h5>Kelmagan holatlar · ${A.abs}</h5><p>Sababsiz (S): <b>${A.tot.s}</b> · Sababli (DQ): <b>${A.tot.dq}</b></p><p>Kasal (K): <b>${A.tot.k}</b> · Kech qolgan (KQ): <b>${A.tot.kq}</b></p><p>Davomati ${thr()}% dan past: <b>${lowN}</b> nafar</p></div>
+        <div><h5>Kelmagan holatlar · ${A.abs}</h5><p>Sababsiz (S): <b>${A.tot.s}</b> · Sababli (DQ): <b>${A.tot.dq}</b></p><p>Kasal (K): <b>${A.tot.k}</b> · Kech qolgan (KQ): <b>${A.tot.kq}</b>${A.tot.ch ? ` · Chet elda (CH): <b>${A.tot.ch}</b>` : ""}</p><p>Davomati ${thr()}% dan past: <b>${lowN}</b> nafar</p></div>
         <div><h5>Eng ko'p qoldirganlar</h5>${top.length ? top.map((r, k) => `<p>${k + 1}. ${esc(r.name)} — <b>${r.abs}</b> dars</p>`).join("") : "<p>Yo'q</p>"}</div></div>` : "";
     return `<div class="bx-pg dv-pg ${dense ? "dense" : ""}"><div class="dv-in">
       <div class="dv-phd">${school ? `<div class="dv-sch">${esc(school)}</div>` : ""}<h4>DAVOMAT VARAG'I</h4>
@@ -65,7 +65,7 @@ const DVM = (() => {
         <thead><tr><th>№</th><th class="l">O'quvchining ismi, familiyasi</th><th class="l">Yo'qlama belgilari (sana va belgi)</th><th>S</th><th>DQ</th><th>K</th><th>KQ</th><th>%</th></tr></thead>
         <tbody>${body}</tbody>
         <tfoot><tr><td></td><td class="dv-nm">Jami</td><td class="dv-mk">${A.abs} ta kelmagan holat, ${A.tot.kq} marta kech qolgan</td>${KS.map((k) => `<td>${A.tot[k]}</td>`).join("")}<td>${A.att === null ? "" : Math.round(A.att)}</td></tr></tfoot></table>
-      <div class="dv-lg"><b>Belgilar:</b> S — sababsiz, DQ — sababli (hujjat bilan), K — kasal, KQ — kech qoldi. % — o'quvchining chorakdagi davomati; * — ${thr()}% dan past.${V.all ? "" : " Ro'yxatda faqat belgisi bor o'quvchilar."}</div>
+      <div class="dv-lg"><b>Belgilar:</b> S — sababsiz, DQ — sababli (hujjat bilan), K — kasal, KQ — kech qoldi${A.tot.ch ? ", CH — chet elda (bu kunlar davomat foiziga kirmaydi)" : ""}. % — o'quvchining chorakdagi davomati; * — ${thr()}% dan past.${V.all ? "" : " Ro'yxatda faqat belgisi bor o'quvchilar."}</div>
       ${sum}
       ${V.sig ? `<div class="dv-sig"><div><span></span><small>Fan o'qituvchisi${teacher ? `: ${esc(teacher)}` : ""}</small></div><div><span></span><small>Sinf rahbari</small></div><div><span></span><small>Direktor o'rinbosari (O'IBDO')</small></div></div>` : ""}
       <div class="dv-ft"><span>Yo'qlama jurnal</span><span>Chop etilgan: ${fmt(t)}</span></div></div></div>`;

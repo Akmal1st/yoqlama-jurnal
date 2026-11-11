@@ -62,7 +62,7 @@ const HSB = (() => {
   };
   const attCol = (k) => (D.settings.attendance || {})[k];
   const code = (k, txt) => { const col = attCol(k); return `<span class="hb-chip" ${col ? `style="background:${col};color:${contrast(col)}"` : ""}>${txt}</span>`; };
-  const missChips = (r) => ["s", "dq", "k", "kq"].filter((k) => r[k]).map((k) => code(k, `${CODES[k]} ${r[k]}`)).join(" ");
+  const missChips = (r) => ["s", "dq", "k", "kq", "ch"].filter((k) => r[k]).map((k) => code(k, `${CODES[k]} ${r[k]}`)).join(" ");
   const missN = (r) => r.s + r.dq + r.k;
   const QCOL = ["var(--ok)", "var(--hb-ok-b)", "var(--hb-warn-b)", "var(--danger)"];
   const wCls = (t) => t === "chsb" ? "chsb" : t === "loyiha" ? "loy" : "bsb";

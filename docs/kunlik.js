@@ -12,10 +12,10 @@ const KRJ = (() => {
   const f = (w, s) => `${w} ${s}px ${stack()}`;
   const TH = {
     light: {bg: "#ffffff", ink: "#0b1220", mut: "#475467", grid: "#cfd6e0", grid5: "#5b6b82", head: "#0b3d91", headInk: "#ffffff", sub: "#eef2f8", zebra: "#f3f6fa",
-      st: {"": ["Keldi", "#0a6b2e"], s: ["Sababsiz", "#b3141b"], dq: ["Sababli", "#0b4fae"], k: ["Kasal", "#6a1b9a"], kq: ["Kech qoldi", "#8a4b00"]},
+      st: {"": ["Keldi", "#0a6b2e"], s: ["Sababsiz", "#b3141b"], dq: ["Sababli", "#0b4fae"], k: ["Kasal", "#6a1b9a"], kq: ["Kech qoldi", "#8a4b00"], ch: ["Chet elda", "#00695c"]},
       absRow: "#ffecec", g: (g) => g >= 8 ? ["#d7f2dd", "#05501f"] : g >= 5 ? ["#fff1bf", "#5c4100"] : ["#ffd9d9", "#8f0d12"]},
     dark: {bg: "#0d1117", ink: "#f2f5f9", mut: "#aab4c2", grid: "#2f3a4b", grid5: "#8796ab", head: "#1d3b6e", headInk: "#ffffff", sub: "#161c26", zebra: "#141b25",
-      st: {"": ["Keldi", "#5fd38a"], s: ["Sababsiz", "#ff7b7b"], dq: ["Sababli", "#7db8ff"], k: ["Kasal", "#d59bff"], kq: ["Kech qoldi", "#ffbe5c"]},
+      st: {"": ["Keldi", "#5fd38a"], s: ["Sababsiz", "#ff7b7b"], dq: ["Sababli", "#7db8ff"], k: ["Kasal", "#d59bff"], kq: ["Kech qoldi", "#ffbe5c"], ch: ["Chet elda", "#5fd4c4"]},
       absRow: "#2c1618", g: (g) => g >= 8 ? ["#123d24", "#7ee2a3"] : g >= 5 ? ["#3d3210", "#ffd866"] : ["#4a1619", "#ff9a9a"]},
   };
   function fit(c, t, w) { if (c.measureText(t).width <= w) return t; while (t.length > 1 && c.measureText(t + "…").width > w) t = t.slice(0, -1); return t + "…"; }
@@ -35,7 +35,7 @@ const KRJ = (() => {
     const m = document.createElement("canvas").getContext("2d"); m.font = f(500, 15.5);
     const LW = 132, VW = TW - LW - 24, LH = 22;
     // diqqat: ro'yxatni ko'zdan kechirmasdan ham ko'rinsin
-    const nm = {s: "sababsiz", dq: "sababli", k: "kasal"};
+    const nm = {s: "sababsiz", dq: "sababli", k: "kasal", ch: "chet elda"};
     const abs = r.rows.map((x, i) => nm[x.st] ? `${i + 1}. ${short(x.n)} (${nm[x.st]})` : null).filter(Boolean);
     const low = r.rows.map((x, i) => x.g != null && x.g < 5 ? `${i + 1}. ${short(x.n)} — ${x.gt || x.g}` : null).filter(Boolean);
     const info = [["Mavzu", r.topic, "kiritilmagan"], ["Uy vazifasi", r.hw, "berilmagan"]]; if (r.work) info.push(["Nazorat ishi", r.work, ""]);
@@ -91,9 +91,10 @@ const KRJ = (() => {
     return cv;
   }
   function stats(r) {
-    const n = r.rows.length, abs = r.rows.filter((x) => isAbs(x.st)).length, late = r.rows.filter((x) => x.st === "kq").length;
+    // «ch» (chet elda) — kelmagan, lekin qoldirish emas: davomat foizi undan tashqari hisoblanadi
+    const n = r.rows.length, abs = r.rows.filter((x) => isAbs(x.st)).length, late = r.rows.filter((x) => x.st === "kq").length, ch = r.rows.filter((x) => x.st === "ch").length, own = n - ch;
     const gs = r.rows.flatMap((x) => x.gs || (x.g != null ? [x.g] : [])), avg = gs.length ? gs.reduce((a, b) => a + b, 0) / gs.length : null;
-    return {n, came: n - abs, abs, late, pct: n ? Math.round((n - abs) / n * 100) : 0, avg, gn: gs.length};
+    return {n, came: own - abs, abs, ch, late, pct: own ? Math.round((own - abs) / own * 100) : 0, avg, gn: gs.length};
   }
   return {draw, stats, num, setFont: (x) => { FAM = x; }, font: () => FAM, setStyle: (x) => { STY = x; }, style: () => STY};
 })();
@@ -119,7 +120,7 @@ const KUN = (() => {
   const setCfg = (p) => tgSet({kr: Object.assign(cfg(), p)});
   const mins = (hm) => (hm ? +hm.slice(0, 2) * 60 + +hm.slice(3, 5) : null);
   const hmNow = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
-  const ST = new Set(["s", "dq", "k", "kq"]);
+  const ST = new Set(["s", "dq", "k", "kq", "ch"]);
 
   /* ───────── ma'lumot: bitta sinfning bir kunlik hisoboti (rasm chizuvchiga oddiy obyekt) ───────── */
   function build(c, t, slots) {
@@ -139,7 +140,7 @@ const KUN = (() => {
   }
   // rasm ostidagi qisqa matn: bildirishnomada va qidiruvda ko'rinadi
   function caption(r) {
-    const s = KRJ.stats(r), nm = {s: "sababsiz", dq: "sababli", k: "kasal"}, ab = r.rows.filter((x) => nm[x.st]);
+    const s = KRJ.stats(r), nm = {s: "sababsiz", dq: "sababli", k: "kasal", ch: "chet elda"}, ab = r.rows.filter((x) => nm[x.st]);
     return [`📊 ${r.cls}${r.subj ? " · " + r.subj : ""} — ${r.dateTxt}, ${r.wdTxt}`, `✅ Keldi ${s.came}/${s.n} (${s.pct}%)${s.avg != null ? ` · O'rtacha baho ${KRJ.num(s.avg)}` : ""}`,
       ab.length ? `❌ Kelmadi: ${ab.map((x) => `${x.n} (${nm[x.st]})`).join(", ")}` : "🎉 Hamma keldi"].join("\n").slice(0, 1000);
   }
