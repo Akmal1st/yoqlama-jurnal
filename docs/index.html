@@ -70,7 +70,7 @@
 <script src="bugun-arxiv.js?v=213"></script>
 <script src="bugun-tatil.js?v=207"></script>
 <script src="bugun.js?v=215"></script>
-<script src="funksiyalar.js?v=222"></script>
+<script src="funksiyalar.js?v=223"></script>
 <script src="sozlamalar.js?v=216"></script>
 <script src="mezon.js?v=221"></script>
 <script src="kriterial.js?v=221"></script>
@@ -85,7 +85,7 @@
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=218"></script>
 <script src="loyiha.js?v=218"></script>
-<script src="yangilik.js?v=222"></script>
+<script src="yangilik.js?v=223"></script>
 <script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=214"></script>
 <script src="telegram.js?v=216"></script>
@@ -2110,7 +2110,10 @@ const FEATS = [
 const SIMPLE_OFF = ["call", "groups", "seats", "attmodes", "debts", "timer", "duty"];
 // olib tashlangan funksiyalar (2026-11-07): Faollik +/− (mezon «Darsdagi ish» bor), Haftalik xulosa (Hisobotlar va kunlik hisobotda bor) — ma'lumoti saqlanadi
 const FEAT_GONE = new Set(["act", "week"]);
-function feat(id) { return !FEAT_GONE.has(id) && !(D.web.off || {})[id]; }
+// sukut bo'yicha o'chiq funksiyalar (Akmal, 2026-11-11): foydalanuvchi o'zi yoqadi — D.web.on = {id: 1}
+const FEAT_OPTIN = new Set(["otaemk"]);
+function feat(id) { return !FEAT_GONE.has(id) && (FEAT_OPTIN.has(id) ? !!(D.web.on || {})[id] : !(D.web.off || {})[id]); }
+function featToggle(k) { if (FEAT_OPTIN.has(k)) { const o = D.web.on = D.web.on || {}; if (o[k]) delete o[k]; else o[k] = 1; } else { const o = D.web.off = D.web.off || {}; if (o[k]) delete o[k]; else o[k] = 1; } }
 function attMode() { const v = D.web.att_mode || "list"; return !feat("attmodes") || (v === "map" && !feat("seats")) ? "list" : v; }
 /* kichik amallar menyusi: [matn, amal, xavfli?] — xavfli amal pastda, chiziq bilan ajratilgan */
 function rowMenu(title, items) {
@@ -2442,8 +2445,8 @@ function pageSettings(m) {
   SZL.page(m);
   SZL.bind(m);
   if (S.sec === 3) DZN.bind(m);
-  m.querySelectorAll("[data-ft]").forEach((b) => b.onclick = () => { const o = D.web.off = D.web.off || {}, k = b.dataset.ft; if (o[k]) delete o[k]; else o[k] = 1; save(); render(); });
-  m.querySelectorAll("[data-fp]").forEach((b) => b.onclick = () => { D.web.off = b.dataset.fp === "all" ? {} : Object.fromEntries(SIMPLE_OFF.map((k) => [k, 1])); save(); render(); toast(b.dataset.fp === "all" ? "Hamma funksiyalar yoqildi" : "Faqat asosiy funksiyalar qoldi"); });
+  m.querySelectorAll("[data-ft]").forEach((b) => b.onclick = () => { featToggle(b.dataset.ft); save(); render(); });
+  m.querySelectorAll("[data-fp]").forEach((b) => b.onclick = () => { D.web.off = b.dataset.fp === "all" ? {} : Object.fromEntries(SIMPLE_OFF.map((k) => [k, 1])); D.web.on = b.dataset.fp === "all" ? Object.fromEntries([...FEAT_OPTIN].map((k) => [k, 1])) : {}; save(); render(); toast(b.dataset.fp === "all" ? "Hamma funksiyalar yoqildi" : "Faqat asosiy funksiyalar qoldi"); });
   if (S.sec === 6) FNK.bind(m);
   m.querySelectorAll("[data-a]").forEach((b) => b.onclick = () => settingsAction(b.dataset.a, +b.dataset.i));
   m.querySelectorAll("[data-wd]").forEach((b) => b.onclick = () => {

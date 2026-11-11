@@ -1683,7 +1683,7 @@ test("«Yana» menyusi: bo'limlar va qidiruv", async () => {
     assert.deepEqual(vis, ["🎂 Tug'ilgan kunlar"]);
     assert.equal(await page.$$eval(".modal .mgrp", (x) => x.filter((g) => g.offsetParent).length), 1);
     await page.fill("#mq", "ota-ona");
-    assert.equal(await page.$$eval(".modal [data-i]", (x) => x.filter((b) => b.offsetParent).length), 3, "bo'lim nomi bo'yicha ham topiladi");
+    assert.equal(await page.$$eval(".modal [data-i]", (x) => x.filter((b) => b.offsetParent).length), 2, "bo'lim nomi bo'yicha ham topiladi (eMaktab'ga kirish sukut bo'yicha o'chiq)");
     await page.fill("#mq", "zzzz"); assert.ok(await page.isVisible("#mq0"));
     await page.fill("#mq", "chaqir"); await page.press("#mq", "Enter");
     await page.waitForSelector(".modal >> text=Doskaga");
@@ -1706,7 +1706,9 @@ test("Funksiyalarni yoqish/o'chirish: menyu, dars va «Bugun»dan yashirinadi", 
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     // import qilingan jurnalda hammasi yoqilgan
-    assert.equal(await page.evaluate(() => FEATS.filter(([k]) => feat(k)).length), await page.evaluate(() => FEATS.length));
+    // hammasi yoqilgan, faqat sukut bo'yicha o'chiqlar (FEAT_OPTIN: Ota-onalar eMaktab'i) bundan mustasno
+    assert.equal(await page.evaluate(() => FEATS.filter(([k]) => feat(k)).length), await page.evaluate(() => FEATS.length - FEAT_OPTIN.size));
+    assert.equal(await page.evaluate(() => feat("otaemk")), false);
     await page.click(".side [data-go=journal]"); await page.click("[data-more]");
     await page.click(".modal [data-feats]");
     await page.waitForSelector("[data-ft=call]");
@@ -4639,7 +4641,7 @@ for (const n of [36, 18]) test(`Qo'shimcha funksiyalar: yangi bo'lim, taymer, na
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "dars sahifasi yonga chiqmaydi");
     // Sozlamalar → Funksiyalar: 4 guruh, jonli namuna, saralash, guruhni o'chirish va «Qaytarish»
     await page.evaluate(() => { S.sec = 6; go("settings"); });
-    assert.equal(await page.locator(".fn-g").count(), 4);
+    assert.equal(await page.locator(".fn-g").count(), 5);   // + «eMaktab» guruhi (v223)
     assert.equal(await page.locator(".fn-row .fn-new").count(), 5);   // + Ota-onalar eMaktab'i (v222)
     assert.equal(await page.locator('[data-ft="act"], [data-ft="week"]').count(), 0);
     assert.ok((await page.textContent(".fn-g .fn-prev")).includes("Taymer"));
@@ -5231,6 +5233,16 @@ test("Ota-onalar eMaktab'i: jadvalga login/parol, kirib chiqish, aylanib chiqish
         D = normalize({classes: [{name: "6-A", subject: "Matematika", dates: [], students: mk(36)}, {name: "9-A", subject: "Algebra", dates: [], students: mk(18)}]}); save(); S.ci = 0; go("journal"); });
       const sum = () => page.$$eval(".ot-sum b", (x) => x.map((e) => e.textContent).join(" | "));
       const done = async () => { await page.waitForSelector(".modal >> text=Ilovada faqat «Oxirgi kirish»", {timeout: 20000}); const t = await page.$$eval(".ot-res b", (x) => x.map((e) => e.textContent)); await page.click(".modal:last-child [data-x]"); return t; };
+      // sukut bo'yicha o'chiq: sinf menyusida yo'q; Sozlamalar → Funksiyalar → «eMaktab» guruhida yoqiladi
+      await page.click("[data-more]");
+      assert.equal(await page.locator(".modal >> text=eMaktab'ga kirish").count(), 0);
+      await page.click(".modal [data-x]");
+      await page.evaluate(() => { S.sec = 6; go("settings"); });
+      assert.equal(await page.getAttribute('.fn-sec [data-ft="otaemk"]', "aria-checked"), "false");
+      await page.click('.fn-sec [data-ft="otaemk"]');
+      assert.equal(await page.getAttribute('.fn-sec [data-ft="otaemk"]', "aria-checked"), "true");
+      assert.deepEqual(await page.evaluate(() => D.web.on), {otaemk: 1});
+      await page.evaluate(() => { S.ci = 0; go("journal"); });
       // sinf menyusi → «Ota-onalar» guruhida
       await page.click("[data-more]");
       await page.click(".modal >> text=eMaktab'ga kirish · 0/36");
