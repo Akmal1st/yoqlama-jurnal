@@ -49,16 +49,19 @@ const FNK = (() => {
   const GR = [["lesson", "Darsda", ["call", "groups", "attm", "hw", "timer", "duty"], "Dars tugmalari"],
     ["today", "«Bugun» sahifasi", ["bday", "qend", "gaps", "bsbrem"], "Kartochkalar"],
     ["journal", "Jurnal", ["views"], "Davr"],
-    ["menu", "Sinf menyusi (⋯)", ["debts", "parents", "otaemk", "absmsg", "ktr"], "Menyuda"]];
+    ["menu", "Sinf menyusi (⋯)", ["debts", "parents", "absmsg", "ktr"], "Menyuda"],
+    ["emk", "eMaktab", ["otaemk"], "Sinf menyusida"]];
   const GONE = new Set(["act", "week"]);
   const leaves = (r) => (M[r] ? M[r].ch : [r]);
   const ALL = GR.flatMap((g) => g[2].flatMap(leaves));
   const off = () => (D.web.off = D.web.off || {});
-  const on = (k) => !off()[k];
+  const on = (k) => feat(k);   // FEAT_OPTIN (index.html) — sukut bo'yicha o'chiq, D.web.on da yoqiladi
+  const setOn = (k, v) => { if (FEAT_OPTIN.has(k)) { const o = D.web.on = D.web.on || {}; if (v) o[k] = 1; else delete o[k]; } else { const o = off(); if (v) delete o[k]; else o[k] = 1; } };
   let flt = "all", fl = null;
 
   /* ───────── Sozlamalar bo'limi ───────── */
-  const preset = () => { const o = ALL.filter((k) => !on(k)); return !o.length ? "all" : o.length === SIMPLE_OFF.length && SIMPLE_OFF.every((k) => !on(k)) ? "basic" : "mine"; };
+  const BASIC_OFF = () => [...SIMPLE_OFF, ...FEAT_OPTIN];   // «Asosiy» to'plamda o'chiqlar
+  const preset = () => { const o = ALL.filter((k) => !on(k)), B = BASIC_OFF(); return !o.length ? "all" : o.length === B.length && B.every((k) => !on(k)) ? "basic" : "mine"; };
   function preview(g, rows) {
     const L = rows.flatMap(leaves).filter(on);
     if (g === "journal") return `<span class="fn-mseg"><span class="on">Kun</span>${L.map((k) => `<span>${F[k][2]}</span>`).join("")}</span>`;
@@ -77,7 +80,7 @@ const FNK = (() => {
     let h = `<section class="sz-sg fn-sum"><div class="fn-st"><b>${n} <small>/ ${ALL.length} yoqilgan</small></b><span>O'chirilsa ham ma'lumoti saqlanadi</span></div>
       <div class="fn-bar"><i style="width:${(100 * n) / ALL.length}%"></i></div>
       <div class="fn-pre" role="radiogroup" aria-label="Tayyor to'plamlar">
-        <button class="${pr === "basic" ? "on" : ""}" data-fp="simple" role="radio" aria-checked="${pr === "basic"}"><b>Asosiy</b><small>${ALL.length - SIMPLE_OFF.length} ta, sodda</small></button>
+        <button class="${pr === "basic" ? "on" : ""}" data-fp="simple" role="radio" aria-checked="${pr === "basic"}"><b>Asosiy</b><small>${ALL.length - BASIC_OFF().length} ta, sodda</small></button>
         <button class="${pr === "mine" ? "on" : ""}" role="radio" aria-checked="${pr === "mine"}" ${pr === "mine" ? "" : "disabled"}><b>Tanlovim</b><small>${pr === "mine" ? n + " ta" : "o'zingiz tanlang"}</small></button>
         <button class="${pr === "all" ? "on" : ""}" data-fp="all" role="radio" aria-checked="${pr === "all"}"><b>Hammasi</b><small>${ALL.length} ta</small></button></div></section>
       <div class="fn-flt">${[["all", "Hammasi", ALL.length], ["on", "Yoqilgan", n], ["off", "O'chirilgan", ALL.length - n], ["new", "Yangi", nNew]].map(([k, t, c]) => `<button class="${flt === k ? "on" : ""}" data-fnf="${k}">${t}<em>${c}</em></button>`).join("")}</div>`;
@@ -94,12 +97,12 @@ const FNK = (() => {
     return {body: `<div class="fn-sec">${h}</div>`, acts: [], what: `${n} / ${ALL.length} ta yoqilgan`};
   }
   function bind(m) {
-    const undoable = (msg, fn) => { const prev = JSON.stringify(off()); fn(); save(); render(); toast(msg, ["Qaytarish", () => { D.web.off = JSON.parse(prev); save(); render(); }]); };
-    m.querySelectorAll(".fn-sec [data-ft]").forEach((b) => b.onclick = () => { const k = b.dataset.ft, o = off(); if (o[k]) delete o[k]; else o[k] = 1; save(); render(); });
+    const undoable = (msg, fn) => { const prev = JSON.stringify([off(), D.web.on || {}]); fn(); save(); render(); toast(msg, ["Qaytarish", () => { [D.web.off, D.web.on] = JSON.parse(prev); save(); render(); }]); };
+    m.querySelectorAll(".fn-sec [data-ft]").forEach((b) => b.onclick = () => { const k = b.dataset.ft; setOn(k, !on(k)); save(); render(); });
     m.querySelectorAll(".fn-sec [data-fp]").forEach((b) => b.onclick = () => undoable(b.dataset.fp === "all" ? "Hamma funksiyalar yoqildi" : "Faqat asosiylari qoldi",
-      () => { D.web.off = b.dataset.fp === "all" ? {} : Object.fromEntries(SIMPLE_OFF.map((k) => [k, 1])); }));
+      () => { D.web.off = b.dataset.fp === "all" ? {} : Object.fromEntries(SIMPLE_OFF.map((k) => [k, 1])); D.web.on = b.dataset.fp === "all" ? Object.fromEntries([...FEAT_OPTIN].map((k) => [k, 1])) : {}; }));
     m.querySelectorAll("[data-fng]").forEach((b) => b.onclick = () => { const L = GR.find((g) => g[0] === b.dataset.fng)[2].flatMap(leaves), all = L.every(on);
-      undoable(all ? "Guruh o'chirildi" : "Guruh yoqildi", () => { const o = off(); L.forEach((k) => { if (all) o[k] = 1; else delete o[k]; }); }); });
+      undoable(all ? "Guruh o'chirildi" : "Guruh yoqildi", () => L.forEach((k) => setOn(k, !all))); });
     m.querySelectorAll("[data-fnf]").forEach((b) => b.onclick = () => { flt = b.dataset.fnf; render(); });
   }
 
