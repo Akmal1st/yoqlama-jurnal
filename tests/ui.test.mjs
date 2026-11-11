@@ -5321,3 +5321,64 @@ test("Ota-onalar eMaktab'i: jadvalga login/parol, kirib chiqish, aylanib chiqish
     }
   } finally { await browser.close(); }
 });
+
+test("PDF: birlashgan chegarali jadval chiziqlari bitta (ikki qavat emas), tik nuqtali chiziqlar va outline saqlanadi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1200, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const r = await page.evaluate(() => {
+      const box = document.createElement("div"); box.style.cssText = "position:absolute;left:0;top:0;width:400px;background:#fff";
+      box.innerHTML = `<table id="t1" style="border-collapse:collapse;outline:2px solid #000;outline-offset:-1px"><tr><td style="border:1px solid #777;width:40px;height:20px"></td><td style="border:1px solid #777;border-left:3px solid #f00;width:40px"></td></tr><tr><td style="border:1px solid #777;height:20px"></td><td style="border:1px solid #777"></td></tr></table>
+        <table id="t2" style="border-collapse:collapse"><tr><td style="border:1px dotted #777;width:40px;height:20px"></td><td style="border:1px dotted #777;width:40px"></td></tr></table>`;
+      document.body.append(box);
+      const a = PTG.measure(box.querySelector("#t1")), b = PTG.measure(box.querySelector("#t2"));
+      box.remove();
+      const rects = a.ops.filter((o) => o.k === "rect"), red = rects.filter((o) => o.fill[0] > 200 && o.fill[1] < 50);
+      const vert = b.ops.filter((o) => o.k === "line" && o.x1 === o.x2 && o.yb > o.ya);
+      return {edges: rects.length, red: red.length, redW: red.map((o) => Math.round(o.w)), outline: a.ops.filter((o) => o.k === "srect").length, vert: vert.length};
+    });
+    assert.equal(r.edges, 12, "2×2 jadval: 12 ta chiziq bo'lagi, har biri bir marta");
+    assert.deepEqual(r.redW, [3], "qalin qizil chiziq qo'shni katakning ingichka chizig'ini yutadi");
+    assert.equal(r.outline, 1, "outline ramkasi");
+    assert.equal(r.vert, 3, "tik nuqtali chiziqlar yo'qolmaydi");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("Bo'sh varaq: shrift tizimi — bitta oila, sarlavha sozlamadan, jadval qator balandligidan (36 va 18 o'quvchi)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+    await page.evaluate(() => { const grow = (c, n) => { for (let i = c.students.length; i < n; i++) c.students.push({name: `Qo'shimcha O'quvchi ${i + 1}`, marks: {}, scores: {}}); c.students.length = n; };
+      grow(D.classes[0], 36); grow(D.classes[1], 18); save(); });
+    await page.click(".side [data-go=reports]"); await page.click("[data-kind=blank]"); await page.waitForSelector(".bv-scale .bv-pg");
+    const probe = () => page.evaluate(() => {
+      const p = document.querySelector(".bv-scale .bv-pg"), pt = (s) => { const e = p.querySelector(s); return e ? parseFloat(getComputedStyle(e).fontSize) * 0.75 : null; };
+      const fams = new Set([...p.querySelectorAll("*")].filter((e) => e.childNodes.length && [...e.childNodes].some((n) => n.nodeType === 3 && n.nodeValue.trim())).map((e) => getComputedStyle(e).fontFamily.split(",")[0].replace(/"/g, "").trim()));
+      return {fams: [...fams], ttl: pt(".bv-ttl b"), info: pt(".bv-info span"), lg: pt(".bv-lg"), th: pt("thead th"), sm: pt("thead th small"), nm: pt("td.bv-nm")};
+    });
+    const res = {};
+    for (const [ci, per] of [["0", "month"], ["1", "week"]]) {
+      await page.click(".hb-pks [data-hk=cls]"); await page.click(`.hb-pop [data-ho=ci][data-v='${ci}']`);
+      await page.evaluate((p) => document.querySelector(`[data-bv=per][data-v=${p}]`).click(), per);
+      res[ci] = await probe();
+      assert.deepEqual(res[ci].fams, ["Manrope"], "varaqdagi hamma yozuv bitta shriftda");
+      assert.ok(res[ci].sm >= 6.5 && res[ci].sm < res[ci].th, `kichik yozuv ${res[ci].sm} pt`);
+      assert.ok(res[ci].nm >= 7.4 && res[ci].nm <= 10.6, `ism ${res[ci].nm} pt`);
+    }
+    // sarlavha o'lchami sinfga bog'liq emas (faqat «Shrift» sozlamasiga), jadval esa qator balandligiga qarab kattalashadi
+    assert.equal(res["0"].ttl, res["1"].ttl); assert.equal(res["0"].lg, res["1"].lg);
+    assert.ok(res["1"].nm > res["0"].nm, "18 o'quvchida jadval yozuvi kattaroq");
+    await page.evaluate(() => { document.querySelector("[data-bv=set]").click(); document.querySelector("[data-bv=fs][data-v=l]").click(); });
+    const big = await probe();
+    assert.ok(big.ttl > res["1"].ttl && big.lg > res["1"].lg, "«Katta» shrift sarlavhani ham kattalashtiradi");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});

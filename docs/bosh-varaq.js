@@ -95,7 +95,11 @@ const BVQ = (() => {
   const PWm = (land) => land ? 297 : 210, PHm = (land) => land ? 209.5 : 296.5;
   const gw = (g) => g.w * g.sub.length;
   const tailW = (T) => T.reduce((a, t) => a + t[1], 0);
-  const fontOf = (rh) => (rh < 5 ? 7.5 : rh < 6.5 ? 9 : 10.5) * {s: 0.85, m: 1, l: 1.15}[B.fs];
+  // shrift tizimi (bosh-varaq.css boshidagi izoh): jadval asosi qator balandligidan uzluksiz, sarlavha asosi faqat sozlamadan
+  const FK = () => ({s: 0.88, m: 1, l: 1.12})[B.fs] || 1;
+  const fontOf = (rh) => Math.max(7.5, Math.min(10.5, 0.75 * rh + 4.3)) * FK();
+  const fhead = () => ({s: 8, m: 9, l: 10})[B.fs] || 9;
+  const FAM = '"Manrope",Arial,Helvetica,sans-serif';
   function orient(cls) {
     if (B.ori !== "auto") return B.ori === "land";
     const W = 210 - 2 * B.mg;
@@ -140,10 +144,10 @@ const BVQ = (() => {
     return {pages, T, W, H, two, perR, nc: parts.length, nr, rh, fs: fontOf(Math.min(rh, 9)), empty, rows, trim, m};
   }
   const hdr = () => D.web.bsb_hdr || {};
-  // uzun ism sig'masa faqat o'sha ism harfi kichrayadi (o'lchov — DOM'da, Arial bilan: chop etish va PDF bilan bir xil)
+  // uzun ism sig'masa faqat o'sha ism harfi kichrayadi (o'lchov — DOM'da, varaqning o'z shrifti bilan: chop etish va PDF bilan bir xil)
   let NSP = null;
   function nameFit(name, fsPt, wMm, o) {
-    if (!NSP) { NSP = document.createElement("span"); NSP.style.cssText = "position:absolute;left:-9999px;top:0;white-space:nowrap;visibility:hidden;font-family:Arial,Helvetica,sans-serif"; }
+    if (!NSP) { NSP = document.createElement("span"); NSP.style.cssText = `position:absolute;left:-9999px;top:0;white-space:nowrap;visibility:hidden;letter-spacing:normal;font-family:${FAM}`; }
     if (!NSP.isConnected) document.body.appendChild(NSP);
     NSP.style.fontSize = fsPt + "pt"; NSP.style.fontWeight = o && o.bold ? "700" : "400"; NSP.textContent = name;
     const w = NSP.getBoundingClientRect().width / MM, room = wMm - (o && o.pad != null ? o.pad : 3.4) - 0.6;
@@ -155,7 +159,7 @@ const BVQ = (() => {
     const nameW = Math.min(70, Math.max(NAME, P.W * 0.3)), sumW = G.reduce((a, g) => a + gw(g), 0) + tailW(T);
     const unit = sumW ? (P.W - NR - nameW) / sumW : 0;
     // sarlavha yozuvi tor ustunga sig'masa — faqat o'sha katak yozuvi kichrayadi
-    const tf = (cw, ...parts) => { let k = 1; for (const [t, em, bold] of parts) if (t) k = Math.min(k, nameFit(String(t), fs * em, cw, {bold, pad: 2.6})); return k < 1 ? `font-size:${(k * 100).toFixed(0)}%;` : ""; };
+    const tf = (cw, ...parts) => { let k = 1; for (const [t, em, bold] of parts) if (t) k = Math.min(k, nameFit(String(t), em < 1 ? Math.max(6.5, fs * 0.8) : fs, cw, {bold, pad: 2.6})); return k < 1 ? `font-size:${(k * 100).toFixed(0)}%;--bvk:${k.toFixed(2)};` : ""; };
     const at = (st) => st ? ` style="${st}"` : "";
     let h1 = `<tr><th ${two ? 'rowspan="2"' : ""} style="width:${NR}mm">№</th><th ${two ? 'rowspan="2"' : ""} class="bv-nmh" style="width:${nameW.toFixed(1)}mm">O'quvchi</th>`, h2 = "";
     G.forEach((g, i) => {
@@ -181,7 +185,7 @@ const BVQ = (() => {
     const lg = [B.type === "mz" ? "Ish — darsdagi ish (1–6), Uy — uy vazifasi (0–4), Baho = Ish + Uy (1–10)." : "",
       G.some((g) => g.fut) ? "Rangli kunlar jurnalda hali yo'q — dars jadvalidan olingan." : "",
       B.type === "att" || B.type === "only" ? "Belgilar: S — sababsiz, DQ — sababli, K — kasal, KQ — kech qoldi." : ""].filter(Boolean).join(" ");
-    return `<div class="bx-pg bv-pg d-${B.tdz} ${land ? "land" : ""}" style="padding:${m}mm"><div class="bv-in" style="font-size:${fs.toFixed(1)}pt${probe ? ";height:auto" : ""}">
+    return `<div class="bx-pg bv-pg d-${B.tdz} ${land ? "land" : ""}" style="padding:${m}mm"><div class="bv-in" style="--fh:${fhead()}pt;--fb:${fs.toFixed(2)}pt${probe ? ";height:auto" : ""}">
       <div class="bv-top"><div class="bv-ttl"><small>${TNAME[B.type]}</small><b>${esc(label(c))}${B.type === "bsb" ? ` · ${B.wno}-${B.wtype}` : ""}</b></div>
         <div class="bv-info">${info.map(([a, b]) => `<span>${a}</span><span><b>${esc(b)}</b></span>`).join("")}</div></div>
       <table class="bv-t ${B.zebra ? "zb" : ""}"><thead>${h1}</thead><tbody>${body}</tbody></table>
@@ -322,7 +326,7 @@ const BVQ = (() => {
   // tekshiruv: har varaqda pastki qism va ismlar ichkarida qoldimi (sig'masa — «kesiladi» belgisi)
   function checkFit(m) {
     const pgs = [...m.querySelectorAll(".bv-scale .bv-pg")];
-    const ok = pgs.length ? pgs.every((p) => { const i = p.querySelector(".bv-in"); return i.scrollHeight <= i.clientHeight + 1 && ![...p.querySelectorAll("td.bv-nm, thead th")].some((x) => x.scrollWidth > x.clientWidth + 1); }) : null;
+    const ok = pgs.length ? pgs.every((p) => { const i = p.querySelector(".bv-in"); if (!i) return true; return i.scrollHeight <= i.clientHeight + 1 && ![...p.querySelectorAll("td.bv-nm, thead th")].some((x) => x.scrollWidth > x.clientWidth + 1); }) : null;
     // ochiq tanlov ro'yxati (Hisobotlar: sinf, davr…) bo'lsa — sahifa qayta chizilmaydi, aks holda ro'yxat yopilib qoladi
     if (ok !== B.ok) { B.ok = ok; if (!document.querySelector(".hb-popw")) softRender(); }
   }

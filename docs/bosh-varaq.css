@@ -89,33 +89,36 @@
 .bv-print{display:none}
 
 /* ── varaqning o'zi: A4, 10 mm chet ── */
-.bv-pg{width:210mm;height:296.5mm;background:#fff;color:#1b232d;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;overflow:hidden}
+/* Shrift tizimi: bitta oila (Manrope — dastur bilan birga keladi, har qurilmada va PDF'da bir xil) va ikki asosiy o'lcham:
+   --fh — sarlavha/pastki qism asosi (faqat «Shrift» sozlamasiga bog'liq: 8 / 9 / 10 pt),
+   --fb — jadval asosi (qator balandligidan uzluksiz: 7,5–10,5 pt × sozlama). Qolgan hamma o'lcham shu ikkisidan nisbat bilan olinadi. */
+.bv-pg,.bv-pg.bx-pg{width:210mm;height:296.5mm;padding:0;background:#fff;color:#1b232d;box-sizing:border-box;font-family:"Manrope",Arial,Helvetica,sans-serif;font-size:var(--fh,9pt);line-height:1.2;font-weight:400;letter-spacing:normal;overflow:hidden;--fh:9pt;--fb:9pt}
 .bv-pg.land{width:297mm;height:209.5mm}
-.bv-pg .bv-in{height:100%;display:flex;flex-direction:column;gap:2.4mm;line-height:1.2}
+.bv-pg .bv-in{height:100%;display:flex;flex-direction:column;gap:2.4mm;line-height:1.2;font-size:var(--fh)}
 .bv-pg .bv-top{display:flex;align-items:stretch;gap:4mm;padding-bottom:2mm;border-bottom:.7mm solid #1b232d}
 .bv-pg .bv-ttl{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:.5mm;min-width:0}
-.bv-pg .bv-ttl small{font-size:7.5pt;letter-spacing:.12em;text-transform:uppercase;color:#5b6672;font-weight:700}
-.bv-pg .bv-ttl b{font-size:15pt;line-height:1.1}
-.bv-pg .bv-info{display:grid;grid-template-columns:auto auto;border:1px solid #9aa4ae;font-size:8pt;align-self:flex-end}
+.bv-pg .bv-ttl small{font-size:calc(var(--fh)*.82);letter-spacing:.12em;text-transform:uppercase;color:#5b6672;font-weight:700}
+.bv-pg .bv-ttl b{font-size:calc(var(--fh)*1.75);line-height:1.1;font-weight:800}
+.bv-pg .bv-info{display:grid;grid-template-columns:auto auto;border:1px solid #9aa4ae;font-size:calc(var(--fh)*.9);align-self:flex-end}
 .bv-pg .bv-info span{padding:.8mm 2mm;border-bottom:1px solid #d3d9df;white-space:nowrap}
 .bv-pg .bv-info span:nth-child(odd){color:#5b6672;background:#f3f5f7;border-right:1px solid #d3d9df}
 .bv-pg .bv-info span:nth-last-child(-n+2){border-bottom:0}
 .bv-pg table.bv-t{border-collapse:collapse;width:100%;table-layout:fixed;margin:0}
-.bv-pg table.bv-t,.bv-pg .bv-t th,.bv-pg .bv-t td{font-size:inherit;line-height:inherit}
+.bv-pg table.bv-t{font-size:var(--fb);line-height:1.2}.bv-pg .bv-t th,.bv-pg .bv-t td{font-size:inherit;line-height:inherit;font-family:inherit}
 .bv-pg .bv-t th,.bv-pg .bv-t td{border:1px solid #a7b0b9;padding:0 1mm;text-align:center;overflow:hidden;white-space:nowrap;color:#1b232d;background:#fff}
 .bv-pg .bv-t thead th{background:#e9eef2;font-weight:700;padding:1mm .5mm;line-height:1.15;border-color:#8d97a1}
-.bv-pg .bv-t th small{display:block;font-weight:600;color:#55606b;font-size:.76em}
+.bv-pg .bv-t th small{display:block;font-weight:600;color:#55606b;font-size:max(calc(6.5pt*var(--bvk,1)),.8em)}
 .bv-pg .bv-t th.bv-nmh{text-align:left;padding-left:1.5mm}
 .bv-pg .bv-t thead th.bv-fut{background:#d9efec}
 .bv-pg .bv-t .bv-wk{border-left:.5mm solid #55606b}
-.bv-pg .bv-t td.bv-no{background:#f3f5f7;color:#55606b;font-size:.9em}
+.bv-pg .bv-t td.bv-no{background:#f3f5f7;color:#55606b;font-size:calc(var(--fb)*.88);font-variant-numeric:tabular-nums}
 .bv-pg .bv-t td.bv-nm{text-align:left;padding-left:1.5mm;text-overflow:ellipsis}
 .bv-pg .bv-t td.bv-nm span{display:inline-block;white-space:nowrap}
 .bv-pg .bv-t tbody tr.bv-r5 td{border-bottom:.45mm solid #6b7682}
 .bv-pg .bv-t.zb tbody tr:nth-child(even) td:not(.bv-no){background:#f7f9fa}
 .bv-pg .bv-t td.bv-gr{background:#eef1f4}
-.bv-pg .bv-foot{margin-top:auto;display:flex;align-items:flex-end;gap:6mm;font-size:8.5pt;padding-top:1.5mm}
-.bv-pg .bv-lg{flex:1;color:#55606b;font-size:7.5pt;line-height:1.35}
+.bv-pg .bv-foot{margin-top:auto;display:flex;align-items:flex-end;gap:6mm;font-size:calc(var(--fh)*.95);padding-top:1.5mm}
+.bv-pg .bv-lg{flex:1;color:#55606b;font-size:calc(var(--fh)*.82);line-height:1.35}
 .bv-pg .bv-sg{display:flex;gap:5mm}
 .bv-pg .bv-sg span{min-width:38mm;border-bottom:1px solid #1b232d;padding-bottom:.5mm}
 .bv-pg .bv-pn{font-weight:700;color:#55606b;white-space:nowrap}

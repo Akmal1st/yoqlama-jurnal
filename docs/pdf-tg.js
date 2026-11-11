@@ -172,6 +172,9 @@ const PTG = (() => {
         if (bg || grad) add({k: "rect", x, y, w, h, rad, fill: bg || grad, op}, y, y + h);
         for (const q of sh) if (q.ins) add({k: "ring", o: [x, y, w, h], i: [x + q.sx + q.sp, y + q.sy + q.sp, w - 2 * q.sp, h - 2 * q.sp], rad, fill: q.c, op, clip: true}, y, y + h);
         if (!hasB) continue;
+        // birlashgan chegarali jadval (border-collapse) katagi: chegara katak qirrasining o'rtasida, qo'shni katak bilan bitta chiziq —
+        // jadval tugagach bir marta chiziladi (aks holda har chiziq ikki marta, oralig'ida oq tirqish bilan chiqardi)
+        if (EDGES.length && cs.display === "table-cell") { edgeAdd(EDGES[EDGES.length - 1], x, y, w, h, cs, op); continue; }
         const sides = [["Top", bt], ["Right", brw], ["Bottom", bb], ["Left", bl]].map(([s, wd]) => ({wd, st: cs[`border${s}Style`], c: color(cs[`border${s}Color`])}));
         const vis = (q) => q.wd > 0 && q.c && q.st !== "none" && q.st !== "hidden";
         const same = sides.every((q) => vis(q) && q.wd === sides[0].wd && q.st === sides[0].st && q.c.join() === sides[0].c.join());
@@ -181,9 +184,36 @@ const PTG = (() => {
         }
         const S = [[x, y, w, sides[0].wd, 0], [x + w - sides[1].wd, y, sides[1].wd, h, 1], [x, y + h - sides[2].wd, w, sides[2].wd, 0], [x, y, sides[3].wd, h, 1]];
         S.forEach(([sx, sy, sw, sh, v], k) => { const q = sides[k]; if (!vis(q)) return;
-          if (q.st === "dashed" || q.st === "dotted") add({k: "line", x1: v ? sx + sw / 2 : sx, y1: v ? sy : sy + sh / 2, x2: v ? sx + sw / 2 : sx + sw, y2: v ? sy + sh : sy + sh / 2, col: q.c, lw: q.wd, dash: q.st, op}, sy, sy + sh);
+          if (q.st === "dashed" || q.st === "dotted") add({k: "line", x1: v ? sx + sw / 2 : sx, ya: v ? sy : sy + sh / 2, x2: v ? sx + sw / 2 : sx + sw, yb: v ? sy + sh : sy + sh / 2, col: q.c, lw: q.wd, dash: q.st, op}, sy, sy + sh);
           else add({k: "rect", x: sx, y: sy, w: sw, h: sh, fill: q.c, op}, sy, sy + sh); });
       }
+    }
+
+    const EDGES = [], SRANK = {double: 9, solid: 8, dashed: 7, dotted: 6, ridge: 5, outset: 4, groove: 3, inset: 2};
+    function edgeAdd(M, x, y, w, h, cs, op) {
+      const segs = [["Top", 0, x, y, x + w, y], ["Bottom", 0, x, y + h, x + w, y + h], ["Left", 1, x, y, x, y + h], ["Right", 1, x + w, y, x + w, y + h]];
+      for (const [s, v, x1, y1, x2, y2] of segs) {
+        const wd = px(cs[`border${s}Width`]), st = cs[`border${s}Style`], c = color(cs[`border${s}Color`]);
+        const key = `${v}|${Math.round(x1 * 4)}|${Math.round(y1 * 4)}|${Math.round(x2 * 4)}|${Math.round(y2 * 4)}`;
+        const rank = st === "hidden" ? 1e9 : !wd || st === "none" || !c ? -1 : wd * 100 + (SRANK[st] || 1), old = M.get(key);
+        if (!old || rank > old.rank) M.set(key, {v, x1, y1, x2, y2, wd, st, c, op, rank});   // teng bo'lsa — chapdagi/yuqoridagi katak yutadi (CSS qoidasi)
+      }
+    }
+    function edgeEmit(M) {
+      for (const e of M.values()) {
+        if (e.rank < 0 || e.rank >= 1e9) continue;
+        const {v, x1, y1, x2, y2, wd, st, c, op} = e, hw = wd / 2;
+        if (st === "dashed" || st === "dotted") add({k: "line", x1, ya: y1, x2, yb: y2, col: c, lw: wd, dash: st, op}, Math.min(y1, y2) - hw, Math.max(y1, y2) + hw);
+        else if (v) add({k: "rect", x: x1 - hw, y: y1 - hw, w: wd, h: y2 - y1 + wd, fill: c, op}, y1 - hw, y2 + hw);
+        else add({k: "rect", x: x1 - hw, y: y1 - hw, w: x2 - x1 + wd, h: wd, fill: c, op}, y1 - hw, y1 + hw);
+      }
+    }
+    // outline (masalan «Qalin» jadvalning tashqi qalin ramkasi) — mazmun ustidan chiziladi
+    function outline(el, cs, op) {
+      const ow = px(cs.outlineWidth), c = color(cs.outlineColor), st = cs.outlineStyle;
+      if (!ow || !c || st === "none" || st === "auto") return;
+      const r = el.getBoundingClientRect(), o = px(cs.outlineOffset) + ow / 2, x = r.left - ox - o, y = r.top - oy - o, w = r.width + 2 * o, h = r.height + 2 * o;
+      add({k: "srect", x, y, w, h, rad: [0, 0, 0, 0], col: c, lw: ow, dash: st, op}, y - ow, y + h + ow);
     }
 
     function image(el, op) {
@@ -265,11 +295,14 @@ const PTG = (() => {
         const x = r.left - ox + bl, y = r.top - oy + btp, w = r.width - bl - px(cs.borderRightWidth), h = r.height - btp - px(cs.borderBottomWidth);
         add({k: "clip", x, y, w, h, rad: radii(cs, w, h)}, -1e9, 1e9);
       }
+      const col = cs.display === "table" && cs.borderCollapse === "collapse"; if (col) EDGES.push(new Map());
       for (const n of el.childNodes) {
         if (n.nodeType === 3) { if (vis) textNode(n, cs, op); }
         else if (n.nodeType === 1) walk(n, op);
       }
       if (clip) add({k: "unclip"}, -1e9, 1e9);
+      if (col) edgeEmit(EDGES.pop());
+      if (vis) outline(el, cs, op);
     }
     walk(root, 1);
     return {ops, w: R.width, h: R.height, canv};
@@ -394,8 +427,9 @@ const PTG = (() => {
       }
       else if (o.k === "srect") { setOp(D, o.op * o.col[3]); doc.setDrawColor(o.col[0], o.col[1], o.col[2]); doc.setLineWidth(o.lw * k); const ds = dashOf(o.dash, o.lw * k); doc.setLineDashPattern(ds || [], 0);
         rpath(doc, X(o.x), Y(o.y), o.w * k, o.h * k, o.rad.map((v) => v * k)); doc.stroke(); if (ds) doc.setLineDashPattern([], 0); }
+      // chiziq uchlari ya/yb da: y1 — add() ning chegara maydoni (avval vertikal punktir chiziqlar shu sababli yo'qolardi)
       else if (o.k === "line") { setOp(D, o.op * o.col[3]); doc.setDrawColor(o.col[0], o.col[1], o.col[2]); doc.setLineWidth(o.lw * k); const ds = dashOf(o.dash, o.lw * k); doc.setLineDashPattern(ds || [], 0);
-        doc.line(X(o.x1), Y(o.y1), X(o.x2), Y(o.y2)); if (ds) doc.setLineDashPattern([], 0); }
+        doc.line(X(o.x1), Y(o.ya), X(o.x2), Y(o.yb)); if (ds) doc.setLineDashPattern([], 0); }
       else if (o.k === "path") {
         const draw = (fill) => { for (const s of o.segs) { if (s[0] === "M") doc.moveTo(X(s[1]), Y(s[2])); else if (s[0] === "L") doc.lineTo(X(s[1]), Y(s[2])); else if (s[0] === "C") doc.curveTo(X(s[1]), Y(s[2]), X(s[3]), Y(s[4]), X(s[5]), Y(s[6])); else if (s[0] === "Z") doc.close(); }
           if (fill) doc.fill(); else doc.stroke(); };
