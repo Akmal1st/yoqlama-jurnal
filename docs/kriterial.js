@@ -10,7 +10,7 @@ const KRT = (() => {
   const DEF = ["Darsning barcha bosqichlarida faol", "Savollarga to'g'ri javob beradi", "Guruh / juftlik ishida faol", "Topshiriqni mustaqil bajaradi", "Xatoga yo'l qo'ymaydi",
     "Uy vazifasi bajarilgan", "To'liq bajarilgan", "Xatosiz yoki kam xato", "O'z vaqtida va ozoda"];
   const GR = [{n: "Darsdagi ish", r: "1–6", s: "D"}, {n: "Uy vazifasi", r: "0–4", s: "U"}];
-  const ABS = ["s", "dq", "k", "ox"];
+  const ABS = ["s", "dq", "k", "ch", "ox"];   // ch — chet elda: darsda yo'q, baho qo'yilmaydi
   const on = () => (D.web || {}).fmode === "krit";
   const tel = () => typeof matchMedia === "function" && matchMedia("(max-width: 700px)").matches;
   const code = (k) => k < ND ? `D${k + 1}` : `U${k - ND + 1}`;

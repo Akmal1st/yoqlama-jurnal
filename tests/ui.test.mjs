@@ -5124,3 +5124,74 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
     } finally { await browser.close(); }
   });
 }
+
+test("Yo'qlama: «CH» (chet elda) — darsda, Kun sahifasida, davomat foizi va kunlik hisobotda (36 va 18 o'quvchi)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const N of [36, 18]) for (const [name, viewport] of [["kompyuter", {width: 1280, height: 860}], ["telefon", {width: 360, height: 780}]]) {
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      await page.evaluate((N) => {
+        const t = todayIso(), c = D.classes[0], base = c.students[0];
+        for (let i = c.students.length; i < N; i++) c.students.push(Object.assign(JSON.parse(JSON.stringify(base)), {name: `Sinovov O'quvchi ${i + 1}`, marks: {}}));
+        c.students.length = N;
+        if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } c.extra_x = c.extra_x.filter((d) => d !== t); c.held.push(t);
+        c.att_ok = c.att_ok.filter((d) => d !== t); c.students.forEach((s) => delete s.marks[t]);
+        D.settings.protect.enabled = false; save(); startLesson(0);   // «Hammasi keldi» qo'yilgan belgini o'chira olsin
+      }, N);
+      // «Darsni boshlash» → ro'yxat: CH tugmasi; sarlavhada chet eldagi o'quvchi «keldi»ga kirmaydi
+      await page.click('[data-att="0|ch"]');
+      await page.click('[data-att="1|s"]');
+      const mk = () => page.evaluate(() => D.classes[0].students.slice(0, 3).map((s) => s.marks[todayIso()] || ""));
+      assert.deepEqual(await mk(), ["ch", "s", ""]);
+      assert.ok((await page.textContent("h1")).includes(`${N - 2} / ${N} keldi`), await page.textContent("h1"));
+      assert.match(await page.textContent(".foot"), /Kelmagan: 1 · chet elda: 1/);
+      // klaviatura: C — chet elda
+      await page.evaluate(() => { S.cur = 2; });
+      await page.keyboard.press("c");
+      assert.deepEqual(await mk(), ["ch", "s", "ch"]);
+      // «Hammasi keldi» faqat S/DQ/K ni tozalaydi — chet eldagilar qoladi
+      await page.click("[data-all]");
+      assert.deepEqual(await mk(), ["ch", "", "ch"]);
+      const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(over <= 1, `${name} ${N}: dars sahifasi ekrandan ${over}px kengroq`);
+      // baholar qadamida chet eldagi o'quvchiga baho qo'yilmaydi
+      await page.click("[data-next]");
+      assert.ok(await page.locator('[data-gr="0|8"]').isDisabled());
+      assert.ok((await page.locator(".lrow").first().textContent()).includes("(chet elda)"));
+      // kartochka rejimi: «Chet elda» tugmasi
+      await page.click('[data-step="0"]'); await page.click('[data-am="card"]');
+      await page.evaluate(() => { S.cur = 3; render(); });
+      await page.click('[data-sw="ch"]');
+      assert.equal(await page.evaluate(() => D.classes[0].students[3].marks[todayIso()]), "ch");
+      await page.click('[data-am="list"]');
+      // Kun sahifasi: CH tugmasi, «Keldi» soni
+      await page.evaluate(() => { S.ci = 0; V.mode = "day"; V.anchor = todayIso(); S.page = "journal"; render(); });
+      await page.waitForSelector('.da[data-a="4|ch"]');
+      await page.click('.da[data-a="4|ch"]');
+      assert.equal(await page.evaluate(() => D.classes[0].students[4].marks[todayIso()]), "ch");
+      assert.ok(await page.locator('.da[data-a="4|ch"]').evaluate((b) => b.classList.contains("on")));
+      assert.match(await page.textContent(".dstats"), new RegExp(`Keldi\\s*${N - 4} / ${N}`));
+      await page.click('.da[data-a="4|ch"]');   // qayta bosish — belgi olinadi
+      assert.equal(await page.evaluate(() => D.classes[0].students[4].marks[todayIso()] || ""), "");
+      const over2 = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(over2 <= 1, `${name} ${N}: Kun sahifasi ekrandan ${over2}px kengroq`);
+      // davomat foizi: chet eldagi kun hisobdan chiqadi (qoldirish emas); kunlik hisobot
+      const r = await page.evaluate(() => {
+        const c = D.classes[0], t = todayIso(), [lo, hi] = qRange(quarterOf(t)), s0 = c.students[0];
+        const row = () => { EPOCH++; return reportRows(c, lo, hi, null).rows[0]; };
+        const a = row(); s0.marks[t] = ""; const b = row(); s0.marks[t] = "ch"; save();
+        return {a: [a.absent, a.ch, a.att], b: [b.absent, b.ch], k: KRJ.stats(KUN.build(c, t, [])), cap: KUN.caption(KUN.build(c, t, []))};
+      });
+      assert.equal(r.a[0], r.b[0], "chet elda — qoldirish emas"); assert.equal(r.a[1], r.b[1] + 1);
+      assert.equal(r.k.ch, 3); assert.equal(r.k.came, N - 3);   // 0, 2, 3-o'quvchilar chet elda assert.equal(r.k.pct, 100);
+      assert.match(r.cap, /\(chet elda\)/);
+      assert.deepEqual(errors, [], `${name} ${N}`);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});

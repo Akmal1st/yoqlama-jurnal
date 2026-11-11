@@ -30,7 +30,7 @@
 <link rel="stylesheet" href="bugun-arxiv.css?v=213">
 <link rel="stylesheet" href="bugun-tatil.css?v=199">
 <link rel="stylesheet" href="sozlamalar.css?v=213">
-<link rel="stylesheet" href="mezon.css?v=220">
+<link rel="stylesheet" href="mezon.css?v=221">
 <link rel="stylesheet" href="kriterial.css?v=220">
 <link rel="stylesheet" href="kunlik.css?v=213">
 <link rel="stylesheet" href="arxiv.css?v=213">
@@ -61,9 +61,9 @@
 <script src="tugmalar.js?v=213"></script>
 <script src="dizayn.js?v=202"></script>
 <script src="hisobot-chop.js?v=217"></script>
-<script src="hisobotlar.js?v=217"></script>
+<script src="hisobotlar.js?v=221"></script>
 <script src="bosh-varaq.js?v=205"></script>
-<script src="davomat.js?v=213"></script>
+<script src="davomat.js?v=221"></script>
 <script src="bsb-eksport.js?v=202"></script>
 <script src="bsb-yangi.js?v=202"></script>
 <script src="bugun-arxiv.js?v=213"></script>
@@ -71,9 +71,9 @@
 <script src="bugun.js?v=215"></script>
 <script src="funksiyalar.js?v=204"></script>
 <script src="sozlamalar.js?v=216"></script>
-<script src="mezon.js?v=220"></script>
-<script src="kriterial.js?v=220"></script>
-<script src="kunlik.js?v=193"></script>
+<script src="mezon.js?v=221"></script>
+<script src="kriterial.js?v=221"></script>
+<script src="kunlik.js?v=221"></script>
 <script src="pdf-tg.js?v=207"></script>
 <script src="tg-umumiy.js?v=213"></script>
 <script src="arxiv.js?v=207"></script>
@@ -83,7 +83,7 @@
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=218"></script>
 <script src="loyiha.js?v=218"></script>
-<script src="yangilik.js?v=220"></script>
+<script src="yangilik.js?v=221"></script>
 <script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=214"></script>
 <script src="telegram.js?v=216"></script>
@@ -95,7 +95,9 @@ const WD = ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"];
 const WD_FULL = ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"];
 const MONTHS = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
 const MONTHS_GEN = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"];
-const ATT = ["s", "dq", "k", "kq"];
+const ATT = ["s", "dq", "k", "kq", "ch"];
+// darsda yo'q belgilari (baho o'rnini egallaydi); «ch» — chet elda: davomat foiziga kirmaydi (dars hisobdan chiqadi), qoldirish emas
+const AWAY = ["s", "dq", "k", "ch"];
 const ABSENT_NAMES = {s: "sababsiz", dq: "sababli", k: "kasal", kq: "kech qoldi", ch: "chet elda", x: "dars yo'q"};
 const DEFAULTS = {
   ranges: [{min: 1, color: "#ef9a9a", name: "Past"}, {min: 5, color: "#fff59d", name: "O'rta"}, {min: 8, color: "#81c784", name: "Yaxshi"}],
@@ -1909,7 +1911,7 @@ function classPicker() {
 }
 
 /* «Kun» ko'rinishi: bitta dars — har o'quvchida yo'qlama va 1–10 tugmalari */
-const DAY_ATT = [["s", "Sababsiz kelmadi"], ["dq", "Sababli (davolanmoqda)"], ["k", "Kasal"], ["kq", "Kech qoldi (baho bilan birga bo'lishi mumkin)"]];
+const DAY_ATT = [["s", "Sababsiz kelmadi"], ["dq", "Sababli (davolanmoqda)"], ["k", "Kasal"], ["kq", "Kech qoldi (baho bilan birga bo'lishi mumkin)"], ["ch", "Chet elda (davomat foiziga kirmaydi)"]];
 function dayDate(c) {
   const L = c.dates; if (!L.length) return null;
   if (L.includes(V.anchor)) return V.anchor;
@@ -1957,7 +1959,7 @@ function pageDay(m) {
   const rows = kr ? KRT.view(c, d, krCtx) : (mz ? MZN.head(ed) : "") + order.map(rowHtml).join("");
   const tile = (k, v) => `<div><small>${k}</small><b>${v}</b></div>`;
   const statsHtml = () => { const absent = absentOf(), cs = colStat(c, d); return grp ? tile("O'tildi", c.students.filter((s) => s.marks[d] === "ot").length) + tile("O'tilmadi", absent.length)
-    : tile("Keldi", `${c.students.length - absent.length} / ${c.students.length}`) + (mz ? tile("Chala", c.students.filter((s) => { const p = MZN.parts(s, d); return (p[0] == null) !== (p[1] == null); }).length) : kr ? tile("Chala", KRT.partial(c, d)) : tile("Qoldirgan", absent.length)) + tile("Baholar", cs.n) + tile("O'rtacha", cs.avg !== null ? cs.avg.toFixed(1) : "—"); };
+    : tile("Keldi", `${c.students.length - absent.length - c.students.filter((s) => s.marks[d] === "ch").length} / ${c.students.length}`) + (mz ? tile("Chala", c.students.filter((s) => { const p = MZN.parts(s, d); return (p[0] == null) !== (p[1] == null); }).length) : kr ? tile("Chala", KRT.partial(c, d)) : tile("Qoldirgan", absent.length)) + tile("Baholar", cs.n) + tile("O'rtacha", cs.avg !== null ? cs.avg.toFixed(1) : "—"); };
   const actsHtml = () => { const absent = absentOf(); return `${grp ? (ed && c.students.some((s) => !s.marks[d] && !preJoin(c, s, d)) ? `<button class="btn" data-ok title="Belgisiz qolganlarga «dars o'tildi»">✓ Qolganlarga o'tildi</button>` : "")
           : `${ed && !absent.length && !c.att_ok.includes(d) ? `<button class="btn" data-ok title="Hech kim qoldirmagan — yo'qlama tugadi">✓ Hamma keldi</button>` : ""}
           ${!x && c.att_ok.includes(d) ? `<span class="ok">✓ Yo'qlama tugagan</span>` : ""}`}
@@ -2207,7 +2209,7 @@ async function startLesson(ci) {
   if (isNoLesson(c, t)) { toast("Bugun bu sinfda «dars yo'q» (X) deb belgilangan"); return; }
   S.ci = ci; S.lesson = ci; S.step = 0; S.cur = 0; V.anchor = t; go("lesson");
 }
-const OPTS = [["", "Keldi", "#0b6f79", "✓"], ["s", "Sababsiz", "#c62828", "S"], ["dq", "Sababli", "#1565c0", "DQ"], ["k", "Kasal", "#7b1fa2", "K"], ["kq", "Kech qoldi", "#6d4c41", "KQ"]];
+const OPTS = [["", "Keldi", "#0b6f79", "✓"], ["s", "Sababsiz", "#c62828", "S"], ["dq", "Sababli", "#1565c0", "DQ"], ["k", "Kasal", "#7b1fa2", "K"], ["kq", "Kech qoldi", "#6d4c41", "KQ"], ["ch", "Chet elda", "#00796b", "CH"]];
 const GOPTS = [["ot", "O'tildi", "#2e7d32", "✓"], ["ox", "O'tilmadi", "#c62828", "✗"]];
 function attOf(c, si) { const a = attPart(c.students[si].marks[todayIso()] || ""); return (isGrp(c) ? GRP_KEYS : ATT).includes(a) ? a : ""; }
 // Sinfning kamida GRADED_MIN foizi baholanganmi: (baholangan / jami) * 100 >= 30 — butun sonlar bilan, qoldiqsiz taqqoslanadi
@@ -2219,6 +2221,7 @@ function gradedShare(c, d, min = GRADED_MIN) {
 function pageLesson(m) {
   const c = D.classes[S.lesson], t = todayIso(), les = c.lessons[t] || {};
   const n = c.students.length, absent = c.students.filter((_, i) => ["s", "dq", "k", "ox"].includes(attOf(c, i))).length;
+  const away = isGrp(c) ? 0 : c.students.filter((_, i) => attOf(c, i) === "ch").length, here = n - absent - away;
   const late = c.students.filter((_, i) => attOf(c, i) === "kq").length, graded = c.students.filter((s) => gradesOf(s.marks[t] || "").length).length;
   const grp = isGrp(c), sw = sumOn(c, t), noGr = grp || !!sw; if (noGr && S.step === 1) S.step = 2;
   const steps = ["1 · Yo'qlama", "2 · Baholar", "3 · Mavzu va uy vazifasi"].map((s, i) => noGr && i === 1 ? "" : `<button class="${i === S.step ? "on" : ""}" data-step="${i}">${grp ? ["1 · Dars", "", "2 · Mavzu"][i] : sw ? ["1 · Yo'qlama", "", "2 · Mavzu va uy vazifasi"][i] : s}</button>`).join("");
@@ -2226,20 +2229,20 @@ function pageLesson(m) {
   const card = !grp && attMode() === "card";
   if (S.step === 0 && card) {
     const i = Math.min(S.cur || 0, n), s = c.students[i], a = s ? attOf(c, i) : "";
-    body = `<div class="hrow wrap"><h1 class="sp" style="flex:1 1 240px">Kim darsda? ${n - absent} / ${n} keldi</h1>${attModeSeg()}</div>
+    body = `<div class="hrow wrap"><h1 class="sp" style="flex:1 1 240px">Kim darsda? ${here} / ${n} keldi</h1>${attModeSeg()}</div>
       <p class="muted" style="margin:6px 0">O'ngga suring yoki «✓ Keldi», chapga suring yoki «✗ Yo'q» — keyingi o'quvchi chiqadi. Klaviatura: → / ←.</p>
       <div class="swp"><div class="swbar"><i style="width:${100 * i / n}%"></i></div>
       ${s ? `<div class="swc" id="swc"><span class="muted">${i + 1} / ${n}</span><div class="av big2">${esc(initials(s.name))}</div><div class="pname">${esc(s.name)}</div>
           <div class="${a ? "warn" : "muted"}">${a ? `Belgilangan: ${ABSENT_NAMES[a]}` : "&nbsp;"}</div></div>
         <div class="hrow swb"><button class="btn swno" data-sw="s">✗ Yo'q</button><button class="btn swyes" data-sw="">✓ Keldi</button></div>
         <div class="hrow" style="justify-content:center;gap:6px">${OPTS.slice(2).map(([v, l]) => `<button class="btn btn-sm" data-sw="${v}">${l}</button>`).join("")}${i ? `<button class="btn btn-sm" data-swb>‹ Oldingi</button>` : ""}</div>`
-      : `<div class="swc"><div class="big">Hamma ko'rib chiqildi ✓</div><div>Keldi: ${n - absent} · kelmadi: ${absent}${late ? ` · kech qoldi: ${late}` : ""}</div>
+      : `<div class="swc"><div class="big">Hamma ko'rib chiqildi ✓</div><div>Keldi: ${here} · kelmadi: ${absent}${away ? ` · chet elda: ${away}` : ""}${late ? ` · kech qoldi: ${late}` : ""}</div>
           <div class="muted">${c.students.map((x, k) => [x, attOf(c, k)]).filter(([, v]) => v).map(([x, v]) => `${esc(x.name)} — ${ABSENT_NAMES[v]}`).join("<br>") || "Hamma darsda"}</div>
           <div class="hrow" style="justify-content:center"><button class="btn" data-swb>‹ Oxirgisiga qaytish</button><button class="btn" data-sw0>Boshidan</button></div></div>`}</div>`;
   } else if (S.step === 0 && !grp && attMode() === "map") {
     const st = seatsOf(c), placed = new Set(st ? Object.values(st.at) : []), free = c.students.map((x, i) => [x, i]).filter(([x]) => !placed.has(x.name));
-    body = `<div class="hrow wrap"><h1 class="sp" style="flex:1 1 240px">Kim darsda? ${n - absent} / ${n} keldi</h1>${attModeSeg()}<button class="btn" data-seats>🪑 Xaritani tahrirlash</button></div>
-      ${st && placed.size ? `<p class="muted" style="margin:6px 0">Kelmagan o'quvchining joyini bosing: har bosishda Sababsiz → Sababli → Kasal → Kech qoldi → Keldi.</p>
+    body = `<div class="hrow wrap"><h1 class="sp" style="flex:1 1 240px">Kim darsda? ${here} / ${n} keldi</h1>${attModeSeg()}<button class="btn" data-seats>🪑 Xaritani tahrirlash</button></div>
+      ${st && placed.size ? `<p class="muted" style="margin:6px 0">Kelmagan o'quvchining joyini bosing: har bosishda Sababsiz → Sababli → Kasal → Kech qoldi → Chet elda → Keldi.</p>
         <div class="smap">${seatGrid(c, st, {att: true})}</div>
         ${free.length ? `<div class="hrow wrap" style="gap:6px"><b>Xaritada yo'q:</b>${free.map(([x, i]) => { const a = attOf(c, i); return `<button class="chip" data-satt="${i}" ${a ? `style="background:${ATT_COL[a]};border-color:${ATT_COL[a]};color:#fff"` : ""}>${esc(x.name)}${a ? ` · ${a.toUpperCase()}` : ""}</button>`; }).join("")}</div>` : ""}`
       : `<div class="card vcol" style="gap:10px;align-items:flex-start"><b>Bu sinf uchun o'rindiq xaritasi hali tuzilmagan</b><div class="muted">Bir marta partalar bo'yicha joylashtiring — keyin yo'qlamani xaritadan bosib qilasiz.</div><button class="btn btn-primary" data-seats>🪑 Xaritani tuzish</button></div>`}`;
@@ -2254,7 +2257,7 @@ function pageLesson(m) {
           `<button class="tg wide" data-att="${si}|${v}" title="${GRP_ATT[v][3]}" style="${a === v ? `background:${col};border-color:${col};color:#fff` : ""}">${sh} ${l}</button>`).join("")}</span></div>`;
       }).join("")}</div>`;
   } else if (S.step === 0) {
-    body = `<div class="hrow wrap"><h1 class="sp" style="flex:1 1 240px">Kim darsda? ${n - absent} / ${n} keldi</h1>${attModeSeg()}<button class="btn" data-all>Hammasi keldi</button></div>
+    body = `<div class="hrow wrap"><h1 class="sp" style="flex:1 1 240px">Kim darsda? ${here} / ${n} keldi</h1>${attModeSeg()}<button class="btn" data-all>Hammasi keldi</button></div>
       <p class="muted" style="margin:6px 0">Belgilanmagan o'quvchi darsda bo'lgan hisoblanadi. Faqat kelmaganlarni bosing — bitta bosish yetarli.</p>
       <div class="card" style="padding:4px 14px">${c.students.map((s, si) => {
         const a = attOf(c, si);
@@ -2275,7 +2278,7 @@ function pageLesson(m) {
       ${(() => { const g = gradedShare(c, t); return `<p class="${g.ok ? "ok" : "warn"}" style="margin:6px 0">${g.ok ? "✓" : "⚠"} Baholangan: ${g.graded} / ${g.total} (${g.pct}%) — kamida ${GRADED_MIN}% (${g.need} ta o'quvchi) baholanishi kerak${g.ok ? "" : `; yana ${g.need - g.graded} ta kerak`}.</p>`; })()}
       <p class="muted" style="margin:6px 0">Kimdan so'ragan bo'lsangiz — bahosini bosing. Qayta bosilsa o'chadi.${S.two ? " «Ikkita baho» rejimida ikkinchi bosilgan baho qo'shiladi (masalan 8/9)." : ""}</p>
       <div class="card" style="padding:4px 14px">${c.students.map((s, si) => {
-        const a = attOf(c, si), ab = ["s", "dq", "k"].includes(a), gs = gradesOf(s.marks[t] || "");
+        const a = attOf(c, si), ab = AWAY.includes(a), gs = gradesOf(s.marks[t] || "");
         const bank = actOn && !ab ? actBank(s) : 0;
         return `<div class="lrow"><span class="n">${si + 1}</span><span class="who ${ab ? "dim" : ""} ${hwOn && !ab ? "hwn" : ""} ${actOn && !ab ? "actn" : ""}">${esc(s.name)}${ab ? ` (${ABSENT_NAMES[a]})` : ""}${bank >= ACT_N ? ` <button class="badge actg" data-actg="${si}" title="${bank} ta «+» to'plandi — baho qo'yish">⭐ ${bank} ta + → baho</button>` : ""}${s.name in lowN && !ab ? ` <span class="badge" title="Chorak tugashiga ${qe.left} kun: formativ baholar ${lowN[s.name]} ta, kamida ${fbMin()} ta kerak">baho kam: ${lowN[s.name]}/${fbMin()}</span>` : ""}</span>${hwOn && !ab ? hwBtn(s, si) : ""}${actOn && !ab ? actBox(s, si) : ""}<span class="hrow" style="gap:4px">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((g) =>
           `<button class="gb" data-gr="${si}|${g}" ${ab ? "disabled" : ""} style="${gs.includes(g) ? `background:${gradeColor(g)};border:2px solid var(--text);color:#12303a` : ""}">${g}</button>`).join("")}</span></div>`;
@@ -2291,13 +2294,13 @@ function pageLesson(m) {
     ${sw ? `<p class="warn" style="margin:0">📝 Bugun ${sumTag(sw)}${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars bahosi qo'yilmaydi — faqat yo'qlama. Ballar «Umumiy» sahifasida.</p>` : ""}
     ${(() => { const b = feat("bday") ? birthdays(0).filter((x) => x.ci === S.lesson) : []; return b.length ? `<div class="card hrow bday" style="padding:10px 14px">🎂 Bugun tug'ilgan kun: <b>${b.map((x) => esc(x.s.name)).join(", ")}</b></div>` : ""; })()}
     ${!grp && (feat("call") || feat("groups")) ? `<div class="hrow wrap" style="gap:8px">${feat("call") ? `<button class="btn btn-sm" data-call>🎲 Doskaga chaqirish</button>` : ""}${feat("groups") ? `<button class="btn btn-sm" data-grp>👥 Guruhlarga bo'lish</button>` : ""}</div>` : ""}${FNK.lessonBar(c, S.lesson, t, absent)}${body}
-    <div class="foot"><span class="muted sp">${grp ? `O'tildi: ${c.students.filter((x) => x.marks[t] === "ot").length} · o'tilmadi: ${absent}` : `Kelmagan: ${absent} · kech qolgan: ${late} · baho qo'yilgan: ${graded}${noGr ? "" : ` (${gradedShare(c, t).pct}% ${gradedShare(c, t).ok ? "✓" : "⚠"})`}`}${(() => { const no = c.students.filter((x) => x.hwd && x.hwd[t] === 0).length; return no ? ` · UV bajarmagan: ${no}` : ""; })()}</span>
+    <div class="foot"><span class="muted sp">${grp ? `O'tildi: ${c.students.filter((x) => x.marks[t] === "ot").length} · o'tilmadi: ${absent}` : `Kelmagan: ${absent}${away ? ` · chet elda: ${away}` : ""} · kech qolgan: ${late} · baho qo'yilgan: ${graded}${noGr ? "" : ` (${gradedShare(c, t).pct}% ${gradedShare(c, t).ok ? "✓" : "⚠"})`}`}${(() => { const no = c.students.filter((x) => x.hwd && x.hwd[t] === 0).length; return no ? ` · UV bajarmagan: ${no}` : ""; })()}</span>
       ${S.step ? `<button class="btn" data-back>‹ Orqaga</button>` : ""}<button class="btn btn-primary" data-next>${[grp ? "Saqlash va mavzuga o'tish ›" : "Saqlash va baholarga o'tish ›", "Keyingi: mavzu ›", "✓ Darsni yakunlash"][S.step]}</button></div></div>`;
   const keepY = softRender;   // belgi/baho bosilganda faqat o'zgargan qatorlar almashtiriladi
   m.querySelectorAll("[data-step]").forEach((b) => b.onclick = () => { saveTopic(); S.step = +b.dataset.step; render(); });
   m.querySelectorAll("[data-att]").forEach((b) => b.onclick = () => {
     const [si, v] = b.dataset.att.split("|"); const old = c.students[+si].marks[t] || "", gs = gradesOf(old);
-    putMark(c, +si, t, grp ? (old === v ? "" : v) : ["s", "dq", "k"].includes(v) ? v : buildMark(gs, v === "kq")); S.cur = +si; keepY();
+    putMark(c, +si, t, grp ? (old === v ? "" : v) : AWAY.includes(v) ? v : buildMark(gs, v === "kq")); S.cur = +si; keepY();
   });
   m.querySelectorAll("[data-gr]").forEach((b) => b.onclick = () => {
     const [si, g] = b.dataset.gr.split("|").map(Number); const old = c.students[si].marks[t] || "", gs = gradesOf(old);
@@ -2308,7 +2311,7 @@ function pageLesson(m) {
     putMark(c, si, t, buildMark(nx, lateOf(old))); keepY();
   });
   m.querySelectorAll("[data-am]").forEach((b) => b.onclick = () => { D.web.att_mode = b.dataset.am; save(); if (b.dataset.am === "card") S.cur = 0; render(); });
-  const cyc = (si) => { const a = attOf(c, si), v = ATT_CYCLE[(ATT_CYCLE.indexOf(a) + 1) % ATT_CYCLE.length], old = c.students[si].marks[t] || ""; putMark(c, si, t, ["s", "dq", "k"].includes(v) ? v : buildMark(gradesOf(old), v === "kq")); keepY(); };
+  const cyc = (si) => { const a = attOf(c, si), v = ATT_CYCLE[(ATT_CYCLE.indexOf(a) + 1) % ATT_CYCLE.length], old = c.students[si].marks[t] || ""; putMark(c, si, t, AWAY.includes(v) ? v : buildMark(gradesOf(old), v === "kq")); keepY(); };
   if (attMode() === "map" && S.step === 0) {
     const st = seatsOf(c), ix = Object.fromEntries(c.students.map((x, i) => [x.name, i]));
     m.querySelectorAll("[data-seat]").forEach((b) => b.onclick = () => { const nm = st && st.at[b.dataset.seat]; if (nm !== undefined) cyc(ix[nm]); });
@@ -2323,7 +2326,7 @@ function pageLesson(m) {
     const st = c.students[+b.dataset.hw], v = (st.hwd || {})[t], nx = v === undefined ? 1 : v === 1 ? 0 : undefined;
     st.hwd = st.hwd || {}; if (nx === undefined) delete st.hwd[t]; else st.hwd[t] = nx; save(); keepY();
   });
-  const hwa = $("[data-hwall]", m); if (hwa) hwa.onclick = () => { c.students.forEach((st, si) => { if (["s", "dq", "k"].includes(attOf(c, si))) return; st.hwd = st.hwd || {}; if (!(t in st.hwd)) st.hwd[t] = 1; }); save(); keepY(); };
+  const hwa = $("[data-hwall]", m); if (hwa) hwa.onclick = () => { c.students.forEach((st, si) => { if (AWAY.includes(attOf(c, si))) return; st.hwd = st.hwd || {}; if (!(t in st.hwd)) st.hwd[t] = 1; }); save(); keepY(); };
   m.querySelectorAll("[data-two]").forEach((b) => b.onclick = () => { S.two = b.dataset.two === "1"; render(); });
   m.querySelectorAll("[data-act]").forEach((b) => b.onclick = () => {
     const [si, k] = b.dataset.act.split("|").map(Number), st = c.students[si], before = actBank(st);
@@ -2349,12 +2352,12 @@ function pageLesson(m) {
   };
 }
 const attModeSeg = () => { const am = attMode(); if (!feat("attmodes")) return ""; return `<div class="seg">${[["list", "Ro'yxat"], ["card", "Kartochka"], feat("seats") && ["map", "Xarita"]].filter(Boolean).map(([k, n]) => `<button class="${am === k ? "on" : ""}" data-am="${k}">${n}</button>`).join("")}</div>`; };
-const ATT_CYCLE = ["", "s", "dq", "k", "kq"];
+const ATT_CYCLE = ["", "s", "dq", "k", "kq", "ch"];
 // kartochka rejimi: joriy o'quvchiga belgi qo'yib, keyingisiga o'tish ("" — keldi, baholari saqlanadi)
 function swipeMark(c, v) {
   const t = todayIso(), i = S.cur || 0; if (i >= c.students.length) return;
   const old = c.students[i].marks[t] || "";
-  putMark(c, i, t, ["s", "dq", "k"].includes(v) ? v : buildMark(gradesOf(old), v === "kq"));
+  putMark(c, i, t, AWAY.includes(v) ? v : buildMark(gradesOf(old), v === "kq"));
   S.cur = i + 1; render();
 }
 // barmoq bilan surish: 80px dan ko'p — belgi; kam bo'lsa joyiga qaytadi
@@ -2398,7 +2401,7 @@ function saveTopic() {
 }
 document.addEventListener("keydown", (e) => {
   if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || S.page !== "lesson" || S.step !== 0 || $(".modal") || /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName)) return;
-  const c = D.classes[S.lesson], keys = {s: "s", d: "dq", k: "k", q: "kq", " ": ""};
+  const c = D.classes[S.lesson], keys = {s: "s", d: "dq", k: "k", q: "kq", c: "ch", " ": ""};
   if (attMode() === "card") {
     const v = e.key === "ArrowRight" ? "" : e.key === "ArrowLeft" ? "s" : keys[e.key.toLowerCase()];
     if (v === undefined) return;
@@ -2408,7 +2411,7 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "ArrowUp") S.cur = Math.max((S.cur || 0) - 1, 0);
   else if (keys[e.key.toLowerCase()] !== undefined) {
     const v = keys[e.key.toLowerCase()], t = todayIso(), old = c.students[S.cur || 0].marks[t] || "";
-    putMark(c, S.cur || 0, t, ["s", "dq", "k"].includes(v) ? v : buildMark(gradesOf(old), v === "kq"));
+    putMark(c, S.cur || 0, t, AWAY.includes(v) ? v : buildMark(gradesOf(old), v === "kq"));
     S.cur = Math.min((S.cur || 0) + 1, c.students.length - 1);
   } else return;
   e.preventDefault(); const y = window.scrollY; render(); window.scrollTo(0, y);
@@ -4096,7 +4099,7 @@ const PARENT_KINDS = [["week", "Haftalik xulosa"], ["att", "Davomat"], ["low", "
 function weekDigest(c, name, lo, hi, lang) {
   const s = c.students.find((x) => x.name === name), t = todayIso(); if (!s) return "";
   const ds = c.dates.filter((d) => lo <= d && d <= hi && d <= t && !isNoLesson(c, d));
-  const ru = lang === "ru", AB = ru ? {s: "пропуск без ув. причины", dq: "пропуск по ув. причине", k: "болезнь", kq: "опоздание"} : {s: "sababsiz qoldirdi", dq: "sababli qoldirdi", k: "kasal", kq: "kech qoldi"};
+  const ru = lang === "ru", AB = ru ? {s: "пропуск без ув. причины", dq: "пропуск по ув. причине", k: "болезнь", kq: "опоздание", ch: "за границей"} : {s: "sababsiz qoldirdi", dq: "sababli qoldirdi", k: "kasal", kq: "kech qoldi", ch: "chet elda"};
   const lines = ds.map((d) => { const m = s.marks[d] || "", gs = gradesOf(m), a = attPart(m), parts = [];
     if (gs.length) parts.push((ru ? "оценка " : "baho ") + gs.join("/")); if (a && AB[a]) parts.push(AB[a]);
     return parts.length ? `• ${fmt(d).slice(0, 5)} — ${parts.join(", ")}` : ""; }).filter(Boolean);
@@ -4606,7 +4609,7 @@ function seatsOf(c, make) {
   if (s) { const names = new Set(c.students.map((x) => x.name)); for (const [p, n] of Object.entries(s.at)) if (!names.has(n)) delete s.at[p]; }
   return s || null;
 }
-const ATT_COL = {s: "var(--danger)", dq: "#1565c0", k: "#7b1fa2", kq: "#6d4c41"};
+const ATT_COL = {s: "var(--danger)", dq: "#1565c0", k: "#7b1fa2", kq: "#6d4c41", ch: "#00796b"};
 // xarita HTML'i; sel — tanlangan o'rin (tahrirlashda), att — bugungi yo'qlama ko'rsatilsinmi
 function seatGrid(c, s, {sel = null, att = false} = {}) {
   const idx = Object.fromEntries(c.students.map((x, i) => [x.name, i]));
