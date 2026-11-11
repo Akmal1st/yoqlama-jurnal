@@ -1,0 +1,85 @@
+/* Ota-onalar eMaktab'i — sinf menyusi → «🔑 eMaktab'ga kirish» (tasdiqlangan maket, Akmal 2026-11-11). Kod: ota-emk.js */
+.modal .card.ot-card{width:min(1000px,100%)}
+.ot-card>*{flex-shrink:0}
+.ot-hd{display:flex;align-items:center;gap:10px}
+.ot-hd h2{margin:0;font-size:18px;font-weight:800}
+.ot-tx{flex:1;display:flex;flex-direction:column;min-width:0}
+.ot-tx small,.ot-mut{color:var(--muted);font-size:12.5px}
+.ot-warn{background:color-mix(in srgb,#f2c14e 18%,var(--base));border:1px solid color-mix(in srgb,#a15c07 30%,var(--line));border-radius:12px;padding:9px 12px;font-size:13px}
+.ot-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ot-sum div{background:var(--alt);border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column}
+.ot-sum b{font-size:19px;font-variant-numeric:tabular-nums}
+.ot-sum small{color:var(--muted);font-size:11.5px;font-weight:700}
+.ot-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ot-tools .form-control{flex:1 1 180px;width:auto}
+.ot-tools #otbulk:empty{display:none}
+.ot-chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.ot-chips button{flex:none;border:1px solid var(--line);background:var(--base);border-radius:99px;padding:5px 11px;font-weight:700;font-size:12.5px;color:var(--muted);white-space:nowrap;cursor:pointer}
+.ot-chips button b{color:var(--text);font-variant-numeric:tabular-nums}
+.ot-chips button.on{border-color:var(--acc);color:var(--acc);background:var(--acc-soft)}
+.ot-chips button.on b{color:var(--acc)}
+.ot-chk{display:flex;gap:8px;align-items:flex-start;font-size:13px;font-weight:600;cursor:pointer}
+.ot-chk input{margin-top:3px;accent-color:var(--acc)}
+.ot-tw{overflow:auto;max-height:52vh;border:1px solid var(--line);border-radius:12px}
+.ot-t{font-size:13px}
+.ot-t th{position:sticky;top:0;z-index:1;background:var(--alt);font-size:11.5px;color:var(--muted);white-space:nowrap}
+.ot-t td{vertical-align:middle}
+.ot-t .ot-n{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ot-t .ot-a{text-align:right;white-space:nowrap}
+.ot-sub{display:block;color:var(--muted);font-size:12px}
+.ot-ci{min-width:110px;padding:5px 9px;font-size:13px}
+tr.ot-ed td{background:color-mix(in srgb,var(--acc-soft) 45%,transparent)}
+tr.ot-hl td{background:color-mix(in srgb,#f2c14e 14%,transparent)}
+.ot-tag{display:inline-flex;align-items:center;font-size:11.5px;font-weight:800;border-radius:99px;padding:2px 8px;white-space:nowrap}
+.ot-ok{background:color-mix(in srgb,var(--ok) 15%,var(--base));color:var(--ok)}
+.ot-w{background:color-mix(in srgb,#f2c14e 22%,var(--base));color:#8a4f06}
+.ot-b{background:color-mix(in srgb,var(--danger) 13%,var(--base));color:var(--danger)}
+.ot-n{background:var(--soft);color:var(--muted)}
+:root[data-theme="dark"] .ot-w{color:#f5b454}
+.ot-empty{border:1px dashed var(--line);border-radius:12px;padding:22px 14px;text-align:center;color:var(--muted)}
+.ot-cards{display:flex;flex-direction:column;gap:6px}
+.ot-cd{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:9px 10px}
+.ot-cd.ot-hl{border-color:color-mix(in srgb,#a15c07 40%,var(--line))}
+.ot-cd.ot-col{flex-direction:column;align-items:stretch;gap:8px}
+.ot-cr{display:flex;gap:10px;align-items:center}
+.ot-cd .ot-tx small{font-size:12px}
+.ot-nn{color:var(--muted);font-size:12px;min-width:18px;text-align:right;font-variant-numeric:tabular-nums;flex:none}
+.ot-ra{display:flex;gap:4px;flex:none}
+.ot-cf{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ot-cf .ot-ci{min-width:0}
+.ot-cf .btn{grid-column:span 2}
+.ot-foot{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ot-foot .sp{flex:1}
+.ot-seg{display:flex;gap:3px;background:var(--soft);padding:3px;border-radius:10px}
+.ot-seg button{border:0;background:none;padding:5px 11px;border-radius:8px;font-weight:700;font-size:12.5px;color:var(--muted);cursor:pointer}
+.ot-seg button.on{background:var(--base);color:var(--text);box-shadow:var(--sh)}
+.btn.sure{color:var(--danger);border-color:var(--danger)}
+.ot-opt{display:flex;flex-direction:column;gap:6px}
+.ot-opt label{display:flex;gap:8px;align-items:center;font-weight:600;cursor:pointer}
+.ot-opt input{accent-color:var(--acc)}
+.ot-prog{height:8px;background:var(--soft);border-radius:99px;overflow:hidden}
+.ot-prog i{display:block;height:100%;width:0;background:var(--acc);border-radius:99px;transition:width .3s}
+.ot-rn{display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+.ot-rn .sp{flex:1}
+.ot-rl{display:flex;flex-direction:column;gap:2px;max-height:45vh;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:6px}
+.ot-rr{display:flex;gap:8px;align-items:center;padding:4px 6px;border-radius:8px;font-size:13px}
+.ot-rr .ot-tx{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ot-rr.cur{background:var(--acc-soft)}
+.ot-res{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ot-res div{border:1px solid var(--line);border-radius:12px;padding:9px 10px;display:flex;flex-direction:column}
+.ot-res b{font-size:20px;font-variant-numeric:tabular-nums}
+.ot-res .g b{color:var(--ok)}.ot-res .w b{color:#a15c07}.ot-res .r b{color:var(--danger)}
+.ot-res small{color:var(--muted);font-size:11.5px;font-weight:700}
+.ot-errs{font-size:12.5px;color:var(--danger);display:flex;flex-direction:column;gap:2px}
+.ot-drop{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px dashed var(--line);border-radius:12px;padding:10px 12px;color:var(--muted);font-size:13px}
+.ot-drop .sp{flex:1 1 160px}
+.ot-ta{min-height:90px;font-size:13px;font-variant-numeric:tabular-nums}
+.ot-pv{max-height:34vh}
+.ot-pin form{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.ot-pin #otpi{font-size:20px;letter-spacing:.3em;text-align:center}
+@media (max-width:640px){
+  .ot-sum{grid-template-columns:repeat(2,1fr)}
+  .ot-tools .btn{flex:1 1 auto}
+  .ot-foot .btn{flex:1 1 100%}
+}
+@media (prefers-reduced-motion:reduce){.ot-prog i{transition:none}}

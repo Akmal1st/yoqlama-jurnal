@@ -45,6 +45,7 @@
 <link rel="stylesheet" href="funksiyalar.css?v=213">
 <link rel="stylesheet" href="kalit.css?v=213">
 <link rel="stylesheet" href="yangilik.css?v=206">
+<link rel="stylesheet" href="ota-emk.css?v=222">
 </head>
 <body>
 <div class="app" id="app">
@@ -69,7 +70,7 @@
 <script src="bugun-arxiv.js?v=213"></script>
 <script src="bugun-tatil.js?v=207"></script>
 <script src="bugun.js?v=215"></script>
-<script src="funksiyalar.js?v=204"></script>
+<script src="funksiyalar.js?v=222"></script>
 <script src="sozlamalar.js?v=216"></script>
 <script src="mezon.js?v=221"></script>
 <script src="kriterial.js?v=221"></script>
@@ -78,12 +79,13 @@
 <script src="tg-umumiy.js?v=213"></script>
 <script src="arxiv.js?v=207"></script>
 <script src="emk-bir.js?v=197"></script>
-<script src="emk-server.js?v=215"></script>
+<script src="emk-server.js?v=222"></script>
+<script src="ota-emk.js?v=222"></script>
 <script src="boshlash.js?v=213"></script>
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=218"></script>
 <script src="loyiha.js?v=218"></script>
-<script src="yangilik.js?v=221"></script>
+<script src="yangilik.js?v=222"></script>
 <script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=214"></script>
 <script src="telegram.js?v=216"></script>
@@ -2094,6 +2096,7 @@ const FEATS = [
   ["qend", "📋 Chorak yakuni eslatmasi", "Chorak tugashiga 2 hafta qolganda kamchiliklar va «baho kam» belgisi"],
   ["debts", "📌 Qarzdorlar", "Past baho va topshirilmagan ishlarni qayta topshirish"],
   ["parents", "👪 Ota-onalar", "Kontaktlar va butun sinfga xabarlar (menyuda)"],
+  ["otaemk", "🔑 Ota-onalar eMaktab'i", "Ota-ona login/paroli bilan uning nomidan eMaktab'ga kirib chiqish (menyuda)"],
   ["ktr", "📚 KTR", "Kalendar-tematik reja, mavzular bo'yicha bajarilishi"],
   ["gaps", "📝 To'ldirilmagan darslar", "«Bugun»da va kechqurun eslatma: yo'qlama yoki mavzu kiritilmagan darslar"],
   ["vweek", "📆 Hafta rejimi", "Jurnalda hafta jadvali (kataklarni bossangiz kunlik rejim ochiladi)"],
@@ -2149,6 +2152,7 @@ async function moreMenu() {
     ["Ota-onalar", [
       feat("parents") && ["👪 Kontaktlar", () => parentsDialog(S.ci)],
       feat("parents") && ["✉️ Xabarlar (butun sinf)", () => parentBulk(S.ci)],
+      feat("otaemk") && !isGrp(c) && typeof OTE !== "undefined" && [`🔑 eMaktab'ga kirish · ${OTE.count(c)}/${c.students.length}`, () => OTE.open(S.ci)],
     ]],
     ["Baholash", [
       ["📊 Umumiy (summativ ballar)", () => { S.jpage = "sum"; render(); }],
