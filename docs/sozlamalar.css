@@ -100,7 +100,7 @@ html[data-theme="dark"] .sz{--sz-warn:#f5b454;--sz-warn-s:#2e2414;--sz-warn-b:#d
 .sz-seg.full{display:flex}.sz-seg.full button{flex:1}
 .sz-pair{display:flex;gap:8px}
 .sz-pair .btn{flex:1}
-.sz-badge{display:inline-flex;align-items:center;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:800;letter-spacing:.05em;background:var(--acc);color:var(--acc-fg,#fff)}
+.sz-badge{display:inline-flex;flex-shrink:0;white-space:nowrap;align-items:center;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:800;letter-spacing:.05em;background:var(--acc);color:var(--acc-fg,#fff)}
 .sz-chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--sz-warn-s);color:var(--sz-warn);letter-spacing:0;text-transform:none}
 /* sinflar */
 .sz-sum{display:flex;gap:8px;flex-wrap:wrap}
@@ -124,9 +124,12 @@ html[data-theme="dark"] .sz{--sz-warn:#f5b454;--sz-warn-s:#2e2414;--sz-warn-b:#d
 /* choraklar */
 .sz-qr{display:grid;grid-template-columns:110px 1fr 1fr 90px;gap:10px;align-items:center;padding:9px 16px}
 .sz-qr+.sz-qr{border-top:1px solid var(--line)}
-.sz-qr b{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.sz-qr b{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;white-space:nowrap}
 .sz-qr small{color:var(--muted);font-size:12px;text-align:right}
 .sz-qh{background:var(--alt);border-bottom:1px solid var(--line);font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:7px 16px}
+/* «HOZIR» / «🔒 ARXIV» belgisi sig'masin deb: keng kartada chorak ustuni kengayadi, tor kartada belgi nom ostiga tushadi */
+.sz-card:has(> .sz-qr){container-type:inline-size}
+@container (min-width:620px){.sz-qr{grid-template-columns:180px 1fr 1fr 90px}}
 /* bayramlar */
 .sz-hols{display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px}
 .sz-hol{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 10px;font-weight:700;font-size:13px;background:var(--alt);color:var(--text)}
