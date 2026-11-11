@@ -70,7 +70,7 @@
 <script src="bugun-arxiv.js?v=213"></script>
 <script src="bugun-tatil.js?v=207"></script>
 <script src="bugun.js?v=215"></script>
-<script src="funksiyalar.js?v=223"></script>
+<script src="funksiyalar.js?v=224"></script>
 <script src="sozlamalar.js?v=216"></script>
 <script src="mezon.js?v=221"></script>
 <script src="kriterial.js?v=221"></script>
@@ -85,7 +85,7 @@
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=218"></script>
 <script src="loyiha.js?v=218"></script>
-<script src="yangilik.js?v=223"></script>
+<script src="yangilik.js?v=224"></script>
 <script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=214"></script>
 <script src="telegram.js?v=216"></script>
@@ -2096,7 +2096,7 @@ const FEATS = [
   ["qend", "📋 Chorak yakuni eslatmasi", "Chorak tugashiga 2 hafta qolganda kamchiliklar va «baho kam» belgisi"],
   ["debts", "📌 Qarzdorlar", "Past baho va topshirilmagan ishlarni qayta topshirish"],
   ["parents", "👪 Ota-onalar", "Kontaktlar va butun sinfga xabarlar (menyuda)"],
-  ["otaemk", "🔑 Ota-onalar eMaktab'i", "Ota-ona login/paroli bilan uning nomidan eMaktab'ga kirib chiqish (menyuda)"],
+  ["otaemk", "🔑 Ota-onalar eMaktab'i", "Ota-ona login/paroli bilan uning nomidan eMaktab'ga kirib chiqish («Kelajak soati» fani bor sinflar menyusida)"],
   ["ktr", "📚 KTR", "Kalendar-tematik reja, mavzular bo'yicha bajarilishi"],
   ["gaps", "📝 To'ldirilmagan darslar", "«Bugun»da va kechqurun eslatma: yo'qlama yoki mavzu kiritilmagan darslar"],
   ["vweek", "📆 Hafta rejimi", "Jurnalda hafta jadvali (kataklarni bossangiz kunlik rejim ochiladi)"],
@@ -2112,6 +2112,10 @@ const SIMPLE_OFF = ["call", "groups", "seats", "attmodes", "debts", "timer", "du
 const FEAT_GONE = new Set(["act", "week"]);
 // sukut bo'yicha o'chiq funksiyalar (Akmal, 2026-11-11): foydalanuvchi o'zi yoqadi — D.web.on = {id: 1}
 const FEAT_OPTIN = new Set(["otaemk"]);
+// «Ota-onalar eMaktab'i» faqat «Kelajak soati» (ruscha «Час будущего») fani bor sinflarda (Akmal, 2026-11-11):
+// shu sinf nomidagi istalgan jurnalda (masalan 7-A · Matematika ham) chiqadi, chunki bu fan sinf rahbarida bo'ladi
+const isKSubj = (s) => /kelajak\s*soat|келажак\s*соат|час\s*будущ/.test(normName(s || ""));
+function ksClass(c) { const n = normName(c.name); return D.classes.some((x) => !isGrp(x) && normName(x.name) === n && isKSubj(x.subject)); }
 function feat(id) { return !FEAT_GONE.has(id) && (FEAT_OPTIN.has(id) ? !!(D.web.on || {})[id] : !(D.web.off || {})[id]); }
 function featToggle(k) { if (FEAT_OPTIN.has(k)) { const o = D.web.on = D.web.on || {}; if (o[k]) delete o[k]; else o[k] = 1; } else { const o = D.web.off = D.web.off || {}; if (o[k]) delete o[k]; else o[k] = 1; } }
 function attMode() { const v = D.web.att_mode || "list"; return !feat("attmodes") || (v === "map" && !feat("seats")) ? "list" : v; }
@@ -2155,7 +2159,7 @@ async function moreMenu() {
     ["Ota-onalar", [
       feat("parents") && ["👪 Kontaktlar", () => parentsDialog(S.ci)],
       feat("parents") && ["✉️ Xabarlar (butun sinf)", () => parentBulk(S.ci)],
-      feat("otaemk") && !isGrp(c) && typeof OTE !== "undefined" && [`🔑 eMaktab'ga kirish · ${OTE.count(c)}/${c.students.length}`, () => OTE.open(S.ci)],
+      feat("otaemk") && !isGrp(c) && ksClass(c) && typeof OTE !== "undefined" && [`🔑 eMaktab'ga kirish · ${OTE.count(c)}/${c.students.length}`, () => OTE.open(S.ci)],
     ]],
     ["Baholash", [
       ["📊 Umumiy (summativ ballar)", () => { S.jpage = "sum"; render(); }],
