@@ -28,8 +28,8 @@ const PTG = (() => {
     return fbin[k];
   }
   // CSS shrift → PDF shrifti (+ shu shriftda yo'q belgilar uchun zaxira)
-  const SERIF = /times|liberation serif|tinos|georgia|pt serif|noto serif|cambria|book antiqua|garamond|^\s*serif/i;
-  const SANS = /^\s*"?(arial|helvetica|liberation sans|arimo|calibri|tahoma|verdana|segoe ui)/i;
+  const SERIF = /times|bv serif|liberation serif|tinos|georgia|pt serif|noto serif|cambria|book antiqua|garamond|^\s*serif/i;
+  const SANS = /^\s*"?(arial|helvetica|bv sans|liberation sans|arimo|calibri|tahoma|verdana|segoe ui)/i;
   function fontKey(fam, wt, it) {
     const b = wt >= 600;
     if (SERIF.test(fam.split(",")[0]) || (/serif/i.test(fam) && !/sans-serif/i.test(fam) && SERIF.test(fam))) return [it ? (b ? "sBI" : "sI") : (b ? "sB" : "sR"), b ? "aB" : "aR"];
@@ -517,5 +517,5 @@ const PTG = (() => {
     const r = qRange(q), v = r && (D.web.qrep_tg || {})[q];
     return v && v.split("|")[0] === r[0] ? v.split("|")[1] : null;
   }
-  return {reportPdf, pagesPdf, send, run, markQ, sentQ, loadLib, parsePath, measure};
+  return {reportPdf, pagesPdf, send, run, markQ, sentQ, loadLib, parsePath, measure, fontData};
 })();

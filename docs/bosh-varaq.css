@@ -62,6 +62,16 @@
 .hb .bv-dz.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc-soft)}
 .hb .bv-dz.on span{color:var(--acc-t,var(--acc))}
 .hb .bv-dz .bv-mini{width:100%}
+/* shrift to'plami tanlovi */
+.hb .bv-fsl{display:flex;flex-direction:column;gap:6px}
+.hb .bv-fso{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:10px;border:1px solid var(--line);background:var(--base);border-radius:calc(9px*var(--rk,1));padding:7px 10px;text-align:left;color:var(--text);cursor:pointer;min-width:0}
+.hb .bv-fso.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc-soft)}
+.hb .bv-fso .bv-aa{font-size:22px;line-height:1;font-weight:700;display:flex;align-items:baseline;gap:1px}
+.hb .bv-fso .bv-aa small{font-size:15px;font-weight:400;color:var(--muted)}
+.hb .bv-fso .bv-fst{min-width:0}
+.hb .bv-fso b{display:block;font-size:13.5px}
+.hb .bv-fso .bv-fst small{display:block;color:var(--muted);font-size:12px;font-weight:500;overflow-wrap:anywhere}
+.hb .bv-fso em{font-style:normal;font-size:11px;font-weight:800;color:var(--acc-t,var(--acc));background:var(--acc-soft);border-radius:999px;padding:1px 7px;white-space:nowrap}
 .bv-mini{background:#fff;border-radius:4px;padding:5px;box-shadow:0 0 0 1px rgba(0,0,0,.08) inset;font-family:Arial,sans-serif}
 .bv-mini table{border-collapse:collapse;width:100%;table-layout:fixed;margin:0}
 .bv-mini th,.bv-mini td{border:1px solid #a7b0b9;height:7px;padding:0;background:#fff}
@@ -94,6 +104,16 @@
    --fb — jadval asosi (qator balandligidan uzluksiz: 7,5–10,5 pt × sozlama). Qolgan hamma o'lcham shu ikkisidan nisbat bilan olinadi. */
 .bv-pg,.bv-pg.bx-pg{width:210mm;height:296.5mm;padding:0;background:#fff;color:#1b232d;box-sizing:border-box;font-family:"Manrope",Arial,Helvetica,sans-serif;font-size:var(--fh,9pt);line-height:1.2;font-weight:400;letter-spacing:normal;overflow:hidden;--fh:9pt;--fb:9pt}
 .bv-pg.land{width:297mm;height:209.5mm}
+/* Shrift to'plamlari (Akmal, 2026-11-11: «jadval dizayniga mos shriftlar to'plami»): --bvh — sarlavha, --bvb — jadval va pastki yozuvlar.
+   Faqat dastur bilan birga keladigan shriftlar (PDF'ga ham joylanadi): Manrope, BV Serif (Liberation Serif = Times), BV Sans (Liberation Sans = Arial). */
+.bv-pg{--bvM:"Manrope",Arial,Helvetica,sans-serif;--bvS:"BV Serif","Liberation Serif","Times New Roman",Times,serif;--bvA:"BV Sans","Liberation Sans",Arial,Helvetica,sans-serif;--bvh:var(--bvM);--bvb:var(--bvM);--bvhw:800}
+.bv-pg.fs-ras{--bvh:var(--bvS);--bvb:var(--bvS);--bvhw:700}
+.bv-pg.fs-huj{--bvh:var(--bvS);--bvb:var(--bvA);--bvhw:700}
+.bv-pg.fs-odd{--bvh:var(--bvA);--bvb:var(--bvA);--bvhw:700}
+.bv-pg.fs-ara{--bvh:var(--bvM);--bvb:var(--bvA);--bvhw:800}
+.bv-pg,.bv-pg.bx-pg{font-family:var(--bvb)}
+.bv-pg .bv-ttl{font-family:var(--bvh)}
+.bv-pg .bv-ttl b{font-weight:var(--bvhw)!important}
 .bv-pg .bv-in{height:100%;display:flex;flex-direction:column;gap:2.4mm;line-height:1.2;font-size:var(--fh)}
 .bv-pg .bv-top{display:flex;align-items:stretch;gap:4mm;padding-bottom:2mm;border-bottom:.7mm solid #1b232d}
 .bv-pg .bv-ttl{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:.5mm;min-width:0}
