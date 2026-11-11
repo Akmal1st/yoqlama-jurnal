@@ -5230,7 +5230,8 @@ test("Ota-onalar eMaktab'i: jadvalga login/parol, kirib chiqish, aylanib chiqish
       const page = await ctx.newPage(); const errors = []; page.on("pageerror", (e) => errors.push(e.message));
       await page.goto(APP);
       await page.evaluate(() => { const mk = (n) => Array.from({length: n}, (_, i) => ({name: `Talaba${i + 1} Ism${i + 1}`, marks: {}}));
-        D = normalize({classes: [{name: "6-A", subject: "Matematika", dates: [], students: mk(36)}, {name: "9-A", subject: "Algebra", dates: [], students: mk(18)}]}); save(); S.ci = 0; go("journal"); });
+        D = normalize({classes: [{name: "6-A", subject: "Matematika", dates: [], students: mk(36)}, {name: "9-A", subject: "Час будущего", dates: [], students: mk(18)},
+          {name: "6-a", subject: "kelajak  soati", dates: [], students: mk(36)}, {name: "10-B", subject: "Fizika", dates: [], students: mk(18)}]}); save(); S.ci = 0; go("journal"); });
       const sum = () => page.$$eval(".ot-sum b", (x) => x.map((e) => e.textContent).join(" | "));
       const done = async () => { await page.waitForSelector(".modal >> text=Ilovada faqat «Oxirgi kirish»", {timeout: 20000}); const t = await page.$$eval(".ot-res b", (x) => x.map((e) => e.textContent)); await page.click(".modal:last-child [data-x]"); return t; };
       // sukut bo'yicha o'chiq: sinf menyusida yo'q; Sozlamalar → Funksiyalar → «eMaktab» guruhida yoqiladi
@@ -5242,8 +5243,14 @@ test("Ota-onalar eMaktab'i: jadvalga login/parol, kirib chiqish, aylanib chiqish
       await page.click('.fn-sec [data-ft="otaemk"]');
       assert.equal(await page.getAttribute('.fn-sec [data-ft="otaemk"]', "aria-checked"), "true");
       assert.deepEqual(await page.evaluate(() => D.web.on), {otaemk: 1});
+      // faqat «Kelajak soati» / «Час будущего» fani bor sinflarda: 10-B (faqat Fizika) menyusida yo'q
+      assert.deepEqual(await page.evaluate(() => D.classes.map(ksClass)), [true, true, true, false]);
+      await page.evaluate(() => { S.ci = 3; go("journal"); });
+      await page.click("[data-more]");
+      assert.equal(await page.locator(".modal >> text=eMaktab'ga kirish").count(), 0);
+      await page.click(".modal [data-x]");
       await page.evaluate(() => { S.ci = 0; go("journal"); });
-      // sinf menyusi → «Ota-onalar» guruhida
+      // sinf menyusi → «Ota-onalar» guruhida (6-A · Matematika ham: shu sinfda «Kelajak soati» bor)
       await page.click("[data-more]");
       await page.click(".modal >> text=eMaktab'ga kirish · 0/36");
       await page.waitForSelector(".ot-card");

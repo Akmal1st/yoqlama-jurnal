@@ -8,7 +8,7 @@
    va NEWS boshiga yozuv qo'shing.
    Bu fayl asosiy skriptdan OLDIN ulanadi; S, go, render, renderNav, esc, $ … faqat chaqirilganda ishlatiladi. */
 const YNG = (() => {
-  const VER = 223, KEY = "yoqlama_yangilik";
+  const VER = 224, KEY = "yoqlama_yangilik";
   const P = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const IC = {
     spark: P('<path d="M12 3l1.8 4.9L19 9.7l-5.2 1.8L12 16.5l-1.8-5L5 9.7l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>'),
@@ -22,6 +22,8 @@ const YNG = (() => {
     bug: P('<rect x="7" y="7" width="10" height="13" rx="5"/><path d="M12 7v13M4 12h3M17 12h3"/>')};
   // go: [sahifa, Sozlamalar bo'limi] — «Ochish» shu joyga olib boradi
   const NEWS = [
+    {v: 224, d: "11-noyabr", items: [
+      {ic: "star", t: "Ota-onalar eMaktab'i — «Kelajak soati» sinflarida", s: "«eMaktab'ga kirish» endi faqat «Kelajak soati» (ruscha «Час будущего») fani bor sinflar menyusida (⋯) chiqadi, shu sinfning boshqa fanlari jurnalida ham. Funksiyani yoqish joyi o'zgarmadi: Sozlamalar → Qo'shimcha funksiyalar → «eMaktab» guruhi."}]},
     {v: 223, d: "11-noyabr", items: [
       {ic: "star", t: "Ota-onalar eMaktab'i — o'zingiz yoqasiz", s: "Bu funksiya endi sukut bo'yicha o'chiq. Kerak bo'lsa: Sozlamalar → Qo'shimcha funksiyalar → «eMaktab» guruhi → «Ota-onalar eMaktab'i». Yoqilgach, sinf menyusida (⋯) «Ota-onalar» → «eMaktab'ga kirish» chiqadi.", go: ["settings", 6], gl: "Funksiyalar"}]},
     {v: 222, d: "11-noyabr", items: [

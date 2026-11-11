@@ -41,7 +41,7 @@ const FNK = (() => {
     vweek: ["Hafta", "", "Hafta"], vmonth: ["Oy", "", "Oy"], vquarter: ["Chorak", "", "Chorak"],
     debts: ["Qarzdorlar", "Past baho va topshirilmagan ishlar", "Qarzdorlar"],
     parents: ["Ota-onalar", "Kontaktlar va butun sinfga xabar", "Kontaktlar"],
-    otaemk: ["Ota-onalar eMaktab'i", "Ota-ona nomidan eMaktab'ga kirib chiqish", "eMaktab'ga kirish", 1],
+    otaemk: ["Ota-onalar eMaktab'i", "Ota-ona nomidan eMaktab'ga kirib chiqish («Kelajak soati» fani bor sinflarda)", "eMaktab'ga kirish", 1],
     absmsg: ["Kelmaganlar ota-onasiga xabar", "Yo'qlamadan keyin tayyor matn, Telegram yoki SMS", "Kelmaganlarga xabar", 1],
     ktr: ["KTR", "Kalendar-tematik reja va bajarilishi", "KTR"]};
   const M = {attm: {n: "Yo'qlama usullari", d: "Ro'yxat doim bor; qo'shimcha usullar", ch: ["attmodes", "seats"], fix: "Ro'yxat"},
@@ -50,7 +50,7 @@ const FNK = (() => {
     ["today", "«Bugun» sahifasi", ["bday", "qend", "gaps", "bsbrem"], "Kartochkalar"],
     ["journal", "Jurnal", ["views"], "Davr"],
     ["menu", "Sinf menyusi (⋯)", ["debts", "parents", "absmsg", "ktr"], "Menyuda"],
-    ["emk", "eMaktab", ["otaemk"], "Sinf menyusida"]];
+    ["emk", "eMaktab", ["otaemk"], "«Kelajak soati» sinflarida"]];
   const GONE = new Set(["act", "week"]);
   const leaves = (r) => (M[r] ? M[r].ch : [r]);
   const ALL = GR.flatMap((g) => g[2].flatMap(leaves));
