@@ -5321,3 +5321,122 @@ test("Ota-onalar eMaktab'i: jadvalga login/parol, kirib chiqish, aylanib chiqish
     }
   } finally { await browser.close(); }
 });
+
+test("PDF: birlashgan chegarali jadval chiziqlari bitta (ikki qavat emas), tik nuqtali chiziqlar va outline saqlanadi", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1200, height: 800}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    const r = await page.evaluate(() => {
+      const box = document.createElement("div"); box.style.cssText = "position:absolute;left:0;top:0;width:400px;background:#fff";
+      box.innerHTML = `<table id="t1" style="border-collapse:collapse;outline:2px solid #000;outline-offset:-1px"><tr><td style="border:1px solid #777;width:40px;height:20px"></td><td style="border:1px solid #777;border-left:3px solid #f00;width:40px"></td></tr><tr><td style="border:1px solid #777;height:20px"></td><td style="border:1px solid #777"></td></tr></table>
+        <table id="t2" style="border-collapse:collapse"><tr><td style="border:1px dotted #777;width:40px;height:20px"></td><td style="border:1px dotted #777;width:40px"></td></tr></table>`;
+      document.body.append(box);
+      const a = PTG.measure(box.querySelector("#t1")), b = PTG.measure(box.querySelector("#t2"));
+      box.remove();
+      const rects = a.ops.filter((o) => o.k === "rect"), red = rects.filter((o) => o.fill[0] > 200 && o.fill[1] < 50);
+      const vert = b.ops.filter((o) => o.k === "line" && o.x1 === o.x2 && o.yb > o.ya);
+      return {edges: rects.length, red: red.length, redW: red.map((o) => Math.round(o.w)), outline: a.ops.filter((o) => o.k === "srect").length, vert: vert.length};
+    });
+    assert.equal(r.edges, 12, "2×2 jadval: 12 ta chiziq bo'lagi, har biri bir marta");
+    assert.deepEqual(r.redW, [3], "qalin qizil chiziq qo'shni katakning ingichka chizig'ini yutadi");
+    assert.equal(r.outline, 1, "outline ramkasi");
+    assert.equal(r.vert, 3, "tik nuqtali chiziqlar yo'qolmaydi");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("Bo'sh varaq: shrift tizimi — bitta oila, sarlavha sozlamadan, jadval qator balandligidan (36 va 18 o'quvchi)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+    await page.evaluate(() => { const grow = (c, n) => { for (let i = c.students.length; i < n; i++) c.students.push({name: `Qo'shimcha O'quvchi ${i + 1}`, marks: {}, scores: {}}); c.students.length = n; };
+      grow(D.classes[0], 36); grow(D.classes[1], 18); save(); });
+    await page.click(".side [data-go=reports]"); await page.click("[data-kind=blank]"); await page.waitForSelector(".bv-scale .bv-pg");
+    const probe = () => page.evaluate(() => {
+      const p = document.querySelector(".bv-scale .bv-pg"), pt = (s) => { const e = p.querySelector(s); return e ? parseFloat(getComputedStyle(e).fontSize) * 0.75 : null; };
+      const fams = new Set([...p.querySelectorAll("*")].filter((e) => e.childNodes.length && [...e.childNodes].some((n) => n.nodeType === 3 && n.nodeValue.trim())).map((e) => getComputedStyle(e).fontFamily.split(",")[0].replace(/"/g, "").trim()));
+      return {fams: [...fams], ttl: pt(".bv-ttl b"), info: pt(".bv-info span"), lg: pt(".bv-lg"), th: pt("thead th"), sm: pt("thead th small"), nm: pt("td.bv-nm")};
+    });
+    const res = {};
+    for (const [ci, per] of [["0", "month"], ["1", "week"]]) {
+      await page.click(".hb-pks [data-hk=cls]"); await page.click(`.hb-pop [data-ho=ci][data-v='${ci}']`);
+      await page.evaluate((p) => document.querySelector(`[data-bv=per][data-v=${p}]`).click(), per);
+      res[ci] = await probe();
+      assert.deepEqual(res[ci].fams, ["Manrope"], "varaqdagi hamma yozuv bitta shriftda");
+      assert.ok(res[ci].sm >= 6.5 && res[ci].sm < res[ci].th, `kichik yozuv ${res[ci].sm} pt`);
+      assert.ok(res[ci].nm >= 7.4 && res[ci].nm <= 10.6, `ism ${res[ci].nm} pt`);
+    }
+    // sarlavha o'lchami sinfga bog'liq emas (faqat «Shrift» sozlamasiga), jadval esa qator balandligiga qarab kattalashadi
+    assert.equal(res["0"].ttl, res["1"].ttl); assert.equal(res["0"].lg, res["1"].lg);
+    assert.ok(res["1"].nm > res["0"].nm, "18 o'quvchida jadval yozuvi kattaroq");
+    await page.evaluate(() => { document.querySelector("[data-bv=set]").click(); document.querySelector("[data-bv=fs][data-v=l]").click(); });
+    const big = await probe();
+    assert.ok(big.ttl > res["1"].ttl && big.lg > res["1"].lg, "«Katta» shrift sarlavhani ham kattalashtiradi");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("Bo'sh varaq: shrift to'plamlari — «Dizaynga mos» va qo'lda tanlash, ekran va PDF bir xil (36 va 18 o'quvchi, telefon)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const AUTO = {kl: "zam", oq: "huj", rang: "zam", daf: "ras", qal: "ara", min: "odd", kok: "huj", kat: "odd", ilik: "ras"};
+    const FAM = {zam: ["Manrope", "Manrope"], ras: ["BV Serif", "BV Serif"], huj: ["BV Serif", "BV Sans"], odd: ["BV Sans", "BV Sans"], ara: ["Manrope", "BV Sans"]};
+    const PDFK = {Manrope: "m", "BV Serif": "s", "BV Sans": "a"};
+    for (const vp of [{width: 1440, height: 900}, {width: 390, height: 844}]) {
+      const page = await browser.newPage({viewport: vp});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      await page.evaluate(() => { const grow = (c, n) => { for (let i = c.students.length; i < n; i++) c.students.push({name: `Qo'shimcha O'quvchi ${i + 1}`, marks: {}, scores: {}}); c.students.length = n; };
+        grow(D.classes[0], 36); grow(D.classes[1], 18); save(); });
+      await page.click(`${vp.width < 800 ? ".tabbar" : ".side"} [data-go=reports]`);
+      if (vp.width < 800) { await page.click("[data-hk=kind]"); await page.click(".modal [data-kind=blank]"); } else await page.click("[data-kind=blank]"); await page.waitForSelector(".bv-scale .bv-pg");
+      const probe = () => page.evaluate(async () => {
+        await document.fonts.ready; await new Promise((r) => setTimeout(r, 60));
+        const p = document.querySelector(".bv-scale .bv-pg"), f = (s) => getComputedStyle(p.querySelector(s)).fontFamily.split(",")[0].replace(/"/g, "").trim();
+        const used = (s) => { const fam = f(s); return fam === "Manrope" || document.fonts.check(`10px "${fam}"`); };
+        const ops = PTG.measure(p).ops.filter((o) => o.k === "text"), key = (t) => { const o = ops.find((x) => x.t && x.t.includes(t)); return o && o.keys[0]; };
+        const ttl = p.querySelector(".bv-ttl b").textContent.trim().split(" ")[0], nm = p.querySelector("td.bv-nm").textContent.trim().split(" ")[0];
+        const over = [...document.querySelectorAll(".bv-scale .bv-in")].some((i) => i.scrollHeight > i.clientHeight + 1) || [...document.querySelectorAll(".bv-scale td.bv-nm")].some((x) => x.scrollWidth > x.clientWidth + 1);
+        return {h: f(".bv-ttl b"), b: f("td.bv-nm"), lg: f(".bv-lg"), ok: used(".bv-ttl b") && used("td.bv-nm"), pk: [key(ttl), key(nm)], over, bad: !!document.querySelector(".bv-chip.bad"), wide: document.documentElement.scrollWidth > innerWidth + 1};
+      });
+      const check = async (want, why) => { const r = await probe(); const w = FAM[want];
+        assert.deepEqual([r.h, r.b, r.lg], [w[0], w[1], w[1]], `${why}: sarlavha/jadval/pastki shrift`);
+        assert.ok(r.ok, `${why}: shrift ulandi`);
+        assert.deepEqual(r.pk.map((k) => k && k[0]), [PDFK[w[0]], PDFK[w[1]]], `${why}: PDF shrifti ekrandagidek`);
+        assert.ok(!r.over && !r.bad && !r.wide, `${why}: hech narsa sig'may qolmadi`); };
+      for (const [ci, per] of [["0", "month"], ["1", "week"]]) {
+        await page.evaluate(() => { const v = document.querySelector(".bv-veil"); if (v) v.click(); });
+        await page.evaluate(() => document.querySelector("[data-hk=cls]").click());
+        await page.evaluate((ci) => document.querySelector(`[data-ho=ci][data-v='${ci}']`).click(), ci);
+        await page.waitForTimeout(300);
+        await page.evaluate((p) => document.querySelector(`[data-bv=per][data-v=${p}]`).click(), per);
+        for (const dz of Object.keys(AUTO)) {
+          await page.evaluate((dz) => { if (!document.querySelector(".bv-pop")) document.querySelector("[data-bv=set]").click(); document.querySelector(`[data-bv=tdz][data-v=${dz}]`).click(); }, dz);
+          await check(AUTO[dz], `${vp.width}px · ${ci === "0" ? 36 : 18} o'quvchi · ${dz}`);
+        }
+      }
+      // qo'lda tanlangan to'plam dizayn almashganda ham saqlanadi; «Dizaynga mos» qaytaradi
+      await page.evaluate(() => document.querySelector("[data-bv=fset][data-v=ras]").click());
+      await page.evaluate(() => document.querySelector("[data-bv=tdz][data-v=min]").click());
+      await check("ras", "qo'lda Rasmiy, Minimal dizayn");
+      assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("yoqlama_bv")).fset), "ras");
+      const panel = await page.evaluate(() => { const l = document.querySelector(".bv-fsl"), r = l.getBoundingClientRect();
+        return {n: l.querySelectorAll(".bv-fso").length, on: l.querySelector(".bv-fso.on").dataset.v, fit: [...l.querySelectorAll(".bv-fso")].every((b) => b.scrollWidth <= b.clientWidth + 1 && b.getBoundingClientRect().right <= r.right + 1)}; });
+      assert.deepEqual(panel, {n: 6, on: "ras", fit: true});
+      await page.evaluate(() => document.querySelector("[data-bv=fset][data-v=auto]").click());
+      await check("odd", "Dizaynga mos, Minimal");
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});

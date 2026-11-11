@@ -29,5 +29,7 @@ jobs:
         with:
           node-version: "22"
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      # apt oynasi ba'zan ishlamaydi (DNS xatosi) — ikki marta urinib, bo'lmasa brauzerning o'zini o'rnatamiz:
+      # GitHub runner'da Chromium uchun kerakli kutubxonalar bor, ilova shriftlari esa o'zida (vendor/)
+      - run: npx playwright install --with-deps chromium || (sleep 20 && npx playwright install --with-deps chromium) || npx playwright install chromium
       - run: node --test tests/ui.test.mjs
