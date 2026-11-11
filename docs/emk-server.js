@@ -17,7 +17,8 @@ const EMKS = (() => {
   const linked = () => !!(load() || {}).u;
 
   /* ───────── cookie ───────── */
-  function setCookies(list, url) {
+  // s — seans ({c: cookie ro'yxati}); odatda o'qituvchi seansi S, ota-onalar bo'limi (ota-emk.js) o'z seansini beradi
+  function setCookies(list, url, s = S) {
     const host = new URL(url).hostname;
     for (const line of list || []) {
       const [nv, ...attrs] = String(line).split(";"), i = nv.indexOf("="); if (i < 1) continue;
@@ -28,11 +29,11 @@ const EMKS = (() => {
         if (key === "max-age" && Number(val) <= 0) dead = true;
         if (key === "expires" && Date.parse(val) < Date.now()) dead = true;
       }
-      S.c = S.c.filter((c) => !(c.n === n && c.d === d));
-      if (!dead) S.c.push({n, v, d, h});
+      s.c = s.c.filter((c) => !(c.n === n && c.d === d));
+      if (!dead) s.c.push({n, v, d, h});
     }
   }
-  const cookieFor = (url) => { const host = new URL(url).hostname; return S.c.filter((c) => c.h ? host === c.d : host === c.d || host.endsWith("." + c.d)).map((c) => `${c.n}=${c.v}`).join("; "); };
+  const cookieFor = (url, s = S) => { const host = new URL(url).hostname; return s.c.filter((c) => c.h ? host === c.d : host === c.d || host.endsWith("." + c.d)).map((c) => `${c.n}=${c.v}`).join("; "); };
 
   /* ───────── server orqali so'rov ───────── */
   async function call(r) {
@@ -44,13 +45,13 @@ const EMKS = (() => {
     return j.r;
   }
   // qayta yo'naltirishlar shu yerda kuzatiladi (cookie har qadamda yangilanadi)
-  async function req(url, {post = null, bin = false, ref = ""} = {}) {
+  async function req(url, {post = null, bin = false, ref = "", s = S} = {}) {
     for (let k = 0, again = 0; k < 10; k++) {
-      const [x] = await call([{u: url, m: post ? "post" : "get", d: post || "", c: cookieFor(url), ref, bin: bin ? 1 : 0}]);
+      const [x] = await call([{u: url, m: post ? "post" : "get", d: post || "", c: cookieFor(url, s), ref, bin: bin ? 1 : 0}]);
       if (!x || x.e) throw new Error(`eMaktab'ga ulanib bo'lmadi: ${(x && x.e) || "javob yo'q"}`);
       // eMaktab ba'zan vaqtincha 500/502/503 qaytaradi (Akmal, 2026-11-07: «Ошибка на сервере (500)») — GET ikki marta qayta so'raladi
       if (x.s >= 500 && !post && again < 2) { again++; k--; await new Promise((ok) => setTimeout(ok, 1500 * again)); continue; }
-      setCookies(x.c, url);
+      setCookies(x.c, url, s);
       if (x.s >= 300 && x.s < 400 && x.l) { ref = url; url = new URL(x.l, url).href; if (x.s !== 307 && x.s !== 308) post = null; continue; }
       return {s: x.s, url, b: x.b, t: x.t || ""};
     }
@@ -123,32 +124,41 @@ const EMKS = (() => {
   const need2fa = () => { try { return localStorage.getItem(F2) === "1"; } catch (e) { return false; } };
   const clear2fa = () => { try { localStorage.removeItem(F2); } catch (e) { /* */ } };
   const enc = (o) => Object.entries(o).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&");
-  async function login(user, pass) {
-    S = {u: user, c: []};
-    let r = await req(U.login);
+  // s seansida login va parol bilan kirish; kirilgan sahifa qaytadi, rasmdagi kod oynasi yopilsa — null.
+  // probe — parol yuborilgandan keyin forma yo'q oraliq sahifa chiqsa, kirilganini tekshirish uchun ochiladigan sahifa.
+  async function auth(s, user, pass, probe = U.my) {
+    let r = await req(U.login, {s});
     for (let attempt = 1; attempt <= 4; attempt++) {
-      if (is2fa(r)) { try { localStorage.setItem(F2, "1"); } catch (e) { /* */ } clear(); S = null; throw Object.assign(new Error("2fa"), {twofa: true}); }
-      if (!isLogin(r.url, r.b)) { store(S); clear2fa(); return true; }
+      if (is2fa(r)) throw Object.assign(new Error("2fa"), {twofa: true});
+      if (!isLogin(r.url, r.b)) return r;
       const f = parseForm(r.b, r.url);
       if (!f || !f.pw || !f.us) {
-        // parol yuborilgandan keyin oraliq sahifa (forma yo'q) — tizimga kirilganmi, «Sinflarim» orqali tekshiramiz
-        if (attempt > 1) { const m = await req(U.my); if (m.s < 400 && !isLogin(m.url, m.b)) { store(S); return true; } }
+        // parol yuborilgandan keyin oraliq sahifa (forma yo'q) — tizimga kirilganmi, probe orqali tekshiramiz
+        if (attempt > 1) { const m = await req(probe, {s}); if (m.s < 400 && !isLogin(m.url, m.b)) return m; }
         if (r.s >= 500) throw new Error(`eMaktab serverining o'zida xato (${r.s}) — eMaktab hozir vaqtincha ishlamayapti. Bir necha daqiqadan keyin qayta urining yoki xatcho'p usulidan foydalaning.\n${diag(r)}`);
         if (blocked(r)) throw new Error(`eMaktab Google serveridan kelgan so'rovni to'sib qo'ydi (chet el manzili bo'lishi mumkin). Hozircha xatcho'p usulidan foydalaning.\n${diag(r)}`);
         throw Object.assign(new Error(`eMaktab kirish sahifasida login maydoni topilmadi${attempt > 1 ? " (parol yuborilgandan keyin)" : ""}. Hozircha xatcho'p usulidan foydalaning.\n${diag(r)}`), {page: scrub(r)});
       }
       f.data[f.us] = user; f.data[f.pw] = pass;
       if (attempt > 1) {
-        if (!(f.cap && f.img)) throw new Error("Login yoki parol noto'g'ri.");
-        const im = await req(f.img, {bin: true, ref: r.url});
+        if (!(f.cap && f.img)) throw Object.assign(new Error("Login yoki parol noto'g'ri."), {badpw: true});
+        const im = await req(f.img, {bin: true, ref: r.url, s});
         if (im.s !== 200 || !im.b) throw new Error("Rasmdagi kodni yuklab bo'lmadi.");
         const ans = await captchaSheet(`data:${/^image\//.test(im.t) ? im.t.split(";")[0] : "image/png"};base64,${im.b}`, attempt > 2);
-        if (ans === null) return false;
+        if (ans === null) return null;
         f.data[f.cap] = ans;
       }
-      r = await req(f.action, {post: enc(f.data), ref: r.url});
+      r = await req(f.action, {post: enc(f.data), ref: r.url, s});
     }
-    throw new Error("Kirib bo'lmadi: login, parol yoki rasmdagi kod noto'g'ri.");
+    throw Object.assign(new Error("Kirib bo'lmadi: login, parol yoki rasmdagi kod noto'g'ri."), {badpw: true});
+  }
+  async function login(user, pass) {
+    S = {u: user, c: []};
+    let r;
+    try { r = await auth(S, user, pass); }
+    catch (e) { if (e.twofa) { try { localStorage.setItem(F2, "1"); } catch (x) { /* */ } clear(); S = null; } throw e; }
+    if (!r) return false;
+    store(S); clear2fa(); return true;
   }
 
   /* ───────── oynalar ───────── */
@@ -284,5 +294,6 @@ const EMKS = (() => {
     const eu = $("[data-ekun]", mm); if (eu) eu.onclick = () => { unlink(); reopen(); };
     const re = $("[data-ekre]", mm); if (re) re.onclick = () => { clear2fa(); reopen(); };
   }
-  return {on, linked, sync, unlink, pane, bindPane, old: () => old, need2fa, user: () => (load() || {}).u || "", _t: {setCookies, cookieFor, parseForm, isLogin, reset: (s) => { S = s; }, get: () => S}};
+  // lib — ota-onalar bo'limi (ota-emk.js) uchun: o'z seansi bilan kirish va sahifa ochish
+  return {on, linked, sync, unlink, pane, bindPane, old: () => old, need2fa, user: () => (load() || {}).u || "", lib: {auth, req, call, isLogin}, _t: {setCookies, cookieFor, parseForm, isLogin, reset: (s) => { S = s; }, get: () => S}};
 })();

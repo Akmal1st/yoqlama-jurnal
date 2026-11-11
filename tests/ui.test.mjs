@@ -1683,7 +1683,7 @@ test("«Yana» menyusi: bo'limlar va qidiruv", async () => {
     assert.deepEqual(vis, ["🎂 Tug'ilgan kunlar"]);
     assert.equal(await page.$$eval(".modal .mgrp", (x) => x.filter((g) => g.offsetParent).length), 1);
     await page.fill("#mq", "ota-ona");
-    assert.equal(await page.$$eval(".modal [data-i]", (x) => x.filter((b) => b.offsetParent).length), 2, "bo'lim nomi bo'yicha ham topiladi");
+    assert.equal(await page.$$eval(".modal [data-i]", (x) => x.filter((b) => b.offsetParent).length), 3, "bo'lim nomi bo'yicha ham topiladi");
     await page.fill("#mq", "zzzz"); assert.ok(await page.isVisible("#mq0"));
     await page.fill("#mq", "chaqir"); await page.press("#mq", "Enter");
     await page.waitForSelector(".modal >> text=Doskaga");
@@ -4640,10 +4640,10 @@ for (const n of [36, 18]) test(`Qo'shimcha funksiyalar: yangi bo'lim, taymer, na
     // Sozlamalar → Funksiyalar: 4 guruh, jonli namuna, saralash, guruhni o'chirish va «Qaytarish»
     await page.evaluate(() => { S.sec = 6; go("settings"); });
     assert.equal(await page.locator(".fn-g").count(), 4);
-    assert.equal(await page.locator(".fn-row .fn-new").count(), 4);
+    assert.equal(await page.locator(".fn-row .fn-new").count(), 5);   // + Ota-onalar eMaktab'i (v222)
     assert.equal(await page.locator('[data-ft="act"], [data-ft="week"]').count(), 0);
     assert.ok((await page.textContent(".fn-g .fn-prev")).includes("Taymer"));
-    await page.click('[data-fnf="new"]'); assert.equal(await page.locator(".fn-row:not(.multi)").count(), 4);
+    await page.click('[data-fnf="new"]'); assert.equal(await page.locator(".fn-row:not(.multi)").count(), 5);
     await page.click('[data-fnf="all"]');
     await page.click('[data-fng="lesson"]');
     assert.equal(await page.evaluate(() => ["call", "groups", "attmodes", "seats", "hw", "timer", "duty"].some(feat)), false);
@@ -5192,6 +5192,113 @@ test("Yo'qlama: «CH» (chet elda) — darsda, Kun sahifasida, davomat foizi va 
       assert.match(r.cap, /\(chet elda\)/);
       assert.deepEqual(errors, [], `${name} ${N}`);
       await page.close();
+    }
+  } finally { await browser.close(); }
+});
+
+test("Ota-onalar eMaktab'i: jadvalga login/parol, kirib chiqish, aylanib chiqish, PIN, Excel'dan; parol va sahifa mazmuni saqlanmaydi (36 va 18 o'quvchi)", async () => {
+  const loginPage = `<html><body><form action="/login" method="post"><input name="login" type="text"><input name="password" type="password"><button type="submit">Kirish</button></form></body></html>`;
+  const home = `<html><body><a href="/diary">Kundalik</a> <a href="/marks">Baholar</a> <a href="/messages">Xabarlar</a> <div>Baho: 5</div><form action="/logout"></form></body></html>`;
+  const st = {valid: new Set(), posts: [], seen: []};
+  const G = makeGas({emk: (url, opt) => {
+    const u = new URL(url), sid = (((opt.headers || {}).Cookie || "").match(/sess=([\w-]+)/) || [])[1];
+    if (u.host === "login.emaktab.uz" && u.pathname === "/") return {status: 200, headers: {"Content-Type": "text/html"}, body: loginPage};
+    if (u.host === "login.emaktab.uz" && u.pathname === "/login") {
+      const f = Object.fromEntries(new URLSearchParams(opt.payload)); st.posts.push(f.login);
+      if (f.login === "ota2fa") return {status: 302, headers: {Location: "/login/2fa-verification"}};
+      if (f.password !== "p-" + f.login) return {status: 200, headers: {"Content-Type": "text/html"}, body: loginPage};
+      st.valid.add(f.login);
+      return {status: 302, headers: {Location: "https://schools.emaktab.uz/userfeed", "Set-Cookie": [`sess=${f.login}; domain=.emaktab.uz; path=/`]}};
+    }
+    if (u.pathname.startsWith("/login/2fa")) return {status: 200, headers: {"Content-Type": "text/html"}, body: "<div id=root></div>"};
+    if (!st.valid.has(sid)) return {status: 302, headers: {Location: "https://login.emaktab.uz/"}};
+    st.seen.push(`${sid}${u.pathname}`);
+    return {status: 200, headers: {"Content-Type": "text/html"}, body: home};
+  }});
+  const GAS = "https://script.google.com/macros/s/TEST/exec";
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const vp of [{width: 390, height: 844}, {width: 1280, height: 800}]) {
+      st.valid.clear(); st.posts.length = 0; st.seen.length = 0;
+      const ctx = await browser.newContext({viewport: vp});
+      await ctx.addInitScript((u) => localStorage.setItem("yoqlama_tgu_url", u), GAS);
+      await ctx.route(/emaktab\.uz/, (rt) => rt.abort());
+      await ctx.route("https://script.google.com/**", (rt) => { const rq = rt.request();
+        return rt.fulfill({status: 200, contentType: "application/json", headers: {"access-control-allow-origin": "*"}, body: G.handle(rq.method(), rq.url(), rq.postData())}); });
+      const page = await ctx.newPage(); const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.goto(APP);
+      await page.evaluate(() => { const mk = (n) => Array.from({length: n}, (_, i) => ({name: `Talaba${i + 1} Ism${i + 1}`, marks: {}}));
+        D = normalize({classes: [{name: "6-A", subject: "Matematika", dates: [], students: mk(36)}, {name: "9-A", subject: "Algebra", dates: [], students: mk(18)}]}); save(); S.ci = 0; go("journal"); });
+      const sum = () => page.$$eval(".ot-sum b", (x) => x.map((e) => e.textContent).join(" | "));
+      const done = async () => { await page.waitForSelector(".modal >> text=Ilovada faqat «Oxirgi kirish»", {timeout: 20000}); const t = await page.$$eval(".ot-res b", (x) => x.map((e) => e.textContent)); await page.click(".modal:last-child [data-x]"); return t; };
+      // sinf menyusi → «Ota-onalar» guruhida
+      await page.click("[data-more]");
+      await page.click(".modal >> text=eMaktab'ga kirish · 0/36");
+      await page.waitForSelector(".ot-card");
+      assert.equal(await sum(), "0 / 36 | 0 / 0 | 36 | 0");
+      // rozilik belgisisiz kirmaydi
+      await page.fill('[data-otl="0"]', "ota1"); await page.fill('[data-otp="0"]', "p-ota1"); await page.click('[data-otin="0"]');
+      await page.waitForSelector("text=roziligini oldim» belgisini");
+      assert.equal(st.posts.length, 0);
+      await page.check("#otcons");
+      // ikki qator to'ldiriladi → «Kiritilganlarga kirish · 2»
+      await page.fill('[data-otl="1"]', "ota2"); await page.fill('[data-otp="1"]', "p-ota2");
+      await page.click("[data-otall]");
+      assert.deepEqual(await done(), ["2", "0", "0"]);
+      assert.equal(await sum(), "2 / 36 | 2 / 2 | 34 | 0");
+      assert.deepEqual(st.seen.filter((x) => x.startsWith("ota1")).sort(), ["ota1/diary", "ota1/marks", "ota1/userfeed"], "bosh sahifa, kundalik, baholar ochildi");
+      // noto'g'ri parol va tasdiqlash kodi
+      await page.fill('[data-otl="2"]', "ota3"); await page.fill('[data-otp="2"]', "xato"); await page.press('[data-otp="2"]', "Enter");
+      assert.deepEqual(await done(), ["0", "0", "1"]);
+      await page.fill('[data-otl="3"]', "ota2fa"); await page.fill('[data-otp="3"]', "p"); await page.click('[data-otin="3"]');
+      await done();
+      assert.equal(await sum(), "2 / 36 | 2 / 2 | 33 | 1");
+      // aylanib chiqish: tayyorlar (2 ta), «Xabarlar» ham tanlanadi
+      await page.click("[data-otrun]"); await page.check('.modal [data-pg="xab"]'); await page.click(".modal [data-ok]");
+      assert.deepEqual(await done(), ["2", "0", "0"]);
+      assert.ok(st.seen.includes("ota2/messages"));
+      assert.equal(st.posts.length, 4, "seans bilan — parolsiz");
+      // kalit eskirdi → «Kirib chiqish» parol so'ramaydi, «Kalit eskirgan» bo'ladi
+      st.valid.clear();
+      await page.click('[data-otone="0"]'); await page.waitForSelector("text=kirish kaliti eskirgan");
+      await page.waitForSelector('[data-otl="0"]');
+      // PIN bilan: parol shifrlanib saqlanadi, kalit eskirsa o'zi qayta kiradi
+      await page.click('[data-otst="B"]');
+      await page.fill("#otpi", "1234"); await page.click(".ot-pin [type=submit]");
+      await page.fill("#otpi", "1234"); await page.click(".ot-pin [type=submit]");
+      await page.waitForSelector('[data-otst="B"].on');
+      await page.fill('[data-otp="0"]', "p-ota1"); await page.click('[data-otin="0"]');
+      await done();
+      assert.match(await page.textContent(".ot-t, .ot-cards"), /🔒 shifrlangan|ota1/);
+      st.valid.clear(); const n0 = st.posts.length;
+      await page.click('[data-otone="0"]'); await page.waitForSelector("text=ota-ona nomidan kirildi");
+      assert.equal(st.posts.length, n0 + 1, "saqlangan parol bilan o'zi qayta kirdi");
+      // Excel'dan (nusxalangan matn, ism teskari tartibda)
+      await page.click("[data-otxl]");
+      await page.fill("#otxt", "Ism7 Talaba7\tota7\tp-ota7\nTalaba8 Ism8; ota8; p-ota8\nNotanish Odam\tx\ty");
+      await page.click("[data-xp]");
+      assert.match(await page.textContent(".modal [data-ok]"), /2 ta ota-onaga kirish/);
+      await page.click(".modal [data-ok]");
+      assert.deepEqual(await done(), ["2", "0", "0"]);
+      assert.match(await sum(), /^4 \/ 36/);   // ota1, ota2, ota7, ota8
+      // hech qayerda parol yoki sahifa mazmuni yo'q; jurnal ma'lumotida ota-ona kaliti yo'q
+      const ls = await page.evaluate(() => JSON.stringify(Object.fromEntries(Object.entries(localStorage))));
+      for (const p of ["p-ota1", "p-ota2", "p-ota7", "Baho: 5", "1234"]) assert.ok(!ls.includes(p), `${p} saqlanmagan`);
+      assert.ok(!JSON.stringify(await page.evaluate(() => D)).includes("sess="));
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      // 18 o'quvchili sinf alohida
+      await page.click(".ot-card [data-x]");
+      await page.evaluate(() => { S.ci = 1; render(); OTE.open(1); });
+      await page.waitForSelector(".ot-card");
+      assert.equal(await sum(), "0 / 18 | 0 / 0 | 18 | 0");
+      await page.fill('[data-otl="17"]', "ota18"); await page.fill('[data-otp="17"]', "p-ota18"); await page.click('[data-otin="17"]');
+      await page.waitForSelector(".modal >> text=PIN kiriting").catch(() => {});
+      if (await page.locator("#otpi").count()) { await page.fill("#otpi", "1234"); await page.click(".ot-pin [type=submit]"); }
+      await done();
+      assert.equal(await sum(), "1 / 18 | 1 / 1 | 17 | 0");
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      assert.deepEqual(errors, []);
+      await ctx.close();
     }
   } finally { await browser.close(); }
 });

@@ -23,6 +23,7 @@ const FNK = (() => {
     debts: P('<path d="M12 21s-6-4.5-6-10a6 6 0 0 1 12 0c0 5.5-6 10-6 10z"/><circle cx="12" cy="11" r="2"/>'),
     parents: P('<circle cx="8" cy="7" r="3"/><circle cx="17" cy="9" r="2"/><path d="M2.5 20c0-3.2 2.5-5.5 5.5-5.5s5.5 2.3 5.5 5.5M14.5 20c0-2.4 1.1-4.4 3-4.4s3 2 3 4.4"/>'),
     absmsg: P('<path d="M21 4L3 11l6 2 2 6z"/><path d="M9 13l12-9"/>'),
+    otaemk: P('<circle cx="8" cy="14" r="4"/><path d="M11 11l9-9M16 6l3 3M14 8l2 2"/>'),
     ktr: P('<path d="M4 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/>'),
     lock: P('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>')};
   // [nomi, izoh, namunadagi yozuv, yangi?]
@@ -40,6 +41,7 @@ const FNK = (() => {
     vweek: ["Hafta", "", "Hafta"], vmonth: ["Oy", "", "Oy"], vquarter: ["Chorak", "", "Chorak"],
     debts: ["Qarzdorlar", "Past baho va topshirilmagan ishlar", "Qarzdorlar"],
     parents: ["Ota-onalar", "Kontaktlar va butun sinfga xabar", "Kontaktlar"],
+    otaemk: ["Ota-onalar eMaktab'i", "Ota-ona nomidan eMaktab'ga kirib chiqish", "eMaktab'ga kirish", 1],
     absmsg: ["Kelmaganlar ota-onasiga xabar", "Yo'qlamadan keyin tayyor matn, Telegram yoki SMS", "Kelmaganlarga xabar", 1],
     ktr: ["KTR", "Kalendar-tematik reja va bajarilishi", "KTR"]};
   const M = {attm: {n: "Yo'qlama usullari", d: "Ro'yxat doim bor; qo'shimcha usullar", ch: ["attmodes", "seats"], fix: "Ro'yxat"},
@@ -47,7 +49,7 @@ const FNK = (() => {
   const GR = [["lesson", "Darsda", ["call", "groups", "attm", "hw", "timer", "duty"], "Dars tugmalari"],
     ["today", "«Bugun» sahifasi", ["bday", "qend", "gaps", "bsbrem"], "Kartochkalar"],
     ["journal", "Jurnal", ["views"], "Davr"],
-    ["menu", "Sinf menyusi (⋯)", ["debts", "parents", "absmsg", "ktr"], "Menyuda"]];
+    ["menu", "Sinf menyusi (⋯)", ["debts", "parents", "otaemk", "absmsg", "ktr"], "Menyuda"]];
   const GONE = new Set(["act", "week"]);
   const leaves = (r) => (M[r] ? M[r].ch : [r]);
   const ALL = GR.flatMap((g) => g[2].flatMap(leaves));
