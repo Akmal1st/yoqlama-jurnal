@@ -10,11 +10,11 @@ const HSB = (() => {
   const KINDS = [
     ["Sinf bo'yicha", [["cls", "📋", "Sinf hisoboti", "Baholar, davomat, xavf"], ["stats", "📈", "Grafik va statistika", "Haftalar bo'yicha o'zgarish"], ["att", "📅", "Davomat varag'i", "Chorak bo'yicha belgilar"]]],
     ["Chorak yakuni", [["sum", "🧮", "BSB va CHSB", "Ishlar va chorak bahosi"], ["ready", "✅", "Chorakka tayyorlik", "Nima yetishmaydi"]]],
-    ["Chop etish uchun", [["par", "👪", "Ota-onalar majlisi", "Har o'quvchiga varaq"], ["blank", "📝", "Bo'sh varaq", "Qo'lda to'ldirish uchun"]]],
+    ["Chop etish uchun", [["par", "👪", "Ota-onalar majlisi", "Har o'quvchiga varaq"], ["blank", "📝", "Bo'sh varaq", "Qo'lda to'ldirish uchun"], ["seat", "🪑", "O'rindiq xaritasi", "Partalar bo'yicha joylashuv"]]],
     ["Barcha sinflar", [["cmp", "⚖️", "Sinflarni solishtirish", "Hamma sinflar yonma-yon"]]]];
   const KIND = Object.fromEntries(KINDS.flatMap(([, l]) => l.map((k) => [k[0], k])));
   // har tur nimani so'raydi: davr (per), chorak (q), oy (mon), yoki hech narsa
-  const NEED = {cls: "per", stats: "per", par: "per", cmp: "per", sum: "q", ready: "q", att: "q", blank: ""};
+  const NEED = {cls: "per", stats: "per", par: "per", cmp: "per", sum: "q", ready: "q", att: "q", blank: "", seat: ""};
   const XLS = {blank: "data-bvx", cls: "data-xlsx", stats: "data-stxlsx", att: "data-dvx", cmp: "data-ccsv", ready: "data-rxlsx", sum: "data-sxlsx"};
   const SRC = {cls: "<b>Jurnal</b> baholari va yo'qlama, tanlangan davr ichida. Xavf ostida — <b>Sozlamalar → Baholash → Xavf turlari</b> bo'yicha.",
     stats: "<b>Jurnal</b> baholari va yo'qlama, haftalarga bo'lib.", att: "<b>Jurnal</b> yo'qlamasi: S, DQ, K, KQ belgilari, tanlangan chorak ichida (sanalar <b>Sozlamalar → Choraklar</b>dan). Belgisi yo'q kunlar — darsda bo'lgan.",
@@ -23,6 +23,7 @@ const HSB = (() => {
     par: "Sinf hisoboti bilan bir xil ma'lumot; «sinfda» — sinf o'rtachasi. O'qituvchi ismi <b>Summativ → Eksport</b> sarlavhasidan.",
     cmp: "Har sinfning sinf hisoboti, bir xil davr uchun. Jami qatori vaznli: baho — barcha baholar, davomat — o'quvchilar, BSB/CHSB — ballar yig'indisi bo'yicha.",
     blank: "O'quvchilar ro'yxati va dars kunlari <b>Jurnal</b>dan, kelgusi kunlar <b>dars jadvali</b>dan (bayram va metod kunlari tashlanadi); sarlavha <b>Summativ → Eksport</b> sarlavhasidagi maktab va o'qituvchi ismidan."};
+  SRC.seat = "<b>O'rindiq xaritasi</b> (sinf menyusi yoki darsda «Xarita» rejimi). Bir sinfga bir necha fandan kirsangiz — xarita bitta. Chet eldagilar (oxirgi belgi CH) joysiz. O'qituvchi ismi <b>Summativ → Eksport</b> sarlavhasidan.";
   const CODES = {s: "S", dq: "DQ", k: "K", kq: "KQ", ch: "CH"};
   const has = (k) => k in KIND;
   const phone = () => matchMedia("(max-width:820px)").matches;
@@ -259,7 +260,7 @@ const HSB = (() => {
   }
   /* ───────── 8. Bo'sh varaq — bosh-varaq.js (tasdiqlangan maket, 2026-11-04) ───────── */
   const repBlank = (X) => BVQ.body(X);
-  const REP = {cls: repCls, sum: repSum, stats: repStats, att: repAtt, par: repPar, ready: repReady, cmp: repCmp, blank: repBlank};
+  const REP = {cls: repCls, sum: repSum, stats: repStats, att: repAtt, par: repPar, ready: repReady, cmp: repCmp, blank: repBlank, seat: (X) => ORX.hbBody(X.c)};
 
   /* ───────── tanlov oynalari ───────── */
   // sinf tanlashda har sinf yonida xavf ostidagilar soni: doim joriy chorak bo'yicha (tanlangan davrga qaramaydi), «Bugun» sahifasi bilan bir xil
@@ -347,7 +348,7 @@ const HSB = (() => {
     const per = pl ? `<button class="hb-pk" data-hk="per" aria-haspopup="true"><span class="hb-v"><small>${n === "q" ? "Chorak" : n === "mon" ? "Oy" : "Davr"}</small><b class="hb-ell">${pl[0]}${n !== "mon" ? `<span class="hb-mut hb-pc" style="font-weight:600;display:inline"> · ${pl[1]}</span>` : ""}</b></span><span class="hb-car">▼</span></button>` : "";
     return cls + per;
   }
-  const actions = (k) => `<button class="btn btn-primary" data-print>🖨 Chop etish</button>${k === "blank" ? `<button class="btn" data-bvpdf title="A4 PDF faylni saqlash">⬇ PDF</button>` : ""}<button class="btn" data-tgpdf title="Hisobotni PDF qilib Telegram botingizga yuborish">✈️ Telegram</button>${XLS[k] ? `<button class="btn" ${XLS[k]}>📊 Excel</button>` : ""}`;
+  const actions = (k) => `<button class="btn btn-primary" data-print>🖨 Chop etish</button>${k === "blank" ? `<button class="btn" data-bvpdf title="A4 PDF faylni saqlash">⬇ PDF</button>` : k === "seat" ? `<button class="btn" data-oxpdf title="A4 PDF faylni saqlash">⬇ PDF</button>` : ""}<button class="btn" data-tgpdf title="Hisobotni PDF qilib Telegram botingizga yuborish">✈️ Telegram</button>${XLS[k] ? `<button class="btn" ${XLS[k]}>📊 Excel</button>` : ""}`;
 
   function page(m) {
     closePop();
@@ -359,12 +360,12 @@ const HSB = (() => {
     m.innerHTML = `<div class="hb">
       <h1>Hisobotlar</h1>
       <button class="hb-kind hb-tel" data-hk="kind" aria-haspopup="true"><span class="hb-ic">${K[1]}</span><span><b class="hb-ell">${K[2]}</b><small class="hb-ell">${sub}</small></span><em>Almashtirish ▾</em></button>
-      <div class="hb-g2 hb-tel">${pickers(X)}</div>${bot ? "" : `<div class="hb-g2 hb-tel ${XLS[X.R.kind] && X.R.kind !== "blank" ? "hb-g3" : ""}">${actions(X.R.kind)}</div>`}
+      <div class="hb-g2 hb-tel">${pickers(X)}</div>${bot ? "" : `<div class="hb-g2 hb-tel ${(XLS[X.R.kind] && X.R.kind !== "blank") || X.R.kind === "seat" ? "hb-g3" : ""}">${actions(X.R.kind)}</div>`}
       <div class="hb-grid">
         <nav class="card hb-list hb-pc" aria-label="Hisobot turlari">${KINDS.map(([g, l]) => `<div class="hb-gt">${g}</div>${l.map(([k, ic, n, d]) => `<button class="hb-ri ${X.R.kind === k ? "on" : ""}" data-kind="${k}"><span class="hb-ic">${ic}</span><span><b class="hb-ell">${n}</b><small class="hb-ell">${d}</small></span></button>`).join("")}`).join("")}</nav>
         <section class="card hb-panel${HPR.has(X.R.kind) ? " hb-hasprt" : ""}">
           <div class="hb-hd hb-pc"><div class="hb-top"><div><h2>${K[1]} ${K[2]}</h2><p>${K[3]}</p></div>${bot ? "" : `<div class="hb-acts">${actions(X.R.kind)}</div>`}</div><div class="hb-pks">${pickers(X)}</div></div>
-          ${["blank", "par", "att"].includes(X.R.kind) ? "" : `<h2 class="pronly" style="margin:0 0 6px">${K[2]} · ${sub}${pl && NEED[X.R.kind] !== "mon" ? ` · ${pl[1]}` : ""}</h2>`}
+          ${["blank", "par", "att", "seat"].includes(X.R.kind) ? "" : `<h2 class="pronly" style="margin:0 0 6px">${K[2]} · ${sub}${pl && NEED[X.R.kind] !== "mon" ? ` · ${pl[1]}` : ""}</h2>`}
           ${HPR.has(X.R.kind) ? HPR.bar() : ""}
           <div class="hb-con">${body}</div>
           ${HPR.has(X.R.kind) ? HPR.html(X.R.kind, X, pl, X.R.kind === "cmp" ? "Barcha sinflar" : label(X.c)) : ""}
@@ -389,6 +390,7 @@ const HSB = (() => {
     // «Ball qo'yish»: aynan o'sha ish — Summativ sahifasida (index.html openAnalysis)
     m.querySelectorAll("[data-hwork]").forEach((b) => b.onclick = () => openAnalysis(R.ci, b.dataset.hwork));
     m.querySelectorAll("[data-print]").forEach((b) => b.onclick = () => { fitPrint(); window.print(); });
+    if (R.kind === "seat") { ORX.hbBind(m, c); return; }   // o'z chop etish / PDF / Telegram (orindiq.js)
     // PDF → Telegram (pdf-tg.js)
     m.querySelectorAll("[data-tgpdf]").forEach((b) => b.onclick = () => { const K = KIND[R.kind], pl = perLabel(X), who = R.kind === "cmp" || (R.kind === "blank" && BVQ.isAll()) ? "Barcha sinflar" : label(c);
       const per = (pl ? `${pl[0]}${NEED[R.kind] !== "mon" && pl[1] ? ` · ${pl[1]}` : ""}` : "").replace(/<[^>]+>/g, "").replace(/&[a-z]+;/g, " ");
