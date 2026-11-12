@@ -242,14 +242,20 @@ const OTE = (() => {
   // har qator: [ism, login, parol] — Excel ustunlari yoki tab/«;» bilan ajratilgan matn (bo'lmasa — oxirgi ikki so'z login va parol)
   const parseText = (t) => t.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).map((l) => { const p = l.split(/\t|;|\s{2,}/).map((x) => x.trim()).filter(Boolean);
     if (p.length >= 3) return [p.slice(0, p.length - 2).join(" "), p[p.length - 2], p[p.length - 1]]; const w = l.split(/\s+/); return w.length >= 3 ? [w.slice(0, -2).join(" "), w[w.length - 2], w[w.length - 1]] : null; }).filter(Boolean);
-  async function parseXlsx(file) {
+  async function parseXlsx(file, c) {
     const X = await loadXlsx(), wb = X.read(new Uint8Array(await file.arrayBuffer()), {type: "array"}), out = [];
     for (const n of wb.SheetNames) for (const r of X.utils.sheet_to_json(wb.Sheets[n], {header: 1, raw: false, defval: ""})) {
       const cells = r.map((x) => String(x).trim()).filter(Boolean); if (cells.length < 3) continue;
-      const i = cells.findIndex((x) => /\p{L}{2,}\s+\p{L}{2,}/u.test(x)); if (i < 0 || i + 2 >= cells.length) continue;
+      let i = c ? cells.findIndex((x) => match(c, x)) : -1; if (i < 0) i = cells.findIndex((x) => /\p{L}{2,}\s+\p{L}{2,}/u.test(x)); if (i < 0 || i + 2 >= cells.length) continue;
       out.push([cells[i], cells[i + 1], cells[i + 2]]);
     }
     return out;
+  }
+  // namuna fayl: shu sinfning o'quvchilari ismi bilan, Login va Parol ustunlari bo'sh (parseXlsx uni qayta o'qiy oladi)
+  async function template(c) {
+    const X = await loadXlsx(), aoa = [["№", "O'quvchi", "Login", "Parol"], ...c.students.map((s, i) => [i + 1, s.name, "", ""])];
+    const ws = X.utils.aoa_to_sheet(aoa); ws["!cols"] = [{wch: 5}, {wch: 34}, {wch: 22}, {wch: 22}];
+    const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, "Ota-onalar"); X.writeFile(wb, `ota-onalar-${label(c).replace(/[^\p{L}\p{N}]+/gu, "-")}.xlsx`);
   }
   function xlDialog() {
     const c = cls(); let rows = [];
@@ -257,7 +263,15 @@ const OTE = (() => {
       if (r.s) used.add(r.s);
       return `<tr class="${r.s ? "" : "ot-hl"}"><td>${esc(r.n)}</td><td>${r.s ? `${c.students.indexOf(r.s) + 1}. ${esc(r.s.name)}` : `<select class="form-select form-select-sm" data-xs="${i}" aria-label="O'quvchini tanlang"><option value="">— tanlang —</option>${c.students.map((s, si) => `<option value="${si}">${si + 1}. ${esc(s.name)}</option>`).join("")}</select>`}</td><td>${esc(r.u)}</td><td>${r.s ? `<span class="ot-tag ot-ok">✓ topildi</span>` : `<span class="ot-tag ot-w">? topilmadi</span>`}</td></tr>`; }).join("")}</tbody></table></div>` : ""; };
     return modal(`<h2>Excel'dan ulash · ${esc(label(c))}</h2><div class="muted">Ustunlar: <b>o'quvchi · login · parol</b>. Ism tartibi muhim emas. Fayl ilovada saqlanmaydi.</div>
-      <div class="ot-drop"><span class="sp">Excel fayl (.xlsx, .xls) yoki pastga nusxalab qo'ying</span><button class="btn btn-sm" data-xf>Excel tanlash</button></div>
+      <details class="ot-guide"><summary>Yo'riqnoma: fayldan qanday import qilinadi</summary><ol>
+        <li><b>«Namuna yuklab olish»</b> tugmasini bosing: ${c.students.length} ta o'quvchi ismi yozilgan Excel fayl tushadi.</li>
+        <li>Faylda <b>Login</b> va <b>Parol</b> ustunlariga har bir ota-onaning eMaktab login va parolini yozing. Ismlarni o'zgartirmang, tartibi muhim emas. Login/paroli yo'q qatorni bo'sh qoldiring, u o'tkazib yuboriladi.</li>
+        <li>Faylni saqlang va <b>«Excel tanlash»</b> bilan tanlang. Yoki Excel'dan ism, login, parol ustunlarini nusxalab pastdagi maydonga qo'yib <b>«Matndan o'qish»</b> ni bosing.</li>
+        <li>Jadvalda har bir ism jurnaldagi o'quvchiga mos kelganini tekshiring: <span class="ot-tag ot-ok">✓ topildi</span> to'g'ri, <span class="ot-tag ot-w">? topilmadi</span> bo'lsa ro'yxatdan o'quvchini o'zingiz tanlang.</li>
+        <li>Ota-onalar roziligini belgilab <b>«N ta ota-onaga kirish»</b> ni bosing. Kirish bir necha daqiqa oladi, ekranni o'chirmang.</li>
+        <li>Tugagach <b>faylni o'chirib tashlang</b>: unda parollar ochiq turibdi. Ilova faylni ham, parolni ham saqlamaydi (PIN rejimidan tashqari).</li></ol>
+        <div class="ot-mut">Ustun tartibi: ism, login, parol (yonma-yon). Telefonda fayl tanlashda «Excel tanlash» ishlamasa, matn usulidan foydalaning.</div></details>
+      <div class="ot-drop"><span class="sp">Excel fayl (.xlsx, .xls) yoki pastga nusxalab qo'ying</span><button class="btn btn-sm" data-xt>Namuna yuklab olish</button><button class="btn btn-sm" data-xf>Excel tanlash</button></div>
       <textarea class="form-control ot-ta" id="otxt" spellcheck="false" placeholder="Abdullayev Jasur	jasur_ota	parol123&#10;Aliyeva Madina; madina2010; parol456"></textarea>
       <button class="btn" data-xp>Matndan o'qish</button>
       <div id="otxv"></div>
@@ -271,9 +285,10 @@ const OTE = (() => {
         m.querySelectorAll("[data-xs]").forEach((x) => x.onchange = () => { rows[+x.dataset.xs].s = x.value === "" ? null : c.students[+x.value]; show(); });
       };
       const take = (list) => { rows = list.map(([n, u, p]) => ({n, u, p, s: match(c, n)})); show(); if (!rows.length) toast("Ro'yxatdan qator topilmadi: har qatorda ism, login va parol bo'lsin"); };
+      $("[data-xt]", m).onclick = async () => { try { await template(c); toast("Namuna yuklandi: Login va Parol ustunlarini to'ldiring"); } catch (e) { toast(e.message || "Namunani yaratib bo'lmadi"); } };
       $("[data-xp]", m).onclick = () => take(parseText($("#otxt", m).value));
       $("[data-xf]", m).onclick = () => { const f = document.createElement("input"); f.type = "file"; f.accept = ".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        f.onchange = async () => { if (!f.files[0]) return; try { take(await parseXlsx(f.files[0])); } catch (e) { toast(e.message || "Faylni o'qib bo'lmadi"); } }; f.click(); };
+        f.onchange = async () => { if (!f.files[0]) return; try { take(await parseXlsx(f.files[0], c)); } catch (e) { toast(e.message || "Faylni o'qib bo'lmadi"); } }; f.click(); };
       $("[data-x]", m).onclick = () => close(null);
       $("[data-ok]", m).onclick = () => {
         if (!$("#otxc", m).checked) { toast("Ota-onalar roziligini belgilang"); return; }
@@ -345,5 +360,5 @@ const OTE = (() => {
   }
   // sinf menyusidagi tugma uchun: «ulangan / jami»
   const count = (c) => c.students.filter((s) => stOf(ent(c, s)) === "ok").length;
-  return {open, count, _t: {links, parseText, match, load: () => (M = null, db())}};
+  return {open, count, _t: {links, parseText, match, parseXlsx, template, load: () => (M = null, db())}};
 })();

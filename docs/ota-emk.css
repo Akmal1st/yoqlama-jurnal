@@ -83,3 +83,6 @@ tr.ot-hl td{background:color-mix(in srgb,#f2c14e 14%,transparent)}
   .ot-foot .btn{flex:1 1 100%}
 }
 @media (prefers-reduced-motion:reduce){.ot-prog i{transition:none}}
+.ot-guide{border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px}
+.ot-guide summary{cursor:pointer;font-weight:700}
+.ot-guide ol{margin:8px 0 6px;padding-left:20px;display:flex;flex-direction:column;gap:6px}
