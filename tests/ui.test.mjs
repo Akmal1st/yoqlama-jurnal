@@ -1939,9 +1939,9 @@ test("To'ldirilmagan darslar, KTR bajarilishi va qo'llanma", async () => {
       save(); go("today"); return ktrProgress(c);
     });
     assert.equal(k.expect - k.done, 4); assert.equal(k.behind, 4);
-    await page.click('[data-ktr="0"]'); await page.waitForSelector(".modal .kprog");
-    assert.ok((await page.textContent(".modal .kprog")).includes("4 soat orqada"));
-    await page.click(".modal [data-x]");
+    await page.click('[data-ktr="0"]'); await page.waitForSelector("[data-ktpage]");
+    assert.ok((await page.textContent(".kt-hd")).includes("4 soat orqada"));
+    await page.click("[data-k=back]");
     // kechki eslatma sozlamasi va bildirishnoma matni
     await page.evaluate(() => { S.sec = 1; go("settings"); }); await page.selectOption("#eve", "19:00");
     assert.equal(await page.evaluate(() => D.web.eve), "19:00");
@@ -2464,6 +2464,87 @@ test("KTR: reja boshlanadigan sanani tanlash", async () => {
     // «Bugundan» tugmasi sanani tozalaydi
     await page.evaluate(() => ktrDialog(D.classes.length - 1)); await page.click('.modal [data-kst=""]');
     assert.equal(await page.inputValue("#kst"), "");
+    assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+// KTR sahifasi (ktr.js): reja, uy vazifasi dars kuniga, soat ±, «dars bo'lmadi», tahrirlash, Excel «ish reja» eksporti/importi, matn, chop etish
+for (const [name, viewport] of [["kompyuter", {width: 1280, height: 860}], ["telefon", {width: 390, height: 844}]]) for (const n of [36, 18]) test(`KTR sahifasi (${name}, ${n} o'quvchi)`, async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    const ctx = await browser.newContext({serviceWorkers: "block", viewport, acceptDownloads: true});
+    const page = await ctx.newPage();
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 10, 12, 10, 0));   // 2026-11-12, payshanba — 2-chorak ichida
+    await page.goto(APP);
+    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+    const ci = await page.evaluate((n) => {
+      D.settings.quarters = [["2026-09-02", "2026-10-31"], ["2026-11-09", "2026-12-26"], ["2027-01-12", "2027-03-19"], ["2027-03-29", "2027-05-25"]];
+      const dates = []; for (let d = pdate("2026-09-02"); iso(d) <= "2027-05-25"; d = addDays(d, 1)) if ([0, 2, 4].includes(pyWd(iso(d))) && quarterOf(iso(d))) dates.push(iso(d));
+      const c = normalize({web: {dv: 2}, classes: [{name: "7-A", subject: "Algebra", dates, students: Array.from({length: n}, (_, i) => ({name: "O'quvchi " + (i + 1), marks: {}}))}]}).classes[0];
+      c.plan = {on: true, start: "2026-09-02", topics: parsePlanText("== 1-chorak\nTakrorlash | 2\n== 2-chorak\nUmumiy ko'paytuvchi | 2 | §16, 104-mashq ; §16, 108-mashq\nGuruhlash usuli | 2 | §17\nYig'indi kvadrati\nBSB №2 (25 ball)\n== 3-chorak\nFunksiya | 2\n== 4-chorak\nStatistika")};
+      D.classes.push(c); reflowPlan(c); save(); KTR.open(D.classes.length - 1); return D.classes.length - 1;
+    }, n);
+    await page.waitForSelector("[data-ktpage]");
+    // 1-chorak (tugagan) yig'ilgan, qolganlari ochiq: 2+1+1 qator ko'rinadi, 7 mavzu
+    assert.equal(await page.locator(".kt-tr[data-kti]").count(), 6);
+    assert.match(await page.textContent(".kt-hd"), new RegExp(`${n} o'quvchi`));
+    // uy vazifasi dars kuniga: 2 soatlik mavzuning har darsiga o'zi
+    const L = () => page.evaluate((ci) => Object.entries(D.classes[ci].lessons).filter(([, l]) => l.auto).sort().map(([d, l]) => [d, l.topic, l.hw]), ci);
+    let ls = await L();
+    const u1 = ls.find((x) => x[1] === "Umumiy ko'paytuvchi (1/2)"), u2 = ls.find((x) => x[1] === "Umumiy ko'paytuvchi (2/2)"), g2 = ls.find((x) => x[1] === "Guruhlash usuli (2/2)");
+    assert.deepEqual([u1[2], u2[2], g2[2]], ["§16, 104-mashq", "§16, 108-mashq", "§17"]);
+    // o'qituvchi darsda o'zgartirgan uy vazifasi reja o'zgarsa ham qoladi
+    await page.evaluate(([ci, d]) => { D.classes[ci].lessons[d].hw = "o'zim yozdim"; save(); }, [ci, g2[0]]);
+    await page.click('.kt-tr[data-kti="3"] [data-k=hp]');   // Yig'indi kvadrati: 1 → 2 soat
+    assert.equal(await page.evaluate((ci) => D.classes[ci].plan.topics[3].h, ci), 2);
+    ls = await L();
+    assert.equal(ls.find((x) => x[1] === "Guruhlash usuli (2/2)")[2], "o'zim yozdim");
+    assert.ok(ls.some((x) => x[1] === "Yig'indi kvadrati (2/2)"));
+    // sanani bosib «dars bo'lmadi» — mavzular keyingi kunga suriladi
+    const bsb0 = ls.find((x) => x[1] === "BSB №2 (25 ball)")[0], yd = ls.find((x) => x[1] === "Yig'indi kvadrati (1/2)")[0];
+    await page.click(`.kt-tr[data-kti="3"] .kt-dc[data-v="${yd}"]`); await page.waitForSelector(".kt-pop [data-k=off]");
+    await page.click(".kt-pop [data-k=off]");
+    ls = await L();
+    assert.ok(await page.evaluate(([ci, d]) => D.classes[ci].extra_x.includes(d), [ci, yd]));
+    assert.ok(ls.find((x) => x[1] === "BSB №2 (25 ball)")[0] > bsb0, "BSB keyingi dars kuniga surildi");
+    assert.equal(await page.locator(".kt-off").count(), 1);
+    await page.click(".kt-off [data-k=unoff]");
+    assert.equal((await L()).find((x) => x[1] === "BSB №2 (25 ball)")[0], bsb0);
+    // tahrirlash: 2 soatlik mavzuda har dars uchun alohida uy vazifasi
+    await page.click('.kt-tr[data-kti="2"] [data-k=rmenu]'); await page.click(".kt-pop [data-k=edit]");
+    assert.equal(await page.locator(".kt-dlg .kt-ehw").count(), 2);
+    await page.locator(".kt-dlg .kt-ehw").nth(1).fill("§18");
+    await page.click(".kt-dlg [data-ok]");
+    assert.equal(await page.evaluate((ci) => D.classes[ci].plan.topics[2].hw, ci), "§17 ; §18");
+    // Excel «ish reja»: 2-chorak, har dars alohida qator
+    await page.click("[data-k=exp]"); await page.click(".kt-pop [data-k=xls]"); await page.waitForSelector(".kt-xl");
+    assert.equal(await page.locator(".kt-xl tbody tr").count(), 1 + 2 + 2 + 2 + 1);
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".kt-dlg [data-ok]")]);
+    assert.equal(dl.suggestedFilename(), "7-A algebra 2-chorak ish reja.xlsx");
+    const wb = XLSXN.readFile(await dl.path()), ws = wb.Sheets[wb.SheetNames[0]];
+    assert.equal(wb.SheetNames[0], "7-A. Algebra");
+    assert.deepEqual(XLSXN.utils.sheet_to_json(ws, {header: 1, defval: ""}).slice(0, 5), [["Darslar tartibi", "Mavzu nomi", "Uyga vazifa"], [1, "Umumiy ko'paytuvchi", "§16, 104-mashq"], [2, "Umumiy ko'paytuvchi", "§16, 108-mashq"], [3, "Guruhlash usuli", "§17"], [4, "Guruhlash usuli", "§18"]]);
+    // shu shakldagi faylni yuklash: ketma-ket bir xil mavzular birlashadi, 3-chorak o'rniga
+    const iw = XLSXN.utils.book_new();
+    XLSXN.utils.book_append_sheet(iw, XLSXN.utils.aoa_to_sheet([["Darslar tartibi", "Mavzu nomi", "Uyga vazifa"], [1, "Sistemalar", "157-masala"], [2, "Sistemalar", "164-masala"], [3, "3-nazorat ishi", "takrorlash"], [4, "Misollar yechish", "241-masala"]]), "9-sinf. Algebra");
+    await page.click("[data-k=imp]");
+    const [fc] = await Promise.all([page.waitForEvent("filechooser"), page.click(".kt-pop [data-k=ximp]")]);
+    await fc.setFiles({name: "9-sinf algebra 3-chorak ish reja.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: XLSXN.write(iw, {type: "buffer", bookType: "xlsx"})});
+    await page.waitForSelector(".kt-dlg [data-xq].on");
+    assert.equal(await page.textContent(".kt-dlg [data-xq].on"), "3");
+    await page.click(".kt-dlg [data-ok]");
+    assert.deepEqual(await page.evaluate((ci) => D.classes[ci].plan.topics.filter((x) => x.q === 3), ci), [{t: "Sistemalar", h: 2, hw: "157-masala ; 164-masala", q: 3}, {t: "3-nazorat ishi", h: 1, hw: "takrorlash", q: 3}, {t: "Misollar yechish", h: 1, hw: "241-masala", q: 3}]);
+    // matn: «Mavzu | soat | uy vazifasi»
+    await page.click("[data-k=tab][data-v=txt]");
+    assert.match(await page.inputValue("#kt-txt"), /Guruhlash usuli \| 2 \| §17 ; §18/);
+    // chop etish: A4 varaqlar, ekran yon tomonga surilmaydi
+    await page.click("[data-k=tab][data-v=print]"); await page.waitForSelector("#kt-pw .bx-pg .kt-pt");
+    assert.match(await page.textContent("#kt-pw"), /KALENDAR-TEMATIK REJA|Kalendar-tematik reja/);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1));
+    // orqaga — jurnalga
+    await page.click("[data-k=back]"); assert.equal(await page.evaluate(() => S.jpage), "j");
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });

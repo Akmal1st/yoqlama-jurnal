@@ -271,7 +271,7 @@ const BGN = (() => {
     on("[data-les]", (b) => lessonSheet(+b.dataset.les));
     on("[data-btab]", (b) => { S.btab = b.dataset.btab; render(); if (b.closest(".bn-hero")) { const s = $(".bn-seg", m); if (s) s.scrollIntoView({behavior: "smooth", block: "start"}); } });
     on("[data-go2]", (b) => go(b.dataset.go2));
-    on("[data-ktr]", (b) => ktrDialog(+b.dataset.ktr));
+    on("[data-ktr]", (b) => KTR.open(+b.dataset.ktr));
     on("[data-anl]", (b) => { const [ci, wid] = b.dataset.anl.split("|"); openAnalysis(+ci, wid); });
     on("[data-wk]", (b) => weekDialog(+b.dataset.wk));
     on("[data-wkx]", (b) => { D.web.wk_seen = b.dataset.wkx; save(); render(); });

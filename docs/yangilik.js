@@ -8,7 +8,7 @@
    va NEWS boshiga yozuv qo'shing.
    Bu fayl asosiy skriptdan OLDIN ulanadi; S, go, render, renderNav, esc, $ … faqat chaqirilganda ishlatiladi. */
 const YNG = (() => {
-  const VER = 228, KEY = "yoqlama_yangilik";
+  const VER = 229, KEY = "yoqlama_yangilik";
   const P = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const IC = {
     spark: P('<path d="M12 3l1.8 4.9L19 9.7l-5.2 1.8L12 16.5l-1.8-5L5 9.7l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>'),
@@ -22,6 +22,10 @@ const YNG = (() => {
     bug: P('<rect x="7" y="7" width="10" height="13" rx="5"/><path d="M12 7v13M4 12h3M17 12h3"/>')};
   // go: [sahifa, Sozlamalar bo'limi] — «Ochish» shu joyga olib boradi
   const NEWS = [
+    {v: 229, d: "12-noyabr", items: [
+      {ic: "star", t: "Kalendar-tematik reja — alohida sahifa", s: "Sinf menyusi → «KTR»: bugungi dars kartasi (bajarilish halqasi bilan), chorak kartalari, har mavzu o'z sanasi va holati bilan (o'tildi, bugun, rejada, kun yetmaydi). Soatni −/+ bilan o'zgartirasiz, ⋯ menyusidan tahrirlash, ko'chirish, nusxa, o'chirish. Sanani bossangiz — «Bu kunda dars bo'lmadi», keyingi mavzular o'zi suriladi."},
+      {ic: "star", t: "KTR: har darsga uy vazifasi", s: "Har mavzuga uy vazifasi yoziladi (ko'p soatli mavzuda har dars uchun alohida). U shu dars kunining «Uy vazifasi» maydoniga o'zi tushadi; darsda o'zingiz o'zgartirsangiz — sizniki qoladi."},
+      {ic: "print", t: "KTR: chop etish, PDF, Excel, Telegram", s: "«Eksport»: A4 hujjat (TASDIQLAYMAN, chorak qatorlari, sana, o'tilgan sana, uy vazifasi), PDF, Excel «ish reja» shaklida (Darslar tartibi · Mavzu nomi · Uyga vazifa, har chorak alohida fayl) va Telegram'ga — PDF, Excel yoki bu haftaning mavzulari matni. Shu shakldagi Excel faylni «Yuklash» orqali rejaga kiritish ham mumkin."}]},
     {v: 228, d: "12-noyabr", items: [
       {ic: "star", t: "Kriterial (+/−): chorak tahlili", s: "Kun sahifasi → «Kriterial (+/−)» → «Chorak tahlili»: chorakdagi darslar bo'yicha sinf o'rtachasi, qaysi deskriptor eng ko'p «−» olgani (o'sdimi, pasaydimi), e'tibor kerak bo'lgan o'quvchilar va o'quvchi × deskriptor jadvali. O'quvchini bossangiz — uning chorakdagi profili.", go: ["journal"], gl: "Jurnal"},
       {ic: "star", t: "Kriterial (+/−): telefonda «Ro'yxat» va chala baho", s: "Telefonda har o'quvchi alohida kartochkada, 9 ta katak bir qatorda — jadvalni yon tomonga surish shart emas. Bahosi chala qolganlar haqida ogohlantirish chiqadi: «Ko'rsatish» yoki «Chalalarning bo'shiga −».", go: ["journal"], gl: "Jurnal"},
