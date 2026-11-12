@@ -1390,22 +1390,31 @@ test("O'rindiq xaritasi: tuzish va xaritadan yo'qlama", async () => {
     });
     await page.click('[data-am="map"]');
     await page.click("text=Xaritani tuzish");
-    await page.click("[data-sa]");
-    assert.equal(await page.locator(".modal .seat:not(.empty)").count(), names.length);
+    // birinchi ochilishda alifbo bo'yicha avtomatik joylashadi (orindiq.js)
+    assert.equal(await page.locator(".modal .ox-seat:not(.empty)").count(), names.length);
     // 1-o'rindagi o'quvchini bo'sh joyga ko'chirish, 2-sini xaritadan olish
-    const empty = await page.locator(".modal .seat.empty").first().getAttribute("data-seat");
-    await page.click('.modal [data-seat="0-0"]'); await page.click(`.modal [data-seat="${empty}"]`);
-    await page.click('.modal [data-seat="0-1"]'); await page.click(".modal [data-unseat]");
-    const at = await page.evaluate(() => D.web.seats[ckey(D.classes[0])].at);
+    const empty = await page.locator(".modal .ox-seat.empty").first().getAttribute("data-oxs");
+    await page.click('.modal [data-oxs="0-0"]'); await page.click(`.modal [data-oxs="${empty}"]`);
+    await page.click('.modal [data-oxs="0-1"]'); await page.click(".modal [data-unseat]");
+    const at = await page.evaluate(() => D.web.seats[normName(D.classes[0].name)].at);
     assert.equal(at[empty], names[0]); assert.equal(at["0-0"], undefined); assert.equal(at["0-1"], undefined);
+    // sudrab almashtirish: 1-0 dagi o'quvchi ko'chirilgan o'quvchi joyiga — o'rin almashadi
+    const n10 = await page.evaluate(() => D.web.seats[normName(D.classes[0].name)].at["1-0"]);
+    const A = await page.locator('.modal [data-oxs="1-0"]').boundingBox(), B = await page.locator(`.modal [data-oxs="${empty}"]`).boundingBox();
+    await page.mouse.move(A.x + 10, A.y + 10); await page.mouse.down(); await page.mouse.move(A.x + 30, A.y + 30, {steps: 3}); await page.mouse.move(B.x + 10, B.y + 10, {steps: 6}); await page.mouse.up();
+    const at2 = await page.evaluate(() => D.web.seats[normName(D.classes[0].name)].at);
+    assert.equal(at2[empty], n10); assert.equal(at2["1-0"], names[0]);
     await page.click(".modal [data-x]");
-    // xaritadan yo'qlama: bosishlar S → DQ
-    await page.click(`[data-seat="${empty}"]`);
-    await page.click(`[data-seat="${empty}"]`);
-    await page.click('[data-satt="1"]');
+    // xaritadan yo'qlama: avval holat, keyin joy (S, so'ng DQ bilan almashtirish); xaritada yo'q o'quvchi — pastdagi ro'yxatdan
+    await page.click('[data-oxs="1-0"]');
+    await page.click('[data-oxbr="dq"]'); await page.click('[data-oxs="1-0"]');
+    await page.click('[data-oxbr="s"]'); await page.click('[data-satt="1"]');
     const m = await page.evaluate(() => D.classes[0].students.slice(0, 2).map((s) => s.marks[todayIso()] || ""));
     assert.deepEqual(m, ["dq", "s"]);
-    assert.ok((await page.textContent(`[data-seat="${empty}"]`)).includes("DQ"));
+    assert.ok((await page.textContent('[data-oxs="1-0"]')).includes("DQ"));
+    // yana bosilsa — «Keldi»
+    await page.click('[data-oxbr="dq"]'); await page.click('[data-oxs="1-0"]');
+    assert.equal(await page.evaluate(() => D.classes[0].students[0].marks[todayIso()] || ""), "");
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
     assert.deepEqual(errors, []);
@@ -1890,7 +1899,7 @@ test("Hisobotlar: tur kartochkalari, telefonda saralash, solishtirishdan sinfga 
     const kind = async (k) => { await page.click("[data-hk=kind]"); await page.click(`.modal [data-kind=${k}]`); };
     // telefonda turlar «Almashtirish» oynasida: 8 ta, guruhlangan
     await page.click("[data-hk=kind]");
-    assert.equal(await page.$$eval(".modal [data-kind]", (x) => x.length), 8);
+    assert.equal(await page.$$eval(".modal [data-kind]", (x) => x.length), 9);
     await page.click(".modal [data-kind=cls]");
     await page.evaluate(() => { S.rep.per = "all"; render(); });
     // saralash — tanlov oynasidan; telefonda jadval o'rniga qatorlar
@@ -2644,7 +2653,7 @@ test("Menyu tugmalari: Hisobotlar turlari va Sozlamalar bo'limlari bir xil o'lch
       if (w < 821) await page.click("[data-hk=kind]");
       const rep = await page.$$eval(w < 821 ? ".modal .hb-kt" : ".hb-ri", (x) => x.filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(), i = b.querySelector(".hb-ic").getBoundingClientRect(), t = b.querySelector("b");
         return [Math.round(r.height), Math.round(i.width), parseFloat(getComputedStyle(t).fontSize), t.getBoundingClientRect().height < parseFloat(getComputedStyle(t).fontSize) * 1.8]; }));
-      assert.equal(rep.length, 8);
+      assert.equal(rep.length, 9);
       for (const k of [0, 1, 2]) assert.equal(new Set(rep.map((x) => x[k])).size, 1, `${w}px: hisobot turlari bir xil emas ${JSON.stringify(rep)}`);
       assert.ok(rep.every((x) => x[3]), `${w}px: hisobot nomi bir qatorga sig'masin`);
       if (w < 821) await page.keyboard.press("Escape");
