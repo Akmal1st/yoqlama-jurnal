@@ -7,6 +7,8 @@ import {chromium} from "playwright";
 import {DatabaseSync} from "node:sqlite";
 import botServer from "../bot-server/worker.js";
 import {makeGas} from "./gas_harness.mjs";
+import {tmpdir} from "node:os";
+import XLSXN from "xlsx";
 
 const APP = new URL("../docs/index.html", import.meta.url).href;
 const FIXTURE = fileURLToPath(new URL("fixtures/journal.json", import.meta.url));
@@ -5292,6 +5294,25 @@ test("Ota-onalar eMaktab'i: jadvalga login/parol, kirib chiqish, aylanib chiqish
       st.valid.clear(); const n0 = st.posts.length;
       await page.click('[data-otone="0"]'); await page.waitForSelector("text=ota-ona nomidan kirildi");
       assert.equal(st.posts.length, n0 + 1, "saqlangan parol bilan o'zi qayta kirdi");
+      // Excel'dan: yo'riqnoma, namuna fayl (jurnaldagi ismlar bilan), to'ldirilgan faylni qayta yuklash
+      await page.click("[data-otxl]");
+      assert.match(await page.textContent(".ot-guide summary"), /Yo'riqnoma/);
+      assert.match(await page.textContent(".ot-guide"), /36 ta o'quvchi ismi/);
+      const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-xt]")]);
+      assert.match(dl.suggestedFilename(), /^ota-onalar-.+\.xlsx$/);
+      const tpl = tmpdir() + "/ota-namuna-" + Date.now() + ".xlsx"; await dl.saveAs(tpl);
+      const wb = XLSXN.readFile(tpl), ws = wb.Sheets[wb.SheetNames[0]], rowsT = XLSXN.utils.sheet_to_json(ws, {header: 1});
+      assert.deepEqual(rowsT[0], ["№", "O'quvchi", "Login", "Parol"]);
+      assert.equal(rowsT.length, 37, "36 o'quvchi + sarlavha");
+      assert.equal(rowsT[1][1], await page.evaluate(() => D.classes[0].students[0].name));
+      XLSXN.utils.sheet_add_aoa(ws, [["xl1", "p-xl1"], ["xl2", "p-xl2"]], {origin: "C2"});   // faqat 2 qator to'ldirilgan, qolgani bo'sh
+      XLSXN.writeFile(wb, tpl);
+      const [fc] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-xf]")]);
+      await fc.setFiles(tpl);
+      await page.waitForSelector(".ot-pv");
+      assert.match(await page.textContent(".modal [data-ok]"), /2 ta ota-onaga kirish/);
+      assert.equal(await page.locator(".ot-pv .ot-w").count(), 0, "hammasi topildi");
+      await page.locator(".modal [data-x]").last().click();
       // Excel'dan (nusxalangan matn, ism teskari tartibda)
       await page.click("[data-otxl]");
       await page.fill("#otxt", "Ism7 Talaba7\tota7\tp-ota7\nTalaba8 Ism8; ota8; p-ota8\nNotanish Odam\tx\ty");
@@ -5310,6 +5331,12 @@ test("Ota-onalar eMaktab'i: jadvalga login/parol, kirib chiqish, aylanib chiqish
       await page.evaluate(() => { S.ci = 1; render(); OTE.open(1); });
       await page.waitForSelector(".ot-card");
       assert.equal(await sum(), "0 / 18 | 0 / 0 | 18 | 0");
+      await page.click("[data-otxl]");
+      assert.match(await page.textContent(".ot-guide"), /18 ta o'quvchi ismi/);
+      const [dl18] = await Promise.all([page.waitForEvent("download"), page.click("[data-xt]")]);
+      const t18 = tmpdir() + "/ota-namuna18-" + Date.now() + ".xlsx"; await dl18.saveAs(t18);
+      assert.equal(XLSXN.utils.sheet_to_json(XLSXN.readFile(t18).Sheets["Ota-onalar"], {header: 1}).length, 19, "18 o'quvchi + sarlavha");
+      await page.locator(".modal [data-x]").last().click();
       await page.fill('[data-otl="17"]', "ota18"); await page.fill('[data-otp="17"]', "p-ota18"); await page.click('[data-otin="17"]');
       await page.waitForSelector(".modal >> text=PIN kiriting").catch(() => {});
       if (await page.locator("#otpi").count()) { await page.fill("#otpi", "1234"); await page.click(".ot-pin [type=submit]"); }
