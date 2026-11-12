@@ -8,7 +8,7 @@
    va NEWS boshiga yozuv qo'shing.
    Bu fayl asosiy skriptdan OLDIN ulanadi; S, go, render, renderNav, esc, $ … faqat chaqirilganda ishlatiladi. */
 const YNG = (() => {
-  const VER = 227, KEY = "yoqlama_yangilik";
+  const VER = 228, KEY = "yoqlama_yangilik";
   const P = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const IC = {
     spark: P('<path d="M12 3l1.8 4.9L19 9.7l-5.2 1.8L12 16.5l-1.8-5L5 9.7l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>'),
@@ -22,6 +22,11 @@ const YNG = (() => {
     bug: P('<rect x="7" y="7" width="10" height="13" rx="5"/><path d="M12 7v13M4 12h3M17 12h3"/>')};
   // go: [sahifa, Sozlamalar bo'limi] — «Ochish» shu joyga olib boradi
   const NEWS = [
+    {v: 228, d: "12-noyabr", items: [
+      {ic: "star", t: "Kriterial (+/−): chorak tahlili", s: "Kun sahifasi → «Kriterial (+/−)» → «Chorak tahlili»: chorakdagi darslar bo'yicha sinf o'rtachasi, qaysi deskriptor eng ko'p «−» olgani (o'sdimi, pasaydimi), e'tibor kerak bo'lgan o'quvchilar va o'quvchi × deskriptor jadvali. O'quvchini bossangiz — uning chorakdagi profili.", go: ["journal"], gl: "Jurnal"},
+      {ic: "star", t: "Kriterial (+/−): telefonda «Ro'yxat» va chala baho", s: "Telefonda har o'quvchi alohida kartochkada, 9 ta katak bir qatorda — jadvalni yon tomonga surish shart emas. Bahosi chala qolganlar haqida ogohlantirish chiqadi: «Ko'rsatish» yoki «Chalalarning bo'shiga −».", go: ["journal"], gl: "Jurnal"},
+      {ic: "star", t: "Ota-onaga xabar va fan shablonlari", s: "O'quvchi menyusidan (⋯) «Ota-onaga xabar»: bugungi baho va nimaga e'tibor berish kerakligi matn bo'lib tayyorlanadi; chorak tahlilida — chorak xabari. Nusxalaysiz yoki Telegram botingizga yuborasiz. «✎ Deskriptorlar»da 7 ta fan uchun tayyor shablon bor.", go: ["journal"], gl: "Jurnal"},
+      {ic: "print", t: "Kriterial varaq: yangi chop etish va Telegram", s: "Formativ baholash varag'i qayta ishlandi: deskriptorlar ramkada, D0 va yig'indi ustunlar (D, U), sinf xulosasi, imzo joyi. «Chop etish / Telegram» tugmasi varaqni oldindan ko'rsatadi va haqiqiy PDF qilib Telegram botingizga yuboradi.", go: ["journal"], gl: "Jurnal"}]},
     {v: 227, d: "11-noyabr", items: [
       {ic: "print", t: "Bo'sh varaq: dizaynga mos shriftlar", s: "Har jadval dizayni o'z shrift to'plami bilan keladi: masalan «Daftar» va «Iliq» — Times uslubida, «Oq-qora» va «Ko'k» — Times sarlavha va Arial jadval, «Minimal» va «Katak» — Arial. Sozlamalar → «Shrift to'plami»dan qo'lda ham tanlash mumkin. Shriftlar dastur ichida: ekranda, chop etishda va PDF'da bir xil.", go: ["reports"], gl: "Hisobotlar"}]},
     {v: 226, d: "11-noyabr", items: [

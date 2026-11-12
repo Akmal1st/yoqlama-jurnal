@@ -5042,6 +5042,11 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
       const st = (i) => page.evaluate(([d, i]) => { const s = D.classes[0].students[i]; return [s.marks[d] || "", (s.fk || {})[d] || "", JSON.stringify((s.fp || {})[d] || null)]; }, [t, i]);
       const tel = viewport.width < 600;
       assert.equal(await page.locator("[data-mzmode=krit].on").count(), 1, "«Kriterial (+/−)» tanlangan");
+      if (tel) {   // telefonda sukut bo'yicha «Ro'yxat»: har o'quvchi kartochkada; eski oqim «Jadval»da tekshiriladi
+        assert.equal(await page.locator(".kr-lv .kr-lc0[data-krr]").count(), n, "hamma o'quvchi ro'yxatda");
+        assert.equal(await page.locator(".kr-lc0[data-krr='0'] [data-krc]").count(), 9);
+        await page.click("[data-krv=tab]"); await page.waitForSelector(".kr-t");
+      }
       assert.equal(await page.locator(".kr-t tbody tr[data-krr]").count(), n, "hamma o'quvchi jadvalda");
       // bitta katak: + (chala — baho yo'q), keyin qator menyusi «Bo'sh kataklarga +» → 10
       await page.click("[data-krc='0|0']");
@@ -5124,6 +5129,49 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
         await page.click("[data-krcolfill='0|p']"); assert.equal((await st(1))[0], "10");
         await page.click("[data-krv=tab]");
       }
+      // v5: chala ogohlantirishi — «Chalalarning bo'shiga −» bilan yopiladi
+      if (tel) { await page.click("[data-krv=list]"); await page.waitForSelector(".kr-lv"); }
+      await page.click("[data-krrow='5']"); await page.click(".kr-pop [data-v=clr]"); await page.click("[data-krc='5|0']");
+      assert.deepEqual(await st(5), ["", "+........", "null"]);
+      assert.match(await page.textContent(".kr-wb"), /chala: 1 ta/);
+      await page.click("[data-krchm]");
+      assert.deepEqual(await st(5), ["2", "+--------", "[2,0]"]);
+      assert.equal(await page.locator(".kr-wb").count(), 0); assert.equal(await page.locator(".kr-okb").count(), 1);
+      if (tel) {   // ro'yxat: katak bosiladi, davomat tugmalari kartochka ichida ochiladi
+        await page.click("[data-krc='5|8']"); assert.deepEqual(await st(5), ["", "+-------.", "null"]);
+        await page.click("[data-krc='5|8']"); assert.equal((await st(5))[0], "3");
+        await page.click("[data-kratt='6']"); await page.waitForSelector(".kr-lc0[data-krr='6'] .kr-la [data-a='6|k']");
+        await page.click("[data-a='6|k']"); assert.equal((await st(6))[0], "k");
+        assert.match(await page.textContent(".kr-lc0[data-krr='6']"), /baho qo'yilmaydi/);
+        await page.click("[data-a='6|k']"); assert.equal((await st(6))[0], "");
+        await page.click("[data-krrow='6']"); await page.click(".kr-pop [data-v=allp]"); assert.equal((await st(6))[0], "10");
+      }
+      // ota-onaga xabar (bugungi baho)
+      await page.click("[data-krrow='4']"); await page.click(".kr-pop [data-v=msg]"); await page.waitForSelector(".modal .kr-msg");
+      const msg = await page.inputValue(".modal .kr-msg");
+      assert.match(msg, /Hurmatli ota-ona!/); assert.match(msg, /10 baho oldi \(darsdagi ish 6\/6, uy vazifasi 4\/4\)/);
+      await page.click(".modal [data-x]");
+      // fan shablonlari
+      await page.click("[data-kred]"); await page.click(".modal [data-krtpl='1']");
+      assert.equal(await page.inputValue("#kr-d0"), "Yangi mavzuni tushunib, savollarga javob beradi");
+      await page.click(".modal [data-x]");
+      // chorak tahlili: shu chorakdagi oldingi darslarga ham kriterial baho
+      const qd = await page.evaluate((t) => { const c = D.classes[0], q = quarterOf(t), ds = c.dates.filter((x) => x < t && quarterOf(x) === q && !isNoLesson(c, x)).slice(-5);
+        ds.forEach((x, li) => c.students.forEach((s, si) => { if (si === 2 && li === 0) { s.marks[x] = "s"; return; }
+          const a = [...Array(9)].map((_, k) => (si * 7 + k * 3 + li) % 5 === 0 ? "-" : "+"), dd = 1 + a.slice(0, 5).filter((v) => v === "+").length, uu = a.slice(5).filter((v) => v === "+").length;
+          s.marks[x] = String(dd + uu); (s.fk = s.fk || {})[x] = a.join(""); (s.fp = s.fp || {})[x] = [dd, uu]; }));
+        save(); render(); return ds.length; }, t);
+      assert.ok(qd >= 3, `chorakda oldingi darslar: ${qd}`);
+      await page.waitForSelector(".kr-box"); await page.click("[data-krtab=q]"); await page.waitForSelector(".kr-hq");
+      assert.equal(await page.locator(".kr-hq tbody tr[data-krprof]").count(), n);
+      const tiles = await page.textContent(".kr-tiles"); assert.match(tiles, new RegExp(`Kriterial baholangan darslar${qd + 1}`));
+      await page.click(".kr-hq tbody tr[data-krprof='2']"); await page.waitForSelector(".modal .kr-msg");
+      assert.match(await page.inputValue(".modal .kr-msg"), new RegExp(`chorakdagi .*o'rtacha [0-9.]+ \\(${qd} ta dars, 1 ta darsda qatnashmagan\\)`));
+      await page.click(".modal [data-x]");
+      await page.click("[data-krqall]"); await page.waitForSelector(".modal .kr-qm");
+      assert.equal(await page.locator(".modal .kr-qm").count(), n);
+      await page.click(".modal [data-x]");
+      await page.click("[data-krtab=day]"); await page.waitForSelector(".kr-att");
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       assert.ok(overflow <= 1, `sahifa ekrandan ${overflow}px kengroq`);
       // saqlanib qayta yuklanganda belgilar qoladi; buzilgan ma'lumot tozalanadi
