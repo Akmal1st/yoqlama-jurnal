@@ -33,6 +33,7 @@
 <link rel="stylesheet" href="mezon.css?v=221">
 <link rel="stylesheet" href="kriterial.css?v=228">
 <link rel="stylesheet" href="orindiq.css?v=229">
+<link rel="stylesheet" href="ktr.css?v=230">
 <link rel="stylesheet" href="kunlik.css?v=213">
 <link rel="stylesheet" href="arxiv.css?v=213">
 <link rel="stylesheet" href="arxiv-tekshir.css?v=213">
@@ -70,12 +71,13 @@
 <script src="bsb-yangi.js?v=202"></script>
 <script src="bugun-arxiv.js?v=213"></script>
 <script src="bugun-tatil.js?v=207"></script>
-<script src="bugun.js?v=215"></script>
+<script src="bugun.js?v=230"></script>
 <script src="funksiyalar.js?v=224"></script>
 <script src="sozlamalar.js?v=216"></script>
 <script src="mezon.js?v=221"></script>
 <script src="kriterial.js?v=228"></script>
 <script src="orindiq.js?v=229"></script>
+<script src="ktr.js?v=230"></script>
 <script src="kunlik.js?v=221"></script>
 <script src="pdf-tg.js?v=227"></script>
 <script src="tg-umumiy.js?v=213"></script>
@@ -87,7 +89,7 @@
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=218"></script>
 <script src="loyiha.js?v=218"></script>
-<script src="yangilik.js?v=228"></script>
+<script src="yangilik.js?v=230"></script>
 <script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=214"></script>
 <script src="telegram.js?v=216"></script>
@@ -989,10 +991,12 @@ function parsePlanText(text) {
     let line = raw.trim(); if (!line || line.startsWith("#")) continue;
     const m = line.match(/^\s*(?:=+\s*)?([1-4]|IV|III|II|I)\s*-?\s*chorak\b.*$/i);
     if (m) { const g = m[1].toUpperCase(); q = /\d/.test(g) ? +g : ROMAN[g]; continue; }
-    let h = 1; const parts = line.split(/\s*\|\s*|\t+/);
-    if (parts.length > 1 && /^\d+$/.test(parts[parts.length - 1].trim())) { h = Math.max(1, Math.min(+parts[parts.length - 1], 10)); line = parts.slice(0, -1).join(" | ").trim(); }
+    let h = 1, hw = ""; const parts = line.split(/\s*\|\s*|\t+/);
+    // «Mavzu | soat | uy vazifasi» (uy vazifasi ko'p soatli mavzuda har dars uchun «;» bilan)
+    if (parts.length > 2 && parts[0].trim() && /^\d*$/.test(parts[1].trim())) { h = parts[1].trim() ? Math.max(1, Math.min(+parts[1], 10)) : 1; hw = parts.slice(2).join(" | ").trim(); line = parts[0].trim(); }
+    else if (parts.length > 1 && /^\d+$/.test(parts[parts.length - 1].trim())) { h = Math.max(1, Math.min(+parts[parts.length - 1], 10)); line = parts.slice(0, -1).join(" | ").trim(); }
     line = line.replace(/^\d+\s*[.)]\s+/, "").trim();
-    if (line) topics.push({t: line, h, q});
+    if (line) topics.push(hw ? {t: line, h, q, hw} : {t: line, h, q});
   }
   return topics;
 }
@@ -1026,12 +1030,16 @@ async function planFromExcel(file, c) {
 }
 function planToText(plan) {
   let q = null; const out = [];
-  for (const t of plan.topics || []) { if (t.q !== q && t.q) { out.push(`== ${t.q}-chorak`); q = t.q; } out.push(t.h > 1 ? `${t.t} | ${t.h}` : t.t); }
+  for (const t of plan.topics || []) { if (t.q !== q && t.q) { out.push(`== ${t.q}-chorak`); q = t.q; } out.push(t.hw ? `${t.t} | ${t.h || 1} | ${t.hw}` : t.h > 1 ? `${t.t} | ${t.h}` : t.t); }
   return out.join("\n");
 }
+// mavzuning k-darsi uy vazifasi: «a ; b» — har dars uchun alohida, bitta matn — hamma darsga
+function ktrHw(t, k) { const s = String(t.hw || ""), p = s.split(";").map((x) => x.trim()); return p.length > 1 ? (p[k] || "") : s.trim(); }
+// rejadan avtomatik yozilgan uy vazifasi (l.ah) — o'qituvchi o'zgartirmagan bo'lsa, reja o'zgarganda yangilanadi
+const ownHw = (l) => !!(l && l.hw && l.hw !== l.ah);
 function planSlots(plan) {
   const slots = [];
-  (plan.topics || []).forEach((t, i) => { const h = Math.max(1, +t.h || 1); for (let k = 0; k < h; k++) slots.push({text: h === 1 ? t.t : `${t.t} (${k + 1}/${h})`, q: t.q ?? null, i}); });
+  (plan.topics || []).forEach((t, i) => { const h = Math.max(1, +t.h || 1); for (let k = 0; k < h; k++) slots.push({text: h === 1 ? t.t : `${t.t} (${k + 1}/${h})`, q: t.q ?? null, i, k, hw: ktrHw(t, k)}); });
   return slots;
 }
 // KTR bajarilishi: o'tilgan darslardagi mavzular rejaga qanchalik mos; reja bo'yicha shu kungacha nechtasi o'tilishi kerak edi
@@ -1068,7 +1076,7 @@ function reflowPlan(c, start) {
   const plan = c.plan; if (!plan || !plan.on || !plan.topics || !plan.topics.length) return null;
   // boshlanish sanasi: o'qituvchi belgilagan (plan.start), bo'lmasa — bugundan
   const lo = start || (ISO_D.test(String(plan.start)) ? plan.start : "") || todayIso(), lessons = c.lessons, slots = planSlots(plan);
-  for (const [d, les] of Object.entries(lessons)) if (les.auto && (d >= lo || !c.dates.includes(d) || isNoLesson(c, d))) { if (les.hw) lessons[d] = {topic: "", hw: les.hw}; else delete lessons[d]; }
+  for (const [d, les] of Object.entries(lessons)) if (les.auto && (d >= lo || !c.dates.includes(d) || isNoLesson(c, d))) { if (ownHw(les)) lessons[d] = {topic: "", hw: les.hw}; else delete lessons[d]; }
   const taken = new Set();
   for (const d of Object.keys(lessons).sort()) {
     const les = lessons[d]; if (!les.auto) continue;
@@ -1083,7 +1091,7 @@ function reflowPlan(c, start) {
     const rng = q ? qRange(q) : null; let gd;
     if (q && !rng) { const after = used.size ? [...used].sort().pop() : ""; gd = free.filter((d) => !used.has(d) && d > after); }
     else gd = free.filter((d) => !used.has(d) && (q === null || (rng[0] <= d && d <= rng[1])));
-    gs.forEach((i, k) => { const d = gd[k]; if (!d) { left.push(slots[i].text); return; } lessons[d] = {topic: slots[i].text, hw: (lessons[d] || {}).hw || "", auto: true, si: i}; used.add(d); assigned++; });
+    gs.forEach((i, k) => { const d = gd[k]; if (!d) { left.push(slots[i].text); return; } const old = lessons[d] || {}, th = slots[i].hw; lessons[d] = {topic: slots[i].text, hw: ownHw(old) ? old.hw : th, auto: true, si: i}; if (!ownHw(old) && th) lessons[d].ah = th; used.add(d); assigned++; });
   }
   planWorks(c, slots);
   return {assigned, left, free: free.length};
@@ -1722,7 +1730,7 @@ const ACH_PL = ["1-o'rin", "2-o'rin", "3-o'rin", "Faxriy yorliq", "Ishtirok"];
 const monthOf = (d) => d.slice(0, 7);
 const monthName = (m) => `${MONTHS[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}`;
 const shiftMonth = (m, n) => iso(new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + n, 1)).slice(0, 7);
-const JPAGES = ["j", "sum", "year", "sm", "bsb", "chsbt"];   // "bsb" / "chsbt" — eski sahifalar (endi «Summativ tahlili» — summativ.js)
+const JPAGES = ["j", "sum", "year", "sm", "bsb", "chsbt", "ktr"];   // "bsb" / "chsbt" — eski sahifalar (endi «Summativ tahlili» — summativ.js)
 function pageJournal(m) {
   if (!D.classes.some((c) => !isGrp(c))) { go("today"); return; }
   S.ci = Math.min(S.ci, D.classes.length - 1);
@@ -1731,6 +1739,7 @@ function pageJournal(m) {
   if (S.jpage === "sum") { pageSum(m); return ARX.decorate(m, D.classes[S.ci]); }
   if (S.jpage === "year") { pageYear(m); return ARX.decorate(m, D.classes[S.ci]); }
   if (S.jpage === "sm") return SMV.page(m);
+  if (S.jpage === "ktr") return KTR.page(m);   // kalendar-tematik reja — ktr.js / ktr.css
   if (S.jpage === "bsb") return pageBsb(m);
   if (S.jpage === "chsbt") { pageChsbTest(m); return ARX.decorate(m, D.classes[S.ci]); }
   if (!viewModes().some(([k]) => k === V.mode)) V.mode = "day";
@@ -2150,7 +2159,7 @@ async function moreMenu() {
       feat("groups") && ["👥 Guruhlarga bo'lish", () => groupsDialog(S.ci)],
       feat("seats") && ["🪑 O'rindiq xaritasi", () => seatsDialog(S.ci)],
       ["📝 Mavzular va uy vazifalari", () => lessonsDialog(S.ci)],
-      feat("ktr") && ["📚 KTR (kalendar-tematik reja)", () => ktrDialog(S.ci)],
+      feat("ktr") && ["📚 KTR (kalendar-tematik reja)", () => KTR.open(S.ci)],
     ]],
     ["O'quvchilar", [
       ["＋ O'quvchi qo'shish", () => addStudents(S.ci)],
@@ -3303,10 +3312,10 @@ function ktrDialog(ci) {
       const oldStart = ISO_D.test(String(plan.start)) ? plan.start : "";
       c.plan = {on: $("#kon", mm).checked, topics: parsePlanText(ta.value)}; if (ISO_D.test($("#kst", mm).value)) c.plan.start = $("#kst", mm).value;
       // boshlanish sanasi o'zgarsa, avtomatik qo'yilgan mavzular qaytadan yoyiladi (qo'lda yozilganlari qoladi)
-      if ((c.plan.start || "") !== oldStart) for (const [d, les] of Object.entries(c.lessons)) if (les.auto) { if (les.hw) c.lessons[d] = {topic: "", hw: les.hw}; else delete c.lessons[d]; }
+      if ((c.plan.start || "") !== oldStart) for (const [d, les] of Object.entries(c.lessons)) if (les.auto) { if (ownHw(les)) c.lessons[d] = {topic: "", hw: les.hw}; else delete c.lessons[d]; }
       let msg = "Reja saqlandi";
       if (c.plan.on && c.plan.topics.length) { const r = reflowPlan(c); msg = `Reja: ${r.assigned} ta mavzu dars kunlariga qo'yildi${r.left.length ? `, ${r.left.length} tasiga kun yetmadi` : ""}`; }
-      else for (const [d, les] of Object.entries(c.lessons)) if (les.auto) { if (les.hw) c.lessons[d] = {topic: "", hw: les.hw}; else delete c.lessons[d]; }
+      else for (const [d, les] of Object.entries(c.lessons)) if (les.auto) { if (ownHw(les)) c.lessons[d] = {topic: "", hw: les.hw}; else delete c.lessons[d]; }
       save(); close(); render(); toast(msg);
     };
   });
