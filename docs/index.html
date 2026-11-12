@@ -32,7 +32,8 @@
 <link rel="stylesheet" href="sozlamalar.css?v=225">
 <link rel="stylesheet" href="mezon.css?v=221">
 <link rel="stylesheet" href="kriterial.css?v=228">
-<link rel="stylesheet" href="ktr.css?v=229">
+<link rel="stylesheet" href="orindiq.css?v=229">
+<link rel="stylesheet" href="ktr.css?v=230">
 <link rel="stylesheet" href="kunlik.css?v=213">
 <link rel="stylesheet" href="arxiv.css?v=213">
 <link rel="stylesheet" href="arxiv-tekshir.css?v=213">
@@ -63,19 +64,20 @@
 <script src="tugmalar.js?v=213"></script>
 <script src="dizayn.js?v=202"></script>
 <script src="hisobot-chop.js?v=217"></script>
-<script src="hisobotlar.js?v=221"></script>
+<script src="hisobotlar.js?v=229"></script>
 <script src="bosh-varaq.js?v=227"></script>
 <script src="davomat.js?v=221"></script>
 <script src="bsb-eksport.js?v=202"></script>
 <script src="bsb-yangi.js?v=202"></script>
 <script src="bugun-arxiv.js?v=213"></script>
 <script src="bugun-tatil.js?v=207"></script>
-<script src="bugun.js?v=229"></script>
+<script src="bugun.js?v=230"></script>
 <script src="funksiyalar.js?v=224"></script>
 <script src="sozlamalar.js?v=216"></script>
 <script src="mezon.js?v=221"></script>
 <script src="kriterial.js?v=228"></script>
-<script src="ktr.js?v=229"></script>
+<script src="orindiq.js?v=229"></script>
+<script src="ktr.js?v=230"></script>
 <script src="kunlik.js?v=221"></script>
 <script src="pdf-tg.js?v=227"></script>
 <script src="tg-umumiy.js?v=213"></script>
@@ -87,7 +89,7 @@
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=218"></script>
 <script src="loyiha.js?v=218"></script>
-<script src="yangilik.js?v=229"></script>
+<script src="yangilik.js?v=230"></script>
 <script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=214"></script>
 <script src="telegram.js?v=216"></script>
@@ -2240,6 +2242,7 @@ function gradedShare(c, d, min = GRADED_MIN) {
 }
 function pageLesson(m) {
   const c = D.classes[S.lesson], t = todayIso(), les = c.lessons[t] || {};
+  if (S.step === 0 && !isGrp(c) && attMode() === "map") ORX.autoCh(c);   // chet eldagilarga avtomatik CH (orindiq.js)
   const n = c.students.length, absent = c.students.filter((_, i) => ["s", "dq", "k", "ox"].includes(attOf(c, i))).length;
   const away = isGrp(c) ? 0 : c.students.filter((_, i) => attOf(c, i) === "ch").length, here = n - absent - away;
   const late = c.students.filter((_, i) => attOf(c, i) === "kq").length, graded = c.students.filter((s) => gradesOf(s.marks[t] || "").length).length;
@@ -2260,12 +2263,8 @@ function pageLesson(m) {
           <div class="muted">${c.students.map((x, k) => [x, attOf(c, k)]).filter(([, v]) => v).map(([x, v]) => `${esc(x.name)} — ${ABSENT_NAMES[v]}`).join("<br>") || "Hamma darsda"}</div>
           <div class="hrow" style="justify-content:center"><button class="btn" data-swb>‹ Oxirgisiga qaytish</button><button class="btn" data-sw0>Boshidan</button></div></div>`}</div>`;
   } else if (S.step === 0 && !grp && attMode() === "map") {
-    const st = seatsOf(c), placed = new Set(st ? Object.values(st.at) : []), free = c.students.map((x, i) => [x, i]).filter(([x]) => !placed.has(x.name));
     body = `<div class="hrow wrap"><h1 class="sp" style="flex:1 1 240px">Kim darsda? ${here} / ${n} keldi</h1>${attModeSeg()}<button class="btn" data-seats>🪑 Xaritani tahrirlash</button></div>
-      ${st && placed.size ? `<p class="muted" style="margin:6px 0">Kelmagan o'quvchining joyini bosing: har bosishda Sababsiz → Sababli → Kasal → Kech qoldi → Chet elda → Keldi.</p>
-        <div class="smap">${seatGrid(c, st, {att: true})}</div>
-        ${free.length ? `<div class="hrow wrap" style="gap:6px"><b>Xaritada yo'q:</b>${free.map(([x, i]) => { const a = attOf(c, i); return `<button class="chip" data-satt="${i}" ${a ? `style="background:${ATT_COL[a]};border-color:${ATT_COL[a]};color:#fff"` : ""}>${esc(x.name)}${a ? ` · ${a.toUpperCase()}` : ""}</button>`; }).join("")}</div>` : ""}`
-      : `<div class="card vcol" style="gap:10px;align-items:flex-start"><b>Bu sinf uchun o'rindiq xaritasi hali tuzilmagan</b><div class="muted">Bir marta partalar bo'yicha joylashtiring — keyin yo'qlamani xaritadan bosib qilasiz.</div><button class="btn btn-primary" data-seats>🪑 Xaritani tuzish</button></div>`}`;
+      ${ORX.attHtml(c)}`;
   } else if (S.step === 0 && grp) {
     const ot = c.students.filter((x) => x.marks[t] === "ot").length;
     body = `<div class="hrow wrap"><h1 class="sp" style="flex:1 1 240px">Dars o'tildimi? ${ot} / ${n}</h1><button class="btn" data-all>✓ Qolganlarga o'tildi</button></div>
@@ -2331,11 +2330,8 @@ function pageLesson(m) {
     putMark(c, si, t, buildMark(nx, lateOf(old))); keepY();
   });
   m.querySelectorAll("[data-am]").forEach((b) => b.onclick = () => { D.web.att_mode = b.dataset.am; save(); if (b.dataset.am === "card") S.cur = 0; render(); });
-  const cyc = (si) => { const a = attOf(c, si), v = ATT_CYCLE[(ATT_CYCLE.indexOf(a) + 1) % ATT_CYCLE.length], old = c.students[si].marks[t] || ""; putMark(c, si, t, AWAY.includes(v) ? v : buildMark(gradesOf(old), v === "kq")); keepY(); };
   if (attMode() === "map" && S.step === 0) {
-    const st = seatsOf(c), ix = Object.fromEntries(c.students.map((x, i) => [x.name, i]));
-    m.querySelectorAll("[data-seat]").forEach((b) => b.onclick = () => { const nm = st && st.at[b.dataset.seat]; if (nm !== undefined) cyc(ix[nm]); });
-    m.querySelectorAll("[data-satt]").forEach((b) => b.onclick = () => cyc(+b.dataset.satt));
+    ORX.attBind(m, c, (si, v) => { const old = c.students[si].marks[t] || ""; putMark(c, si, t, AWAY.includes(v) ? v : buildMark(gradesOf(old), v === "kq")); keepY(); });
     m.querySelectorAll("[data-seats]").forEach((b) => b.onclick = () => seatsDialog(S.lesson));
   }
   m.querySelectorAll("[data-sw]").forEach((b) => b.onclick = () => swipeMark(c, b.dataset.sw));
@@ -2372,7 +2368,6 @@ function pageLesson(m) {
   };
 }
 const attModeSeg = () => { const am = attMode(); if (!feat("attmodes")) return ""; return `<div class="seg">${[["list", "Ro'yxat"], ["card", "Kartochka"], feat("seats") && ["map", "Xarita"]].filter(Boolean).map(([k, n]) => `<button class="${am === k ? "on" : ""}" data-am="${k}">${n}</button>`).join("")}</div>`; };
-const ATT_CYCLE = ["", "s", "dq", "k", "kq", "ch"];
 // kartochka rejimi: joriy o'quvchiga belgi qo'yib, keyingisiga o'tish ("" — keldi, baholari saqlanadi)
 function swipeMark(c, v) {
   const t = todayIso(), i = S.cur || 0; if (i >= c.students.length) return;
@@ -4620,64 +4615,8 @@ function groupsDialog(ci) {
   });
 }
 
-/* ───────── o'rindiq xaritasi: sinfdagi partalar joylashuvi ───────── */
-// D.web.seats[ckey] = {rows, cols, at: {"q-u": ism}} — har parta 2 o'rinli (cols juft)
-function seatsOf(c, make) {
-  const all = D.web.seats = D.web.seats || {}, k = ckey(c);
-  let s = all[k];
-  if (!s && make) s = all[k] = {rows: Math.max(3, Math.ceil(c.students.length / 6)), cols: 6, at: {}};
-  if (s) { const names = new Set(c.students.map((x) => x.name)); for (const [p, n] of Object.entries(s.at)) if (!names.has(n)) delete s.at[p]; }
-  return s || null;
-}
-const ATT_COL = {s: "var(--danger)", dq: "#1565c0", k: "#7b1fa2", kq: "#6d4c41", ch: "#00796b"};
-// xarita HTML'i; sel — tanlangan o'rin (tahrirlashda), att — bugungi yo'qlama ko'rsatilsinmi
-function seatGrid(c, s, {sel = null, att = false} = {}) {
-  const idx = Object.fromEntries(c.students.map((x, i) => [x.name, i]));
-  let h = `<div class="desk">🧑‍🏫 Doska</div><div class="seats" style="grid-template-columns:repeat(${s.cols},minmax(0,1fr))">`;
-  for (let r = 0; r < s.rows; r++) for (let u = 0; u < s.cols; u++) {
-    const p = `${r}-${u}`, n = s.at[p], si = n !== undefined ? idx[n] : -1, a = att && si >= 0 ? attOf(c, si) : "";
-    h += `<button class="seat ${u % 2 ? "r" : "l"} ${n ? "" : "empty"} ${sel === p ? "on" : ""}" data-seat="${p}" ${a ? `style="background:${ATT_COL[a]};border-color:${ATT_COL[a]};color:#fff"` : ""}>${n ? `<span>${esc(shortName(n))}</span>${a ? `<small>${a.toUpperCase()}</small>` : ""}` : ""}</button>`;
-  }
-  return h + "</div>";
-}
-function seatAuto(c, s) {
-  s.at = {}; const need = Math.ceil(c.students.length / s.cols); if (s.rows < need) s.rows = need;
-  c.students.forEach((x, i) => { s.at[`${Math.floor(i / s.cols)}-${i % s.cols}`] = x.name; });
-}
-function seatsDialog(ci) {
-  const c = D.classes[ci], s = seatsOf(c, true); let sel = null;   // sel: "q-u" yoki "n:ism"
-  const body = () => {
-    const placed = new Set(Object.values(s.at)), free = c.students.filter((x) => !placed.has(x.name));
-    return `<div class="hrow wrap" style="gap:8px"><span>Qatorlar:</span><div class="seg">${[3, 4, 5, 6, 7].map((k) => `<button class="${k === s.rows ? "on" : ""}" data-sr="${k}">${k}</button>`).join("")}</div>
-        <span>Partalar qatorda:</span><div class="seg">${[2, 3, 4].map((k) => `<button class="${k * 2 === s.cols ? "on" : ""}" data-sc="${k * 2}">${k}</button>`).join("")}</div></div>
-      <div class="smap">${seatGrid(c, s, {sel: sel && !sel.startsWith("n:") ? sel : null})}</div>
-      <div class="muted">${sel ? "Endi qo'yiladigan joyni bosing (band joy bo'lsa — o'rin almashadi)." : "O'quvchini bosing, keyin uning joyini bosing."}</div>
-      <div class="hrow wrap" style="gap:6px"><b>Joylashmaganlar (${free.length}):</b>${sel && !sel.startsWith("n:") ? `<button class="btn btn-sm" data-unseat>✕ «${esc(shortName(s.at[sel]))}»ni xaritadan olish</button>` : ""}${free.map((x) => `<button class="chip ${sel === "n:" + x.name ? "on" : ""}" data-sn="${esc(x.name)}">${esc(x.name)}</button>`).join("") || `<span class="muted">hamma joylashgan ✓</span>`}</div>`;
-  };
-  return modal(`<h2>🪑 O'rindiq xaritasi · ${esc(label(c))}</h2>
-    <div class="muted">Sinfdagi partalar joylashuvi. «Darsni boshlash → Yo'qlama → Xarita» rejimida kelmaganlarni shu xaritadan bosib belgilaysiz.</div>
-    <div id="smb" class="vcol" style="gap:10px">${body()}</div>
-    <div class="hrow wrap"><button class="btn" data-sa>Alifbo bo'yicha joylashtirish</button><button class="btn" data-s0>Tozalash</button><span class="sp"></span><button class="btn btn-primary" data-x>Tayyor</button></div>`, (m, close) => {
-    const redraw = () => { $("#smb", m).innerHTML = body(); bind(); };
-    const place = (target) => {   // tanlanganni target o'ringa (yoki null — xaritadan olish)
-      const from = sel.startsWith("n:") ? null : sel, who = from ? s.at[from] : sel.slice(2);
-      if (target === null) { if (from) delete s.at[from]; }
-      else { const other = s.at[target]; s.at[target] = who; if (from) { if (other) s.at[from] = other; else delete s.at[from]; } }
-      sel = null; save(); redraw();
-    };
-    const bind = () => {
-      m.querySelectorAll("[data-seat]").forEach((b) => b.onclick = () => { const p = b.dataset.seat; if (!sel) { if (s.at[p]) { sel = p; redraw(); } } else if (sel === p) { sel = null; redraw(); } else place(p); });
-      m.querySelectorAll("[data-sn]").forEach((b) => b.onclick = () => { const n = "n:" + b.dataset.sn; sel = sel === n ? null : n; redraw(); });
-      const un = $("[data-unseat]", m); if (un) un.onclick = () => place(null);
-      m.querySelectorAll("[data-sr]").forEach((b) => b.onclick = () => { s.rows = +b.dataset.sr; for (const p of Object.keys(s.at)) if (+p.split("-")[0] >= s.rows) delete s.at[p]; save(); redraw(); });
-      m.querySelectorAll("[data-sc]").forEach((b) => b.onclick = () => { s.cols = +b.dataset.sc; for (const p of Object.keys(s.at)) if (+p.split("-")[1] >= s.cols) delete s.at[p]; save(); redraw(); });
-    };
-    bind();
-    $("[data-sa]", m).onclick = () => { seatAuto(c, s); sel = null; save(); redraw(); };
-    $("[data-s0]", m).onclick = () => { s.at = {}; sel = null; save(); redraw(); };
-    $("[data-x]", m).onclick = () => { close(); render(); };
-  });
-}
+/* ───────── o'rindiq xaritasi — orindiq.js (ORX): sinf nomi bo'yicha bitta xarita, sudrash, avtomatik joylashtirish, hisobot ───────── */
+function seatsDialog(ci) { return ORX.editor(ci); }
 
 /* ───────── tug'ilgan kunlar ───────── */
 // s.bday = "YYYY-MM-DD" (yil noma'lum bo'lsa "0000-MM-DD")

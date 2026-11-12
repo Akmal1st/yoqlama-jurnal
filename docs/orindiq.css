@@ -1,0 +1,138 @@
+/* O'rindiq xaritasi (orindiq.js, maket v5 — 2026-11-12). Barcha klasslar .ox- bilan boshlanadi.
+   Holat ranglari: to'q (oq matn uchun) va och fon (to'q matn uchun) — ikkala mavzuda ham ≥4.5:1. */
+:root{
+  --ox-s:#b8322a;--ox-dq:#1565c0;--ox-k:#7b1fa2;--ox-kq:#6d4c41;--ox-ch:#00695c;
+  --ox-s-t:#fbe4e1;--ox-dq-t:#e1ebfa;--ox-k-t:#f2e4f7;--ox-kq-t:#efe6e2;--ox-ch-t:#dcf0ec;
+  --ox-desk:#e9dfcb;--ox-board:#2f4f4a;--ox-mut:#56625f;
+}
+:root[data-theme="dark"]{
+  --ox-s-t:#4a2220;--ox-dq-t:#1b2f4d;--ox-k-t:#3a2147;--ox-kq-t:#3a2c26;--ox-ch-t:#123a35;
+  --ox-desk:#2a3a3e;--ox-board:#1f3a36;--ox-mut:#93a4a3;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]):not([data-theme="dark"]){
+  --ox-s-t:#4a2220;--ox-dq-t:#1b2f4d;--ox-k-t:#3a2147;--ox-kq-t:#3a2c26;--ox-ch-t:#123a35;
+  --ox-desk:#2a3a3e;--ox-board:#1f3a36;--ox-mut:#93a4a3;
+}}
+
+/* tahrirlash oynasi */
+.modal .card:has(.ox-ed){width:min(1040px,100%);max-height:94vh}
+.ox-ed{display:flex;flex-direction:column;gap:10px;min-width:0}
+.ox-top{display:flex;align-items:center;gap:8px}
+.ox-top h2{margin:0;font-size:19px;flex:1 1 auto;min-width:0}
+.ox-top h2 .bi{color:var(--acc)}
+.ox-top h2 small{display:block;font-size:12.5px;font-weight:600;color:var(--ox-mut);margin-top:2px}
+.ox-ic{width:38px;height:38px;padding:0!important;display:inline-flex!important;align-items:center;justify-content:center;flex:none;font-size:17px}
+.ox-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ox-bar .btn .bi,.ox-sel .btn .bi{font-size:15px}
+.ox-cap{font-size:12px;font-weight:700;padding:4px 9px;border-radius:999px;background:var(--acc-soft);color:var(--acc-d)}
+.ox-cap.bad{background:var(--ox-s-t);color:var(--ox-s)}
+:root[data-theme="dark"] .ox-cap.bad{color:#ffc9c3}
+.ox-warn{color:var(--danger)}
+.ox-hint{font-size:12.5px;color:var(--ox-mut);line-height:1.45}
+.ox-away{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px;background:var(--ox-ch-t);border:1px solid var(--line);border-left:4px solid var(--ox-ch);border-radius:10px;padding:6px 10px}
+.ox-away .bi{color:var(--ox-ch)}
+:root[data-theme="dark"] .ox-away .bi{color:#4fc3b4}
+.ox-pool{background:var(--alt);border:1px dashed var(--line);border-radius:12px;padding:8px 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:42px}
+.ox-pool.over{border-color:var(--acc);background:var(--acc-soft)}
+.ox-pool .lbl{font-size:12px;font-weight:700;color:var(--ox-mut)}
+.ox-chip{border:1px solid var(--line);background:var(--base);color:var(--text);border-radius:999px;padding:5px 10px;font:inherit;font-weight:700;font-size:12.5px;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.ox-chip.sel{background:var(--acc);border-color:var(--acc);color:var(--acc-fg)}
+.ox-sel{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--acc-soft);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:13px;position:sticky;bottom:0;z-index:2;box-shadow:0 8px 24px -10px rgba(0,0,0,.35)}
+
+/* xarita */
+.ox-room{background:var(--base);border:1px solid var(--line);border-radius:14px;padding:12px;overflow-x:auto}
+.ox-front{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.ox-front.b{margin:12px 0 0}
+.ox-board{flex:1;text-align:center;color:#fff;background:var(--ox-board);border-radius:6px;font-weight:800;font-size:12px;padding:5px 0;letter-spacing:.08em}
+.ox-tdesk{font-size:11px;color:var(--ox-mut);font-weight:700;border:1px dashed var(--line);border-radius:6px;padding:3px 8px;white-space:nowrap}
+.ox-cols{display:grid;gap:14px;margin-bottom:4px}
+.ox-cols span{text-align:center;font-size:11px;font-weight:700;color:var(--ox-mut)}
+.ox-grid{display:grid;gap:10px 14px}
+.ox-desk{display:flex;background:var(--ox-desk);border-radius:10px;padding:3px;gap:3px;min-width:0}
+.ox-seat{position:relative;flex:1 1 0;min-width:0;height:56px;border:1px solid var(--line);background:var(--base);color:var(--text);border-radius:8px;padding:3px;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.1;text-align:center;font:inherit;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.ox-seat .hd{display:flex;width:100%;justify-content:space-between;align-items:center;height:13px;padding:0 1px}
+.ox-seat .no{font-size:9.5px;font-weight:700;color:var(--ox-mut)}
+.ox-seat .pin{font-size:10px;color:var(--acc);line-height:1}
+.ox-seat .nm{font-weight:800;font-size:12.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ox-seat .fm{font-size:10.5px;color:var(--ox-mut);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ox-bdg{font-size:9.5px;font-weight:800;padding:0 4px;border-radius:5px;line-height:13px;flex:none;color:#fff}
+.ox-seat.empty{justify-content:center;align-items:center;background:var(--alt);border-style:dashed;border-color:var(--ox-mut);opacity:.6}
+.ox-ed .ox-seat.empty::after{content:"+";color:var(--ox-mut);font-size:18px;font-weight:800;line-height:1}
+.ox-seat.sel{outline:3px solid var(--acc);outline-offset:-1px}
+.ox-seat.over,.ox-seat.empty.over{outline:3px dashed var(--acc);outline-offset:-1px;background:var(--acc-soft);opacity:1}
+.ox-seat.st{border-width:2px}
+.ox-seat.st .fm,.ox-cmp .ox-seat.st .nm i{color:var(--text)}
+.ox-ed .ox-seat[data-n]{cursor:grab}
+/* ixcham (telefon): bir partadagi o'rinlar ustma-ust, har biri bitta qator */
+.ox-cmp .ox-desk{flex-direction:column;padding:2px;gap:2px;border-radius:8px}
+.ox-cmp .ox-seat{flex:none;flex-direction:row;height:30px;padding:0 4px;gap:4px;border-radius:6px;text-align:left}
+.ox-cmp .ox-seat .no{min-width:13px;font-size:9px;text-align:right}
+.ox-cmp .ox-seat .nm{flex:1;min-width:0;font-size:12px}
+.ox-cmp .ox-seat .nm i{font-style:normal;font-weight:600;color:var(--ox-mut);font-size:10.5px}
+.ox-cmp .ox-grid{gap:7px 6px}.ox-cmp .ox-cols{gap:6px}
+.ox-ghost{position:fixed;z-index:2147483000;pointer-events:none;padding:8px 12px;border-radius:10px;background:var(--acc);color:var(--acc-fg);font-weight:800;box-shadow:0 10px 24px -6px rgba(0,0,0,.45);transform:translate(-50%,-120%)}
+body.ox-drag,body.ox-drag *{cursor:grabbing!important}
+
+/* darsdagi yo'qlama: avval holat, keyin joy */
+.ox-brush{display:flex;gap:6px;flex-wrap:wrap}
+.ox-brush button{flex:none;border:2px solid transparent;border-radius:10px;padding:6px 10px;font:inherit;font-weight:800;font-size:12.5px;color:#fff;display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.ox-brush button>i{font-style:normal;background:#fff;color:#1b2a2f;border-radius:6px;padding:0 5px;font-size:11px}
+.ox-brush button.on{border-color:var(--text);box-shadow:0 0 0 2px var(--base) inset}
+
+/* menyular (ichki oyna) */
+.ox-sh h2{display:flex;align-items:center;gap:8px}
+.ox-sh h2 .bi{color:var(--acc)}
+.ox-opt{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:0;background:none;color:var(--text);font:inherit;padding:9px 8px;border-radius:10px;cursor:pointer}
+.ox-opt:hover{background:var(--soft)}
+.ox-opt>.bi{font-size:20px;width:26px;text-align:center;color:var(--acc)}
+.ox-opt b{display:block;font-size:13.5px}
+.ox-opt b .bi{color:var(--acc);margin-left:4px}
+.ox-opt span span{font-size:12px;color:var(--ox-mut)}
+.ox-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 2px;flex-wrap:wrap}
+.ox-step{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--base);overflow:hidden}
+.ox-step button{border:0;background:none;color:var(--text);width:36px;height:36px;font:inherit;font-weight:800;font-size:17px;cursor:pointer}
+.ox-step b{min-width:24px;text-align:center;font-variant-numeric:tabular-nums}
+
+/* hisobot oynasi */
+.modal .card:has(.ox-pdlg){width:min(1060px,100%)}
+.ox-pvw{background:#8a949c;border-radius:10px;padding:4px;overflow:hidden}
+.ox-pvw .ox-pv{transform-origin:0 0;width:1123px}
+.ox-host{position:absolute;left:-99999px;top:0;visibility:hidden;pointer-events:none}
+
+/* A4 albom varaq (.bx-pg.bx-land — bsb-eksport.css) */
+.bx-pg.oxp{padding:36px 44px 28px;font-family:"Manrope",system-ui,sans-serif;color:#111}
+.oxp .oxp-h{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #111;padding-bottom:8px}
+.oxp .oxp-t{font-size:25px;font-weight:800;letter-spacing:.06em;line-height:1.1}
+.oxp .oxp-c{font-size:14.5px;margin-top:3px}
+.oxp .oxp-c b{font-size:16.5px}
+.oxp .oxp-r{text-align:right;font-size:12.5px;line-height:1.6}
+.oxp .oxp-f{display:flex;align-items:center;gap:16px;margin:12px 0 8px}
+.oxp .oxp-f.b{margin:10px 0 0}
+.oxp .oxp-board{flex:1;border:2px solid #111;background:#2b2b2b;color:#fff;text-align:center;font-weight:800;letter-spacing:.3em;font-size:13px;padding:5px 0;border-radius:3px}
+.oxp .oxp-td{border:1.5px solid #111;padding:5px 12px;font-size:11.5px;font-weight:700;border-radius:3px}
+.oxp .oxp-cols{display:grid;gap:26px;margin-bottom:6px}
+.oxp .oxp-cols.b{margin:6px 0 0}
+.oxp .oxp-cols span{text-align:center;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid #999;padding-bottom:2px}
+.oxp .oxp-g{flex:1;display:grid;gap:9px 26px;min-height:0}
+.oxp .oxp-d{display:flex;border:1.8px solid #111;border-radius:4px;position:relative;min-height:0}
+.oxp .oxp-dn{position:absolute;left:-20px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;color:#666}
+.oxp .oxp-s{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:7px;padding:3px 7px;position:relative}
+.oxp .oxp-s+.oxp-s{border-left:1.2px dashed #777}
+.oxp .oxp-n{flex:none;width:21px;height:21px;border-radius:50%;border:1.5px solid #111;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800}
+.oxp .oxp-nm{min-width:0;line-height:1.15}
+.oxp .oxp-nm b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oxp .oxp-nm span{display:block;font-size:11.5px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oxp .oxp-a{position:absolute;right:5px;top:3px;font-size:10px;font-weight:800;color:#444}
+.oxp .oxp-s.e{background:repeating-linear-gradient(135deg,#fff 0 6px,#ececec 6px 7px)}
+.oxp .oxp-s.e .oxp-n{border-style:dashed;color:#999;border-color:#999}
+.oxp .oxp-ft{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;border-top:1.5px solid #111;margin-top:10px;padding-top:7px;font-size:12px;line-height:1.55}
+.oxp .oxp-sig{white-space:nowrap}
+.oxp.big .oxp-nm b{font-size:15px}.oxp.big .oxp-nm span{font-size:13px}.oxp.big .oxp-n{width:25px;height:25px;font-size:12px}
+
+@media screen and (max-width:640px){
+  .ox-room{padding:8px 4px;border-radius:12px}
+  .ox-top h2{font-size:16px}
+  .ox-bar.ox-scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .ox-brush{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+  .ox-brush button{padding:5px 8px;font-size:12px}
+}
