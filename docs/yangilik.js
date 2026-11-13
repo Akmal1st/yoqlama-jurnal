@@ -8,7 +8,7 @@
    va NEWS boshiga yozuv qo'shing.
    Bu fayl asosiy skriptdan OLDIN ulanadi; S, go, render, renderNav, esc, $ … faqat chaqirilganda ishlatiladi. */
 const YNG = (() => {
-  const VER = 230, KEY = "yoqlama_yangilik";
+  const VER = 232, KEY = "yoqlama_yangilik";
   const P = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const IC = {
     spark: P('<path d="M12 3l1.8 4.9L19 9.7l-5.2 1.8L12 16.5l-1.8-5L5 9.7l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>'),
@@ -22,6 +22,10 @@ const YNG = (() => {
     bug: P('<rect x="7" y="7" width="10" height="13" rx="5"/><path d="M12 7v13M4 12h3M17 12h3"/>')};
   // go: [sahifa, Sozlamalar bo'limi] — «Ochish» shu joyga olib boradi
   const NEWS = [
+    {v: 232, d: "13-noyabr", items: [
+      {ic: "print", t: "Kriterial: chop etish va PDF — 4 xil hujjat", s: "Kriterial (+/−) → «Chop etish / PDF»: dars varaqasi, bo'sh varaq (1–5 dars birdaniga), chorak jamlanmasi (har dars bahosi va deskriptorlar %) va ota-onaga o'quvchi kartalari (A4 da 2 ta, kesib beriladi). Albom yoki tik varaq, rangli yoki oq-qora; varaq sinf kattaligiga qarab o'zi sig'adi.", go: ["journal"], gl: "Jurnal"},
+      {ic: "print", t: "Bo'sh varaq: kriteriya va fan nomi", s: "Bo'sh varaqda kriteriyalarni tanlaysiz: sinfdagi, fan shabloni yoki qo'lda yoziladigan chiziq — va shu yerning o'zida o'zgartirasiz. Fan nomini bo'sh qoldirsangiz, varaq istalgan fanga ishlatiladi.", go: ["journal"], gl: "Jurnal"},
+      {ic: "star", t: "Telegram'ga PDF va xulosa matni", s: "PDF bilan birga sinf xulosasi (keldi, o'rtacha, baholar taqsimoti) Telegram botingizga boradi; matnni yuborishdan oldin o'zgartirsa bo'ladi.", go: ["journal"], gl: "Jurnal"}]},
     {v: 230, d: "12-noyabr", items: [
       {ic: "star", t: "Kalendar-tematik reja — alohida sahifa", s: "Sinf menyusi → «KTR»: bugungi dars kartasi (bajarilish halqasi bilan), chorak kartalari, har mavzu o'z sanasi va holati bilan (o'tildi, bugun, rejada, kun yetmaydi). Soatni −/+ bilan o'zgartirasiz, ⋯ menyusidan tahrirlash, ko'chirish, nusxa, o'chirish. Sanani bossangiz — «Bu kunda dars bo'lmadi», keyingi mavzular o'zi suriladi."},
       {ic: "star", t: "KTR: har darsga uy vazifasi", s: "Har mavzuga uy vazifasi yoziladi (ko'p soatli mavzuda har dars uchun alohida). U shu dars kunining «Uy vazifasi» maydoniga o'zi tushadi; darsda o'zingiz o'zgartirsangiz — sizniki qoladi."},
