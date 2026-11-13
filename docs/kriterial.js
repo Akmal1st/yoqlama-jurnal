@@ -189,7 +189,7 @@ const KRT = (() => {
       const P = {g: [], p: Array(N).fill(0), n: Array(N).fill(0), ab: 0};
       for (const x of ds) {
         if (preJoin(c, s, x)) { P.g.push(null); continue; }
-        if (absent(s.marks[x])) { P.ab++; P.g.push(null); continue; }
+        if (absent(s.marks[x])) { if (attPart(s.marks[x]) !== "ch") P.ab++; P.g.push(null); continue; }   // CH — «qatnashmagan» emas
         const a = marks(s, x); P.g.push(a.every(Boolean) ? sum(a)[0] + sum(a)[1] : null);
         a.forEach((v, k) => { if (v) { P.n[k]++; if (v === "p") P.p[k]++; } });
       }

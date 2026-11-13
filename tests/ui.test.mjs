@@ -5629,3 +5629,69 @@ test("Bo'sh varaq: shrift to'plamlari — «Dizaynga mos» va qo'lda tanlash, ek
     }
   } finally { await browser.close(); }
 });
+
+test("Tahlil tuzatishlari (v233): o'rindiq o'rtacha bahosi, arxiv chorak KTR'dan himoyalangan, CH, ota-ona sanasi va ism mosligi (36 va 18 o'quvchi)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const n of [36, 18]) {
+      // Toshkent vaqti bilan tun (01:30) — UTC bo'yicha hali kechagi kun
+      const page = await browser.newPage({viewport: {width: 1280, height: 860}, timezoneId: "Asia/Tashkent"});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 10, 20, 1, 30));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      const r = await page.evaluate((n) => {
+        const c = D.classes[0], base = c.students[0];
+        for (let i = c.students.length; i < n; i++) c.students.push(Object.assign(JSON.parse(JSON.stringify(base)), {name: `Sinovov O'quvchi${i + 1}`}));
+        c.students.length = n;
+        // 1) o'rindiq: joriy chorakda baho bor o'quvchilarga o'rtacha baho
+        const q = quarterOf(todayIso()), [lo, hi] = qRange(q), d = c.dates.find((x) => x >= lo && x <= todayIso() && !isNoLesson(c, x)) || (() => { const x = lo; c.dates.push(x); c.dates.sort(); return x; })();
+        c.students.forEach((s, i) => { s.marks[d] = String(2 + (i % 9)); });
+        const L = ORX.of(c, true); ORX.autoFill(c, L, "weak");
+        const front = L.at["0-0"], avgShown = (ORX.pageHtml(c, {flip: false, avg: true}).match(/oxp-a/g) || []).length;
+        // 2) KTR: arxivlangan 1-chorak darslari rejaning o'zgarishidan o'zgarmaydi
+        D.web.arx = {auto: false, grace: 3, ask: true, q: {}, log: [], off: []};
+        const k = D.classes[2];
+        for (const x of Object.keys(k.lessons)) delete k.lessons[x];
+        k.plan = {on: true, start: qRange(1)[0], topics: [...Array(30)].map((_, i) => ({t: `Mavzu ${i + 1}`, h: 1, q: i < 18 ? 1 : 2}))};
+        reflowPlan(k);
+        const q1 = () => JSON.stringify(Object.entries(k.lessons).filter(([x]) => x <= qRange(1)[1]).sort().map(([x, l]) => [x, l.topic, l.hw]));
+        const before = q1();
+        D.web.arx.q[1] = {r: qRange(1), snap: []};
+        k.plan.topics[2].h = 2; k.plan.topics.splice(1, 0, {t: "Qo'shimcha", h: 1, q: 1}); reflowPlan(k);
+        const lockedSame = q1() === before && ARX.lockedQ(1);
+        delete D.web.arx.q[1]; reflowPlan(k);
+        const unlockedChanged = q1() !== before;
+        return {front, weakest: c.students.find((s) => s.marks[d] === "2").name, avgShown, lockedSame, unlockedChanged};
+      }, n);
+      assert.ok(r.avgShown >= n - 1, `o'rtacha baho varaqda ko'rinadi (${r.avgShown}/${n})`);
+      assert.equal(r.front, r.weakest, "«Past baholilar oldinga» — eng past baholi doskaga yaqin");
+      assert.ok(r.lockedSame, "arxivlangan chorak darslari o'zgarmadi");
+      assert.ok(r.unlockedChanged, "arxiv ochilsa reja yana taqsimlanadi");
+      // 3) CH: KTR'dagi «kelganlar» soniga kirmaydi
+      const kel = await page.evaluate(() => {
+        const c = D.classes[0], d = c.dates.filter((x) => x <= todayIso() && !isNoLesson(c, x)).pop();
+        c.students.forEach((s) => { s.marks[d] = ""; }); c.students[0].marks[d] = "ch"; c.students[1].marks[d] = "s";
+        c.plan = {on: true, start: d, topics: [{t: "CH sinovi", h: 1, q: quarterOf(d)}]}; reflowPlan(c); save();
+        S.ci = 0; KTR.open(0); return [c.students.length, d];
+      });
+      await page.waitForSelector(".kt-tr[data-kti]");
+      assert.ok((await page.textContent(".kt-kl")).includes(`${kel[0] - 2}/${kel[0]}`), "CH va S kelganlar soniga kirmaydi");
+      // 4) Ota-onalar eMaktab'i: tunda kirilgan bo'lsa «bugun»; «Ali» «Alisher»ga bog'lanmaydi
+      const o = await page.evaluate(() => {
+        const c = D.classes[0]; c.students[2].name = "Valiyev Alisher"; c.students[3].name = "Valiyev Ali";
+        const at = Date.now() - 20 * 60000;   // 01:10 mahalliy (UTC bo'yicha kechagi kun)
+        localStorage.setItem("yoqlama_ota_emk", JSON.stringify({store: "A", pin: null, p: {[`${normName(c.name)}|${normName(c.students[4].name)}`]: {u: "x", st: "ok", c: [], at}}, pg: {bosh: 1}, consent: true, who: "all"}));
+        OTE._t.load();
+        return {m1: (OTE._t.match(c, "Valiyev Alisher") || {}).name, m2: (OTE._t.match(c, "Valiyev Ali Karimovich") || {}).name, m3: OTE._t.match(c, "Valiyev Alishe") };
+      });
+      assert.deepEqual([o.m1, o.m2, o.m3], ["Valiyev Alisher", "Valiyev Ali", null]);
+      await page.evaluate(() => { D.web.on = {otaemk: 1}; OTE.open(0); });
+      await page.waitForSelector(".ot-sum");
+      assert.match(await page.textContent(".ot-sum"), /1 \/ 1\s*bugun kirildi/);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});
