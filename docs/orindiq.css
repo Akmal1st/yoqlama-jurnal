@@ -4,14 +4,17 @@
   --ox-s:#b8322a;--ox-dq:#1565c0;--ox-k:#7b1fa2;--ox-kq:#6d4c41;--ox-ch:#00695c;
   --ox-s-t:#fbe4e1;--ox-dq-t:#e1ebfa;--ox-k-t:#f2e4f7;--ox-kq-t:#efe6e2;--ox-ch-t:#dcf0ec;
   --ox-desk:#e9dfcb;--ox-board:#2f4f4a;--ox-mut:#56625f;
+  --ox-gm:#1d5fa8;--ox-gm-t:#e3edf9;--ox-gf:#a3246b;--ox-gf-t:#f8e3ef;
 }
 :root[data-theme="dark"]{
   --ox-s-t:#4a2220;--ox-dq-t:#1b2f4d;--ox-k-t:#3a2147;--ox-kq-t:#3a2c26;--ox-ch-t:#123a35;
   --ox-desk:#2a3a3e;--ox-board:#1f3a36;--ox-mut:#93a4a3;
+  --ox-gm:#9cc4ff;--ox-gm-t:#1b2f4d;--ox-gf:#f5a3cf;--ox-gf-t:#45203a;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]):not([data-theme="dark"]){
   --ox-s-t:#4a2220;--ox-dq-t:#1b2f4d;--ox-k-t:#3a2147;--ox-kq-t:#3a2c26;--ox-ch-t:#123a35;
   --ox-desk:#2a3a3e;--ox-board:#1f3a36;--ox-mut:#93a4a3;
+  --ox-gm:#9cc4ff;--ox-gm-t:#1b2f4d;--ox-gf:#f5a3cf;--ox-gf-t:#45203a;
 }}
 
 /* tahrirlash oynasi */
@@ -136,3 +139,19 @@ body.ox-drag,body.ox-drag *{cursor:grabbing!important}
   .ox-brush{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:2px 0}
   .ox-brush button{padding:5px 8px;font-size:12px}
 }
+
+/* o'g'il-qiz (maket v6, 2026-11-13) */
+.ox-seat .gx{font-size:10px;line-height:1;flex:none}.ox-seat .gx.m{color:var(--ox-gm)}.ox-seat .gx.f{color:var(--ox-gf)}
+.ox-cmp .ox-seat .gx{font-size:9px}
+.ox-seat.sxm{box-shadow:inset 0 -3px 0 var(--ox-gm)}.ox-seat.sxf{box-shadow:inset 0 -3px 0 var(--ox-gf)}
+.ox-sel .btn.ox-gm{color:var(--ox-gm)}.ox-sel .btn.ox-gf{color:var(--ox-gf)}
+.ox-lnk{border:0;background:none;color:var(--acc);font:inherit;font-weight:700;padding:6px 8px;font-size:13px;text-decoration:underline;cursor:pointer;align-self:flex-start}
+.ox-gsum{display:flex;gap:8px;flex-wrap:wrap;font-size:12.5px;font-weight:700;margin:6px 0}
+.ox-gsum span{padding:3px 9px;border-radius:999px;background:var(--soft)}
+.ox-gsum .m{background:var(--ox-gm-t);color:var(--ox-gm)}.ox-gsum .f{background:var(--ox-gf-t);color:var(--ox-gf)}.ox-gsum .u{background:var(--ox-s-t);color:var(--ox-s)}
+.ox-gl{display:flex;flex-direction:column;max-height:52vh;overflow:auto;margin:0 -4px;padding:0 4px}
+.ox-gl .r{display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid var(--line)}
+.ox-gl .r b{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ox-gl .r.unk b::after{content:" · aniqlanmadi";color:var(--ox-s);font-weight:700;font-size:11px}
+.ox-gl .seg button{padding:5px 9px;font-size:12px}
+.ox-gl .seg button.on.m{background:var(--ox-gm-t);color:var(--ox-gm)}.ox-gl .seg button.on.f{background:var(--ox-gf-t);color:var(--ox-gf)}
