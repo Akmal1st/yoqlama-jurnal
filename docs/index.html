@@ -65,7 +65,7 @@
 <script src="dizayn.js?v=202"></script>
 <script src="hisobot-chop.js?v=217"></script>
 <script src="hisobotlar.js?v=229"></script>
-<script src="bosh-varaq.js?v=227"></script>
+<script src="bosh-varaq.js?v=231"></script>
 <script src="davomat.js?v=221"></script>
 <script src="bsb-eksport.js?v=202"></script>
 <script src="bsb-yangi.js?v=202"></script>
@@ -75,8 +75,8 @@
 <script src="funksiyalar.js?v=224"></script>
 <script src="sozlamalar.js?v=216"></script>
 <script src="mezon.js?v=221"></script>
-<script src="kriterial.js?v=228"></script>
-<script src="orindiq.js?v=229"></script>
+<script src="kriterial.js?v=231"></script>
+<script src="orindiq.js?v=231"></script>
 <script src="ktr.js?v=230"></script>
 <script src="kunlik.js?v=221"></script>
 <script src="pdf-tg.js?v=227"></script>
@@ -84,11 +84,11 @@
 <script src="arxiv.js?v=207"></script>
 <script src="emk-bir.js?v=197"></script>
 <script src="emk-server.js?v=222"></script>
-<script src="ota-emk.js?v=228"></script>
+<script src="ota-emk.js?v=231"></script>
 <script src="boshlash.js?v=213"></script>
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=218"></script>
-<script src="loyiha.js?v=218"></script>
+<script src="loyiha.js?v=231"></script>
 <script src="yangilik.js?v=230"></script>
 <script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=214"></script>
@@ -3700,7 +3700,7 @@ function bsbReportHtml(meta, an, rec, pdf) {
 }
 /* eksport fayl nomi: «sinf-nomi_fan_sana_IshTuri», masalan 6-A_Matematika_2026-10-31_CHSB */
 function baFileBase(c, B) {
-  const part = (x, d) => String(x || d).trim().replace(/[^\p{L}\p{N}-]+/gu, "-").replace(/^-+|-+$/g, "") || d;
+  const part = (x, d) => String(x || d).trim().replace(/[^\p{L}\p{N}'ʻʼ‘’-]+/gu, "-").replace(/^-+|-+$/g, "") || d;
   return [part(c.name, "sinf"), part(c.subject, "fan"), part(B.date, "sana"), part(B.kind, "BSB")].join("_");
 }
 function printDoc(html, land, fit, fname) {
@@ -4367,7 +4367,7 @@ function statsData(c, lo, hi) {
 }
 // Excel (.xlsx) — SheetJS internetdan bir marta yuklanadi; bo'lmasa CSV
 async function saveTable(name, aoa, cols) {
-  const fn = name.replace(/[^\p{L}\p{N}_ .-]+/gu, "_");
+  const fn = name.replace(/[^\p{L}\p{N}'ʻʼ‘’_ .-]+/gu, "_");
   try {
     const X = await loadXlsx(), ws = X.utils.aoa_to_sheet(aoa), wb = X.utils.book_new();
     ws["!cols"] = cols.map((w) => ({wch: w})); X.utils.book_append_sheet(wb, ws, "Hisobot"); X.writeFile(wb, fn + ".xlsx");

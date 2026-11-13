@@ -1747,18 +1747,20 @@ test("Sinf hisoboti: saralash, xavf filtri, sifat/o'zlashtirish va Excel", async
   try {
     const page = await browser.newPage({viewport: {width: 1300, height: 900}, acceptDownloads: true});
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));   // 1-chorak ichidagi kun: natija bugungi sanaga bog'liq bo'lmasin
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     await page.evaluate(() => { S.rep = {ci: 0, per: "cur", kind: "cls"}; go("reports"); });
-    const avgs = () => page.$$eval("table.rcls tr:not(.tot)", (tr) => tr.slice(1).map((r) => parseFloat(r.cells[2].textContent)).filter((x) => !isNaN(x)));
+    const avgs = () => page.$$eval("table.rcls tbody tr", (tr) => tr.map((r) => parseFloat(r.cells[2].textContent)).filter((x) => !isNaN(x)));
     await page.click('th[data-rs="avg"]');
     let a = await avgs(); assert.deepEqual(a, a.slice().sort((x, y) => y - x), "kamayish tartibida");
     await page.click('th[data-rs="avg"]');
     a = await avgs(); assert.deepEqual(a, a.slice().sort((x, y) => x - y), "o'sish tartibida");
     const nRisk = await page.evaluate(() => { const [lo, hi] = repRange("cur"); return reportRows(D.classes[0], lo, hi).rows.filter((r) => r.risk).length; });
     await page.click('[data-rf="risk"]');
-    assert.equal(await page.$$eval("table.rcls tr:not(.tot)", (tr) => tr.length - 1), nRisk);
+    assert.ok(nRisk > 0, "xavf ostidagilar bor");
+    assert.equal(await page.$$eval("table.rcls tbody tr", (tr) => tr.length), nRisk);   // jami qatori (tfoot) sanalmaydi
     // sifat — chorak bahosi 4–5 ulushi; o'zlashtirish — o'rtacha jami ball (100 dan), faqat to'liq chiqqanlar
     const ql = await page.evaluate(() => qualityOf([{q: {complete: true, grade: 5, total: 90}}, {q: {complete: true, grade: 3, total: 45}}, {q: {complete: true, grade: 2, total: 21}}, {q: {complete: false, total: 99}}]));
     assert.equal(ql.n, 3); assert.equal(Math.round(ql.q), 33); assert.equal(ql.u, 52);
@@ -2886,6 +2888,9 @@ test("CHSB testi: to'g'ri javob belgilanadi, o'quvchi varianti mos kelsa maksima
     // eksport fayl nomi: sinf_fan_sana_IshTuri (Excel va PDF)
     const fn = await page.evaluate(() => { const c = D.classes[S.ci], w = c.works.find((x) => x.id === S.tw), B = chsbB(c, w); window.print = () => { window.__pt = document.title; }; printDoc("<p>x</p>", false, false, baFileBase(c, B)); return {n: baFileBase(c, B), t: window.__pt, exp: `${c.name}_${c.subject}_${w.date}_CHSB`.replace(/ /g, "-")}; });
     assert.equal(fn.n, fn.exp); assert.equal(fn.t, fn.exp); assert.ok(/^[^_]+_[^_]+_\d{4}-\d{2}-\d{2}_CHSB$/.test(fn.n), fn.n);
+    // fayl nomida tutuq belgisi (' ʻ ʼ ‘ ’) saqlanadi — «O'zbek tili» «O-zbek-tili» bo'lib qolmasin
+    assert.equal(await page.evaluate(() => baFileBase({name: "9-A", subject: "O'zbek tili"}, {date: "2026-10-31", kind: "CHSB"})), "9-A_O'zbek-tili_2026-10-31_CHSB");
+    assert.equal(await page.evaluate(() => baFileBase({name: "7-B", subject: "Gʻ ʼ ‘’"}, {date: "2026-10-31", kind: "BSB"})), "7-B_Gʻ-ʼ-‘’_2026-10-31_BSB");
     // «max» tugmasi: hamma savolga to'g'ri javob → to'liq ball (10), o'quvchi bo'sh bo'lsa ham
     await page.click('[data-tmax="4"]');
     assert.equal(await page.evaluate(() => (D.classes[S.ci].students[4].scores || {}).wt1 ?? null), 10);

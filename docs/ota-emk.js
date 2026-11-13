@@ -255,7 +255,7 @@ const OTE = (() => {
   async function template(c) {
     const X = await loadXlsx(), aoa = [["№", "O'quvchi", "Login", "Parol"], ...c.students.map((s, i) => [i + 1, s.name, "", ""])];
     const ws = X.utils.aoa_to_sheet(aoa); ws["!cols"] = [{wch: 5}, {wch: 34}, {wch: 22}, {wch: 22}];
-    const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, "Ota-onalar"); X.writeFile(wb, `ota-onalar-${label(c).replace(/[^\p{L}\p{N}]+/gu, "-")}.xlsx`);
+    const wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, "Ota-onalar"); X.writeFile(wb, `ota-onalar-${label(c).replace(/[^\p{L}\p{N}'ʻʼ‘’]+/gu, "-")}.xlsx`);
   }
   function xlDialog() {
     const c = cls(); let rows = [];

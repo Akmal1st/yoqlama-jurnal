@@ -388,7 +388,7 @@ const KRT = (() => {
     const html = host.innerHTML; host.innerHTML = "";
     return html;
   }
-  const fileOf = (c, d) => `Formativ_${label(c)}_${d}`.replace(/[^\p{L}\p{N}_-]+/gu, "_");
+  const fileOf = (c, d) => `Formativ_${label(c)}_${d}`.replace(/[^\p{L}\p{N}'ʻʼ‘’_-]+/gu, "_");
   function doPrint(c, d, blank) {
     let el = document.getElementById("pdoc"); if (!el) { el = document.createElement("div"); el.id = "pdoc"; document.body.append(el); }
     el.className = "bx-print"; el.innerHTML = fitted(c, d, blank); document.body.classList.add("pdoc");
