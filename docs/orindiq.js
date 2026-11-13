@@ -303,7 +303,7 @@ const ORX = (() => {
       <div class="oxp-ft"><div>Jami: <b>${c.students.length}</b> o'quvchi · joylashgan: <b>${placed}</b> · bo'sh o'rin: <b>${Math.max(0, empty)}</b>${unplaced > 0 ? ` · <b>joy berilmagan: ${unplaced}</b>` : ""}${away.length ? `<br>Chet elda (joy berilmagan): ${away.map(esc).join(", ")}` : ""}${F ? "<br>Ko'rinish: o'qituvchi stolidan" : ""}</div>
         <div class="oxp-sig">O'qituvchi imzosi: ______________</div></div></div>`;
   }
-  const fileOf = (c) => `Orindiq_xaritasi_${c.name}`.replace(/[^\p{L}\p{N}_-]+/gu, "_");
+  const fileOf = (c) => `Orindiq_xaritasi_${c.name}`.replace(/[^\p{L}\p{N}'ʻʼ‘’_-]+/gu, "_");
   function doPrint(html, name) {
     let el = document.getElementById("pdoc"); if (!el) { el = document.createElement("div"); el.id = "pdoc"; document.body.append(el); }
     el.className = "bx-print"; el.innerHTML = html; document.body.classList.add("pdoc");

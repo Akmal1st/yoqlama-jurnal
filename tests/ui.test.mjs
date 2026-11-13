@@ -2886,6 +2886,9 @@ test("CHSB testi: to'g'ri javob belgilanadi, o'quvchi varianti mos kelsa maksima
     // eksport fayl nomi: sinf_fan_sana_IshTuri (Excel va PDF)
     const fn = await page.evaluate(() => { const c = D.classes[S.ci], w = c.works.find((x) => x.id === S.tw), B = chsbB(c, w); window.print = () => { window.__pt = document.title; }; printDoc("<p>x</p>", false, false, baFileBase(c, B)); return {n: baFileBase(c, B), t: window.__pt, exp: `${c.name}_${c.subject}_${w.date}_CHSB`.replace(/ /g, "-")}; });
     assert.equal(fn.n, fn.exp); assert.equal(fn.t, fn.exp); assert.ok(/^[^_]+_[^_]+_\d{4}-\d{2}-\d{2}_CHSB$/.test(fn.n), fn.n);
+    // fayl nomida tutuq belgisi (' ʻ ʼ ‘ ’) saqlanadi — «O'zbek tili» «O-zbek-tili» bo'lib qolmasin
+    assert.equal(await page.evaluate(() => baFileBase({name: "9-A", subject: "O'zbek tili"}, {date: "2026-10-31", kind: "CHSB"})), "9-A_O'zbek-tili_2026-10-31_CHSB");
+    assert.equal(await page.evaluate(() => baFileBase({name: "7-B", subject: "Gʻ ʼ ‘’"}, {date: "2026-10-31", kind: "BSB"})), "7-B_Gʻ-ʼ-‘’_2026-10-31_BSB");
     // «max» tugmasi: hamma savolga to'g'ri javob → to'liq ball (10), o'quvchi bo'sh bo'lsa ham
     await page.click('[data-tmax="4"]');
     assert.equal(await page.evaluate(() => (D.classes[S.ci].students[4].scores || {}).wt1 ?? null), 10);

@@ -432,7 +432,7 @@ const BVQ = (() => {
       let nm = String(label(c)).replace(/[\\/?*\[\]:]/g, " ").trim().slice(0, 31) || "Varaq"; for (let k = 2; used.has(nm.toLowerCase()); k++) nm = nm.slice(0, 28) + " " + k; used.add(nm.toLowerCase());
       XL.utils.book_append_sheet(wb, ws, nm);
     }
-    XL.writeFile(wb, `${(B.all ? "barcha sinflar" : label(X.c)).replace(/[^\p{L}\p{N}_ .-]+/gu, "_")} bo'sh varaq.xlsx`, {cellStyles: true});
+    XL.writeFile(wb, `${(B.all ? "barcha sinflar" : label(X.c)).replace(/[^\p{L}\p{N}'ʻʼ‘’_ .-]+/gu, "_")} bo'sh varaq.xlsx`, {cellStyles: true});
   }
   // Excel kutubxonasi yuklanmasa — oddiy jadval (avvalgi usul)
   function xlsxPlain(X) {
