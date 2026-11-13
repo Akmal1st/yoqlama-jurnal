@@ -107,7 +107,7 @@ const KRT = (() => {
     return `<div class="kr-att"><b>Davomat</b><span>Keldi <b>${n - ab}</b> / ${n}</span>${DAY_ATT.map(([v, t]) => { const col = markColors(v); return `<span title="${esc(t)}"><i style="${col ? `background:${col[0]};color:${col[1]}` : ""}">${v.toUpperCase()}</i>${esc(t.split(" (")[0])} <b>${cnt(v)}</b></span>`; }).join("")}</div>`;
   }
   // asboblar (mezon.js dagi «Mezon bo'yicha / Kriterial / Oddiy» panelining o'ng tomoni)
-  const tools = () => `<button class="btn" type="button" data-kred>✎ Deskriptorlar</button><button class="btn" type="button" data-krpr>🖨 Chop etish / Telegram</button>`;
+  const tools = () => `<button class="btn" type="button" data-kred>✎ Deskriptorlar</button><button class="btn" type="button" data-krpr>🖨 Chop etish / PDF</button>`;
   function head(c) {
     const ds = descs(c);
     return `<thead><tr class="g"><th class="nm" rowspan="2">O'quvchi</th><th class="att" rowspan="2">Davomat</th>
@@ -346,76 +346,7 @@ const KRT = (() => {
       };
     });
   }
-  /* ── A4 albom varaq: chop etish va Telegram PDF bitta HTML dan (maket v4, 2026-11-11) ──
-     .bx-pg/.bx-land o'lchamlari bsb-eksport.css da; ichki ko'rinish .krp-* (kriterial.css). */
-  function pageHtml(c, d, blank, fs, rh) {
-    const ds = descs(c), R = c.students.map((s, si) => si).filter((si) => !preJoin(c, c.students[si], d));
-    const gs2 = (k) => k === ND ? "gs2" : "";
-    const rows = R.map((si, n) => {
-      const s = c.students[si], mk = s.marks[d] || "", i = info(s, d), a = attPart(mk);
-      const att = blank ? "" : absent(mk) ? a.toUpperCase() : lateOf(mk) ? "KQ" : "";
-      if (!blank && absent(mk)) return `<tr><td>${n + 1}</td><td class="n">${esc(s.name)}</td><td>${att}</td><td colspan="${N + 4}" class="i">${esc((DAY_ATT.find((x) => x[0] === a) || [0, "Darsda yo'q"])[1].split(" (")[0])} — baho qo'yilmaydi</td></tr>`;
-      const oth = !blank && other(s, d), gso = gradesOf(mk);
-      if (oth) return `<tr><td>${n + 1}</td><td class="n">${esc(s.name)}</td><td>${att}</td><td class="gs2"></td>${ds.map((t, k) => `<td class="${gs2(k)}"></td>`).join("")}<td class="gs2"></td><td></td><td class="gs2 sm">${esc(gso.join("/"))}</td></tr>`;
-      return `<tr><td>${n + 1}</td><td class="n">${esc(s.name)}</td><td>${att}</td><td class="gs2">${blank ? "" : "1"}</td>${i.a.map((v, k) => `<td class="pm ${gs2(k)}">${blank || !v ? "" : sym(v)}</td>`).join("")}<td class="gs2 sm">${blank || !i.any ? "" : i.d}</td><td class="sm">${blank || !i.any ? "" : i.u}</td><td class="gs2 sm">${blank || !i.full ? "" : i.g}</td></tr>`;
-    }).join("");
-    const L = liveOf(c, d), F = L.map((si) => info(c.students[si], d)).filter((i) => i.full), avg = F.length ? F.reduce((a, i) => a + i.g, 0) / F.length : 0;
-    const ftr = blank ? "" : `<tr class="ftr"><td colspan="3" class="n" style="text-align:right">«+» ulushi (sinf)</td><td class="gs2">—</td>${ds.map((t, k) => { const cs = colStat(c, d, k); return `<td class="${gs2(k)}">${cs.pct == null ? "—" : cs.pct + "%"}</td>`; }).join("")}<td class="gs2">—</td><td>—</td><td class="gs2">${F.length ? Math.round(avg * 10) / 10 : "—"}</td></tr>`;
-    const dist = blank ? "" : [["8–10", (g) => g >= 8], ["5–7", (g) => g >= 5 && g < 8], ["1–4", (g) => g < 5]].map(([l, f]) => `<span>${l}: <b>${F.filter((i) => f(i.g)).length}</b> ta</span>`).join("");
-    const stat = blank ? "" : `<div class="krp-st"><span>Keldi: <b>${L.length} / ${R.length}</b></span><span>Jurnalga yozildi: <b>${F.length}</b></span><span>O'rtacha: <b>${F.length ? Math.round(avg * 10) / 10 : "—"}</b></span>${dist}</div>`;
-    return `<div class="bx-pg bx-land krp" style="--fs:${fs}px;--rh:${rh}px">
-      <div class="krp-hd"><div><h3>Formativ baholash varaqasi (kriterial)</h3><span>${esc(label(c))} · ${blank ? "Sana: «____» ______________ 202__-y. · ____-dars" : `${fmt(d)}, ${WD_FULL[pyWd(d)].toLowerCase()}`}</span></div>
-        <div class="krp-fx">Baho = <b>1</b> + darsdagi ish «+» + uy vazifasi «+»<br>darsdagi ish 1–6 · uy vazifasi 0–4 · jami <b>1–10</b></div></div>
-      <div class="krp-leg"><div><b>Darsdagi ish · 1–6 ball</b><div class="cols"><div><b>D0</b> Darsda qatnashdi — 1 ball (o'zi qo'yiladi)</div>${ds.slice(0, ND).map((t, k) => `<div><b>${code(k)}</b> ${esc(t)}</div>`).join("")}</div></div>
-        <div><b>Uy vazifasi · 0–4 ball</b><div class="cols">${ds.slice(ND).map((t, k) => `<div><b>${code(k + ND)}</b> ${esc(t)}</div>`).join("")}</div></div></div>
-      <table class="krp-t"><colgroup><col style="width:24px"><col style="width:200px"><col style="width:34px"><col style="width:32px">${ds.map(() => "<col>").join("")}<col style="width:34px"><col style="width:34px"><col style="width:42px"></colgroup>
-        <thead><tr><th>№</th><th>O'quvchi</th><th>Dav.</th><th class="gs2" title="Darsda qatnashdi">D0<br>1 b</th>${ds.map((t, k) => `<th class="${gs2(k)}">${code(k)}<br>1 b</th>`).join("")}<th class="gs2">D<br>1–6</th><th>U<br>0–4</th><th class="gs2">Baho</th></tr></thead>
-        <tbody>${rows}${ftr}</tbody></table>
-      ${stat}
-      <div class="krp-pf"><span>+ bajardi (1 ball) · − bajarmadi (0) · S — sababsiz · DQ — sababli · K — kasal · KQ — kech qoldi · CH — chet elda</span><span>O'qituvchi: _________________ Imzo: ________</span></div></div>`;
-  }
-  let host = null;
-  function fitted(c, d, blank) {
-    if (!host) { host = document.createElement("div"); host.className = "krp-host"; host.setAttribute("aria-hidden", "true"); }
-    if (!host.isConnected) document.body.append(host);
-    let fs = 12, rh = 19;
-    for (let i = 0; i < 40; i++) {
-      host.innerHTML = pageHtml(c, d, blank, +fs.toFixed(2), +rh.toFixed(2));
-      const pg = host.firstElementChild;
-      if (pg.scrollHeight <= pg.clientHeight + 1 || fs <= 7.5) break;
-      fs -= 0.25; rh = Math.max(fs * 1.25, rh - 0.6);
-    }
-    const html = host.innerHTML; host.innerHTML = "";
-    return html;
-  }
-  const fileOf = (c, d) => `Formativ_${label(c)}_${d}`.replace(/[^\p{L}\p{N}'ʻʼ‘’_-]+/gu, "_");
-  function doPrint(c, d, blank) {
-    let el = document.getElementById("pdoc"); if (!el) { el = document.createElement("div"); el.id = "pdoc"; document.body.append(el); }
-    el.className = "bx-print"; el.innerHTML = fitted(c, d, blank); document.body.classList.add("pdoc");
-    let st2 = document.getElementById("pdoc-css"); if (!st2) { st2 = document.createElement("style"); st2.id = "pdoc-css"; document.head.append(st2); }
-    st2.textContent = "@media print{@page{size:A4 landscape;margin:0}}";
-    const old = document.title, back = () => { document.title = old; window.removeEventListener("afterprint", back); el.className = ""; };
-    document.title = fileOf(c, d); window.addEventListener("afterprint", back); setTimeout(() => { document.title = old; }, 120000);
-    window.print();
-  }
-  // chop etish / Telegram oynasi: varaq oldindan ko'rinadi, To'ldirilgan/Bo'sh tanlanadi
-  function printDlg(c, d) {
-    let blank = false;
-    modal(`<div class="kr-dlg kr-pdlg"><h2>Chop etish / Telegram · A4 albom</h2>
-      <div class="hrow" style="gap:8px;flex-wrap:wrap"><div class="mz-seg" role="group" aria-label="Varaq turi"><button type="button" class="on" data-kv="fill">To'ldirilgan</button><button type="button" data-kv="blank">Bo'sh varaq (qo'lda + / −)</button></div></div>
-      <div class="krp-pvw"><div class="krp-pv"></div></div>
-      <div class="kr-foot"><button class="btn" type="button" data-x>Yopish</button><span class="sp"></span><button class="btn" type="button" data-ktg>✈️ Telegram'ga (PDF)</button><button class="btn btn-primary" type="button" data-kpr>🖨 Chop etish</button></div></div>`,
-    (m, close) => {
-      const pv = $(".krp-pv", m), box = $(".krp-pvw", m);
-      const draw = () => { pv.innerHTML = fitted(c, d, blank); const w = Math.max(240, box.clientWidth - 4), k = Math.min(1, w / 1123);
-        pv.style.transform = `scale(${k})`; box.style.height = 791 * k + 8 + "px"; };
-      requestAnimationFrame(() => requestAnimationFrame(draw));
-      m.querySelectorAll("[data-kv]").forEach((b) => b.onclick = () => { blank = b.dataset.kv === "blank"; m.querySelectorAll("[data-kv]").forEach((x) => x.classList.toggle("on", x === b)); draw(); });
-      $("[data-x]", m).onclick = () => close();
-      $("[data-kpr]", m).onclick = () => { doPrint(c, d, blank); };
-      $("[data-ktg]", m).onclick = (e) => PTG.run(() => PTG.pagesPdf([fitted(c, d, blank)], true), fileOf(c, d), `📄 Formativ baholash varaqasi (kriterial)${blank ? " · bo'sh" : ""}\n${label(c)} · ${fmt(d)}`, e.currentTarget);
-    });
-  }
+  // chop etish / PDF / Telegram — alohida fayl: kriterial-chop.js (KCH, maket v5, 2026-11-13)
 
   /* ── hodisalar ── ctx: {ed, refresh()} */
   function bind(root, c, d, ctx) {
@@ -468,7 +399,7 @@ const KRT = (() => {
   // asboblar paneli tugmalari (sahifa bo'yicha bir marta)
   function bindTools(m, c, d, after) {
     const e = $("[data-kred]", m); if (e) e.onclick = () => editDlg(c, after);
-    const p = $("[data-krpr]", m); if (p) p.onclick = () => printDlg(c, d);
+    const p = $("[data-krpr]", m); if (p) p.onclick = () => KCH.dialog(c, d);
   }
 
   // tozalash: tashqi fayldan kelgan belgilar (cleanStudent) va deskriptor matnlari (cleanClass)
@@ -482,5 +413,5 @@ const KRT = (() => {
     if (Array.isArray(c.kd) && c.kd.length === N) c.kd = c.kd.map((t, k) => String(t == null ? "" : t).trim().slice(0, 60) || DEF[k]); else delete c.kd;
   }
 
-  return {N, DEF, TPL, on, qData, parentDay, parentQ, marks, info, setCell, fillRow, fillCol, partial, view, side, tools, bind, bindTools, clean, cleanCls, closePop, state: st};
+  return {N, DEF, TPL, descs, other, absent, rowsOf, on, qData, parentDay, parentQ, marks, info, setCell, fillRow, fillCol, partial, view, side, tools, bind, bindTools, clean, cleanCls, closePop, state: st};
 })();
