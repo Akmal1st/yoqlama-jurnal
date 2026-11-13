@@ -30,7 +30,8 @@ const ORX = (() => {
     }
     if (!L) return null;
     L.pin = L.pin || {}; L.per = L.per === 1 ? 1 : 2;
-    const names = new Set(siblings(c).flatMap((x) => x.students.map((s) => s.name)));
+    // faolsizlantirilgan o'quvchi (students_off) joyi saqlanadi — qayta faollashtirilsa o'z joyiga qaytadi
+    const names = new Set(siblings(c).flatMap((x) => [...x.students, ...(x.students_off || [])].map((s) => s && s.name)));
     for (const [p, n] of Object.entries(L.at)) if (!names.has(n)) { delete L.at[p]; delete L.pin[p]; }
     return L;
   }
@@ -44,8 +45,8 @@ const ORX = (() => {
     return new Set([...last].filter(([, v]) => v[1] === "ch").map(([n]) => n));
   }
   function avgMap(c) {
-    const t = todayIso(), q = quarterOf(t), r = q && qRange(q), rows = reportRows(c, r ? r[0] : "0000-00-00", r ? r[1] : t, r ? q : null), m = new Map();
-    c.students.forEach((s, i) => { const a = rows[i] && rows[i].avg; if (a != null) m.set(s.name, a); });
+    const t = todayIso(), q = quarterOf(t), r = q && qRange(q), {rows} = reportRows(c, r ? r[0] : "0000-00-00", r ? r[1] : t, r ? q : null), m = new Map();
+    for (const x of rows) if (x.avg != null) m.set(x.name, x.avg);   // reportRows {rows, lessons} qaytaradi
     return m;
   }
   function placeList(L, list) {
@@ -180,7 +181,7 @@ const ORX = (() => {
         snap();
         if (target === null) { if (fp) { delete L.at[fp]; delete L.pin[fp]; } }
         else {
-          const other = L.at[target], op = L.pin[target], pinned = fp && L.pin[fp];
+          const live = c.students.some((s) => s.name === L.at[target]), other = live ? L.at[target] : null, op = live && L.pin[target], pinned = fp && L.pin[fp];   // faolsiz o'quvchi joyi — bo'sh hisoblanadi
           L.at[target] = who; delete L.pin[target]; if (pinned) L.pin[target] = 1;
           if (fp) { delete L.pin[fp]; if (other) { L.at[fp] = other; if (op) L.pin[fp] = 1; } else delete L.at[fp]; }
         }

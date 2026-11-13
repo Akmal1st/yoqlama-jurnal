@@ -17,7 +17,7 @@ const KTR = (() => {
   const hwParts = (x) => String(x.hw || "").split(";").map((s) => s.trim());
   const hwShow = (x) => { const p = hwParts(x); return p.length > 1 ? p.map((v, i) => `${i + 1}-dars: ${v || "—"}`).join(" · ") : String(x.hw || "").trim(); };
   const ROMAN_Q = ["", "I", "II", "III", "IV"];
-  const ABS = ["s", "dq", "k", "ox"];
+  const ABS = ["s", "dq", "k", "ch", "ox"];   // ch — chet elda: «kelganlar» soniga kirmaydi
   const cls = () => D.classes[S.ci];
   const subj = (c) => c.subject || "Fan";
 

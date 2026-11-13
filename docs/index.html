@@ -76,22 +76,22 @@
 <script src="funksiyalar.js?v=224"></script>
 <script src="sozlamalar.js?v=216"></script>
 <script src="mezon.js?v=221"></script>
-<script src="kriterial.js?v=232"></script>
+<script src="kriterial.js?v=233"></script>
 <script src="kriterial-chop.js?v=232"></script>
-<script src="orindiq.js?v=231"></script>
-<script src="ktr.js?v=230"></script>
+<script src="orindiq.js?v=233"></script>
+<script src="ktr.js?v=233"></script>
 <script src="kunlik.js?v=221"></script>
 <script src="pdf-tg.js?v=227"></script>
 <script src="tg-umumiy.js?v=213"></script>
 <script src="arxiv.js?v=207"></script>
 <script src="emk-bir.js?v=197"></script>
 <script src="emk-server.js?v=222"></script>
-<script src="ota-emk.js?v=231"></script>
+<script src="ota-emk.js?v=233"></script>
 <script src="boshlash.js?v=213"></script>
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=218"></script>
 <script src="loyiha.js?v=231"></script>
-<script src="yangilik.js?v=232"></script>
+<script src="yangilik.js?v=233"></script>
 <script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=214"></script>
 <script src="telegram.js?v=216"></script>
@@ -1077,13 +1077,16 @@ function workOfTopic(text) {
 function reflowPlan(c, start) {
   const plan = c.plan; if (!plan || !plan.on || !plan.topics || !plan.topics.length) return null;
   // boshlanish sanasi: o'qituvchi belgilagan (plan.start), bo'lmasa — bugundan
-  const lo = start || (ISO_D.test(String(plan.start)) ? plan.start : "") || todayIso(), lessons = c.lessons, slots = planSlots(plan);
+  let lo = start || (ISO_D.test(String(plan.start)) ? plan.start : "") || todayIso();
+  // arxivlangan (qulflangan) chorak darslariga tegilmaydi: taqsimlash undan keyingi kundan boshlanadi
+  if (typeof ARX !== "undefined") for (const q of [1, 2, 3, 4]) { const r = qRange(q); if (r && ARX.dateLocked(r[0], c) && lo <= r[1]) lo = iso(addDays(pdate(r[1]), 1)); }
+  const lessons = c.lessons, slots = planSlots(plan);
   for (const [d, les] of Object.entries(lessons)) if (les.auto && (d >= lo || !c.dates.includes(d) || isNoLesson(c, d))) { if (ownHw(les)) lessons[d] = {topic: "", hw: les.hw}; else delete lessons[d]; }
   const taken = new Set();
   for (const d of Object.keys(lessons).sort()) {
     const les = lessons[d]; if (!les.auto) continue;
     const idx = slots.findIndex((sl, i) => !taken.has(i) && sl.text === les.topic);
-    if (idx < 0) { delete les.auto; delete les.si; } else { taken.add(idx); les.si = idx; }
+    if (idx < 0) { if (typeof ARX === "undefined" || !ARX.dateLocked(d, c)) { delete les.auto; delete les.si; } } else { taken.add(idx); les.si = idx; }
   }
   const free = c.dates.slice().sort().filter((d) => d >= lo && !isNoLesson(c, d) && !(lessons[d] || {}).topic);
   const used = new Set(), left = [], order = []; let assigned = 0;

@@ -19,11 +19,13 @@ const OTE = (() => {
   const put = () => { try { localStorage.setItem(KEY, JSON.stringify(db())); } catch (e) { toast("Qurilma xotirasiga yozib bo'lmadi"); } };
   const pk = (c, s) => `${normName(c.name)}|${normName(s.name)}`;
   const ent = (c, s) => db().p[pk(c, s)] || null;
-  const today = () => new Date().toISOString().slice(0, 10);
+  // sana MAHALLIY vaqt bo'yicha (toISOString UTC beradi: Toshkentda 00:00–05:00 orasida «bugun» kechagi kun bo'lib qolardi)
+  const day = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const today = () => day(new Date());
   const stOf = (e) => (!e ? "no" : e.st || "ok");
-  const ago = (t) => { if (!t) return "—"; const d = new Date(t), hm = d.toTimeString().slice(0, 5); const k = Math.round((new Date(today()) - new Date(d.toISOString().slice(0, 10))) / 864e5);
+  const ago = (t) => { if (!t) return "—"; const d = new Date(t), hm = d.toTimeString().slice(0, 5); const k = Math.round((Date.parse(today() + "T12:00") - Date.parse(day(d) + "T12:00")) / 864e5);
     return k <= 0 ? `bugun ${hm}` : k === 1 ? `kecha ${hm}` : `${k} kun oldin`; };
-  const visitedToday = (e) => !!(e && e.at && new Date(e.at).toISOString().slice(0, 10) === today());
+  const visitedToday = (e) => !!(e && e.at && day(new Date(e.at)) === today());
 
   /* ───────── PIN (faqat «PIN bilan» usulida) ───────── */
   let PK = null, bad = 0;   // PK — PIN'dan yasalgan kalit (o'qib bo'lmaydi), faqat xotirada
@@ -237,7 +239,11 @@ const OTE = (() => {
   const flip = (n) => normName(n).split(" ").reverse().join(" ");
   function match(c, raw) {
     const n = normName(raw); if (!n) return null;
-    return c.students.find((s) => normName(s.name) === n || flip(s.name) === n) || c.students.find((s) => n.startsWith(normName(s.name)) || n.startsWith(flip(s.name))) || null;
+    // aniq mos kelmasa — otasining ismi bilan yozilgan («Valiyev Ali Karimovich»): faqat butun so'z bo'yicha,
+    // aks holda «Valiyev Alisher» ham «Valiyev Ali» ga bog'lanib qolardi; bir nechtasi mos kelsa — eng uzuni
+    const pre = (a) => n.startsWith(a + " ");
+    return c.students.find((s) => normName(s.name) === n || flip(s.name) === n)
+      || c.students.filter((s) => pre(normName(s.name)) || pre(flip(s.name))).sort((a, b) => b.name.length - a.name.length)[0] || null;
   }
   // har qator: [ism, login, parol] — Excel ustunlari yoki tab/«;» bilan ajratilgan matn (bo'lmasa — oxirgi ikki so'z login va parol)
   const parseText = (t) => t.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).map((l) => { const p = l.split(/\t|;|\s{2,}/).map((x) => x.trim()).filter(Boolean);
