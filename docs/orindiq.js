@@ -5,7 +5,9 @@
    Bir sinfga bir necha fandan kirilsa (7-A · Matematika, 7-A · Geometriya) — xarita BITTA (sinf nomi bo'yicha).
    Eski format (ckey = "sinf|fan", cols = o'rinlar soni, har parta 2 o'rinli) birinchi ochilganda ko'chiriladi.
    Chet eldagi o'quvchi (oxirgi yo'qlama belgisi «ch») xaritada joy olmaydi.
-   Ko'rinish sozlamalari: D.web.seatv = {flip, avg, real}. */
+   Ko'rinish sozlamalari: D.web.seatv = {flip, avg, real, gx}.
+   O'g'il-qiz (maket v6, 2026-11-13): jins familiyadan / «o'g'li»/«qizi» so'zidan taxmin qilinadi (guessSex),
+     qo'lda tuzatilgani L.sx = {ism: "m" | "f"} — xarita bilan birga, ikkala fan uchun bitta. */
 const ORX = (() => {
   const I = (n) => `<span class="bi bi-${n}" aria-hidden="true"></span>`;
   const STATES = [["s", "Sababsiz", "S", "x-circle"], ["dq", "Sababli", "DQ", "envelope-paper"], ["k", "Kasal", "K", "heart-pulse"], ["kq", "Kech qoldi", "KQ", "clock"]];
@@ -14,7 +16,17 @@ const ORX = (() => {
   const parts = (n) => { const w = String(n).trim().split(/\s+/); return {fam: w[0] || "", ism: w.slice(1).join(" ") || w[0] || ""}; };
   const w = (L) => L.cols * L.per;
   const narrow = () => typeof matchMedia === "function" && matchMedia("(max-width:640px)").matches;
-  const prefs = () => (D.web.seatv = Object.assign({flip: false, avg: true, real: false}, D.web.seatv));
+  const prefs = () => (D.web.seatv = Object.assign({flip: false, avg: true, real: false, gx: false}, D.web.seatv));
+  // jinsni familiya yoki «o'g'li/qizi» bo'yicha taxmin qilish: "m" | "f" | ""
+  function guessSex(n) {
+    const t = String(n).toLowerCase().replace(/[ʻʼ‘’`]/g, "'"), ws = t.split(/\s+/), f = ws[0] || "";
+    if (ws.some((x) => ["qizi", "kizi", "қизи", "кизи"].includes(x))) return "f";
+    if (ws.some((x) => ["o'g'li", "o'gli", "ogli", "ugli", "ўғли", "угли", "оглы"].includes(x))) return "m";
+    if (/(ova|eva|yeva|ina|aya|ова|ева|ина|ая)$/.test(f)) return "f";
+    if (/(ov|ev|yev|in|iy|ий|ов|ев|ин)$/.test(f)) return "m";
+    return "";
+  }
+  const sexOf = (L, n) => (L.sx && (L.sx[n] === "m" || L.sx[n] === "f") ? L.sx[n] : guessSex(n));
 
   /* ───── ma'lumot ───── */
   const siblings = (c) => D.classes.filter((x) => !isGrp(x) && normName(x.name) === normName(c.name));
@@ -29,10 +41,11 @@ const ORX = (() => {
       if (L) save();
     }
     if (!L) return null;
-    L.pin = L.pin || {}; L.per = L.per === 1 ? 1 : 2;
+    L.pin = L.pin || {}; L.per = L.per === 1 ? 1 : 2; if (!L.sx || typeof L.sx !== "object") L.sx = {};
     // faolsizlantirilgan o'quvchi (students_off) joyi saqlanadi — qayta faollashtirilsa o'z joyiga qaytadi
     const names = new Set(siblings(c).flatMap((x) => [...x.students, ...(x.students_off || [])].map((s) => s && s.name)));
     for (const [p, n] of Object.entries(L.at)) if (!names.has(n)) { delete L.at[p]; delete L.pin[p]; }
+    for (const n of Object.keys(L.sx)) if (!names.has(n)) delete L.sx[n];
     return L;
   }
   // chet eldagilar: barcha fanlar bo'yicha eng oxirgi yo'qlama belgisi «ch» bo'lganlar
@@ -62,7 +75,22 @@ const ORX = (() => {
       else if (free.length === 1) L.at[free[0]] = ((avg.get(L.at[mate]) ?? 0) >= mean ? S.pop() : S.shift()).name;
     }
   }
-  // avtomatik joylashtirish; qotirilganlar joyida qoladi, chet eldagilar joylashtirilmaydi. Qaytaradi: {grew, left}
+  // o'g'il-qiz: avval qotirilgan sherigi borlarga qarama-qarshi jins, so'ng bo'sh partalarga bir o'g'il + bir qiz (doskadan),
+  // ortib qolganlar (bir jinsdagilar) orqa partalarda. Qaytaradi: xabar matni
+  function sexList(L, list) {
+    const sx = (n) => sexOf(L, n), B = list.filter((s) => sx(s.name) === "m"), G = list.filter((s) => sx(s.name) === "f"), U = list.filter((s) => !sx(s.name));
+    const desks = []; for (let r = 0; r < L.rows; r++) for (let d = 0; d < L.cols; d++) desks.push([`${r}-${d * 2}`, `${r}-${d * 2 + 1}`]);
+    for (const ps of desks) {
+      const fr = ps.filter((p) => !L.at[p]); if (fr.length !== 1) continue;
+      const ms = sx(L.at[ps.find((p) => L.at[p])]), x = ms === "m" ? G.shift() : ms === "f" ? B.shift() : null; if (x) L.at[fr[0]] = x.name;
+    }
+    for (const ps of desks) if (B.length && G.length && ps.every((p) => !L.at[p])) { L.at[ps[0]] = B.shift().name; L.at[ps[1]] = G.shift().name; }
+    const rest = [...B, ...G, ...U]; for (const ps of desks) for (const p of ps) if (!L.at[p] && rest.length) L.at[p] = rest.shift().name;
+    let mix = 0, mm = 0, ff = 0;
+    for (const ps of desks) { const t = ps.map((p) => L.at[p] && sx(L.at[p])); if (!t[0] || !t[1]) continue; if (t[0] !== t[1]) mix++; else if (t[0] === "m") mm++; else ff++; }
+    return `${mix} parta o'g'il-qiz${mm ? ` · ${mm} partada faqat o'g'il` : ""}${ff ? ` · ${ff} partada faqat qiz` : ""}`;
+  }
+  // avtomatik joylashtirish; qotirilganlar joyida qoladi, chet eldagilar joylashtirilmaydi. Qaytaradi: {grew, left, msg}
   function autoFill(c, L, kind) {
     const keep = {}; for (const p of Object.keys(L.pin)) if (L.at[p]) keep[p] = L.at[p]; else delete L.pin[p];
     const kept = new Set(Object.values(keep)), away = awayNames(c);
@@ -70,11 +98,12 @@ const ORX = (() => {
     L.at = {...keep};
     if (kind === "clear") return {grew: 0, left: 0};
     const avg = avgMap(c), g = (s) => avg.get(s.name) ?? 99;
-    if (kind === "rand") list = list.map((s) => [Math.random(), s]).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
+    if (kind === "rand" || kind === "sex") list = list.map((s) => [Math.random(), s]).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
     if (kind === "weak") list = [...list].sort((a, b) => g(a) - g(b));
     const r0 = L.rows, need = Math.ceil((list.length + kept.size) / w(L)); if (L.rows < need) L.rows = Math.min(9, need);
-    if (kind === "mix" && L.per === 2) mixList(L, list, avg); else placeList(L, list);
-    return {grew: L.rows - r0, left: list.length - (Object.keys(L.at).length - kept.size)};
+    let msg = "";
+    if (kind === "mix" && L.per === 2) mixList(L, list, avg); else if (kind === "sex" && L.per === 2) msg = sexList(L, list); else placeList(L, list);
+    return {grew: L.rows - r0, left: list.length - (Object.keys(L.at).length - kept.size), msg};
   }
   function trim(L) {
     let n = 0;
@@ -87,7 +116,7 @@ const ORX = (() => {
     const rows = [...Array(L.rows).keys()], cols = [...Array(L.cols).keys()]; if (flip) { rows.reverse(); cols.reverse(); }
     return {rows, cols, seats: (d) => { const us = [...Array(L.per).keys()].map((k) => d * L.per + k); return flip ? us.reverse() : us; }};
   }
-  // o: {mode: "edit"|"att", sel, avg: Map|null, att: (ism) => holat}
+  // o: {mode: "edit"|"att", sel, avg: Map|null, att: (ism) => holat, gx: jins belgisi}
   function mapHtml(c, L, o) {
     const P = prefs(), cmp = narrow() && !P.real, idx = new Map(c.students.map((s, i) => [s.name, i])), ord = order(L, P.flip);
     const seat = (p) => {
@@ -97,10 +126,11 @@ const ORX = (() => {
       const bdg = a && STC[a] ? `<span class="ox-bdg" style="background:${col(a)}">${STC[a][2]}</span>`
         : av != null ? `<span class="ox-bdg" style="background:${gradeColor(av) || "var(--acc)"};color:${contrast(gradeColor(av) || "#0b6f79")}">${av.toFixed(1)}</span>` : "";
       const pin = o.mode === "edit" && L.pin[p] ? `<span class="pin">${I("pin-angle-fill")}</span>` : "";
-      const st = a && STC[a] ? `style="background:var(--ox-${a}-t);border-color:${col(a)}"` : "";
-      const inner = cmp ? `<span class="no">${i + 1}</span><span class="nm">${esc(ism)} <i>${esc(fam.slice(0, 1))}.</i></span>${pin}${bdg}`
-        : `<span class="hd"><span class="no">${i + 1}</span>${pin}${bdg || "<span></span>"}</span><span class="nm">${esc(ism)}</span><span class="fm">${esc(fam)}</span>`;
-      return `<button type="button" class="ox-seat ${st ? "st" : ""} ${o.sel === p ? "sel" : ""}" data-oxs="${p}" data-oxn="${i}" ${st} title="${esc(n)}">${inner}</button>`;
+      const sx = o.gx ? sexOf(L, n) : "", gx = sx ? `<span class="gx ${sx}" title="${sx === "m" ? "O'g'il" : "Qiz"}">${I(sx === "m" ? "gender-male" : "gender-female")}</span>` : "";
+      const st = a && STC[a] ? `style=""background:var(--ox-${a}-t);border-color:${col(a)}"` : "";
+      const inner = cmp ? `<span class="no">${i + 1}</span>${gx}<span class="nm">${esc(ism)} <i>${esc(fam.slice(0, 1))}.</i></span>${pin}${bdg}`
+        : `<span class="hd"><span class="no">${i + 1}${gx ? " " + gx : ""}</span>${pin}${bdg || "<span></span>"}</span><span class="nm">${esc(ism)}</span><span class="fm">${esc(fam)}</span>`;
+      return `<button type="button" class="ox-seat ${st ? "st" : ""} ${sx ? "sx" + sx : ""} ${o.sel === p ? "sel" : ""}" data-oxs="${p}" data-oxn="${i}" ${st} title="${esc(n)}">${inner}</button>`;
     };
     let g = "";
     for (const r of ord.rows) for (const d of ord.cols) g += `<div class="ox-desk">${ord.seats(d).map((u) => seat(`${r}-${u}`)).join("")}</div>`;
@@ -167,11 +197,11 @@ const ORX = (() => {
             <button type="button" class="btn" data-oxsh="view" title="Ko'rinish">${I("eye")}${N ? "" : ` ${P.flip ? "O'qituvchi" : "O'quvchi"} nigohi`}</button>
             ${N ? "" : `<span class="ox-cap ${cap < need ? "bad" : ""}">O'rinlar: ${cap} / O'quvchilar: ${need}</span>`}</div>
           <div class="ox-hint">${N ? "Bosib turib sudrang yoki bosing → yangi joyini bosing." : "O'quvchini sudrab boshqa joyga olib boring yoki bosing → yangi joyini bosing. Band joyga qo'ysangiz, o'rin almashadi."}</div>
-          ${mapHtml(c, L, {mode: "edit", sel: sel && !sel.startsWith("n:") ? sel : null, avg: P.avg && !(N && !P.real) ? avgMap(c) : null})}
+          ${mapHtml(c, L, {mode: "edit", sel: sel && !sel.startsWith("n:") ? sel : null, avg: P.avg && !(N && !P.real) ? avgMap(c) : null, gx: P.gx})}
           ${awayHtml(c, away, false)}
           <div class="ox-pool" data-oxpool><span class="lbl">Joylashmaganlar (${free.length}):</span>${free.map((s) => `<button type="button" class="ox-chip ${sel === "n:" + s.name ? "sel" : ""}" data-oxchip="${esc(s.name)}">${esc(s.name)}</button>`).join("") || `<span class="ox-hint">hamma joylashgan ✓</span>`}</div>
           ${selN ? `<div class="ox-sel"><b>${esc(selN)}</b><span class="ox-hint">→ joyini bosing</span><span class="sp" style="flex:1"></span>
-            ${!sel.startsWith("n:") ? `<button type="button" class="btn btn-sm" data-oxpin title="Avtomatik joylashtirishda joyidan qo'zg'almasin">${L.pin[sel] ? I("pin-angle-fill") + " Bo'shatish" : I("pin-angle") + " Qotirish"}</button><button type="button" class="btn btn-sm ox-ic" data-unseat title="Xaritadan olib tashlash">${I("x-circle")}</button>` : ""}
+            ${sexBtn(selN, N)}${!sel.startsWith("n:") ? `<button type="button" class="btn btn-sm" data-oxpin title="Avtomatik joylashtirishda joyidan qo'zg'almasin">${L.pin[sel] ? I("pin-angle-fill") + " Bo'shatish" : I("pin-angle") + " Qotirish"}</button><button type="button" class="btn btn-sm ox-ic" data-unseat title="Xaritadan olib tashlash">${I("x-circle")}</button>` : ""}
             <button type="button" class="btn btn-sm ox-ic" data-oxcancel title="Bekor qilish">${I("x-lg")}</button></div>` : ""}`;
         fitNames(box); bind();
       };
@@ -187,20 +217,50 @@ const ORX = (() => {
         }
         sel = null; save(); draw();
       };
+      const sexBtn = (n, N) => {
+        const x = sexOf(L, n), lab = x === "m" ? "O'g'il" : x === "f" ? "Qiz" : "Jinsi?";
+        return `<button type="button" class="btn btn-sm ${N ? "ox-ic" : ""} ${x ? "ox-g" + x : ""}" data-oxsx title="Jinsi: ${lab.toLowerCase()} · bosing — almashtirish">${I(x === "m" ? "gender-male" : x === "f" ? "gender-female" : "question-circle")}${N ? "" : " " + lab}</button>`;
+      };
+      const run = (kind, cl) => {
+        snap(); const r = autoFill(c, L, kind); sel = null; if (kind === "sex") prefs().gx = true; save(); if (cl) cl(); draw();
+        if (r.left > 0) toast(`${r.left} o'quvchiga joy yetmadi · «Sinf xonasi»da parta qo'shing`);
+        else if (r.grew > 0) toast(`Joy yetmadi: har qatorga ${r.grew} ta parta qo'shildi`);
+        else if (r.msg) toast(r.msg);
+      };
+      // jinsini tekshirish ro'yxati; go = o'g'il-qiz joylashtirish uchun (aniqlanmaganlar bor)
+      const sexSheet = (go) => modal(`<div class="ox-sh"><h2>${I("list-check")} Jinsini tekshirish</h2><div id="oxsx"></div></div>`, (sm, cl) => {
+        const body = () => {
+          const away = awayNames(c), live = c.students.filter((s) => !away.has(s.name)), sx = (s) => sexOf(L, s.name);
+          const m = live.filter((s) => sx(s) === "m").length, f = live.filter((s) => sx(s) === "f").length, u = live.length - m - f;
+          const rows = [...live].sort((a, b) => !!sx(a) - !!sx(b));
+          $("#oxsx", sm).innerHTML = `
+            <div class="ox-hint">${go ? `O'g'il-qiz joylashtirish uchun ${u} o'quvchining jinsi kerak: familiyasidan aniqlab bo'lmadi.` : "Familiyadan avtomatik aniqlangan. Xatosi bo'lsa, bosib tuzating."}</div>
+            <div class="ox-gsum"><span class="m">${I("gender-male")} O'g'il: ${m}</span><span class="f">${I("gender-female")} Qiz: ${f}</span>${u ? `<span class="u">${I("question-circle")} Aniqlanmagan: ${u}</span>` : ""}</div>
+            <div class="ox-gl">${rows.map((s) => { const x = sx(s); return `<div class="r ${x ? "" : "unk"}"><b>${esc(s.name)}</b><div class="seg"><button type="button" class="${x === "m" ? "on m" : ""}" data-oxgs="m" data-oxgn="${esc(s.name)}">O'g'il</button><button type="button" class="${x === "f" ? "on f" : ""}" data-oxgs="f" data-oxgn="${esc(s.name)}">Qiz</button></div></div>`; }).join("")}</div>
+            <div class="ox-row">${go ? `<button type="button" class="btn" data-oxsxx>Bekor</button><button type="button" class="btn btn-primary" data-oxsxgo ${u ? "disabled" : ""}>${I("gender-ambiguous")} Joylashtirish</button>` : `<span></span><button type="button" class="btn btn-primary" data-oxsxx>Tayyor</button>`}</div>`;
+          sm.querySelectorAll("[data-oxgs]").forEach((b) => b.onclick = () => { const sc = $(".ox-gl", sm).scrollTop; L.sx[b.dataset.oxgn] = b.dataset.oxgs; save(); body(); $(".ox-gl", sm).scrollTop = sc; draw(); });
+          $("[data-oxsxx]", sm).onclick = () => cl();
+          const g = $("[data-oxsxgo]", sm); if (g) g.onclick = () => run("sex", cl);
+        };
+        body();
+      });
       const shrunk = (n) => { if (n) toast(`${n} o'quvchi «Joylashmaganlar»ga o'tdi · ↶ bilan qaytarish mumkin`); };
+      const unk = () => { const away = awayNames(c); return c.students.filter((s) => !away.has(s.name) && !sexOf(L, s.name)).length; };
       const sheet = (kind) => {
         const P = prefs(), away = awayNames(c), need = c.students.filter((s) => !away.has(s.name)).length;
         if (kind === "auto") return modal(`<div class="ox-sh"><h2>${I("magic")} Avtomatik joylashtirish</h2>
             ${[["alpha", "sort-alpha-down", "Alifbo bo'yicha", "Ro'yxat tartibida, doskadan boshlab"], ["rand", "shuffle", "Tasodifiy aralashtirish", "Har safar yangi joylashuv"],
-              ...(L.per === 2 ? [["mix", "people", "Kuchli + kuchsiz yonma-yon", "Har partada biri kuchli, biri kuchsiz (o'rtacha baho bo'yicha)"]] : []),
+              ...(L.per === 2 ? [["mix", "people", "Kuchli + kuchsiz yonma-yon", "Har partada biri kuchli, biri kuchsiz (o'rtacha baho bo'yicha)"], ["sex", "gender-ambiguous", "O'g'il-qiz yonma-yon", "Har partada bir o'g'il, bir qiz · har safar yangi juftlar"]] : []),
               ["weak", "arrow-up-circle", "Past baholilar oldinga", "Yordam kerak bo'lganlar doskaga yaqin"], ["clear", "eraser", "Tozalash", "Qotirilganlardan boshqa hammasini olish"]]
               .map(([k, ic, b, s]) => `<button type="button" class="ox-opt" data-oxauto="${k}">${I(ic)}<span><b>${b}</b><span>${s}</span></span></button>`).join("")}
-            <div class="ox-hint">${I("pin-angle-fill")} Qotirilgan o'quvchilar joyidan qo'zg'almaydi. Chet eldagilar joylashtirilmaydi.</div></div>`, (sm, cl) => {
+            <div class="ox-hint">${I("pin-angle-fill")} Qotirilgan o'quvchilar joyidan qo'zg'almaydi. Chet eldagilar joylashtirilmaydi.</div>
+            <button type="button" class="ox-lnk" data-oxsxl>${I("list-check")} Jinsini tekshirish${unk() ? ` (${unk()} ta aniqlanmagan)` : ""}</button></div>`, (sm, cl) => {
           sm.querySelectorAll("[data-oxauto]").forEach((b) => b.onclick = () => {
-            snap(); const r = autoFill(c, L, b.dataset.oxauto); sel = null; save(); cl(); draw();
-            if (r.left > 0) toast(`${r.left} o'quvchiga joy yetmadi · «Sinf xonasi»da parta qo'shing`);
-            else if (r.grew > 0) toast(`Joy yetmadi: har qatorga ${r.grew} ta parta qo'shildi`);
+            const k = b.dataset.oxauto;
+            if (k === "sex" && unk()) { cl(); return sexSheet(true); }
+            run(k, cl);
           });
+          $("[data-oxsxl]", sm).onclick = () => { cl(); sexSheet(false); };
         });
         if (kind === "struct") return modal(`<div class="ox-sh"><h2>${I("grid-3x2-gap")} Sinf xonasi</h2><div id="oxst"></div></div>`, (sm, cl) => {
           const body = () => {
@@ -225,9 +285,11 @@ const ORX = (() => {
               <button type="button" class="ox-opt" data-oxflip="0">${I("person")}<span><b>O'quvchi nigohi ${P.flip ? "" : I("check2")}</b><span>Doska tepada</span></span></button>
               <button type="button" class="ox-opt" data-oxflip="1">${I("person-workspace")}<span><b>O'qituvchi nigohi ${P.flip ? I("check2") : ""}</b><span>Doska pastda, stoldan qaraganday</span></span></button>
               <button type="button" class="ox-opt" data-oxavg>${I("123")}<span><b>O'rtacha baho ${P.avg ? I("check2") : ""}</b><span>Har o'rinda joriy chorak o'rtachasi${N && !P.real ? " (haqiqiy partalar ko'rinishida)" : ""}</span></span></button>
+              <button type="button" class="ox-opt" data-oxgx>${I("gender-ambiguous")}<span><b>O'g'il / qiz belgisi ${P.gx ? I("check2") : ""}</b><span>O'rin tagida ko'k yoki pushti chiziq</span></span></button>
               ${N ? `<button type="button" class="ox-opt" data-oxreal>${I("layout-split")}<span><b>Haqiqiy partalar ko'rinishi ${P.real ? I("check2") : ""}</b><span>O'rinlar yonma-yon (ism qisqaradi)</span></span></button>` : ""}`;
             sm.querySelectorAll("[data-oxflip]").forEach((b) => b.onclick = () => { P.flip = b.dataset.oxflip === "1"; save(); body(); draw(); });
             $("[data-oxavg]", sm).onclick = () => { P.avg = !P.avg; save(); body(); draw(); };
+            $("[data-oxgx]", sm).onclick = () => { P.gx = !P.gx; save(); body(); draw(); };
             const r = $("[data-oxreal]", sm); if (r) r.onclick = () => { P.real = !P.real; save(); body(); draw(); };
           };
           body();
@@ -245,6 +307,7 @@ const ORX = (() => {
         $("[data-oxrep]", box).onclick = () => report(c);
         $("[data-x]", box).onclick = () => { close(); render(); };
         const pin = $("[data-oxpin]", box); if (pin) pin.onclick = () => { snap(); if (L.pin[sel]) delete L.pin[sel]; else L.pin[sel] = 1; sel = null; save(); draw(); };
+        const sxb = $("[data-oxsx]", box); if (sxb) sxb.onclick = () => { const n = sel.startsWith("n:") ? sel.slice(2) : L.at[sel]; L.sx[n] = sexOf(L, n) === "m" ? "f" : "m"; prefs().gx = true; save(); draw(); };
         const un = $("[data-unseat]", box); if (un) un.onclick = () => place(sel, null);
         const cn = $("[data-oxcancel]", box); if (cn) cn.onclick = () => { sel = null; draw(); };
       };
@@ -374,5 +437,5 @@ const ORX = (() => {
     m.querySelectorAll("[data-tgpdf]").forEach((b) => b.onclick = () => { if (!of(c)) return toast("Avval xaritani tuzing"); PTG.run(() => PTG.pagesPdf([pageHtml(c, ho)], true), fileOf(c), `🪑 O'rindiq xaritasi\n${c.name} sinf · ${fmt(todayIso())}`, b); });
   }
 
-  return {of, editor, report, attHtml, attBind, autoCh, awayNames, autoFill, pageHtml, hbBody, hbBind};
+  return {guessSex, sexOf, of, editor, report, attHtml, attBind, autoCh, awayNames, autoFill, pageHtml, hbBody, hbBind};
 })();

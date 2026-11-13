@@ -5695,3 +5695,66 @@ test("Tahlil tuzatishlari (v233): o'rindiq o'rtacha bahosi, arxiv chorak KTR'dan
     }
   } finally { await browser.close(); }
 });
+
+test("O'rindiq xaritasi: o'g'il-qiz yonma-yon (v234; 36 va 18 o'quvchi, telefon va kompyuter)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const [n, vp] of [[36, {width: 390, height: 844}], [18, {width: 1280, height: 860}]]) {
+      const page = await browser.newPage({viewport: vp});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 10, 18, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      // o'g'illar ko'p (n/2+3), qizlar kam, bittasi aniqlanmaydi («Kim Artur»), bittasi chet elda (CH), bittasi faolsiz
+      const info = await page.evaluate((n) => {
+        const c = D.classes[0], base = c.students[0], t = todayIso();
+        const boys = n / 2 + 3, list = [];
+        for (let i = 0; i < n; i++) list.push(i === 0 ? "Kim Artur" : i < boys ? `Aliyev Bola${i}` : `Karimova Qiz${i}`);
+        c.students = list.map((nm) => Object.assign(JSON.parse(JSON.stringify(base)), {name: nm, id: newSid(), marks: {}}));
+        c.students[2].marks[t] = "ch";                                   // chet elda — joy olmaydi
+        c.students_off = [Object.assign(JSON.parse(JSON.stringify(base)), {name: "Faolsiz Ota", id: newSid(), marks: {}})];
+        delete (D.web.seats || {})[normName(c.name)]; save();
+        return {g: [ORX.guessSex("Aliyev Bola1"), ORX.guessSex("Karimova Qiz"), ORX.guessSex("Kim Artur"), ORX.guessSex("Tursunova Ali qizi"), ORX.guessSex("Rahimov Ali o‘g‘li")]};
+      }, n);
+      assert.deepEqual(info.g, ["m", "f", "", "f", "f"].map((x, i) => i === 4 ? "m" : x), "familiya va «qizi/o'g'li» bo'yicha");
+      await page.evaluate(() => { ORX.editor(0); });
+      await page.waitForSelector(".ox-ed");
+      // birinchi o'quvchini (Kim Artur, 0-0) qotiramiz
+      await page.click('.modal [data-oxs="0-0"]'); await page.click(".modal [data-oxpin]");
+      await page.click('.modal [data-oxsh="auto"]');
+      assert.match(await page.textContent(".ox-sh"), /1 ta aniqlanmagan/);
+      await page.click('[data-oxauto="sex"]');
+      // aniqlanmagan bor — avval jinsini so'raydi; «Joylashtirish» o'chiq
+      await page.waitForSelector("[data-oxsxgo]");
+      assert.equal(await page.locator("[data-oxsxgo]").isDisabled(), true);
+      await page.click('[data-oxgn="Kim Artur"][data-oxgs="m"]');
+      await page.click("[data-oxsxgo]");
+      await page.waitForSelector(".ox-seat .gx");
+      const r = await page.evaluate(() => {
+        const c = D.classes[0], L = D.web.seats[normName(c.name)], v = Object.values(L.at), sx = (x) => ORX.sexOf(L, x);
+        let mix = 0, same = 0;
+        for (let q = 0; q < L.rows; q++) for (let d = 0; d < L.cols; d++) { const a = L.at[`${q}-${d * 2}`], b = L.at[`${q}-${d * 2 + 1}`]; if (a && b) { if (sx(a) !== sx(b)) mix++; else same++; } }
+        const firstSame = (() => { for (let q = 0; q < L.rows; q++) for (let d = 0; d < L.cols; d++) { const a = L.at[`${q}-${d * 2}`], b = L.at[`${q}-${d * 2 + 1}`]; if (a && b && sx(a) === sx(b)) return q * L.cols + d; } return 1e9; })();
+        const lastMix = (() => { let k = -1; for (let q = 0; q < L.rows; q++) for (let d = 0; d < L.cols; d++) { const a = L.at[`${q}-${d * 2}`], b = L.at[`${q}-${d * 2 + 1}`]; if (a && b && sx(a) !== sx(b)) k = q * L.cols + d; } return k; })();
+        return {n: v.length, uniq: new Set(v).size, away: v.includes(c.students[2].name), off: v.includes("Faolsiz Ota"), kim: L.at["0-0"], mate: sx(L.at["0-1"]), sxKim: L.sx["Kim Artur"],
+          girls: c.students.filter((s, i) => i !== 2 && sx(s.name) === "f").length, mix, same, firstSame, lastMix, gx: D.web.seatv.gx};
+      });
+      assert.equal(r.n, n - 1, "chet eldagidan boshqa hamma joylashdi"); assert.equal(r.uniq, r.n, "takrorlanmaydi");
+      assert.ok(!r.away && !r.off, "chet eldagi va faolsiz joy olmaydi");
+      assert.equal(r.kim, "Kim Artur", "qotirilgan joyida"); assert.equal(r.mate, "f", "qotirilgan o'g'il yoniga qiz");
+      assert.equal(r.sxKim, "m"); assert.equal(r.mix, r.girls, "har qiz o'g'il bilan"); assert.ok(r.firstSame > r.lastMix, "bir jinsli partalar orqada");
+      assert.ok(r.gx, "jins belgisi yoqildi");
+      // tanlangan o'quvchining jinsini almashtirish
+      await page.click('.modal [data-oxs="0-1"]'); await page.click(".modal [data-oxsx]");
+      assert.equal(await page.evaluate(() => { const c = D.classes[0], L = D.web.seats[normName(c.name)]; return ORX.sexOf(L, L.at["0-1"]); }), "m");
+      // partada 1 o'rin bo'lsa — band ko'rinmaydi
+      await page.evaluate(() => { const L = D.web.seats[normName(D.classes[0].name)]; L.per = 1; });
+      await page.click(".modal [data-oxcancel]").catch(() => {});
+      await page.click('.modal [data-oxsh="auto"]');
+      assert.equal(await page.locator('[data-oxauto="sex"]').count(), 0);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});
