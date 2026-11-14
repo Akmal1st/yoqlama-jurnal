@@ -8,6 +8,7 @@ import {DatabaseSync} from "node:sqlite";
 import botServer from "../bot-server/worker.js";
 import {makeGas} from "./gas_harness.mjs";
 import {tmpdir} from "node:os";
+import {readFileSync, writeFileSync} from "node:fs";
 import XLSXN from "xlsx";
 
 const APP = new URL("../docs/index.html", import.meta.url).href;
@@ -5825,5 +5826,99 @@ for (const n of [36, 18]) test(`Dars ishlanma olib tashlangan (${n} o'quvchi)`, 
     await page.click("[data-more]"); await page.waitForSelector("text=Mavzular va uy vazifalari");   // sinf menyusi
     assert.ok(!(await page.evaluate(() => document.body.innerText)).includes("Dars ishlanma"), "menyuda «Dars ishlanma» yo'q");
     assert.deepEqual(errors, []);
+  } finally { await browser.close(); }
+});
+
+test("animatsiyalar: o'chiq / yengil / to'liq — 36 va 18 o'quvchi, kompyuter va telefon", async () => {
+  // eski testlarda animatsiya o'chiq (navigator.webdriver); bu yerda window.ANM_TEST bilan yoqiladi (anim.js)
+  const fx = JSON.parse(readFileSync(FIXTURE, "utf8")), fails = [];
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+  for (const [vname, viewport] of [["kompyuter", {width: 1440, height: 900}], ["telefon", {width: 390, height: 844}]])
+  for (const lvl of ["lite", "full", "off"]) for (const n of [36, 18]) {
+    const d = JSON.parse(JSON.stringify(fx)), c0 = d.classes[0], base = c0.students;
+    c0.students = Array.from({length: n}, (_, i) => ({...JSON.parse(JSON.stringify(base[i % base.length])), name: i < base.length ? base[i].name : `Qo'shimcha O'quvchi ${i + 1}`}));
+    const f = `${tmpdir()}/anm-${n}.json`; writeFileSync(f, JSON.stringify(d));
+    const page = await browser.newPage({viewport, hasTouch: vname === "telefon"});
+    const errors = []; page.on("pageerror", (e) => errors.push(e.message)); page.on("dialog", (x) => x.accept());
+    await page.addInitScript(() => { window.ANM_TEST = true; });
+    await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+    await page.goto(APP);
+    const [ch] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+    await ch.setFiles(f); await page.waitForSelector(".bn-hd");
+    const tag = `${vname}/${lvl}/${n}`;
+    try {
+      await page.evaluate((l) => { if (l === "lite") delete D.web.anim; else D.web.anim = l; save(); render(); }, lvl);
+      assert.equal(await page.evaluate(() => document.documentElement.dataset.anim), lvl);
+      const nav = (k) => page.click(`${vname === "telefon" ? ".tabbar" : ".side"} [data-go=${k}]`);
+      await nav("journal");
+      assert.equal(await page.evaluate(() => document.getElementById("main").classList.contains("anm-pg")), lvl !== "off", "sahifa animatsiyasi");
+      // davr almashishi va katak tanlash
+      await page.click("[data-per]"); await page.click(".perpop [data-mode=week]");
+      await page.click('[data-sh="-1"]'); await page.waitForTimeout(50);
+      if (lvl !== "off") assert.ok(await page.$(".anm-per, #main.anm-pg"), "davr animatsiyasi");
+      await page.click("[data-per]"); await page.click(".perpop [data-mode=month]");
+      await page.evaluate(() => { window.__gl = 0; new MutationObserver((r) => r.forEach((x) => x.addedNodes.forEach((n) => { if (n.classList && n.classList.contains("anm-glide")) window.__gl++; }))).observe(document.body, {childList: true, subtree: true}); });
+      await page.click("[data-jp=sum]"); await page.click("[data-jp=j]");
+      if (lvl !== "off") assert.ok(await page.evaluate(() => window.__gl) > 0, "yorliq soyasi siljiydi");
+      else assert.equal(await page.evaluate(() => window.__gl), 0);
+      // o'quvchi kartochkasi (oyna) — ochish va yopish
+      await page.click('td.nm[data-st="0"]'); await page.waitForSelector(".modal");
+      if (lvl !== "off") assert.ok(await page.$(".modal.anm-in"), "oyna animatsiyasi");
+      await page.click(".modal [data-x]");
+      await page.waitForFunction(() => !document.querySelector(".modal"), null, {timeout: 1500});
+      // katak → kunlik rejim, sana tasmasida boshqa kun
+      const cell = await page.$("#tw .cell"); if (cell) { await cell.click(); const dd = await page.$$(".dstrip .dday:not(.on)"); if (dd.length) await dd[0].click(); }
+      // saralash
+      if (await page.$("#jsort")) { await page.selectOption("#jsort", "avgd"); await page.waitForTimeout(400); await page.selectOption("#jsort", "list"); }
+      await nav("reports"); await page.waitForTimeout(800);
+      await nav("settings");
+      if (vname === "telefon" && await page.$("[data-szhome]")) await page.click("[data-szhome]");
+      await page.click('[data-sec="3"]');
+      await page.waitForSelector("[data-anim-l]");
+      for (const k of ["full", "off", "lite"]) { await page.click(`[data-anim-l="${k}"]`); assert.equal(await page.evaluate(() => document.documentElement.dataset.anim), k); }
+      await page.evaluate((l) => { if (l === "lite") delete D.web.anim; else D.web.anim = l; save(); render(); }, lvl);
+      await page.click("[data-anim-try]");
+      // tungi ko'rinish
+      await page.evaluate(() => document.querySelector("[data-dz-force]").click());
+      if (lvl !== "off") assert.ok(await page.evaluate(() => document.documentElement.classList.contains("anm-theme")), "rang asta almashadi");
+      await page.evaluate(() => document.querySelector("[data-dz-force]").click());
+      // dars: yo'qlama, hammasi keldi, kartochka
+      await page.evaluate(() => { const t = todayIso(), c = D.classes[0]; if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } c.extra_x = c.extra_x.filter((x) => x !== t); c.held.push(t); c.students.forEach((s) => delete s.marks[t]); save(); startLesson(0); });
+      await page.waitForSelector("[data-att]");
+      if (await page.$('[data-am="list"]')) await page.click('[data-am="list"]');
+      await page.click('[data-att="0|s"]');
+      if (lvl !== "off") assert.ok(await page.$('[data-att="0|s"].anm-pop'), "belgi sakraydi");
+      await page.click("[data-all]");
+      if (lvl === "full") assert.ok(await page.$(".lrow.anm-wave"), "to'lqin");
+      if (await page.$('[data-am="card"]')) {
+        await page.click('[data-am="card"]'); await page.click('[data-sw=""]');
+        if (lvl !== "off") assert.ok(await page.$(".anm-ghost"), "kartochka uchadi");
+        await page.click('[data-sw="s"]'); await page.waitForTimeout(600);
+        assert.equal(await page.$$eval(".anm-ghost", (x) => x.length), 0, "uchgan kartochka o'chadi");
+        await page.click('[data-am="list"]');
+      }
+      // doskaga chaqirish (baraban)
+      await page.evaluate(() => { callDialog(0); }); await page.waitForSelector(".modal [data-go]");
+      await page.click(".modal [data-go]");
+      if (lvl === "full") assert.ok(await page.$(".pick.anm-drum"), "baraban");
+      await page.waitForTimeout(1600); assert.ok((await page.textContent(".modal .pname")).length > 2);
+      await page.click(".modal [data-x]"); await page.waitForFunction(() => !document.querySelector(".modal"), null, {timeout: 1500});
+      // yon panel
+      if (vname === "kompyuter") { await page.click("[data-sidet]"); await page.click("[data-sidet]"); }
+      // xabar
+      await page.evaluate(() => toast("Sinov"));
+      if (lvl !== "off") assert.ok(await page.$(".toast.anm-in"));
+      // chop etish: animatsiya yo'q
+      await page.emulateMedia({media: "print"});
+      assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("main")).animationName), "none");
+      await page.emulateMedia({media: "screen"});
+      const ov = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+      assert.ok(ov <= 1, "overflow " + ov);
+      assert.deepEqual(errors, []);
+    } catch (e) { fails.push(`${tag}: ${e.message.split("\n")[0]} ${errors.join("; ")}`); }
+    await page.close();
+  }
+    assert.deepEqual(fails, []);
   } finally { await browser.close(); }
 });
