@@ -19,7 +19,8 @@ const fattr=(vs,ff)=>{if(!ff||ff==="auto")return "";const r=setOf(vs,ff);return 
 
 /* «BV Serif» / «BV Sans» — PDF bilan bir xil Liberation shriftlari (vendor/pdf-shrift): ekran = chop etish = PDF */
 const FREG={},FK={Times:[["BV Serif","sR","400","normal"],["BV Serif","sB","700","normal"],["BV Serif","sI","400","italic"],["BV Serif","sBI","700","italic"]],Arial:[["BV Sans","aR","400","normal"],["BV Sans","aB","700","normal"]]};
-const need=(vs,ff)=>{const r=setOf(vs,ff),f=new Set([r[2],r[3]]);if(vs==="B"&&(!ff||ff==="auto"))f.add("Times");return [...f].filter(x=>FK[x]);};
+// formulalar, chizmalar va eski «Rasmiy» varaqlar har doim BV Serif bilan (ekran = PDF), shuning uchun u doim ulanadi
+const need=(vs,ff)=>{const r=setOf(vs,ff),f=new Set([r[2],r[3],"Times"]);return [...f].filter(x=>FK[x]);};
 const ready=(vs,ff)=>need(vs,ff).every(f=>FREG[f]===true);
 function loadFonts(vs,ff){
   if(typeof PTG==="undefined"||!PTG.fontData||typeof FontFace==="undefined")return Promise.resolve();
@@ -200,7 +201,7 @@ function paginate(chunks,vs,ff){
   const fits=()=>pin.scrollHeight<=pin.clientHeight+1;
   cs.forEach(c=>{const w=`<div class="v-ck">${c.h}</div>`;pin.insertAdjacentHTML("beforeend",w);
     if(!fits()&&cur.length){pages.push(cur);cur=[];pin=mk();
-      if(c.row&&c.head&&!c.h.startsWith(c.head)){const hw=`<div class="v-ck">${c.head}</div>`;pin.insertAdjacentHTML("beforeend",hw);cur.push(hw);}
+      if(c.row&&c.head&&!c.h.includes(c.head)){const hw=`<div class="v-ck">${c.head}</div>`;pin.insertAdjacentHTML("beforeend",hw);cur.push(hw);}
       pin.insertAdjacentHTML("beforeend",w);}
     cur.push(w);});
   if(cur.length)pages.push(cur);m.innerHTML="";

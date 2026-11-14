@@ -5866,6 +5866,18 @@ for (const [name, viewport] of [["kompyuter", {width: 1280, height: 860}], ["tel
     for (const vs of ["A", "B", "C"]) {
       await page.click(`#ishp [data-a=po][data-k=vs][data-v=${vs}]`); await page.waitForSelector(`#is-ps .v-pg.v-s${vs}.v-cv`);
       const r = await vcheck(); assert.ok(r.n >= 4, `${vs}: ${r.n} bet`); assert.equal(r.cut, 0, `${vs}: kesilgan bet`);
+      // shriftlar (v241): har bir matn ilovaga o'rnatilgan shriftda (ekran = PDF); «Rasmiy» uslubning qo'shimcha betlari ham Times (BV Serif);
+      // darsning borishi jadvali yangi betga o'tganda sarlavha qatori bir betda ikki marta chiqmaydi
+      await page.waitForTimeout(300);
+      const ff = await page.evaluate(() => {
+        const fam = (e) => getComputedStyle(e).fontFamily.split(",")[0].replace(/["']/g, "").trim();
+        const txt = [...document.querySelectorAll("#is-ps *")].filter((e) => !e.closest(".katex") && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()));
+        return {bad: [...new Set(txt.map(fam).filter((f) => !["Manrope", "BV Serif", "BV Sans"].includes(f)))],
+          old: [...new Set([...document.querySelectorAll("#is-ps .a4 b, #is-ps .a4 small")].map(fam))],
+          dup: [...document.querySelectorAll("#is-ps .v-pin")].filter((p) => [...p.querySelectorAll("th")].filter((t) => t.textContent === "Bosqich, vaqt").length > 1).length};
+      });
+      assert.deepEqual(ff.bad, [], `${vs}: o'rnatilmagan shrift`); assert.equal(ff.dup, 0, `${vs}: jadval sarlavhasi takrorlandi`);
+      if (vs === "B" && ff.old.length) assert.deepEqual(ff.old, ["BV Serif"], "Rasmiy uslub: qo'shimcha betlar Times'da");
     }
     await page.click("#ishp [data-a=po][data-k=ff][data-v=huj]"); await page.waitForSelector("#is-ps .v-pg[data-ff]");
     await page.waitForFunction(() => [...document.fonts].some((f) => f.family.includes("BV Sans") && f.status === "loaded"));
