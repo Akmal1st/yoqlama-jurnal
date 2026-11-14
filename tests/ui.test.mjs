@@ -5837,7 +5837,17 @@ for (const [name, viewport] of [["kompyuter", {width: 1280, height: 860}], ["tel
     // SI oynasi: pastki tugma ilovaning pastki panelidan ustun, bosiladi (telefonda oyna pastga tushib ketgan edi)
     await page.click("#ishp [data-a=ai]"); await page.locator("#ishp [data-a=aiparse]").scrollIntoViewIfNeeded();
     assert.ok(await page.evaluate(() => { const r = document.querySelector("#ishp [data-a=aiparse]").getBoundingClientRect(), e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!(e && e.closest("[data-a=aiparse]")); }), "«Bo'limlarga ajratish» tugmasi bosiladi");
-    await page.click("#ishp .sheet .sh2 [data-a=close]");
+    // SI tayyor LaTeX yozsa (\frac, \cdot, \sin) — o'zgarmaydi, \text{} ichiga tushmaydi; eski buzuq formula ham to'g'ri chiziladi (2026-11-14)
+    await page.fill("#is-aitx", "FORMULA: S = \\frac{1}{2} a \\cdot b \\cdot \\sin \\gamma\nFORMULA: \\text{S }=\\text{ \\frac{1}{2} }a\\text{ \\cdot }b\\text{ \\cdot \\sin \\gamma}");
+    await page.click("#ishp [data-a=aiparse]"); await page.click("#ishp [data-a=aiapply]");
+    const fs = await page.evaluate(() => ISH.state.plans[ISH.state.cur].mat.filter((b) => b.k === "f").map((b) => b.v));
+    assert.ok(fs.includes("S = \\frac{1}{2} a \\cdot b \\cdot \\sin \\gamma"), JSON.stringify(fs));
+    assert.ok(fs.every((v) => !/\\text\{[^}]*\\(frac|cdot|sin)/.test(v)), JSON.stringify(fs));
+    await page.evaluate(() => { ISH.state.plans[ISH.state.cur].mat.push({k: "f", v: "\\text{S }=\\text{ \\frac{1}{2} }a\\text{ \\cdot }b\\text{ \\cdot \\sin \\gamma}", show: true}); });
+    await page.click("#ishp [data-a=tab][data-v=paper]"); await page.waitForSelector("#is-ps .katex");
+    assert.equal(await page.locator("#is-ps .katex-error").count(), 0, "formulada KaTeX xatosi yo'q");
+    await page.click("#ishp [data-a=tab][data-v=edit]");
+    if (await page.locator("#ishp .sheet").count()) await page.click("#ishp .sheet .sh2 [data-a=close]");
     // tahrir saqlanadi va sahifa qayta ochilganda qaytadi
     await page.fill('#ishp [data-f="g0"]', "Mening maqsadim");
     await page.waitForTimeout(700);
