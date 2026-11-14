@@ -399,7 +399,7 @@ const SKL=[["1-qator","Ot (mavzu)"],["2-qator","Ikki sifat"],["3-qator","Uch fe'
 const sup=x=>tPlain(x);
 function klSvg(c,nodes){const N=nodes.filter(x=>x.trim()),W=700,H=Math.max(260,N.length>6?330:280),cx=W/2,cy=H/2;
   const nd=N.map((t,k)=>{const an=-Math.PI/2+k*2*Math.PI/N.length,w=Math.min(220,sup(t).length*7.2+22),x=Math.max(w/2+4,Math.min(W-w/2-4,cx+Math.cos(an)*240)),y=cy+Math.sin(an)*(H/2-30);return {t:sup(t),x,y,w};});
-  return `<div class="klw"><svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="Inter,Arial,sans-serif">${nd.map(n=>`<line x1="${cx}" y1="${cy}" x2="${n.x}" y2="${n.y}" stroke="#9aa8b6" stroke-width="1.5"/>`).join("")}
+  return `<div class="klw"><svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${nd.map(n=>`<line x1="${cx}" y1="${cy}" x2="${n.x}" y2="${n.y}" stroke="#9aa8b6" stroke-width="1.5"/>`).join("")}
     <ellipse cx="${cx}" cy="${cy}" rx="${Math.min(150,sup(c).length*5+40)}" ry="34" fill="#0d6f6c"/><text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">${esc(sup(c))}</text>
     ${nd.map(n=>`<rect x="${n.x-n.w/2}" y="${n.y-16}" width="${n.w}" height="32" rx="16" fill="#f1eefe" stroke="#6d5bd0"/><text x="${n.x}" y="${n.y+4.5}" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1a1f24">${esc(n.t.length>30?n.t.slice(0,29)+"…":n.t)}</text>`).join("")}</svg></div>`;}
 function beshFor(l){const M=MAT[l.tk]||{g:"",f:[""],ex:[""],n:""};
@@ -582,7 +582,7 @@ function matBlock(b,j,n){
   if(b.k==="f")return `<div class="mb${b.show?"":" off"}">${H("calculator","Formula")}<input class="inp ltx" data-f="mb" data-j="${j}" value="${esc(b.v)}" aria-label="Formula, LaTeX kodi" spellcheck="false"><div class="ltb">${LTX.map(([c,t])=>`<button class="chip sm" data-a="ltx" data-v="${j}|${esc(c)}" title="${esc(c)}">${km(t)}</button>`).join("")}</div><div class="fx" data-pv="${j}">${fF(b.v)}</div><div class="small muted">LaTeX kodi: kasr <code>\\frac{a}{b}</code>, daraja <code>a^2</code>, ildiz <code>\\sqrt{x}</code>, ko'paytma <code>\\cdot</code>. Matn ichida formulani <code>$...$</code> orasiga yozing.</div></div>`;
   if(b.k==="fig")return `<div class="mb${b.show?"":" off"}">${H("bounding-box","Chizma")}<div class="fig">${figSvg(b.v)}</div><input class="inp" data-f="mbc" data-j="${j}" value="${esc(b.cap)}" aria-label="Chizma izohi"></div>`;
   if(b.k==="img")return `<div class="mb${b.show?"":" off"}">${H("image","Rasm")}<img class="imgp" src="${b.v}" alt="${esc(b.cap)}"><input class="inp" data-f="mbc" data-j="${j}" value="${esc(b.cap)}" placeholder="Rasm izohi" aria-label="Rasm izohi"></div>`;
-  if(b.k==="ex")return `<div class="mb${b.show?"":" off"}">${H("list-ol","Namunaviy yechim")}<textarea rows="${Math.max(3,b.v.split("\n").length)}" data-f="mb" data-j="${j}" style="font-family:Cambria,serif">${esc(b.v)}</textarea><ol class="exs" data-pv="${j}">${b.v.split("\n").filter(x=>x.trim()).map(x=>`<li>${fx(x)}</li>`).join("")}</ol></div>`;
+  if(b.k==="ex")return `<div class="mb${b.show?"":" off"}">${H("list-ol","Namunaviy yechim")}<textarea rows="${Math.max(3,b.v.split("\n").length)}" data-f="mb" data-j="${j}" style="font-family:&#39;BV Serif&#39;,&#39;Liberation Serif&#39;,&#39;Times New Roman&#39;,serif">${esc(b.v)}</textarea><ol class="exs" data-pv="${j}">${b.v.split("\n").filter(x=>x.trim()).map(x=>`<li>${fx(x)}</li>`).join("")}</ol></div>`;
   if(b.k==="n")return `<div class="mb${b.show?"":" off"}">${H("exclamation-triangle","Eslatma")}<textarea rows="2" data-f="mb" data-j="${j}">${esc(b.v)}</textarea></div>`;
   return "";
 }
@@ -620,7 +620,8 @@ if(!document.getElementById("is-ish-naqsh"))document.head.insertAdjacentHTML("be
 const frame=o=>o.frame==="none"?"":`<div class="frm ${o.frame}"></div>`;
 /* ── varaq ── */
 const ul=x=>`<ul class="bl">${lines(x).map(y=>`<li>${fx(y)}</li>`).join("")}</ul>`;
-const pcls=o=>`${o.ff==="ras"?" tnr":""}${o.frame!=="none"?" fr":""}${o.frame==="naqsh"?" dec":""}`;
+const ffNow=o=>ISHV.setOf(o.fmt==="bat"?o.vs:"A",o.ff)[0];   // «Uslubga mos» bo'lsa ham haqiqiy to'plam (B → Rasmiy)
+const pcls=o=>`${ffNow(o)==="ras"?" tnr":""}${o.frame!=="none"?" fr":""}${o.frame==="naqsh"?" dec":""}`;
 function paginate(chunks,o,foot,start,total){
   let m=document.getElementById("is-meas");if(!m){m=document.createElement("div");m.id="is-meas";m.style.cssText="position:absolute;left:-12000px;top:0;visibility:hidden;width:794px";document.body.appendChild(m);}
   m.innerHTML=`<div id="ishd"><div class="a4 bat${pcls(o)}">${frame(o)}<div class="ft"><span>x</span><span>1/1</span></div></div></div>`;
@@ -652,7 +653,7 @@ function ragPage(l,o,n,N){
     <div class="ft"><span>Qirqib, darsda tarqating</span><span>${n}/${N}</span></div></div>`;
 }
 // eski shakllar (Jadval, Qisqa): «Rasmiy» to'plam — eski Times uslubi (tnr), boshqalari — data-ff bilan
-const oldFf=h=>{const o=st.paper;if(!o.ff||o.ff==="auto"||o.ff==="ras")return h;return h.replace(/<div class="a4/g,`<div${ISHV.fattr("A",o.ff)} class="a4`);};
+const oldFf=h=>{const k=ffNow(st.paper);if(k==="zam"||k==="ras")return h;return h.replace(/<div class="a4/g,`<div${ISHV.fattr("A",k)} class="a4`);};
 function paperHtml(){return oldFf(paperHtml0());}
 function paperHtml0(){
   const l=L[st.cur],p=P(),o=st.paper;if(!p)return `<div class="card"><p class="muted" style="margin:0">Avval ishlanmani to'ldiring.</p><div><button class="btn pri" data-a="auto">${I("magic")} Avtomatik to'ldirish</button></div></div>`;

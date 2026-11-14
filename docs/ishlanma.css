@@ -162,7 +162,7 @@
 :is(#ishp,#ishd) .ptb{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 :is(#ishp,#ishd) .pw{overflow:hidden;position:relative;min-width:0}
 :is(#ishp,#ishd) .a4{width:794px;min-height:1123px;background:var(--paper);color:var(--ink);padding:40px 52px 40px;transform-origin:0 0;box-shadow:0 1px 3px rgba(0,0,0,.15);font:12.5px/1.4 var(--f);display:flex;flex-direction:column;gap:8px;position:relative}
-:is(#ishp,#ishd) .a4.tnr{font-family:"Times New Roman",Times,serif;font-size:13.5px;line-height:1.3}
+:is(#ishp,#ishd) .a4.tnr{font-family:'BV Serif','Liberation Serif','Times New Roman',serif;font-size:13.5px;line-height:1.3}
 :is(#ishp,#ishd) .a4 .top{display:flex;justify-content:space-between;font-size:11px;color:#5b6670}
 :is(#ishp,#ishd) .a4 h2{margin:6px 0 0;text-align:center;font-size:21px;font-weight:800;color:#0d6f6c;letter-spacing:.02em}
 :is(#ishp,#ishd) .a4.tnr h2{color:#000;font-size:18px;text-transform:uppercase}
@@ -308,7 +308,7 @@
 :is(#ishp,#ishd) .mbh{display:flex;align-items:center;gap:8px}
 :is(#ishp,#ishd) .mbh .k{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 :is(#ishp,#ishd) .mbh .sp{flex:1}
-:is(#ishp,#ishd) .fx{font:600 22px/1.3 "Cambria Math","Cambria","Times New Roman",serif;text-align:center;padding:10px;border-radius:10px;background:var(--acc-soft);color:var(--text);overflow-x:auto}
+:is(#ishp,#ishd) .fx{font:600 22px/1.3 'BV Serif','Liberation Serif','Times New Roman',serif;text-align:center;padding:10px;border-radius:10px;background:var(--acc-soft);color:var(--text);overflow-x:auto}
 :is(#ishp,#ishd) .fx sup{font-size:.62em}
 :is(#ishp,#ishd) .fig{display:flex;justify-content:center;padding:6px;overflow-x:auto}
 :is(#ishp,#ishd) .fig svg{max-width:100%;height:auto}
@@ -317,9 +317,9 @@
 :is(#ishp,#ishd) .fig .f3{fill:var(--fc)}
 :is(#ishp,#ishd) .fig .st{stroke:var(--fs);stroke-width:2;fill:none}
 :is(#ishp,#ishd) .fig .rc{stroke:var(--fs);stroke-width:1.5}
-:is(#ishp,#ishd) .fig text{fill:var(--ft);font:600 15px "Cambria","Times New Roman",serif}
+:is(#ishp,#ishd) .fig text{fill:var(--ft);font:600 15px 'BV Serif','Liberation Serif','Times New Roman',serif}
 :is(#ishp,#ishd) .fig text.s{font-size:13px}
-:is(#ishp,#ishd) .gflow{display:flex;flex-direction:column;align-items:center;gap:6px;font:600 17px "Cambria","Times New Roman",serif}
+:is(#ishp,#ishd) .gflow{display:flex;flex-direction:column;align-items:center;gap:6px;font:600 17px 'BV Serif','Liberation Serif','Times New Roman',serif}
 :is(#ishp,#ishd) .gflow .r{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}
 :is(#ishp,#ishd) .gflow .g{border-radius:8px;padding:3px 10px}
 :is(#ishp,#ishd) .gflow .g1{background:var(--fa)}
@@ -327,7 +327,7 @@
 :is(#ishp,#ishd) .gflow .g3{background:var(--fc)}
 :is(#ishp,#ishd) .gflow .ar{color:var(--muted);font-size:14px}
 :is(#ishp,#ishd) .cap{font-size:12px;color:var(--muted);text-align:center}
-:is(#ishp,#ishd) .exs{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:3px;font:500 15px/1.4 "Cambria","Times New Roman",serif}
+:is(#ishp,#ishd) .exs{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:3px;font:500 15px/1.4 'BV Serif','Liberation Serif','Times New Roman',serif}
 :is(#ishp,#ishd) .exs li::marker{font:700 12px var(--f);color:var(--acc)}
 :is(#ishp,#ishd) .nbx{background:var(--warn-soft);border-radius:10px;padding:8px 10px;font-size:13px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px}
 :is(#ishp,#ishd) .nbx .bi{color:var(--warn);margin-top:2px}
@@ -354,7 +354,7 @@
 :is(#ishp,#ishd) .a4 .frm.line{border:2px solid #0d6f6c;box-shadow:inset 0 0 0 3px #fff,inset 0 0 0 4px #0d6f6c}
 :is(#ishp,#ishd) .a4.tnr .frm.line{border-color:#000;box-shadow:inset 0 0 0 3px #fff,inset 0 0 0 4px #000}
 :is(#ishp,#ishd) .a4 .frm.naqsh{border-width:11px;border-style:solid;border-color:transparent}
-:is(#ishp,#ishd) .a4 .wm{position:absolute;top:70px;right:60px;font:700 46px "Cambria","Times New Roman",serif;color:#0d6f6c;opacity:.07;pointer-events:none;white-space:nowrap}
+:is(#ishp,#ishd) .a4 .wm{position:absolute;top:70px;right:60px;font:700 46px 'BV Serif','Liberation Serif','Times New Roman',serif;color:#0d6f6c;opacity:.07;pointer-events:none;white-space:nowrap}
 :is(#ishp,#ishd) .a4 .wm sup{font-size:.6em}
 :is(#ishp,#ishd) .a4 .qt{text-align:center;font-style:italic;color:#4a5560;font-size:12.5px}
 :is(#ishp,#ishd) .a4.dec h4::before{content:"◆ ";color:#e9a23b}
@@ -410,8 +410,8 @@
 :is(#ishp,#ishd) .a4.cover.cvr .cvbx{position:absolute;inset:34px;border:6px double #1d3a8a;pointer-events:none}
 :is(#ishp,#ishd) .a4.tnr.cover.cvr .cvbx{border-color:#000}
 :is(#ishp,#ishd) .a4.cover.cvr .em{background:none;color:#1d3a8a;border:2px solid #1d3a8a;width:96px;height:96px;font-size:46px;border-radius:50%}
-:is(#ishp,#ishd) .a4.cover.cvr .cvh{background:none;color:#1d3a8a;filter:none;font:700 52px/1.15 "Times New Roman",serif;letter-spacing:.04em}
-:is(#ishp,#ishd) .a4.cover.cvr .cv{font-family:"Times New Roman",serif;font-size:18px}
+:is(#ishp,#ishd) .a4.cover.cvr .cvh{background:none;color:#1d3a8a;filter:none;font:700 52px/1.15 'BV Serif','Liberation Serif','Times New Roman',serif;letter-spacing:.04em}
+:is(#ishp,#ishd) .a4.cover.cvr .cv{font-family:'BV Serif','Liberation Serif','Times New Roman',serif;font-size:18px}
 :is(#ishp,#ishd) .a4.cover.cvo .em{display:none}
 :is(#ishp,#ishd) .a4.cover.cvo .cv{color:#1a1f24}
 :is(#ishp,#ishd) .a4.cover.cvo .tp{color:#1a1f24}
@@ -461,7 +461,7 @@
 :is(#ishp,#ishd) .a4 .cv .tp{color:#0f8a4f}
 :is(#ishp,#ishd) .a4.tnr .cv .tp{color:#000}
 :is(#ishp,#ishd) .a4 .cvh{margin-top:40px;font:900 66px/1.05 var(--f);letter-spacing:.01em;background:linear-gradient(180deg,#6d28d9,#c026d3);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(3px 3px 0 #c7d2fe)}
-:is(#ishp,#ishd) .a4.tnr .cvh{background:none;color:#000;filter:none;font:700 48px/1.15 "Times New Roman",serif}
+:is(#ishp,#ishd) .a4.tnr .cvh{background:none;color:#000;filter:none;font:700 48px/1.15 'BV Serif','Liberation Serif','Times New Roman',serif}
 :is(#ishp,#ishd) .a4 .cvd{margin-top:30px;font-size:14px;color:#5b6670;font-weight:600}
 :is(#ishp,#ishd) .a4 .rag{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:14px;flex:1}
 :is(#ishp,#ishd) .a4 .rc2{border-radius:18px;border:3px dashed currentColor;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:12px}
