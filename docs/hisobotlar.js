@@ -15,7 +15,7 @@ const HSB = (() => {
   const KIND = Object.fromEntries(KINDS.flatMap(([, l]) => l.map((k) => [k[0], k])));
   // har tur nimani so'raydi: davr (per), chorak (q), oy (mon), yoki hech narsa
   const NEED = {cls: "per", stats: "per", par: "per", cmp: "per", sum: "q", ready: "q", att: "q", blank: "", seat: ""};
-  const XLS = {blank: "data-bvx", cls: "data-xlsx", stats: "data-stxlsx", att: "data-dvx", cmp: "data-ccsv", ready: "data-rxlsx", sum: "data-sxlsx"};
+  const XLS = {blank: "data-bvx"};   // qolgan hujjatlarning Excel'i — umumiy eksport oynasida
   const SRC = {cls: "<b>Jurnal</b> baholari va yo'qlama, tanlangan davr ichida. Xavf ostida — <b>Sozlamalar → Baholash → Xavf turlari</b> bo'yicha.",
     stats: "<b>Jurnal</b> baholari va yo'qlama, haftalarga bo'lib.", att: "<b>Jurnal</b> yo'qlamasi: S, DQ, K, KQ belgilari, tanlangan chorak ichida (sanalar <b>Sozlamalar → Choraklar</b>dan). Belgisi yo'q kunlar — darsda bo'lgan.",
     sum: "<b>Jurnal → Umumiy</b> ballari va kundalik baholar (FB). Loyiha ishi chorakda BSB qismiga qo'shiladi (BSB + Loyiha = 50). Chorak bahosi: jami ≥ 86 — 5, ≥ 66 — 4, ≥ 30 — 3.",
@@ -348,7 +348,8 @@ const HSB = (() => {
     const per = pl ? `<button class="hb-pk" data-hk="per" aria-haspopup="true"><span class="hb-v"><small>${n === "q" ? "Chorak" : n === "mon" ? "Oy" : "Davr"}</small><b class="hb-ell">${pl[0]}${n !== "mon" ? `<span class="hb-mut hb-pc" style="font-weight:600;display:inline"> · ${pl[1]}</span>` : ""}</b></span><span class="hb-car">▼</span></button>` : "";
     return cls + per;
   }
-  const actions = (k) => `<button class="btn btn-primary" data-print>🖨 Chop etish</button>${k === "blank" ? `<button class="btn" data-bvpdf title="A4 PDF faylni saqlash">⬇ PDF</button>` : k === "seat" ? `<button class="btn" data-oxpdf title="A4 PDF faylni saqlash">⬇ PDF</button>` : ""}<button class="btn" data-tgpdf title="Hisobotni PDF qilib Telegram botingizga yuborish">✈️ Telegram</button>${XLS[k] ? `<button class="btn" ${XLS[k]}>📊 Excel</button>` : ""}`;
+  // 7 hujjat — umumiy «Chop etish va eksport» oynasi (hisobot-eksport.js, eksport.js): Excel · PDF · Telegram · Chop etish bitta joyda
+  const actions = (k) => HEX.has(k) ? `<button class="btn btn-primary" data-exp title="Chop etish, PDF, Telegram va Excel">🖨 Chop etish / eksport</button>` : `<button class="btn btn-primary" data-print>🖨 Chop etish</button>${k === "blank" ? `<button class="btn" data-bvpdf title="A4 PDF faylni saqlash">⬇ PDF</button>` : k === "seat" ? `<button class="btn" data-oxpdf title="A4 PDF faylni saqlash">⬇ PDF</button>` : ""}<button class="btn" data-tgpdf title="Hisobotni PDF qilib Telegram botingizga yuborish">✈️ Telegram</button>${XLS[k] ? `<button class="btn" ${XLS[k]}>📊 Excel</button>` : ""}`;
 
   function page(m) {
     closePop();
@@ -360,20 +361,17 @@ const HSB = (() => {
     m.innerHTML = `<div class="hb">
       <h1>Hisobotlar</h1>
       <button class="hb-kind hb-tel" data-hk="kind" aria-haspopup="true"><span class="hb-ic">${K[1]}</span><span><b class="hb-ell">${K[2]}</b><small class="hb-ell">${sub}</small></span><em>Almashtirish ▾</em></button>
-      <div class="hb-g2 hb-tel">${pickers(X)}</div>${bot ? "" : `<div class="hb-g2 hb-tel ${(XLS[X.R.kind] && X.R.kind !== "blank") || X.R.kind === "seat" ? "hb-g3" : ""}">${actions(X.R.kind)}</div>`}
+      <div class="hb-g2 hb-tel">${pickers(X)}</div>${bot ? "" : `<div class="hb-g2 hb-tel ${X.R.kind === "seat" ? "hb-g3" : ""}">${actions(X.R.kind)}</div>`}
       <div class="hb-grid">
         <nav class="card hb-list hb-pc" aria-label="Hisobot turlari">${KINDS.map(([g, l]) => `<div class="hb-gt">${g}</div>${l.map(([k, ic, n, d]) => `<button class="hb-ri ${X.R.kind === k ? "on" : ""}" data-kind="${k}"><span class="hb-ic">${ic}</span><span><b class="hb-ell">${n}</b><small class="hb-ell">${d}</small></span></button>`).join("")}`).join("")}</nav>
-        <section class="card hb-panel${HPR.has(X.R.kind) ? " hb-hasprt" : ""}">
+        <section class="card hb-panel">
           <div class="hb-hd hb-pc"><div class="hb-top"><div><h2>${K[1]} ${K[2]}</h2><p>${K[3]}</p></div>${bot ? "" : `<div class="hb-acts">${actions(X.R.kind)}</div>`}</div><div class="hb-pks">${pickers(X)}</div></div>
           ${["blank", "par", "att", "seat"].includes(X.R.kind) ? "" : `<h2 class="pronly" style="margin:0 0 6px">${K[2]} · ${sub}${pl && NEED[X.R.kind] !== "mon" ? ` · ${pl[1]}` : ""}</h2>`}
-          ${HPR.has(X.R.kind) ? HPR.bar() : ""}
           <div class="hb-con">${body}</div>
-          ${HPR.has(X.R.kind) ? HPR.html(X.R.kind, X, pl, X.R.kind === "cmp" ? "Barcha sinflar" : label(X.c)) : ""}
           <div class="hb-src"><span>ℹ</span><span>${SRC[X.R.kind]}</span></div>
           ${bot ? `<div class="hb-stick">${actions(X.R.kind)}</div>` : ""}
         </section></div></div>`;
     bindPage(m, X);
-    m.querySelectorAll("[data-prt]").forEach((b) => b.onclick = () => { HPR.toggle(b.dataset.prt); render(); });
   }
   function bindPage(m, X) {
     const {R, c, lo, hi, rq} = X;
@@ -389,39 +387,12 @@ const HSB = (() => {
     m.querySelectorAll("[data-hgo]").forEach((b) => b.onclick = () => { S.ci = R.ci; S.jpage = b.dataset.hgo; go("journal"); });
     // «Ball qo'yish»: aynan o'sha ish — Summativ sahifasida (index.html openAnalysis)
     m.querySelectorAll("[data-hwork]").forEach((b) => b.onclick = () => openAnalysis(R.ci, b.dataset.hwork));
+    m.querySelectorAll("[data-exp]").forEach((b) => b.onclick = () => HEX.open(R.kind, X));
     m.querySelectorAll("[data-print]").forEach((b) => b.onclick = () => { fitPrint(); window.print(); });
     if (R.kind === "seat") { ORX.hbBind(m, c); return; }   // o'z chop etish / PDF / Telegram (orindiq.js)
-    // PDF → Telegram (pdf-tg.js)
-    m.querySelectorAll("[data-tgpdf]").forEach((b) => b.onclick = () => { const K = KIND[R.kind], pl = perLabel(X), who = R.kind === "cmp" || (R.kind === "blank" && BVQ.isAll()) ? "Barcha sinflar" : label(c);
-      const per = (pl ? `${pl[0]}${NEED[R.kind] !== "mon" && pl[1] ? ` · ${pl[1]}` : ""}` : "").replace(/<[^>]+>/g, "").replace(/&[a-z]+;/g, " ");
-      const q = R.kind === "cmp" ? rq : null;   // «Sinflarni solishtirish» chorak bo'yicha — chorak hisoboti
-      PTG.run(() => R.kind === "blank" ? BVQ.pdfPages(ctx()) : R.kind === "att" ? DVM.pdfPages(ctx()) : PTG.reportPdf(), `${K[2]} ${who} ${per}`, `📄 ${K[2]}\n${who}${per ? "\n" + per : ""}`, b)
-        .then((ok) => { if (ok && q) PTG.markQ(q); }); });
-    // Excel: hisob-kitob va ustunlar avvalgidek
-    const on = (sel, fn) => m.querySelectorAll(sel).forEach((b) => b.onclick = fn);
-    on("[data-xlsx]", () => {
-      const {rows} = reportRows(c, lo, hi, rq);
-      const hd = ["№", "O'quvchi", "O'rtacha", "Baholar", "Davomat %", "S", "DQ", "K", "KQ"].concat(rq ? ["Chorak balli", "Chorak bahosi"] : [], ["Izoh"]);
-      const body = rows.map((r, i) => [i + 1, r.name, r.avg, r.n, r.att, r.s, r.dq, r.k, r.kq].concat(rq ? [r.q ? Math.round(r.q.total * 10) / 10 : null, r.q && r.q.complete ? r.q.grade : null] : [], [r.why.join("; ")]));
-      saveTable(`${label(c)} ${lo} ${hi}`, [[`${label(c)} · ${fmt(lo)} – ${fmt(hi)}`], [], hd, ...body], [5, 28, 9, 8, 10, 5, 5, 5, 5].concat(rq ? [11, 12] : [], [50]));
-    });
-    on("[data-ccsv]", () => {
-      const r2 = (v, d) => v === null || v === undefined ? null : +v.toFixed(d), L = compareRows(lo, hi, rq), T = compareTotal(L), ln = (r, nm) => [nm, r.n, r.lessons, r2(r.avg, 2), r2(r.att, 1), r.risk, r2(r.bsb, 0), r2(r.chsb, 0)].concat(rq ? [r2(r.qq, 0), r2(r.qu, 0)] : []);
-      saveTable(`sinflar ${lo} ${hi}`, [[`Sinflarni solishtirish · ${fmt(lo)} – ${fmt(hi)}`], [], ["Sinf", "O'quvchi", "Darslar", "O'rtacha", "Davomat %", "Xavf ostida", "BSB %", "CHSB %"].concat(rq ? ["Sifat %", "O'zlashtirish %"] : []),
-        ...L.map((r) => ln(r, label(r.c))), ln(T, "Jami / o'rtacha")], [22, 10, 9, 10, 11, 12, 8, 8, 9, 14]);
-    });
-    on("[data-rxlsx]", () => {
-      const q = X.q; if (!qRange(q)) return toast(`${q}-chorak sanalari belgilanmagan`);
-      const [cp, per] = readiness(c, q);
-      saveTable(`${label(c)} ${q}-chorak tayyorlik`, [[`${label(c)} · ${q}-chorak bahosiga tayyorlik`], ...cp.map((x) => [x]), [], ["№", "O'quvchi", "Nima yetishmaydi"], ...Object.keys(per).map((n, i) => [i + 1, n, per[n].join("; ")])], [5, 30, 80]);
-    });
-    on("[data-stxlsx]", () => {
-      const st = statsData(c, lo, hi), r1 = (v, d) => v === null || v === undefined ? null : +v.toFixed(d), t = todayIso();
-      const end = (w) => { const e = iso(addDays(pdate(w.from), 6)); return e > hi ? hi : e > t ? t : e; };
-      saveTable(`${label(c)} statistika ${lo} ${hi}`, [[`${label(c)} · Grafik va statistika · ${fmt(lo)} – ${fmt(hi)}`], [], ["Hafta", "Baholar soni", "O'rtacha baho", "Davomat %", "Kelmaganlar (S, DQ, K)"],
-        ...st.weeks.map((w) => [`${d5(w.from < lo ? lo : w.from)} – ${d5(end(w))}`, w.n, r1(w.avg, 2), r1(w.att, 1), w.abs]), [], ["Baho", "Soni"], ...st.dist.slice(1).map((n, i) => [i + 1, n])], [16, 13, 14, 12, 22]);
-    });
-    on("[data-sxlsx]", () => { const q = X.q; if (!qRange(q)) return toast(`${q}-chorak sanalari belgilanmagan`); saveTable(`${label(c)} ${q}-chorak BSB CHSB`, ...sumAoa(c, q)); });
+    // Bo'sh varaq: PDF → Telegram (pdf-tg.js), Excel — bosh-varaq.js (BVQ.bind)
+    m.querySelectorAll("[data-tgpdf]").forEach((b) => b.onclick = () => { const who = BVQ.isAll() ? "Barcha sinflar" : label(c);
+      PTG.run(() => BVQ.pdfPages(ctx()), `Bo'sh varaq ${who}`, `📄 Bo'sh varaq\n${who}`, b); });
   }
   return {page, has, KINDS, leave: closePop, student, why1};
 })();

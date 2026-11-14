@@ -13,14 +13,14 @@
 <title>Yo'qlama jurnali</title>
 <link rel="stylesheet" href="vendor/bootstrap-5.3.3.css?v=213">
 <link rel="stylesheet" href="vendor/bootstrap-icons-1.11.3.css?v=213">
-<link rel="stylesheet" href="app.css?v=219">
+<link rel="stylesheet" href="app.css?v=236">
 <link rel="stylesheet" href="guruhlar.css?v=213">
 <link rel="stylesheet" href="tpt-mavzu.css?v=213">
 <link rel="stylesheet" href="tpt-tema.css?v=213">
 <link rel="stylesheet" href="dizayn.css?v=202">
 <link rel="stylesheet" href="tugmalar.css?v=213">
 <link rel="stylesheet" href="hisobotlar.css?v=217">
-<link rel="stylesheet" href="hisobot-chop.css?v=217">
+<link rel="stylesheet" href="eksport.css?v=236">
 <link rel="stylesheet" href="bosh-varaq.css?v=227">
 <link rel="stylesheet" href="davomat.css?v=213">
 <link rel="stylesheet" href="bsb-eksport.css?v=213">
@@ -65,11 +65,12 @@
 <script src="guruhlar.js?v=213"></script>
 <script src="tugmalar.js?v=213"></script>
 <script src="dizayn.js?v=202"></script>
-<script src="hisobot-chop.js?v=217"></script>
-<script src="hisobotlar.js?v=229"></script>
+<script src="eksport.js?v=236"></script>
+<script src="hisobotlar.js?v=236"></script>
+<script src="hisobot-eksport.js?v=237"></script>
 <script src="bosh-varaq.js?v=231"></script>
 <script src="davomat.js?v=221"></script>
-<script src="bsb-eksport.js?v=202"></script>
+<script src="bsb-eksport.js?v=236"></script>
 <script src="bsb-yangi.js?v=202"></script>
 <script src="bugun-arxiv.js?v=213"></script>
 <script src="bugun-tatil.js?v=207"></script>
@@ -83,7 +84,7 @@
 <script src="ktr.js?v=233"></script>
 <script src="ishlanma.js?v=235"></script>
 <script src="kunlik.js?v=221"></script>
-<script src="pdf-tg.js?v=227"></script>
+<script src="pdf-tg.js?v=236"></script>
 <script src="tg-umumiy.js?v=213"></script>
 <script src="arxiv.js?v=207"></script>
 <script src="emk-bir.js?v=197"></script>
@@ -3334,16 +3335,27 @@ function ktrDialog(ci) {
 /* ───────── BSB tahlili: savollar bo'yicha ballar ───────── */
 const gnum = (v) => String(+(+v).toPrecision(6));
 const sumOf = (a) => a.reduce((x, y) => x + y, 0);
+/* BSB / CHSB tahlili — xulosa qoidalari (v7, Akmal tasdiqladi 2026-11-14). Chegaralar bir joyda: */
+const BSB_R = {
+  qHard: 40, qEasy: 70,            // savol darajasi: 40% dan past — qiyin, 40–69% — o'rtacha, 70%+ — oson (grafik va jadval ham shu)
+  qHigh: 70, qLow: 40,             // bilim sifati: 70%+ — yuqori, 40–69% — o'rtacha, 40% dan past — past
+  zero: 0.3,                       // 0 ball olganlar ulushi (kamida 2 o'quvchi)
+  dLow: 0.2, dMinN: 10,            // ajratish indeksi xulosada faqat 10+ o'quvchida
+  near: 0.05,                      // keyingi bahoga yetmagan ball: ishning 5% i (kamida 1 ball)
+  names: 6,
+};
 function bsbStats(qmax, rows, ceilTotal) {   // ceilTotal: CHSB testi — umumiy ball yuqoriga butunga yaxlitlanadi
-  const nq = qmax.length, totMax = sumOf(qmax.map(Number)), stu = [];
+  const nq = qmax.length, totMax = sumOf(qmax.map(Number)), stu = [], noData = [];
   for (const r of rows) {
     if (!r.in) continue;
     const raw = (r.pts || []).slice(0, nq); while (raw.length < nq) raw.push(null);
+    const empty = raw.filter((p) => p === null || p === undefined || p === "").length;
+    if (nq && empty === nq) { noData.push(r.name); continue; }   // birorta ball yo'q — natija kiritilmagan, statistikaga kirmaydi
     const pts = raw.map((p, i) => Math.min(Math.max(+(p || 0), 0), +qmax[i])), total = ceilTotal ? Math.min(totMax, Math.ceil(Math.round(sumOf(pts) * 1e6) / 1e6 - 1e-9)) : sumOf(pts), pct = totMax ? 100 * total / totMax : 0;
-    stu.push({name: r.name, pts, total, pct, grade: grade5(pct), empty: raw.filter((p) => p === null || p === undefined).length});
+    stu.push({name: r.name, pts, total, pct, grade: grade5(pct), empty});
   }
   const absent = rows.filter((r) => !r.in).map((r) => r.name), n = stu.length;
-  const out = {n, absent, qmax: qmax.slice(), tot_max: totMax, students: stu, questions: [], grades: {5: 0, 4: 0, 3: 0, 2: 0}};
+  const out = {n, absent, noData, qmax: qmax.slice(), tot_max: totMax, students: stu, questions: [], grades: {5: 0, 4: 0, 3: 0, 2: 0}};
   if (!n || !totMax) return out;
   const pcts = stu.map((s) => s.pct).sort((a, b) => a - b), mid = Math.floor(n / 2);
   Object.assign(out, {mean_total: sumOf(stu.map((s) => s.total)) / n, mean_pct: sumOf(pcts) / n, median_pct: n % 2 ? pcts[mid] : (pcts[mid - 1] + pcts[mid]) / 2,
@@ -3358,60 +3370,75 @@ function bsbStats(qmax, rows, ceilTotal) {   // ceilTotal: CHSB testi — umumiy
     // ajratish indeksi: kuchli va kuchsiz 27% farqi
     const d = n >= 6 ? (sumOf(ranked.slice(0, k).map((s) => s.pts[i])) - sumOf(ranked.slice(-k).map((s) => s.pts[i]))) / k / mx : null;
     out.questions.push({i: i + 1, max: qmax[i], mean, pct, full: vals.filter((v) => v >= mx).length, zero: vals.filter((v) => v <= 0).length, d,
-      level: pct < 40 ? "qiyin" : pct < 70 ? "o'rtacha" : "oson"});
+      level: pct < BSB_R.qHard ? "qiyin" : pct < BSB_R.qEasy ? "o'rtacha" : "oson"});
   }
   return out;
 }
-function bsbNames(items, limit = 6) {
+function bsbNames(items, limit = BSB_R.names) {
   items = [...items]; const t = items.slice(0, limit).join(", ");
   return t + (items.length > limit ? ` va yana ${items.length - limit} ta` : "");
 }
+/* xulosa: {verdict, qs, st, data, next}; har band {id, tone: ok|mid|bad|info, t} — t ichida faqat <b> (ismlar esc qilingan).
+   Qoidalar: har savol aynan bitta toifada, har o'quvchi ko'pi bilan bitta guruhda, umumiy xulosa baho shkalasi (86/66/30) bilan, keyingi qadam bitta. */
 function bsbRecs(an) {
-  const good = [], bad = [], tips = [], n = an.n, f0 = (x) => pyFixed(x, 0);
-  if (!n || !an.questions.length) return {good, bad: ["Tahlil uchun ishtirok etgan o'quvchilar va ballar kerak."], tips};
-  const g = an.grades, qs = an.questions, stu = an.students, qp = (q) => `${q.i}-savol (${f0(q.pct)}%)`;
-  // — yutuqlar —
-  if (an.quality >= 60) good.push(`Bilim sifati yuqori: ${f0(an.quality)}% o'quvchi «4» va «5» baho olgan.`);
-  if (g[5]) good.push(`«5» baho olganlar: ${g[5]} ta (${bsbNames(stu.filter((s) => s.grade === 5).map((s) => s.name))}).`);
-  const easy = qs.filter((q) => q.pct >= 75);
-  if (easy.length) good.push("Yaxshi o'zlashtirilgan savollar: " + easy.map(qp).join(", ") + " — bu mavzular bo'yicha bilim mustahkam.");
-  if (!g[2]) good.push("Ishtirok etgan barcha o'quvchi «3» dan past bo'lmagan baho olgan.");
-  if (an.mean_pct >= 66 && !good.length) good.push(`O'rtacha natija yaxshi: ${f0(an.mean_pct)}%.`);
-  if (!good.length) good.push("Sezilarli yutuqlar aniqlanmadi — quyidagi tavsiyalarga e'tibor bering.");
-  // — kamchiliklar —
-  const hard = qs.filter((q) => q.pct < 50).sort((a, b) => a.pct - b.pct);
-  if (hard.length) bad.push("O'zlashtirishi past savollar: " + hard.map(qp).join(", ") + ".");
-  const skipped = qs.filter((q) => q.zero >= Math.max(2, 0.3 * n));
-  if (skipped.length) bad.push("Ko'pchilik 0 ball olgan savollar: " + skipped.map((q) => `${q.i}-savol (${q.zero} ta)`).join(", ") + " — mavzu o'tilmagan, shart tushunarsiz yoki vaqt yetmagan bo'lishi mumkin.");
-  const weakD = qs.filter((q) => q.d !== null && q.d < 0.2 && q.pct < 90);
-  if (weakD.length) bad.push("Kuchli va kuchsiz o'quvchilarni yaxshi ajratmagan savollar: " + weakD.map((q) => `${q.i}-savol`).join(", ") + " — savol shakli yoki murakkabligini ko'rib chiqing.");
-  if (qs.length >= 6) {
-    const t = Math.floor(qs.length / 3), first = sumOf(qs.slice(0, t).map((q) => q.pct)) / t, last = sumOf(qs.slice(-t).map((q) => q.pct)) / t;
-    if (first - last >= 25) bad.push(`Oxirgi savollar (${f0(last)}%) boshidagilardan (${f0(first)}%) ancha past — vaqt yetmagan yoki murakkab topshiriqlar qiyinlik tug'dirgan bo'lishi mumkin.`);
-  }
-  if (g[2]) bad.push(`«2» baho olganlar: ${g[2]} ta (${f0(100 * g[2] / n)}%): ${bsbNames(stu.filter((s) => s.grade === 2).map((s) => s.name))}.`);
-  if (an.quality < 40) bad.push(`Bilim sifati past: faqat ${f0(an.quality)}% o'quvchi «4» va «5» baho olgan.`);
-  if (an.absent.length) bad.push(`Ishtirok etmaganlar: ${an.absent.length} ta (${bsbNames(an.absent)}).`);
-  if (an.empty_cells) bad.push(`${an.empty_cells} ta katak to'ldirilmagan — hisobda 0 ball deb olindi.`);
-  if (!bad.length) bad.push("Jiddiy kamchiliklar aniqlanmadi.");
-  // — tavsiyalar —
-  for (const q of hard.slice(0, 4)) tips.push(`${q.i}-savol (${f0(q.pct)}%): ${q.pct < 35 ? "mavzuni qayta tushuntiring, o'xshash misollarni sinfda birgalikda yeching" : "xatolarni tahlil qiling va qo'shimcha mashqlar bering"}.`);
-  const low = stu.filter((s) => s.grade === 2).map((s) => s.name);
-  if (low.length) tips.push(`${bsbNames(low)} bilan yakka tartibda ishlang: asosiy tushunchalarni takrorlash va qo'shimcha dars.`);
-  const near = [];
-  for (const s of stu) for (const [thr, gr] of [[30, 3], [66, 4], [86, 5]]) if (s.pct < thr) {
-    const need = Math.ceil(thr * an.tot_max / 100 - s.total - 1e-9);
-    if (need > 0 && need <= Math.max(2, 0.06 * an.tot_max)) near.push(`${s.name} (${gnum(need)} ball → «${gr}»)`);
-    break;
-  }
-  if (near.length) tips.push("Yuqori bahoga yaqin o'quvchilar — qisqa takrorlash bilan natijani oshirish mumkin: " + bsbNames(near) + ".");
-  const top = stu.filter((s) => s.grade === 5).map((s) => s.name);
-  if (top.length >= 2) tips.push(`${bsbNames(top, 4)} — qiyinroq (olimpiada, qo'shimcha) topshiriqlar bering yoki yordamchi sifatida jalb qiling.`);
-  if (an.absent.length) tips.push("Ishtirok etmaganlarga BSB ni qayta topshirish imkonini bering (kasallik va boshqa sabablarni aniqlang).");
-  if (an.quality < 40 || hard.length > qs.length / 2) tips.push("Bo'lim bo'yicha umumiy takrorlash darsi o'tkazing, so'ng qisqa nazorat (formativ) ishi bilan natijani tekshiring.");
-  else if (an.quality >= 70 && !hard.length) tips.push("Natija yaxshi — keyingi bo'limga o'tishingiz mumkin; qiyin topshiriqlar ulushini oshirib ko'ring.");
-  if (!tips.length) tips.push("Joriy yondashuvni davom ettiring; keyingi BSB da natijalarni shu tahlil bilan solishtiring.");
-  return {good, bad, tips};
+  const R = BSB_R, out = {verdict: null, qs: [], st: [], data: [], next: []}, n = an.n, f0 = (x) => pyFixed(x, 0);
+  if (!n || !an.questions.length) { out.verdict = {id: "V0", tone: "bad", lvl: "", t: "Tahlil uchun kamida bitta o'quvchining bali kerak."}; return out; }
+  const g = an.grades, m = an.mean_pct, Q = an.quality, qs = an.questions, stu = an.students;
+  const qNames = (L) => L.length === 1 ? `${L[0].i}-savol` : L.map((q) => q.i).join(", ") + "-savollar", dFmt = (d) => pyFixed(d, 2).replace(".", ",");
+  // 1. Umumiy xulosa — baho shkalasining o'zi bilan (86 / 66 / 30)
+  const lvl = m >= 86 ? ["a'lo", "ok", "V1"] : m >= 66 ? ["yaxshi", "ok", "V2"] : m >= 30 ? ["qoniqarli", "mid", "V3"] : ["past", "bad", "V4"];
+  const qT = Q >= R.qHigh ? "yuqori" : Q >= R.qLow ? "o'rtacha" : "past";
+  out.verdict = {id: lvl[2], tone: lvl[1], lvl: lvl[0], t: `Sinf natijasi — <b>${lvl[0]}</b>: o'zlashtirish ${f0(m)}%, bilim sifati ${f0(Q)}% (${qT}), ${g[2] ? `«2» — ${g[2]} ta (${f0(100 * g[2] / n)}%)` : "«2» baho yo'q"}.`};
+  // 2. Savollar: har savol bitta toifaga (ustuvorlik tartibida)
+  const useD = n >= R.dMinN, cat = (q) =>
+    useD && q.d !== null && q.d < 0 ? "Q1" :
+    q.zero >= Math.max(2, R.zero * n) ? "Q2" :
+    q.pct < R.qHard ? "Q3" :
+    useD && q.d !== null && q.pct < R.qEasy && q.d < R.dLow ? "Q4" :
+    q.pct < R.qEasy ? "Q5" : "Q6";
+  const by = {}; qs.forEach((q) => (by[cat(q)] = by[cat(q)] || []).push(q));
+  const pp = (L) => L.map((q) => f0(q.pct) + "%").join(", ");
+  for (const q of by.Q1 || []) out.qs.push({id: "Q1", tone: "bad", qi: [q.i], t: `<b>${q.i}-savol</b>: kuchsiz o'quvchilar kuchlilardan yaxshiroq bajargan (ajratish ${dFmt(q.d)}) — savol sharti va javob kalitini tekshiring; kalit xato bo'lsa, ballarni qayta hisoblang.`});
+  if (by.Q2) out.qs.push({id: "Q2", tone: "bad", qi: by.Q2.map((q) => q.i), t: `<b>${qNames(by.Q2)}</b>da ko'pchilik umuman ishlamagan — 0 ball: ${by.Q2.map((q) => `${q.zero} ta (${f0(100 * q.zero / n)}%)`).join(", ")} — mavzu o'tilganini va vaqt yetganini tekshiring.`});
+  if (by.Q3) out.qs.push({id: "Q3", tone: "bad", qi: by.Q3.map((q) => q.i), t: `<b>${qNames(by.Q3)}</b> qiyin bo'lgan (${pp(by.Q3)}) — mavzuni qayta tushuntiring, o'xshash misollarni sinfda birga yeching.`});
+  if (by.Q4) out.qs.push({id: "Q4", tone: "mid", qi: by.Q4.map((q) => q.i), t: `<b>${qNames(by.Q4)}</b> kuchli va kuchsizni farqlamaydi (ajratish ${by.Q4.map((q) => dFmt(q.d)).join(", ")}) — keyingi ishda bosqichli (oson → qiyin) qiling.`});
+  if (by.Q5) out.qs.push({id: "Q5", tone: "mid", qi: by.Q5.map((q) => q.i), t: `<b>${qNames(by.Q5)}</b> qisman o'zlashtirilgan (${pp(by.Q5)}) — tipik xatolarni sinf bilan tahlil qiling.`});
+  if (by.Q6) out.qs.push({id: "Q6", tone: "ok", qi: by.Q6.map((q) => q.i), t: `<b>${qNames(by.Q6)}</b> yaxshi o'zlashtirilgan (${pp(by.Q6)}) — bu mavzular mustahkam.`});
+  if (qs.length >= 6) { const t = Math.floor(qs.length / 3), a = sumOf(qs.slice(0, t).map((q) => q.pct)) / t, b = sumOf(qs.slice(-t).map((q) => q.pct)) / t;
+    if (a - b >= 25) out.qs.push({id: "Q7", tone: "mid", qi: [], t: `Oxirgi savollar (${f0(b)}%) boshidagilardan (${f0(a)}%) ancha past — vaqt yetmagan bo'lishi mumkin; keyingi ishda vaqt yoki savollar sonini qayta ko'ring.`}); }
+  // 3. O'quvchilar: har o'quvchi faqat bitta guruhda (ustuvorlik tartibida)
+  if (an.absent.length) out.st.push({id: "S1", tone: "mid", who: an.absent.slice(), t: `<b>Qatnashmagan — ${an.absent.length} ta</b>: ${bsbNames(an.absent.map(esc))} — qayta topshirish sanasini belgilang.`});
+  const nd = an.noData || [];
+  if (nd.length) out.st.push({id: "S2", tone: "mid", who: nd.slice(), t: `<b>Ball kiritilmagan — ${nd.length} ta</b>: ${bsbNames(nd.map(esc))} — ballarini kiriting yoki «qatnashmadi» deb belgilang.`});
+  const weakOf = (s) => qs.filter((q) => s.pts[q.i - 1] < q.max / 2).sort((a, b) => s.pts[a.i - 1] / a.max - s.pts[b.i - 1] / b.max).slice(0, 2);
+  const twos = stu.filter((s) => s.grade === 2).sort((a, b) => a.total - b.total);
+  if (twos.length) out.st.push({id: "S3", tone: "bad", who: twos.map((s) => s.name), t: `<b>«2» — ${twos.length} ta</b>: ${bsbNames(twos.map((s) => { const w = weakOf(s); return w.length ? `${esc(s.name)} (${qNames(w)})` : esc(s.name); }), 4)} — ${twos.length / n >= .3 ? "ular ko'p: alohida guruh qilib, qo'shimcha darsda shu savollar mavzusini qayta o'ting" : "yakka tartibda shu savollar mavzusini takrorlang"}.`});
+  const lim = Math.max(1, Math.round(R.near * an.tot_max)), near = [];
+  for (const s of stu) { if (s.grade < 3 || s.grade === 5) continue; const thr = s.grade === 3 ? 66 : 86, need = Math.ceil(thr * an.tot_max / 100 - s.total - 1e-9); if (need > 0 && need <= lim) near.push([s, s.grade + 1]); }
+  if (near.length) out.st.push({id: "S4", tone: "mid", who: near.map(([s]) => s.name), t: `<b>Keyingi bahoga ${lim === 1 ? "1 ball" : `${lim} balldan kam`} yetmagan — ${near.length} ta</b>: ${bsbNames(near.map(([s, gr]) => `${esc(s.name)} (→ «${gr}»)`), 5)} — qisqa takrorlash yetarli.`});
+  const fives = stu.filter((s) => s.grade === 5);
+  if (fives.length) out.st.push({id: "S5", tone: "ok", who: fives.map((s) => s.name), t: `<b>«5» — ${fives.length} ta</b>: ${bsbNames(fives.map((s) => esc(s.name)), 5)} — qiyinroq (olimpiada) topshiriqlar bering yoki yordamchi qiling.`});
+  // ma'lumot sifati (guruhlardan alohida)
+  const part = stu.filter((s) => s.empty > 0);
+  if (part.length) out.data.push({id: "D1", tone: "mid", who: part.map((s) => s.name), t: `Qisman to'ldirilgan: ${bsbNames(part.map((s) => `${esc(s.name)} (${s.empty} katak)`), 4)} — bo'sh kataklar 0 ball deb olindi, tekshiring.`});
+  if (!useD && n >= 2) out.data.push({id: "D2", tone: "info", who: [], t: `Ajratish indeksi ${R.dMinN} tadan kam o'quvchida ishonchsiz — xulosada hisobga olinmadi.`});
+  // 4. Keyingi qadam — bitta (sinf darajasiga qarab)
+  const hardL = [...(by.Q2 || []), ...(by.Q3 || [])].sort((a, b) => a.i - b.i);
+  out.next.push(lvl[0] === "past" || (Q < R.qLow && hardL.length > qs.length / 2) ? {id: "N1", t: "Bo'limni qayta o'ting (1–2 dars), so'ng qisqa formativ ish bilan natijani tekshiring."}
+    : lvl[0] === "qoniqarli" ? {id: "N2", t: hardL.length ? `Qiyin savollar mavzusini (${qNames(hardL)}) bitta darsda takrorlang, keyin 10 daqiqalik formativ ish bilan tekshiring.` : "Xatolar tahlili darsini o'tkazing, keyin 10 daqiqalik formativ ish bilan tekshiring."}
+    : lvl[0] === "yaxshi" ? {id: "N3", t: hardL.length ? "Keyingi bo'limga o'tishingiz mumkin; qiyin savollar mavzusini uy vazifasi orqali mustahkamlang." : "Keyingi bo'limga o'tishingiz mumkin."}
+    : {id: "N4", t: "Keyingi bo'limga o'ting; qiyinroq topshiriqlar ulushini oshiring."});
+  if (by.Q1) out.next.push({id: "N5", t: "Javob kaliti tekshirilmaguncha bu ish natijasini jurnalga qo'ymang."});
+  return out;
+}
+/* xulosa bandining oddiy matni (Excel, Telegram) */
+const bsbRecText = (t) => String(t).replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&");
+/* xulosa bloklari (ekran, chop etish va PDF uchun bir xil): umumiy xulosa + keyingi qadam, so'ng savollar va o'quvchilar */
+function bsbRecHtml(rec) {
+  const li = (L) => L.map((x) => `<li class="t-${x.tone}">${x.t}</li>`).join("");
+  const v = rec.verdict, st = [...rec.st, ...rec.data];
+  return `<div class="bsr"><div class="bsr-v t-${v.tone}"><b>Umumiy xulosa</b><p>${v.t}</p>${rec.next.map((x, i) => `<p class="bsr-n">${i ? "" : "<b>Keyingi qadam:</b> "}${esc(x.t)}</p>`).join("")}</div>
+    ${rec.qs.length || st.length ? `<div class="bsr-2">${rec.qs.length ? `<div><b>Savollar bo'yicha</b><ul>${li(rec.qs)}</ul></div>` : ""}${st.length ? `<div><b>O'quvchilar bo'yicha</b><ul>${li(st)}</ul></div>` : ""}</div>` : ""}</div>`;
 }
 
 /* tahlil ma'lumoti — 1-versiya bilan bir xil: c.analyses = [{id, title, date, q, max[], rows: {ism: {in, pts[]}}}] */
@@ -3698,8 +3725,7 @@ function bsbReportHtml(meta, an, rec, pdf) {
     ${qs.map((q) => `<tr><td><b>${q.i}</b></td><td class="l">${esc((meta.names || [])[q.i - 1] || "—")}</td><td>${gnum(q.max)}</td><td>${pyFixed(q.mean, 2)}</td><td${bg(LV_COL[q.level])}><b>${pct0(q.pct)}</b></td><td>${q.full}</td><td>${q.zero}</td><td>${q.d === null ? "—" : pyFixed(q.d, 2)}</td><td${bg(LV_COL[q.level])}>${q.level}</td></tr>`).join("")}</table>
     <p class="small">Bor — ishtirok etganlar, Yo'q — ishtirok etmaganlar; sifat — «4» va «5» olganlar ulushi; o'zlash. — sinf to'plagan jami ballning mumkin bo'lgan jami balga nisbati (o'rtacha foiz). Qiyinlik: &lt;40% — qiyin, 40–70% — o'rtacha, &gt;70% — oson. Ajratish indeksi (kuchli va kuchsiz 27% o'quvchi farqi): 0,4 dan yuqori — a'lo, 0,2–0,4 — yaxshi, 0,2 dan past — kuchsiz (6 tadan kam o'quvchida hisoblanmaydi).</p>`;
   o += bsbErrHtml(an, meta.names);
-  for (const [t, k, col] of [["Yutuqlar", "good", "#2e7d32"], ["Kamchiliklar", "bad", "#c62828"], ["Tavsiyalar", "tips", "#1565c0"]])
-    o += `<h3 style="color:${col}">${t}</h3><ul>${rec[k].map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  o += `<h3>Xulosa va tavsiyalar</h3>${bsbRecHtml(rec)}`;
   const st = an.students.slice().sort((a, b) => b.total - a.total);
   o += `<h3 class="${pdf ? "pbb" : ""}">O'quvchilar natijalari</h3><table class="stu"><tr><th>№</th><th>O'quvchi</th>${an.qmax.map((_, i) => `<th>${i + 1}</th>`).join("")}<th>Jami</th><th>%</th><th>Baho</th></tr>
     <tr class="mxr"><td></td><td class="l"><b>Maksimal ball</b></td>${an.qmax.map((v) => `<td>${gnum(v)}</td>`).join("")}<td><b>${gnum(an.tot_max)}</b></td><td>100</td><td></td></tr>
@@ -4331,11 +4357,8 @@ function compareTotal(L) {
 function fitPrint() {
   const sec = $("main section.card"), kind = S.rep && S.rep.kind;
   let st = document.getElementById("pfit-css"); if (st) st.remove();
-  // yangi varaqlar (hisobot-chop.js): o'zi bitta A4 ga mos chiziladi, faqat sahifa o'lchami kerak
-  if (S.page === "reports" && sec && HPR.has(kind)) {
-    st = document.createElement("style"); st.id = "pfit-css"; st.textContent = "@media print{@page{size:A4 portrait;margin:0}}"; document.head.appendChild(st);
-    return 1;
-  }
+  // umumiy eksport oynasi (eksport.js) yoki boshqa tayyor varaq chop etilmoqda — sahifa o'lchami o'zida
+  if (document.body.classList.contains("pdoc")) return;
   if (S.page !== "reports" || !sec || kind === "blank" || kind === "par" || kind === "att") return;
   const mm = 96 / 25.4;
   sec.classList.add("pfit"); document.body.classList.add("pmeas");

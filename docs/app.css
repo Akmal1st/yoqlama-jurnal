@@ -689,6 +689,16 @@ table.bsa input[type=checkbox]{width:20px;height:20px;accent-color:var(--acc)}
 .pd .kp{border:1px solid #888;border-radius:calc(4px*var(--rk,1));padding:3px 6px;text-align:center}.pd .kp span{display:block;font-size:7.5pt;text-transform:uppercase;color:#555}.pd .kp b{font-size:12pt}
 .pd .blank{display:inline-block;min-width:120px;border-bottom:1px solid #000}
 .pd .ftr{margin-top:10px}.pd .sign{margin-top:18px;display:flex;gap:28px;align-items:flex-end}.pd .sign>div{flex:1 1 0;display:flex;flex-direction:column;gap:2px;text-align:center;min-width:0}.pd .sign .sl{font-size:9.5pt}.pd .sign .ln{display:block;width:100%;height:34px;border-bottom:1px solid #000;margin:0}.pd .sign .sn{font-size:9.5pt;min-height:1.2em}
+/* BSB xulosasi (bsbRecHtml): ekran, PDF va chop etishda bir xil */
+.bsr{display:grid;gap:6px;margin:4px 0 6px;break-inside:avoid}
+.bsr .t-ok{--c:#2e7d32}.bsr .t-mid{--c:#b26a00}.bsr .t-bad{--c:#c62828}.bsr .t-info{--c:#5f6f6e}
+.bsr-v{border:1px solid #c9d1d0;border-left:4px solid var(--c);border-radius:calc(4px*var(--rk,1));padding:5px 9px;background:#f7f9f9}
+.bsr-v>b,.bsr-2>div>b{display:block;font-size:.95em;color:#0b4f57;margin-bottom:2px}.bsr-v p{margin:1px 0}
+.bsr-2{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+.bsr ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.bsr li{position:relative;padding-left:12px;margin:0}.bsr li::before{content:"";position:absolute;left:1px;top:.45em;width:6px;height:6px;border-radius:50%;background:var(--c)}
+@media (max-width:560px){.bsr-2{grid-template-columns:1fr}}
+.bx-pg.bx-bw .bsr *,.bx-pg.t-bw .bsr *{--c:#222!important}
 #pdoc{display:none}
 @media print{
   body.pdoc>*:not(#pdoc){display:none!important}body.pdoc #pdoc{display:block}

@@ -476,13 +476,13 @@ const PTG = (() => {
   }
 
   /* ───────── tayyor varaqlar (.bx-pg): BSB/CHSB eksporti, bo'sh varaq, davomat, arxiv, TPT — har biri bitta PDF sahifa ───────── */
-  async function pagesPdf(htmlPages, land) {
+  async function pagesPdf(htmlPages, land, sel = ".bx-pg") {   // sel: umumiy eksport oynasi varaqlari — ".e-pg" (eksport.js)
     const D = await newDoc(), box = document.createElement("div");
     box.className = "ptg-box"; box.innerHTML = htmlPages.join(""); document.body.append(box);
     const list = [];
     try {
       await ready();
-      for (const pg of box.querySelectorAll(".bx-pg")) { const L = measure(pg); L.land = land != null ? (land || L.w > L.h * 1.05) : L.w > L.h; list.push(L); }
+      for (const pg of box.querySelectorAll(sel)) { const L = measure(pg); L.land = land != null ? (land || L.w > L.h * 1.05) : L.w > L.h; list.push(L); }
     } finally { box.remove(); }
     if (!list.length) throw new Error("Varaq topilmadi");
     await needFonts(D, list);
