@@ -191,7 +191,7 @@
 :is(#ishp,#ishd) .a4 .brk span{position:absolute;right:8px;top:-18px;font-size:10px;color:#b8790f;font-weight:700}
 :is(#ishp,#ishd) .pages{font-size:12.5px;display:inline-flex;gap:6px;align-items:center;background:var(--acc-soft);color:var(--acc);border-radius:8px;padding:4px 10px;font-weight:700}
 :is(#ishp,#ishd) .pages.w{background:var(--warn-soft);color:var(--warn)}
-:is(#ishp,#ishd) .ov{position:fixed;inset:0;background:rgba(10,20,30,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:5}
+:is(#ishp,#ishd) .ov{position:fixed;inset:0;background:rgba(10,20,30,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:45}
 #ishp.tel.tel .ov{align-items:flex-end;padding:0}
 :is(#ishp,#ishd) .sheet{background:var(--base);border-radius:16px;box-shadow:var(--sh);width:min(520px,100%);max-height:90%;display:flex;flex-direction:column;overflow:hidden}
 #ishp.tel.tel .sheet{border-radius:18px 18px 0 0;max-height:85%;width:100%}
@@ -203,7 +203,7 @@
 :is(#ishp,#ishd) .opt .oi{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:18px;background:var(--alt)}
 :is(#ishp,#ishd) .opt b{display:block}
 :is(#ishp,#ishd) .opt small{color:var(--muted);font-size:12px}
-:is(#ishp,#ishd) .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:var(--base);padding:9px 14px;border-radius:10px;font-weight:600;font-size:13px;z-index:9;box-shadow:var(--sh);max-width:90%}
+:is(#ishp,#ishd) .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:var(--base);padding:9px 14px;border-radius:10px;font-weight:600;font-size:13px;z-index:9;box-shadow:var(--sh);max-width:90%;z-index:55}
 #ishp.tel.tel .toast{bottom:84px}
 :is(#ishp,#ishd) .nb{display:flex;align-items:center;gap:8px}
 :is(#ishp,#ishd) .cmp{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;font-size:13px}
@@ -276,7 +276,7 @@
 :is(#ishp,#ishd) .a4 .tk em{font-style:normal;font-weight:800;font-size:10px;border:1px solid #9aa6b1;border-radius:4px;padding:0 4px;margin-right:5px}
 :is(#ishp,#ishd) .a4 .tk i{color:#5b6670}
 :is(#ishp,#ishd) .pstack{display:flex;flex-direction:column;gap:16px;transform-origin:0 0;width:794px}
-:is(#ishp,#ishd) .live{position:fixed;inset:0;background:var(--win);z-index:6;display:flex;flex-direction:column;overflow:auto}
+:is(#ishp,#ishd) .live{position:fixed;inset:0;background:var(--win);z-index:40;display:flex;flex-direction:column;overflow:auto;z-index:40}
 :is(#ishp,#ishd) .lvh{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--base);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:1}
 :is(#ishp,#ishd) .lvh .t{flex:1;min-width:0}
 :is(#ishp,#ishd) .lvh .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -475,3 +475,6 @@
 :is(#ishp,#ishd) [hidden]{display:none!important}
 /* PDF (pdf-tg.js) gradient matnni chizmaydi: muqova sarlavhasi bir rangda */
 #ishd .a4.bx-pg .cvh{background:none;color:#7c2bd6;filter:none}
+/* telefonda oyna ilovaning pastki panelidan ustun turadi (v238): pastki tugmalar bosiladi */
+#ishp.tel.tel .sheet{max-height:calc(100dvh - 24px)}
+#ishp.tel.tel .sheet .sbd{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
