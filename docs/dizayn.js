@@ -147,7 +147,7 @@ const DZN = (() => {
           <label class="sl"><span class="sll"><b>Burchaklar</b><output>${z.rad} px</output></span><span class="slr"><i class="rq" style="border-radius:0"></i><span class="trk"><input type="range" data-dz-r="rad" min="0" max="20" step="2" value="${z.rad}" aria-label="Burchaklar"><span class="ticks"><i>To'g'ri</i><i class="st">14 px standart</i><i>Yumaloq</i></span></span><i class="rq" style="border-radius:9px"></i></span></label></div>`) +
         grp("Yozuv turi", "Ekran, hisobot va chop etishda", `<div class="radios fl">${Object.entries(FONTS).map(([k, x]) => fr(k, x[0], x[1], x[2])).join("")}${cf ? fr("custom", cf, "Kompyuterdan", `"${cf}",system-ui`) : ""}
           <button class="rd" data-dz-sysfont="1"><i class="rdo" style="visibility:hidden"></i><span><b>🖥 Kompyuterdagi shriftlar…</b><small>O'rnatilgan istalgan shrift</small></span></button></div>`) +
-        (typeof ALF !== "undefined" ? ALF.body() : "");
+        (typeof ALF !== "undefined" ? ALF.body() : "") + (typeof ANM !== "undefined" ? ANM.body() : "");
     } else html = TGM.body(z, BTNS, NAVN, NAVK, ICO);
     const foot = `<div class="dzfoot2"><button class="btn" data-dz-undo ${hist.length ? "" : "disabled"} title="Oxirgi o'zgarishni bekor qilish">↶ Qaytarish</button><button class="btn" data-dz-reset title="Ochiq bo'limni boshlang'ich holatga qaytarish">↺ Standart</button></div>
       <p class="muted dzhint">★ — standart tanlov. Har bir tanlov darhol saqlanadi. Yoqmasa, «↶ Qaytarish» bosing.</p>`;
@@ -156,6 +156,7 @@ const DZN = (() => {
 
   function bind(m) {
     const z = cfg();
+    if (typeof ANM !== "undefined") ANM.bind(m);
     const commit = (fn, quiet) => { hist.push(JSON.stringify(D.web.dz)); if (hist.length > 30) hist.shift(); fn(z); D.web.dz = clean(z, D.web); save(); render(); if (!quiet) flash(); };
     const flash = () => { const s = document.querySelector(".shead"); if (s && !s.querySelector(".dzsaved")) { const e = h(`<span class="dzsaved">✓ Saqlandi</span>`); s.append(e); setTimeout(() => e.remove(), 1400); } };
     m.querySelectorAll("[data-dz-tab]").forEach((b) => b.onclick = () => { S.dztab = b.dataset.dzTab; render(); });

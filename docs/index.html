@@ -49,6 +49,7 @@
 <link rel="stylesheet" href="kalit.css?v=213">
 <link rel="stylesheet" href="yangilik.css?v=206">
 <link rel="stylesheet" href="ota-emk.css?v=228">
+<link rel="stylesheet" href="anim.css?v=243">
 </head>
 <body>
 <div class="app" id="app">
@@ -63,7 +64,8 @@
 <script src="tpt-mavzu.js?v=213"></script>
 <script src="guruhlar.js?v=213"></script>
 <script src="tugmalar.js?v=213"></script>
-<script src="dizayn.js?v=202"></script>
+<script src="dizayn.js?v=243"></script>
+<script src="anim.js?v=243"></script>
 <script src="eksport.js?v=236"></script>
 <script src="hisobotlar.js?v=236"></script>
 <script src="hisobot-eksport.js?v=237"></script>
@@ -1402,7 +1404,7 @@ function modal(inner, onMount) {
 // Escape — eng ustidagi oynani yopadi (oyna ichidagi maydon o'zi ishlatgan bo'lsa — yo'q)
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape" || e.defaultPrevented) return;
-  const ms = document.querySelectorAll(".modal"), m = ms[ms.length - 1];
+  const ms = document.querySelectorAll(".modal:not(.anm-out)"), m = ms[ms.length - 1];
   if (m && m._close) { e.preventDefault(); m._close(null); }
 });
 function ask(title, text, val = "", type = "text") {
@@ -1489,6 +1491,7 @@ function cmdItems() {
     {ic: "💾", t: "Faylga saqlash (zaxira)", s: "Amal", run: () => exportJson()},
     {ic: "🌓", t: "Kunduzgi / tungi rejim", s: "Amal", run: () => DZN.toggleNight()},
     {ic: "🔤", t: "Alifbo: hozirgi / yangi", s: "Amal", run: () => ALF.toggle()},
+    {ic: "✨", t: `Animatsiyalar: ${typeof ANM !== "undefined" ? ANM.LV[ANM.want()][0] : "—"} → keyingisi`, s: "Amal", run: () => typeof ANM !== "undefined" && ANM.cycle()},
     {ic: "⌨", t: "Tezkor tugmalar ro'yxati", s: "?", run: () => keysDialog()},
     {ic: "❔", t: "Yordam — shu sahifa", s: "Amal", run: () => helpDialog()});
   if (UNDO.length) it.push({ic: "↶", t: "Oxirgi o'zgarishni bekor qilish", s: "Ctrl+Z", run: undoLast});
@@ -4588,7 +4591,8 @@ function callDialog(ci) {
       const pool = classPool(c); if (!pool.length) { toast("Darsda o'quvchi yo'q"); return; }
       let left = pool.filter((x) => !called.has(x.s.name)); if (!left.length) { called.clear(); left = pool; }
       cur = weightedPick(left, pickWeights(left, fair)); called.add(cur.s.name); redraw();
-      const p = $(".pick", m); p.classList.remove("flash"); void p.offsetWidth; p.classList.add("flash");
+      const p = $(".pick", m); if (typeof ANM !== "undefined" && ANM.pick(p, pool.map((x) => x.s.name))) return;
+      p.classList.remove("flash"); void p.offsetWidth; p.classList.add("flash");
     };
     $("[data-reset]", m).onclick = () => { called.clear(); cur = null; redraw(); };
     $("[data-x]", m).onclick = () => { close(); render(); };
@@ -5009,7 +5013,7 @@ function navRestore() {
 /* ───────── ishga tushirish ───────── */
 if (document.getElementById("app")) {
   D = load(); autoDates(); if (D.classes.some((c) => c.plan && c.plan.on)) { reflowAll(); save(); }
-  navRestore(); render();
+  navRestore(); if (typeof ANM !== "undefined") ANM.init(); render();
   window.addEventListener("pagehide", navSave);
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") navSave(); }); emkReady(); idbBoot().then(() => { tgAuto().then(() => KUN.tick()); remSchedule(); });
   setInterval(() => KUN.tick(), 60000);   // kunlik hisobot: darslar tugagach Telegram'ga (kunlik.js)
