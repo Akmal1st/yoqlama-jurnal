@@ -77,11 +77,12 @@ const f1=x=>String(x||"").split("\n")[0];
 const lines=x=>String(x||"").split("\n").map(y=>y.trim()).filter(Boolean);
 const TSTOP=new Set(["ni","va","da","bu","ga","yo","u","o","ta","bo","ya","is","in","on","to"]);
 const TOP=new Set(["+","−","-","=","·","×","≠","±","/","≤","≥","<",">"]);
-function tTok(w){if(TOP.has(w))return "op";if(/['ʻʼ‘’«»—–→№§*:!?"]/.test(w))return null;
+const LXC=/\\[a-zA-Z]+/;   // tayyor LaTeX buyrug'i (\frac, \cdot, \sin…): SI ko'pincha formulani shunday yozadi
+function tTok(w){if(TOP.has(w))return "op";if(LXC.test(w)&&!/[«»—→№§]/.test(w))return "m";if(/['ʻʼ‘’«»—–→№§*:!?"]/.test(w))return null;
   const c=w.replace(/[.,;]+$/,"");if(!c||!/^[0-9a-zA-Z^²³()\/·.,;−+=±≠×≤≥]+$/.test(c))return null;
   const ls=c.match(/[A-Za-z]+/g)||[];for(const x of ls){if(x.length>2||/[A-Z]/.test(x)||TSTOP.has(x))return null;}
   if(!/[a-z0-9]/.test(c))return null;return "m";}
-function tQual(ts){return ts.some(t=>TOP.has(t)||/[\^²³\/=+−]/.test(t)||/\d[a-z]/.test(t)||/^\(?[a-z]{1,2}\)?[.,;]?$/.test(t)&&!TSTOP.has(t.replace(/[().,;]/g,"")));}
+function tQual(ts){return ts.some(t=>LXC.test(t)||TOP.has(t)||/[\^²³\/=+−]/.test(t)||/\d[a-z]/.test(t)||/^\(?[a-z]{1,2}\)?[.,;]?$/.test(t)&&!TSTOP.has(t.replace(/[().,;]/g,"")));}
 function tBal(s){let d=0;for(const ch of s){if(ch==="(")d++;else if(ch===")"){d--;if(d<0)return false;}}return d===0;}
 function tFrac(s){let k;let guard=0;
   while((k=s.search(/\s?\/\s?/))>=0&&guard++<20){const m=s.slice(k).match(/^\s?\/\s?/)[0];
@@ -103,11 +104,14 @@ function tex(str){if(str==null)return str;return String(str).split(/(\$[^$]+\$)/
       if(txt&&tQual(ws)&&tBal(txt))out.push(lead+"$"+tLatex(txt)+"$"+trl+tail);else out.push(run.join(""));run=[];};
     tk.forEach(t=>{if(/^ +$/.test(t)){if(run.length)run.push(t);else out.push(t);return;}if(tTok(t)){run.push(t);if(/[.,;]$/.test(t))flush();}else{flush();out.push(t);}});flush();
     return out.join("");}).join("\n");}).join("");}
-const tFormula=v=>{const t=tex(v);if(/^\$[^$]+\$$/.test(t.trim()))return t.trim().slice(1,-1);if(!t.includes("$"))return t;return t.split(/(\$[^$]+\$)/).filter(x=>x!=="").map(x=>/^\$/.test(x)?x.slice(1,-1):/^[\s,;]+$/.test(x)?",\\quad ":`\\text{${x}}`).join("");};
-const km=t=>{if(typeof katex==="undefined")return esc(t);try{return katex.renderToString(t,{throwOnError:false});}catch(e){return esc(t);}};
+// formula bloki: tayyor LaTeX ($ siz, \buyruqlar bilan) o'zgarmaydi; aks holda matn bo'laklari \text{} ga, matematika — LaTeX'ga
+const tFormula=v=>{if(!String(v).includes("$")&&LXC.test(v))return unText(String(v)).trim();const t=tex(v);if(/^\$[^$]+\$$/.test(t.trim()))return t.trim().slice(1,-1);if(!t.includes("$"))return t;return t.split(/(\$[^$]+\$)/).filter(x=>x!=="").map(x=>/^\$/.test(x)?x.slice(1,-1):/^[\s,;]+$/.test(x)?",\\quad ":`\\text{${x}}`).join("");};
+// \text{…} ichida qolib ketgan buyruqlar (\text{ \frac{1}{2} }) matn rejimida xato beradi — ichi formulaga chiqariladi (eski saqlangan formulalar ham)
+const unText=t=>String(t).replace(/\\text\{((?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*)\}/g,(m,x)=>LXC.test(x)?` ${x} `:m);
+const km=t=>{t=unText(t);if(typeof katex==="undefined")return esc(t);try{return katex.renderToString(t,{throwOnError:false});}catch(e){return esc(t);}};
 const fx=s=>String(s??"").split(/(\$[^$]+\$)/).map(x=>/^\$[^$]+\$$/.test(x)?km(x.slice(1,-1)):esc(x).replace(/\^(\d+)/g,"<sup>$1</sup>")).join("");
 const fF=v=>String(v).includes("$")?fx(v):km("\\displaystyle "+v);
-const tPlain=x=>String(x).replace(/\$/g,"").replace(/\\d?frac\{([^{}]*)\}\{([^{}]*)\}/g,"($1)/($2)").replace(/\\cdot\s?/g,"· ").replace(/\\neq\s?/g,"≠ ").replace(/\\pm\s?/g,"±").replace(/\\times\s?/g,"× ").replace(/\\quad/g," ").replace(/\\text\{([^}]*)\}/g,"$1").replace(/\\[,;! ]/g," ").replace(/\^\{?(\d+)\}?/g,(m,d)=>[...d].map(c=>"⁰¹²³⁴⁵⁶⁷⁸⁹"[c]).join("")).replace(/ - /g," − ").replace(/\(-/g,"(−");
+const tPlain=x=>unText(x).replace(/\$/g,"").replace(/\\d?frac\{([^{}]*)\}\{([^{}]*)\}/g,"($1)/($2)").replace(/\\cdot\s?/g,"· ").replace(/\\neq\s?/g,"≠ ").replace(/\\pm\s?/g,"±").replace(/\\times\s?/g,"× ").replace(/\\quad/g," ").replace(/\\text\{([^}]*)\}/g,"$1").replace(/\\[,;! ]/g," ").replace(/\^\{?(\d+)\}?/g,(m,d)=>[...d].map(c=>"⁰¹²³⁴⁵⁶⁷⁸⁹"[c]).join("")).replace(/ - /g," − ").replace(/\(-/g,"(−");
 function texPlan(p){p.g=p.g.map(tex);p.res=tex(p.res);p.st.forEach(x=>{x.t=tex(x.t);x.s=tex(x.s);x.nm=tex(x.nm);x.q=tex(x.q);x.mq=tex(x.mq);});p.tasks.forEach(t=>{t.q=tex(t.q);t.a=tex(t.a);});
   p.mat.forEach(b=>{if(b.k==="f")b.v=tFormula(b.v);else if(b.k==="g"||b.k==="ex"||b.k==="n")b.v=tex(b.v);if(b.cap)b.cap=tex(b.cap);});Object.keys(p.hwx).forEach(k=>p.hwx[k]=tex(p.hwx[k]));
   p.game.hy.forEach(x=>x.b=tex(x.b));p.game.bb.forEach(x=>{x.q=tex(x.q);x.a=tex(x.a);});p.game.sk=p.game.sk.map(tex);p.xul=tex(p.xul);return p;}
