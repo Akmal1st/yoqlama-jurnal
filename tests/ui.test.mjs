@@ -5800,113 +5800,30 @@ test("O'rindiq xaritasi: o'g'il-qiz yonma-yon (v234; 36 va 18 o'quvchi, telefon 
   } finally { await browser.close(); }
 });
 
-// Dars ishlanma (ishlanma.js, v235): KTR mavzulari, avtomatik to'ldirish, saqlash va qayta yuklash, chorak, varaq, PDF/Word,
-// boshqa sinfga nusxa, darsda rejimi — so'ralganlarga baho jurnalga yoziladi
-for (const [name, viewport] of [["kompyuter", {width: 1280, height: 860}], ["telefon", {width: 390, height: 844}]]) for (const n of [36, 18]) test(`Dars ishlanma (${name}, ${n} o'quvchi)`, async () => {
+// Dars ishlanma olib tashlandi (v242, Akmal 2026-11-14): menyuda yo'q, eski c.ish ma'lumoti va eski «ish» sahifasi xato bermaydi
+for (const n of [36, 18]) test(`Dars ishlanma olib tashlangan (${n} o'quvchi)`, async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
-    const ctx = await browser.newContext({serviceWorkers: "block", viewport, acceptDownloads: true});
+    const ctx = await browser.newContext({serviceWorkers: "block", viewport: {width: 390, height: 844}});
     const page = await ctx.newPage();
     const errors = []; page.on("pageerror", (e) => errors.push(e.message));
-    await page.clock.setFixedTime(new Date(2026, 10, 13, 10, 0));   // 2026-11-13, juma — 2-chorak, dars kuni
+    await page.clock.setFixedTime(new Date(2026, 10, 13, 10, 0));
     await page.goto(APP);
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const ci = await page.evaluate((n) => {
-      D.settings.quarters = [["2026-09-02", "2026-10-31"], ["2026-11-09", "2026-12-26"], ["2027-01-12", "2027-03-19"], ["2027-03-29", "2027-05-25"]];
-      const dates = []; for (let d = pdate("2026-09-02"); iso(d) <= "2027-05-25"; d = addDays(d, 1)) if ([0, 2, 4].includes(pyWd(iso(d))) && quarterOf(iso(d))) dates.push(iso(d));
-      const mk = (name) => { const c = normalize({web: {dv: 2}, classes: [{name, subject: "Algebra", dates: dates.slice(), students: Array.from({length: n}, (_, i) => ({name: `Familiya${i + 1} Ism${i + 1}`, marks: {}}))}]}).classes[0];
-        c.plan = {on: true, start: "2026-09-02", topics: parsePlanText("== 1-chorak\nTakrorlash | 2\n== 2-chorak\nUmumiy ko'paytuvchini qavsdan tashqariga chiqarish | 2 | §11, 301–304\nGuruhlash usuli | 2 | §12, 315–318\nYig'indi kvadrati | 2\nBSB №2 (25 ball)\nAlgebraik kasrlar | 2\n== 3-chorak\nFunksiya")};
-        D.classes.push(c); reflowPlan(c); return c; };
-      const c = mk("7-A"); mk("7-B");
-      c.students.forEach((s, i) => { if (i % 3 === 0) s.marks["2026-11-11"] = "8"; if (i % 7 === 1) s.marks["2026-11-11"] = "s"; });
-      save(); return D.classes.indexOf(c);
+      const c = normalize({web: {dv: 2}, classes: [{name: "7-A", subject: "Algebra", dates: ["2026-11-11", "2026-11-13"], students: Array.from({length: n}, (_, i) => ({name: `Familiya${i + 1} Ism${i + 1}`, marks: {}}))}]}).classes[0];
+      c.ish = {"2|Mavzu|2|1": {topic: "Mavzu", type: "Yangi bilim"}};   // eski ishlanma ma'lumoti
+      D.classes.push(c); save(); return D.classes.indexOf(c);
     }, n);
-    // sinf menyusidan
-    await page.evaluate((ci) => ISH.open(ci), ci); await page.waitForSelector("#ishp .hd h1");
-    assert.match(await page.textContent("#ishp .hd h1"), /7-A · Algebra/);
-    const st = () => page.evaluate(() => { const s = ISH.state; return {cur: s.cur, q: s.q, n: Object.keys(s.plans).length, dev: s.dev}; });
-    let s = await st();
-    assert.equal(s.q, 2); assert.equal(s.dev, name === "telefon" ? "tel" : "pc");
-    // bugungi dars (13-noyabr) tanlangan: «Guruhlash usuli (1/2)» — kutubxonadagi mavzu
-    assert.match(await page.textContent("#ishp"), /Guruhlash usuli/);
-    await page.click("#ishp [data-a=auto]");
-    const p = await page.evaluate(() => { const p = ISH.state.plans[ISH.state.cur]; return {sum: p.st.reduce((a, x) => a + x.m, 0), tasks: p.tasks.length, ask: p.ask.length, tex: p.tasks.every((t) => t.q.includes("$"))}; });
-    assert.deepEqual(p, {sum: 45, tasks: 8, ask: n > 20 ? 6 : 4, tex: true});
-    assert.ok(await page.locator("#ishp .katex").count() > 0, "formulalar KaTeX bilan chizildi");
-    // SI oynasi: pastki tugma ilovaning pastki panelidan ustun, bosiladi (telefonda oyna pastga tushib ketgan edi)
-    await page.click("#ishp [data-a=ai]"); await page.locator("#ishp [data-a=aiparse]").scrollIntoViewIfNeeded();
-    assert.ok(await page.evaluate(() => { const r = document.querySelector("#ishp [data-a=aiparse]").getBoundingClientRect(), e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!(e && e.closest("[data-a=aiparse]")); }), "«Bo'limlarga ajratish» tugmasi bosiladi");
-    // SI tayyor LaTeX yozsa (\frac, \cdot, \sin) — o'zgarmaydi, \text{} ichiga tushmaydi; eski buzuq formula ham to'g'ri chiziladi (2026-11-14)
-    await page.fill("#is-aitx", "FORMULA: S = \\frac{1}{2} a \\cdot b \\cdot \\sin \\gamma\nFORMULA: \\text{S }=\\text{ \\frac{1}{2} }a\\text{ \\cdot }b\\text{ \\cdot \\sin \\gamma}");
-    await page.click("#ishp [data-a=aiparse]"); await page.click("#ishp [data-a=aiapply]");
-    const fs = await page.evaluate(() => ISH.state.plans[ISH.state.cur].mat.filter((b) => b.k === "f").map((b) => b.v));
-    assert.ok(fs.includes("S = \\frac{1}{2} a \\cdot b \\cdot \\sin \\gamma"), JSON.stringify(fs));
-    assert.ok(fs.every((v) => !/\\text\{[^}]*\\(frac|cdot|sin)/.test(v)), JSON.stringify(fs));
-    await page.evaluate(() => { ISH.state.plans[ISH.state.cur].mat.push({k: "f", v: "\\text{S }=\\text{ \\frac{1}{2} }a\\text{ \\cdot }b\\text{ \\cdot \\sin \\gamma}", show: true}); });
-    await page.click("#ishp [data-a=tab][data-v=paper]"); await page.waitForSelector("#is-ps .katex");
-    assert.equal(await page.locator("#is-ps .katex-error").count(), 0, "formulada KaTeX xatosi yo'q");
-    await page.click("#ishp [data-a=tab][data-v=edit]");
-    if (await page.locator("#ishp .sheet").count()) await page.click("#ishp .sheet .sh2 [data-a=close]");
-    // tahrir saqlanadi va sahifa qayta ochilganda qaytadi
-    await page.fill('#ishp [data-f="g0"]', "Mening maqsadim");
-    await page.waitForTimeout(700);
-    const key = await page.evaluate((ci) => Object.keys(D.classes[ci].ish || {}), ci);
-    assert.deepEqual(key, ["2|Guruhlash usuli|1|1"]);
-    await page.evaluate((ci) => { S.jpage = "j"; render(); ISH.open(ci); }, ci);
-    assert.equal(await page.inputValue('#ishp [data-f="g0"]'), "Mening maqsadim");
-    // uyga vazifa jurnalga yoziladi
-    await page.fill("#ishp #is-hw", "§12, 315–317");
-    await page.waitForTimeout(700);
-    assert.equal(await page.evaluate((ci) => D.classes[ci].lessons["2026-11-13"].hw, ci), "§12, 315–317");
-    // varaq: muqova + ishlanma betlari, ekran yon tomonga surilmaydi
-    // yangi varaq (v239): 3 uslub, har birida muqova; hech bir betda matn kesilmaydi; shrift to'plami
-    await page.click("#ishp [data-a=tab][data-v=paper]"); await page.waitForSelector("#ishp .v-pg.v-cv");
-    const vcheck = () => page.evaluate(() => ({n: document.querySelectorAll("#is-ps .v-pg").length, cut: [...document.querySelectorAll("#is-ps .v-pin")].filter((x) => x.scrollHeight > x.clientHeight + 1).length}));
-    for (const vs of ["A", "B", "C"]) {
-      await page.click(`#ishp [data-a=po][data-k=vs][data-v=${vs}]`); await page.waitForSelector(`#is-ps .v-pg.v-s${vs}.v-cv`);
-      const r = await vcheck(); assert.ok(r.n >= 4, `${vs}: ${r.n} bet`); assert.equal(r.cut, 0, `${vs}: kesilgan bet`);
-      // shriftlar (v241): har bir matn ilovaga o'rnatilgan shriftda (ekran = PDF); «Rasmiy» uslubning qo'shimcha betlari ham Times (BV Serif);
-      // darsning borishi jadvali yangi betga o'tganda sarlavha qatori bir betda ikki marta chiqmaydi
-      await page.waitForTimeout(300);
-      const ff = await page.evaluate(() => {
-        const fam = (e) => getComputedStyle(e).fontFamily.split(",")[0].replace(/["']/g, "").trim();
-        const txt = [...document.querySelectorAll("#is-ps *")].filter((e) => !e.closest(".katex") && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()));
-        return {bad: [...new Set(txt.map(fam).filter((f) => !["Manrope", "BV Serif", "BV Sans"].includes(f)))],
-          old: [...new Set([...document.querySelectorAll("#is-ps .a4 b, #is-ps .a4 small")].map(fam))],
-          dup: [...document.querySelectorAll("#is-ps .v-pin")].filter((p) => [...p.querySelectorAll("th")].filter((t) => t.textContent === "Bosqich, vaqt").length > 1).length};
-      });
-      assert.deepEqual(ff.bad, [], `${vs}: o'rnatilmagan shrift`); assert.equal(ff.dup, 0, `${vs}: jadval sarlavhasi takrorlandi`);
-      if (vs === "B" && ff.old.length) assert.deepEqual(ff.old, ["BV Serif"], "Rasmiy uslub: qo'shimcha betlar Times'da");
-    }
-    await page.click("#ishp [data-a=po][data-k=ff][data-v=huj]"); await page.waitForSelector("#is-ps .v-pg[data-ff]");
-    await page.waitForFunction(() => [...document.fonts].some((f) => f.family.includes("BV Sans") && f.status === "loaded"));
-    await page.waitForTimeout(300); assert.equal((await vcheck()).cut, 0, "Hujjat shrifti: kesilgan bet");
-    await page.click("#ishp [data-a=po][data-k=vs][data-v=A]"); await page.click("#ishp [data-a=po][data-k=ff][data-v=auto]");
-    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), "gorizontal siljish yo'q");
-    // eksport: PDF va Word
-    await page.click("#ishp [data-a=exp]");
-    const [pdf] = await Promise.all([page.waitForEvent("download"), page.click('#ishp [data-a=ex][data-v=pdf]')]);
-    assert.equal(pdf.suggestedFilename(), "Dars ishlanma 7-A Algebra 13.11.2026.pdf");
-    await page.click("#ishp [data-a=exp]");
-    const [doc] = await Promise.all([page.waitForEvent("download"), page.click('#ishp [data-a=ex][data-v=word]')]);
-    assert.equal(doc.suggestedFilename(), "Dars ishlanma 7-A Algebra 13.11.2026.doc");
-    // boshqa sinfga berish
-    await page.click("#ishp [data-a=tab][data-v=edit]");
-    await page.click("#ishp [data-a=copy]"); await page.click('#ishp [data-a=docopy][data-v^="to:"]');
-    assert.equal(await page.evaluate((ci) => D.classes[ci + 1].ish["2|Guruhlash usuli|1|1"].g[0], ci), "Mening maqsadim");
-    // darsda: so'ralgan o'quvchiga baho → jurnal
-    await page.click("#ishp [data-a=live]"); await page.waitForSelector("#is-live");
-    const si = await page.evaluate(() => ISH.state.plans[ISH.state.cur].ask[0]);
-    await page.click(`#is-live [data-a=lgr][data-v="${si}:9"]`);
-    await page.click("#is-live [data-a=livefin]");
-    assert.equal(await page.evaluate(([ci, si]) => D.classes[ci].students[si].marks["2026-11-13"], [ci, si]), "9");
-    // chorak almashtirish: 3-chorakda «Funksiya»
-    if (name === "telefon") await page.click("#ishp [data-a=list]");
-    await page.click(`#ishp ${name === "telefon" ? ".ov" : "aside.lst"} [data-a=qq][data-v="3"]`);
-    assert.match(await page.textContent("#ishp"), /Funksiya/);
-    // jurnalga qaytish
-    await page.click("#ishp .hd [data-a=back]"); assert.equal(await page.evaluate(() => S.jpage), "j");
+    assert.equal(await page.evaluate(() => typeof ISH), "undefined");
+    assert.equal(await page.evaluate(() => feat("ish") || FEATS.some(([k]) => k === "ish")), false);
+    // eski «ish» sahifasi saqlangan bo'lsa — oddiy jurnal ochiladi
+    await page.evaluate((ci) => { S.ci = ci; S.jpage = "ish"; go("journal"); }, ci);
+    assert.equal(await page.evaluate(() => S.jpage), "j");
+    assert.equal(await page.evaluate((ci) => D.classes[ci].students.length, ci), n);
+    await page.click("[data-more]"); await page.waitForSelector("text=Mavzular va uy vazifalari");   // sinf menyusi
+    assert.ok(!(await page.evaluate(() => document.body.innerText)).includes("Dars ishlanma"), "menyuda «Dars ishlanma» yo'q");
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
