@@ -213,7 +213,8 @@ function persist(){
   if(ch)save();
 }
 const later=()=>{clearTimeout(pT);pT=setTimeout(persist,500);};
-function cfg(){const w=D.web.ish||{};Object.assign(st.cover,w.cover||{});Object.assign(st.paper,w.paper||{});if(w.gen)st.gen=w.gen;}
+function cfg(){const w=D.web.ish||{};Object.assign(st.cover,w.cover||{});Object.assign(st.paper,w.paper||{});if(w.paper&&w.paper.style==="ras"&&!w.paper.ff)st.paper.ff="ras";   // eski «Rasmiy (Times)» uslubi → shrift to'plami
+  if(w.gen)st.gen=w.gen;}
 
 /* ── shablon: dars turi bo'yicha bosqichlar, metod, jihoz, shakl, mezonlar (D.web.ish.tpl) ── */
 const tplOf=ty=>((D.web.ish||{}).tpl||{})[ty]||null;
@@ -404,7 +405,7 @@ function groups(){const S=students().slice().sort((a,b)=>b.g-a.g||a.i-b.i),G=[[]
 function suggest(){const S=students(),k=S.length>20?6:4;return S.slice().sort((a,b)=>(a.g-b.g)||(b.ab-a.ab)||a.i-b.i).slice(0,k).map(s=>s.i);}
 
 /* ── holat ── */
-const st={dev:"pc",cur:0,tab:"edit",view:"ed",plans:{},flt:"all",gen:"bat",cover:{cs:"rang",fan:"",vil:"",tum:"",mak:"",fio:"",ochiq:true},paper:{rag:true,cover:true,style:"zam",fmt:"bat",school:true,sig:true,ask:true,tick:false,tasks:true,cards:false,mat:true,frame:"naqsh",quote:true,wm:true},showG:false,live:null,undo:null,dlg:null,toast:null,alt:0,q:0,c:null,ci:-1};
+const st={dev:"pc",cur:0,tab:"edit",view:"ed",plans:{},flt:"all",gen:"bat",cover:{cs:"rang",fan:"",vil:"",tum:"",mak:"",fio:"",ochiq:true},paper:{rag:true,cover:true,style:"zam",vs:"A",ff:"auto",fmt:"bat",school:true,sig:true,ask:true,tick:false,tasks:true,cards:false,mat:true,frame:"naqsh",quote:true,wm:true},showG:false,live:null,undo:null,dlg:null,toast:null,alt:0,q:0,c:null,ci:-1};
 const cls=()=>esc(st.c?st.c.name:"");
 const P=()=>st.plans[st.cur];
 const statusOf=i=>!st.plans[i]?"no":st.plans[i].ready?"ok":"dr";
@@ -597,7 +598,7 @@ function matPage(l,p,o){
   const F=B.filter(b=>b.k==="f"),G=B.filter(b=>b.k==="fig"||b.k==="img"),X=B.filter(b=>b.k==="ex");
   const one=b=>b.k==="g"?`<p style="margin:0">${fx(b.v)}</p>`:b.k==="n"?`<div class="nbx">${I("exclamation-triangle")}<span><b>Eslatma:</b> ${fx(b.v)}</span></div>`:"";
   const figH=b=>`<div><div class="fig">${b.k==="img"?`<img class="imgp" src="${b.v}" alt="">`:figSvg(b.v)}</div><div class="cap">${fx(b.cap||"")}</div></div>`;
-  return `<div class="a4${o.style==="ras"?" tnr":""}${o.frame!=="none"?" fr":""}${o.frame==="naqsh"?" dec":""}">${frame(o)}
+  return `<div class="a4${pcls(o)}">${frame(o)}
     <div class="top"><span>${cls()} sinf · ${esc(SUBJ())} · ${fS(l.d)}</span><span>Mavzu bo'yicha qo'llanma</span></div>
     <h2>${esc(l.t)}</h2><div class="ml">Qisqa nazariya · formulalar · chizma · namunaviy yechim</div>
     ${B.filter(b=>b.k==="g").map(one).join("")}
@@ -615,7 +616,7 @@ if(!document.getElementById("is-ish-naqsh"))document.head.insertAdjacentHTML("be
 const frame=o=>o.frame==="none"?"":`<div class="frm ${o.frame}"></div>`;
 /* ── varaq ── */
 const ul=x=>`<ul class="bl">${lines(x).map(y=>`<li>${fx(y)}</li>`).join("")}</ul>`;
-const pcls=o=>`${o.style==="ras"?" tnr":""}${o.frame!=="none"?" fr":""}${o.frame==="naqsh"?" dec":""}`;
+const pcls=o=>`${o.ff==="ras"?" tnr":""}${o.frame!=="none"?" fr":""}${o.frame==="naqsh"?" dec":""}`;
 function paginate(chunks,o,foot,start,total){
   let m=document.getElementById("is-meas");if(!m){m=document.createElement("div");m.id="is-meas";m.style.cssText="position:absolute;left:-12000px;top:0;visibility:hidden;width:794px";document.body.appendChild(m);}
   m.innerHTML=`<div id="ishd"><div class="a4 bat${pcls(o)}">${frame(o)}<div class="ft"><span>x</span><span>1/1</span></div></div></div>`;
@@ -625,52 +626,19 @@ function paginate(chunks,o,foot,start,total){
     if(pg.scrollHeight>1124&&cur.length){P2.push(cur);cur=[];pg.querySelectorAll(".ck").forEach(e=>e.remove());ft.insertAdjacentHTML("beforebegin",w);}cur.push(w);});
   if(cur.length)P2.push(cur);m.innerHTML="";return P2;
 }
+// «Batafsil» — yangi varaq (ishlanma-varaq.js, maket «Ishlanma varag'i» v2): uslub o.vs (A/B/C), shrift o.ff; kartochka va rag'bat betlari — eski
 function fullPages(l,p,o){
-  const C=st.cover,stud=students(),ask=p.ask.map(i=>short(stud[i].nm)),MB=p.mat.filter(b=>b.show),T=p.tasks.filter(t=>t.q.trim()),sub=esc(SUBJ()),yr=dd(l.d).getMonth()>=8?dd(l.d).getFullYear():dd(l.d).getFullYear()-1;
-  const cover=o.cover?`<div class="a4 cover${pcls(o)}${C.cs==="rasmiy"?" cvr":C.cs==="oddiy"?" cvo":""}" id="is-a4">${frame(o)}${C.cs==="rasmiy"?'<div class="cvbx"></div>':""}<div class="cv"><div class="em">${I("journal-text")}</div>
-    <div>${esc(C.vil||"______")} viloyati ${esc(C.tum||"______")} tumani MMTBga qarashli</div><div>${esc(C.mak||"__")}-umumiy o'rta ta'lim maktabining</div>
-    <div>${esc((C.fan||SUBJ()).toUpperCase())} fani o'qituvchisi</div><div>${C.fio?esc(C.fio):"______________________"}ning</div>
-    <div>${GRADE()||cls()}-sinf uchun <span class="tp">«${esc(l.t)}»</span> mavzusida bir soatlik</div>
-    <div class="cvh">${C.ochiq?"OCHIQ DARS<br>":"DARS<br>"}ISHLANMASI</div><div class="cvd">${yr}–${yr+1} o'quv yili · ${fS(l.d)}</div></div></div>`:"";
-  const ch=[];
-  ch.push(`<h2>Dars ishlanmasi</h2><div class="ml">${cls()} sinf · ${sub} · ${QL()}, ${l.n}-dars · ${fS(l.d)}</div>
-    <div class="kv"><b>Fan:</b><span>${sub}</span><b>Sinf:</b><span>${cls()}</span><b>Mavzu:</b><span>${esc(l.t)}${l.h>1?` (${l.k}-dars)`:""}</span><b>Dars turi:</b><span>${esc(p.type)} darsi</span><b>Davomiyligi:</b><span>45 daqiqa</span>
-    <b>Dars shakli:</b><span>${esc([...p.shakl].join(", "))}</span><b>Metodlar:</b><span>${esc([...p.met].map(x=>`“${x}”`).join(", "))}</span><b>Jihozlar:</b><span>${esc([...p.jih].join(", "))}</span><b>Texnik vositalar:</b><span>${esc(p.tex)}</span><b>Fanlararo bog'liqlik:</b><span>${esc(p.fan)}</span></div>`);
-  ch.push(`<h3>I. Darsning maqsadlari</h3><div class="kv"><b>Ta'limiy:</b><span>${esc(p.g[0])}</span><b>Tarbiyaviy:</b><span>${esc(p.g[1])}</span><b>Rivojlantiruvchi:</b><span>${esc(p.g[2])}</span><b>Kompetensiyalar:</b><span>${esc([...p.komp].join(", "))}</span></div>`);
-  ch.push(`<h3>II. Kutilayotgan natijalar</h3><div>Dars yakunida o'quvchilar:</div>${ul(p.res)}`);
-  ch.push(`<h3>III. Darsning texnologik xaritasi</h3><table class="tx"><tr><th>№</th><th>Dars bosqichi</th><th>Faoliyat</th><th>Usul</th><th>Vaqt</th></tr>${p.st.map((s,j)=>`<tr><td>${j+1}</td><td><b>${esc(s.n)}</b></td><td>${fx(lines(s.t)[0]||"")}</td><td>${s.gm?GMN[s.gm].replace(" o'yini",""):/bayon/i.test(s.n)?esc([...p.met].slice(0,2).join(", ")):"—"}</td><td>${s.m} daqiqa</td></tr>`).join("")}<tr><td></td><td><b>Jami</b></td><td></td><td></td><td><b>${sum(p)} daqiqa</b></td></tr></table>`);
-  ch.push(`\u0001<h3>IV. Darsning borishi</h3>`);
-  p.st.forEach((s,j)=>{
-    ch.push(`\u0001<h4 class="sth">${j+1}. ${esc(s.n)} — ${s.m} daqiqa</h4>${s.mq?`<div><span class="lb">Maqsad:</span> ${fx(s.mq)}</div>`:""}`);
-    if(lines(s.t).length)ch.push(`<div class="lb">O'qituvchi faoliyati</div>${ul(s.t)}`);
-    if(lines(s.s).length)ch.push(`<div class="lb">O'quvchi faoliyati</div>${ul(s.s)}`);
-    if(s.nm.trim())ch.push(`<div class="qte"><span class="lb" style="font-style:normal">Namuna matn (o'qituvchi uchun):</span> “${fx(s.nm)}”</div>`);
-    if(lines(s.q).length)ch.push(`<div class="lb">Savollar:</div><ol class="bl">${lines(s.q).map(x=>`<li>${fx(x)}</li>`).join("")}</ol>`);
-    if(o.ask&&/^Uy vazifasini|Savol/.test(s.n)&&ask.length)ch.push(`<div><span class="lb">So'raladigan o'quvchilar:</span> ${esc(ask.join(", "))}</div>`);
-    if(/bayon/i.test(s.n))MB.forEach(b=>{
-      if(b.k==="g")ch.push(`<p style="margin:0">${fx(b.v)}</p>`);
-      else if(b.k==="f")ch.push(`<div class="fx">${fF(b.v)}</div>`);
-      else if(b.k==="fig"||b.k==="img")ch.push(`<div class="fig">${b.k==="img"?`<img class="imgp" src="${b.v}" alt="">`:figSvg(b.v)}</div><div class="cap">${fx(b.cap||"")}</div>`);
-      else if(b.k==="ex")ch.push(`<div class="lb">Namunaviy misol:</div><ol class="exs">${lines(b.v).map(x=>`<li>${fx(x)}</li>`).join("")}</ol>`);
-      else if(b.k==="n")ch.push(`<div class="nbx">${I("exclamation-triangle")}<span><b>Eslatma:</b> ${fx(b.v)}</span></div>`);});
-    if(o.tasks&&/^Mustahkamlash$|Amaliy|Misollar|Mustaqil/.test(s.n)&&T.length)ch.push(`<div class="lb">Topshiriqlar (A — oson, B — o'rta, C — qiyin):</div><div class="tk">${T.map(t=>`<span><em>${t.lv}</em>${fx(t.q)}${t.a?` <i>→ ${fx(t.a)}</i>`:""}</span>`).join("")}</div>${o.cards?`<div class="cap" style="text-align:left">Guruhlar uchun tarqatma kartochkalar — ilovada.</div>`:""}`);
-    if(s.gm==="hayoq"){const H=p.game.hy.filter(x=>x.b.trim());ch.push(`\u0001<div class="gm"><h5>“Ha–Yo'q” o'yini</h5><div><span class="lb">Maqsad:</span> mavzu bo'yicha tushunchalarni tekshirish, xatolarni topish va to'g'rilash.</div><div class="lb">O'tkazish tartibi:</div><ol class="bl"><li>Har bir o'quvchiga «Ha» va «Yo'q» kartochkalari tarqatiladi.</li><li>O'qituvchi ${H.length} ta bayonotni o'qiydi.</li><li>O'quvchilar kartochka ko'tarib javob beradi.</li><li>Javoblar muhokama qilinadi, to'g'ri javob aytiladi.</li></ol></div>`);
-      ch.push(`<table class="tx"><tr><th>№</th><th>Bayonot</th><th>To'g'ri javob</th></tr>${H.map((x,k)=>`<tr><td>${k+1}</td><td>${fx(x.b)}</td><td>${x.a}</td></tr>`).join("")}</table>`);}
-    if(s.gm==="klaster")ch.push(`<div class="gm"><h5>“Klaster” metodi</h5><div><span class="lb">Borishi:</span> doskaga mavzu nomi yoziladi, o'quvchilar unga bog'liq tushunchalarni aytadi, o'qituvchi ularni tarmoq qilib bog'laydi.</div>${klSvg(l.t,p.game.kl)}</div>`);
-    if(s.gm==="sinkveyn")ch.push(`<div class="gm"><h5>“Sinkveyn” metodi</h5><div><span class="lb">Borishi:</span> o'quvchilar mavzu bo'yicha 5 qatorli she'r tuzadi (ot, 2 sifat, 3 fe'l, gap, sinonim). Namuna:</div><div class="skv">${p.game.sk.map((x,k)=>`<span class="l${k+1}">${fx(x)}</span>`).join("")}</div></div>`);
-    if(s.gm==="besh")ch.push(`<div class="gm"><h5>“Besh barmoq” metodi</h5><div><span class="lb">Borishi:</span> qo'l kafti chizilgan tarqatma beriladi, har barmoqqa bittadan savol yoziladi, o'quvchilar javob beradi.</div>${p.game.bb.map(x=>`<div class="fing"><b>${x.f}</b><span><b style="color:inherit">“${x.t}”.</b> ${fx(x.q)}${x.a?`<br><i>Kutiladigan javob: ${fx(x.a)}</i>`:""}</span></div>`).join("")}</div>`);
-    if(/aholash/.test(s.n)){const tot=p.mezon.reduce((a,x)=>a+x[1],0);ch.push(`<div class="lb">Baholash mezonlari:</div><table class="tx"><tr><th>№</th><th>Mezon</th><th>Ball</th></tr>${p.mezon.map((x,k)=>`<tr><td>${k+1}</td><td>${esc(x[0])}</td><td>${x[1]}</td></tr>`).join("")}<tr><td></td><td><b>Jami</b></td><td><b>${tot}</b></td></tr></table>
-      <ul class="bl"><li><b>9–10 ball:</b> mavzuni to'liq tushuntiradi, misollarni mustaqil yechadi.</li><li><b>7–8 ball:</b> mavzuni yaxshi tushunadi, kichik xatolarga yo'l qo'yadi.</li><li><b>5–6 ball:</b> asosiy tushunchalarni biladi, yordamga muhtoj.</li><li><b>4 va undan past:</b> bilimi yetarli emas, qo'shimcha ishlash kerak.</li></ul>${o.rag?`<div class="cap" style="text-align:left">Rag'bat kartochkalari — ilovada.</div>`:""}`);}
-    if(/^Uyga vazifa/.test(s.n))ch.push(`<div class="hwb"><b>Uyga vazifa: ${esc(l.hw||"—")}</b>${hwLines(p)}</div>`);
-  });
-  ch.push(`<h3>V. Dars yakuni</h3><div>${fx(p.xul)}</div>${o.quote?`<div class="qt">«${QUOTES[st.cur%QUOTES.length]}»</div>`:""}`);
-  if(o.sig)ch.push(`<div class="sig" style="margin-top:14px"><span>O'qituvchi:<span></span></span><span>Tekshirdi (O'IBDO'):<span></span></span></div>`);
-  const foot=`${cls()} ${sub} · Dars ishlanmasi · ${fS(l.d)}`,body=paginate(ch,o,foot);
-  const extra=[];if(o.cards&&T.length)extra.push("cards");if(o.rag)extra.push("rag");
-  const N=(o.cover?1:0)+body.length+extra.length;let n=o.cover?1:0;
-  const pages=body.map(c=>{n++;return `<div class="a4 bat${pcls(o)}"${!o.cover&&n===1?' id="is-a4"':""}>${frame(o)}${c.join("")}<div class="ft"><span>${foot}</span><span>${n}/${N}</span></div></div>`;});
+  const C=st.cover,H=(typeof D!=="undefined"&&D.web&&D.web.bsb_hdr)||{},stud=students(),dl0=dd(l.d),yr=dl0.getMonth()>=8?dl0.getFullYear():dl0.getFullYear()-1;
+  const place=[C.vil?`${C.vil} viloyati`:"",C.tum?`${C.tum} tumani`:""].filter(Boolean).join(" ");
+  const cv={fio:(C.fio||H.teacher||"").trim(),school:C.mak?`${C.mak}-sonli umumiy o'rta ta'lim maktabi`:(H.school||"").trim(),place,fan:C.fan,ochiq:!!C.ochiq,yr};
+  const R=ISHV.pages({l,p,o,cv,ask:(p.ask||[]).filter(i=>stud[i]).map(i=>short(stud[i].nm)),T:p.tasks.filter(t=>t.q.trim()),MB:p.mat.filter(b=>b.show),quote:QUOTES[st.cur%QUOTES.length],
+    cls:cls(),sub:SUBJ(),ql:QL(),sum,esc,fx,fF,figSvg,klSvg,I,lines,fS,fL,dd});
+  const T=p.tasks.filter(t=>t.q.trim()),extra=[];if(o.cards&&T.length)extra.push("cards");if(o.rag)extra.push("rag");
+  const N=(R.cover?1:0)+R.body.length+extra.length;let n=R.cover?1:0;
+  const cover=R.cover?R.cover.replace("<div ",'<div id="is-a4" '):"";
+  const pages=R.body.map(b=>{n++;return ISHV.page(b,n,N,!R.cover&&n===1?"is-a4":"");});
   let ex="";extra.forEach(k=>{n++;if(k==="cards")ex+=cardsPage(l,p).replace(/<span>\d+<\/span><\/div><\/div>$/,`<span>${n}/${N}</span></div></div>`);else ex+=ragPage(l,o,n,N);});
-  st.pc={N,body:body.length};
+  st.pc={N,body:R.body.length};
   return cover+pages.join("")+ex;
 }
 function ragPage(l,o,n,N){
@@ -679,14 +647,17 @@ function ragPage(l,o,n,N){
     <div class="rag">${R2.map(([i,t,s2,c,bg])=>`<div class="rc2" style="color:${c};background:${bg}">${I(i)}<b>${t}</b><small>${s2}</small></div>`).join("")}</div>
     <div class="ft"><span>Qirqib, darsda tarqating</span><span>${n}/${N}</span></div></div>`;
 }
-function paperHtml(){
+// eski shakllar (Jadval, Qisqa): «Rasmiy» to'plam — eski Times uslubi (tnr), boshqalari — data-ff bilan
+const oldFf=h=>{const o=st.paper;if(!o.ff||o.ff==="auto"||o.ff==="ras")return h;return h.replace(/<div class="a4/g,`<div${ISHV.fattr("A",o.ff)} class="a4`);};
+function paperHtml(){return oldFf(paperHtml0());}
+function paperHtml0(){
   const l=L[st.cur],p=P(),o=st.paper;if(!p)return `<div class="card"><p class="muted" style="margin:0">Avval ishlanmani to'ldiring.</p><div><button class="btn pri" data-a="auto">${I("magic")} Avtomatik to'ldirish</button></div></div>`;
   if(o.fmt==="bat"){if(!p.ask)p.ask=suggest();return fullPages(l,p,o);}
   if(!p.ask)p.ask=suggest();const stud=students(),ask=p.ask.map(i=>short(stud[i].nm));
   const flow=p.st.map(s=>`<tr><td>${esc(s.n)}</td><td>${s.m} daq</td><td>${fx(f1(s.t))}${o.ask&&/Uy vazifasini|Savol-javob/.test(s.n)&&ask.length?`<br><i>So'raladi: ${esc(ask.join(", "))}</i>`:""}</td><td>${fx(f1(s.s))}</td></tr>`).join("");
   const short2=p.st.map(s=>`<tr><td>${esc(s.n)}</td><td>${s.m} daq</td><td colspan="2">${fx(f1(s.t))}</td></tr>`).join("");
   const F1=p.mat.find(b=>b.k==="f"&&b.show);
-  return `<div class="a4${o.style==="ras"?" tnr":""}${o.frame!=="none"?" fr":""}${o.frame==="naqsh"?" dec":""}" id="is-a4">${frame(o)}${o.wm&&F1?`<div class="wm">${km(F1.v.split("=")[0])}</div>`:""}
+  return `<div class="a4${pcls(o)}" id="is-a4">${frame(o)}${o.wm&&F1?`<div class="wm">${km(F1.v.split("=")[0])}</div>`:""}
     ${o.school?`<div class="top"><span>${st.cover.mak?`${esc(st.cover.mak)}-sonli umumiy o'rta ta'lim maktabi`:""}</span><span>Chop etildi: ${fS(TODAY)}</span></div>`:""}
     <h2>Dars ishlanmasi</h2>
     <div class="ml">${cls()} sinf · ${esc(SUBJ())} · ${QL()}, ${l.n}-dars · ${fS(l.d)}</div>
@@ -708,7 +679,7 @@ function paperHtml(){
 function cardsPage(l,p){
   const T=p.tasks.filter(t=>t.q.trim());
   const o=st.paper;
-  return `<div class="a4${o.style==="ras"?" tnr":""}${o.frame!=="none"?" fr":""}">${frame(o)}<div class="top"><span>${cls()} sinf · ${esc(SUBJ())} · ${fS(l.d)}</span><span>Tarqatma kartochkalar</span></div>
+  return `<div class="a4${pcls(o)}">${frame(o)}<div class="top"><span>${cls()} sinf · ${esc(SUBJ())} · ${fS(l.d)}</span><span>Tarqatma kartochkalar</span></div>
     <div class="cards">${groups().map((g,k)=>`<div class="kc"><h5>${k+1}-guruh</h5><div class="mem">${esc(g.map(s=>short(s.nm)).join(", "))}</div><div class="mem"><b>Mavzu:</b> ${esc(l.t)}</div>
       <ol>${(T.length>5?(()=>{const by=lv=>T.filter(t=>t.lv===lv),A=by("A"),B=by("B"),C=by("C"),pk=(a,j)=>a.length?a[j%a.length]:null;return [...new Set([pk(A,k),pk(A,k+1),pk(B,k),pk(B,k+1),pk(C,k)].filter(Boolean))];})():T).map(t=>`<li><span>${t.lv}</span>${fx(t.q)}<div class="wl"></div><div class="wl"></div></li>`).join("")}</ol></div>`).join("")}</div>
     <div class="ft"><span>${cls()} ${esc(SUBJ())} · Tarqatma · ${fS(l.d)}</span><span>${o.mat&&P().mat.some(b=>b.show)?3:2}</span></div></div>`;
@@ -716,11 +687,12 @@ function cardsPage(l,p){
 function paperTab(){
   const o=st.paper,c=(k,v,t)=>`<button class="chip${o[k]===v?" on":""}" data-a="po" data-k="${k}" data-v="${v}">${t}</button>`,b=(k,t)=>`<button class="chip${o[k]?" on":""}" data-a="pb" data-k="${k}">${o[k]?I("check-lg"):""}${t}</button>`;
   const C=st.cover,bat=o.fmt==="bat";
-  return `<div class="card"><div class="ptb"><span class="lbl">Shakl</span><div class="chips">${c("fmt","bat","Batafsil (muqova bilan)")}${c("fmt","full","Jadval (1 bet)")}${c("fmt","short","Qisqa (1 bet)")}</div>
-    <span class="lbl" style="margin-left:6px">Uslub</span><div class="chips">${c("style","zam","Zamonaviy")}${c("style","ras","Rasmiy (Times)")}</div></div>
+  return `<div class="card"><div class="ptb"><span class="lbl">Shakl</span><div class="chips">${c("fmt","bat","Batafsil (muqova bilan)")}${c("fmt","full","Jadval (1 bet)")}${c("fmt","short","Qisqa (1 bet)")}</div></div>
+    ${bat?`<div class="ptb"><span class="lbl">Uslub</span><div class="chips">${ISHV.STY.map(([k,t])=>c("vs",k,`${k} · ${t}`)).join("")}</div><span class="small muted vdesc">${ISHV.STY.find(x=>x[0]===o.vs)?.[2]||""}</span></div>`:""}
+    <div class="ptb"><span class="lbl">Shrift</span><div class="chips">${c("ff","auto",`Uslubga mos <small>${ISHV.setOf(bat?o.vs:"A","auto")[1]}</small>`)}${ISHV.FSETS.map(r=>`<button class="chip vff${o.ff===r[0]?" on":""}" data-a="po" data-k="ff" data-v="${r[0]}" style="font-family:${r[2]==="Times"?"'BV Serif','Times New Roman',serif":r[2]==="Arial"?"'BV Sans',Arial,sans-serif":"inherit"}">${r[1]} <small>${r[2]===r[3]?ISHV.fname(r[2]):`${ISHV.fname(r[2])} + ${r[3]}`}</small></button>`).join("")}</div><span class="small muted vdesc">${(r=>`Sarlavha: ${ISHV.fname(r[2])} · matn: ${ISHV.fname(r[3])}. ${r[4]}. Ekran, chop etish va PDF'da bir xil.`)(ISHV.setOf(bat?o.vs:"A",o.ff))}</span></div>
     <div class="ptb"><span class="lbl">Varaqda</span><div class="chips">${bat?b("cover","Muqova")+b("ask","So'raladiganlar")+b("tasks","Topshiriqlar")+b("cards","Tarqatma kartochkalar")+b("rag","Rag'bat kartochkalari")+b("sig","Imzo"):b("school","Maktab nomi")+b("ask","So'raladiganlar")+b("mat","Qo'llanma beti")+b("tasks","Topshiriqlar")+b("cards","Tarqatma kartochkalar")+b("tick","«Dars o'tildi» belgisi")+b("sig","Imzo")}</div></div>
-    ${bat&&o.cover?`<div class="ptb"><span class="lbl">Muqova</span><div class="chips">${[["rang","Rangli"],["rasmiy","Rasmiy"],["oddiy","Oddiy"]].map(([k,t])=>`<button class="chip${C.cs===k?" on":""}" data-a="cvs" data-v="${k}">${t}</button>`).join("")}</div><input class="inp" style="width:130px" data-f="cv" data-k="fan" value="${esc(C.fan)}" placeholder="Fan" aria-label="Fan nomi"><input class="inp" style="width:130px" data-f="cv" data-k="vil" value="${esc(C.vil)}" placeholder="Viloyat" aria-label="Viloyat"><input class="inp" style="width:120px" data-f="cv" data-k="tum" value="${esc(C.tum)}" placeholder="Tuman" aria-label="Tuman"><input class="inp" style="width:70px" data-f="cv" data-k="mak" value="${esc(C.mak)}" placeholder="Maktab №" aria-label="Maktab raqami"><input class="inp" style="width:200px" data-f="cv" data-k="fio" value="${esc(C.fio)}" placeholder="O'qituvchi F.I.Sh." aria-label="O'qituvchi familiyasi, ismi"><button class="chip${C.ochiq?" on":""}" data-a="ochiq">${C.ochiq?I("check-lg"):""}Ochiq dars</button></div>`:""}
-    <div class="ptb"><span class="lbl">Bezak</span><div class="chips">${c("frame","none","Ramkasiz")}${c("frame","line","Ramka")}${c("frame","naqsh","Naqshli ramka")}${bat?"":b("wm","Formula fon")}${b("quote","Hikmatli so'z")}</div></div></div>
+    ${bat&&o.cover?`<div class="ptb"><span class="lbl">Muqova</span><input class="inp" style="width:130px" data-f="cv" data-k="fan" value="${esc(C.fan)}" placeholder="Fan" aria-label="Fan nomi"><input class="inp" style="width:130px" data-f="cv" data-k="vil" value="${esc(C.vil)}" placeholder="Viloyat" aria-label="Viloyat"><input class="inp" style="width:120px" data-f="cv" data-k="tum" value="${esc(C.tum)}" placeholder="Tuman" aria-label="Tuman"><input class="inp" style="width:70px" data-f="cv" data-k="mak" value="${esc(C.mak)}" placeholder="Maktab №" aria-label="Maktab raqami"><input class="inp" style="width:200px" data-f="cv" data-k="fio" value="${esc(C.fio)}" placeholder="O'qituvchi F.I.Sh." aria-label="O'qituvchi familiyasi, ismi"><button class="chip${C.ochiq?" on":""}" data-a="ochiq">${C.ochiq?I("check-lg"):""}Ochiq dars</button></div>`:""}
+    <div class="ptb"><span class="lbl">Bezak</span><div class="chips">${bat?"":c("frame","none","Ramkasiz")+c("frame","line","Ramka")+c("frame","naqsh","Naqshli ramka")+b("wm","Formula fon")}${b("quote","Hikmatli so'z")}</div></div></div>
     <div class="row"><span class="pages" id="is-pgs">${I("file-earmark-text")} 1 bet</span><span class="sp"></span><button class="btn" data-a="exp">${I("download")} Eksport</button></div>
     <div class="pw" id="is-pw"><div class="pstack" id="is-ps">${paperHtml()}</div></div>`;
 }
@@ -738,7 +710,11 @@ function draw(){
       </div></div></main><div id="is-ov"></div>`;
   app.querySelectorAll(".tl-only").forEach(e=>e.hidden=st.dev==="tel");
   fitPaper();drawOv();later();
+  if(st.tab==="paper"&&p&&!ISHV.ready(vsNow(),st.paper.ff))vFonts().then(()=>{const ps=document.getElementById("is-ps");if(ps&&st.tab==="paper"){ps.innerHTML=paperHtml();fitPaper();}},e=>console.warn("Ishlanma shrifti:",e));
 }
+// tanlangan shrift to'plami uchun PDF bilan bir xil shriftlar (BV Serif/BV Sans) ulanadi; ulangach varaq qayta o'lchanadi
+const vsNow=()=>st.paper.fmt==="bat"?st.paper.vs:"A";
+const vFonts=()=>ISHV.loadFonts(vsNow(),st.paper.ff);
 function fitPaper(){
   const pw=document.getElementById("is-pw"),a=document.getElementById("is-a4"),ps=document.getElementById("is-ps");if(!pw||!a)return;
   a.querySelectorAll(".brk").forEach(e=>e.remove());
@@ -940,13 +916,13 @@ function docPages(i){   // i-darsning varaqlari (HTML), har biri .a4
   const k=st.cur;if(i!==undefined)st.cur=i;
   try{const p=P();if(!p)return "";if(!p.ask)p.ask=suggest();return paperHtml();}finally{st.cur=k;}
 }
-const wrapPg=h=>{const t=document.createElement("div");t.innerHTML=h;t.querySelectorAll(".a4").forEach(a=>{a.classList.add("bx-pg");a.removeAttribute("id");});t.querySelectorAll(".brk").forEach(x=>x.remove());return `<div id="ishd">${t.innerHTML}</div>`;};
-async function pdfOf(idx){await kx();const hs=idx.map(i=>docPages(i));return PTG.pagesPdf([wrapPg(hs.join(""))],false);}
+const wrapPg=h=>{const t=document.createElement("div");t.innerHTML=h;t.querySelectorAll(".a4,.v-pg").forEach(a=>{a.classList.add("bx-pg");a.removeAttribute("id");});t.querySelectorAll(".brk").forEach(x=>x.remove());return `<div id="ishd">${t.innerHTML}</div>`;};
+async function pdfOf(idx){await kx();await vFonts().catch(e=>console.warn("Ishlanma shrifti:",e));const hs=idx.map(i=>docPages(i));return PTG.pagesPdf([wrapPg(hs.join(""))],false);}
 function dl(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);}
 async function expDo(v,btn){
   const l=L[st.cur],p=P();if(!p){tst("Avval ishlanmani to'ldiring");return;}
   st.dlg=null;drawOv();
-  if(v==="print"){await kx().catch(()=>{});let el=document.getElementById("pdoc");if(!el){el=document.createElement("div");el.id="pdoc";document.body.append(el);}
+  if(v==="print"){await kx().catch(()=>{});await vFonts().catch(()=>{});let el=document.getElementById("pdoc");if(!el){el=document.createElement("div");el.id="pdoc";document.body.append(el);}
     el.className="bx-print";el.innerHTML=wrapPg(docPages());document.body.classList.add("pdoc");
     let css=document.getElementById("pdoc-css");if(!css){css=document.createElement("style");css.id="pdoc-css";document.head.append(css);}
     css.textContent="@media print{@page{size:A4 portrait;margin:0}}";

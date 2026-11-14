@@ -8,7 +8,7 @@
    va NEWS boshiga yozuv qo'shing.
    Bu fayl asosiy skriptdan OLDIN ulanadi; S, go, render, renderNav, esc, $ … faqat chaqirilganda ishlatiladi. */
 const YNG = (() => {
-  const VER = 235, KEY = "yoqlama_yangilik";
+  const VER = 239, KEY = "yoqlama_yangilik";
   const P = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const IC = {
     spark: P('<path d="M12 3l1.8 4.9L19 9.7l-5.2 1.8L12 16.5l-1.8-5L5 9.7l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>'),
@@ -22,6 +22,8 @@ const YNG = (() => {
     bug: P('<rect x="7" y="7" width="10" height="13" rx="5"/><path d="M12 7v13M4 12h3M17 12h3"/>')};
   // go: [sahifa, Sozlamalar bo'limi] — «Ochish» shu joyga olib boradi
   const NEWS = [
+    {v: 239, d: "14-noyabr", items: [
+      {ic: "print", t: "Dars ishlanma: yangi varaq dizayni", s: "Ishlanma → «Varaq» → «Batafsil»da 3 uslub, har birining o'z muqovasi bor: «Umumiy» (hisobotlar bilan bir xil), «Rasmiy» (maktab namunasi, «Tasdiqlayman», darsning borishi jadvalda) va «Rangli» (ochiq dars uchun). O'qituvchi va o'quvchi faoliyati yonma-yon, har bosqichda vaqt oralig'i. «Shrift» — Bo'sh varaqdagi to'plamlar; ekran, chop etish va PDF'da bir xil.", go: ["journal"], gl: "Jurnal"}]},
     {v: 235, d: "14-noyabr", items: [
       {ic: "star", t: "Dars ishlanma", s: "Sinf menyusi → «Darsda» → «Dars ishlanma»: chorakdagi har dars mavzusi (KTR'dan) uchun ishlanma. «Avtomatik to'ldirish» maqsad, metod, bosqichlarni daqiqalari bilan, savollar, misollar va A/B/C topshiriqlarni javobi bilan yozadi; xohlagan joyini o'zgartirasiz. Formulalar chiroyli (LaTeX), so'raladigan o'quvchilar jurnaldan tanlanadi.", go: ["journal"], gl: "Jurnal"},
       {ic: "print", t: "Ishlanma: varaq, chop etish, PDF, Word", s: "«Varaq»da muqovali batafsil ishlanma yoki 1 betlik jadval; uslub, ramka, tarqatma kartochkalar. Chop etish, PDF, Word yoki Telegram botingizga. «Darsni boshlash» — bosqich taymeri, doskaga ko'rsatish, «Ha–Yo'q» o'yini; so'ralganlarga qo'ygan baholaringiz jurnalga yoziladi.", go: ["journal"], gl: "Jurnal"}]},
