@@ -35,6 +35,7 @@
 <link rel="stylesheet" href="kriterial-chop.css?v=232">
 <link rel="stylesheet" href="orindiq.css?v=234">
 <link rel="stylesheet" href="ktr.css?v=230">
+<link rel="stylesheet" href="ishlanma.css?v=235">
 <link rel="stylesheet" href="kunlik.css?v=213">
 <link rel="stylesheet" href="arxiv.css?v=213">
 <link rel="stylesheet" href="arxiv-tekshir.css?v=213">
@@ -80,6 +81,7 @@
 <script src="kriterial-chop.js?v=232"></script>
 <script src="orindiq.js?v=234"></script>
 <script src="ktr.js?v=233"></script>
+<script src="ishlanma.js?v=235"></script>
 <script src="kunlik.js?v=221"></script>
 <script src="pdf-tg.js?v=227"></script>
 <script src="tg-umumiy.js?v=213"></script>
@@ -91,9 +93,9 @@
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=218"></script>
 <script src="loyiha.js?v=231"></script>
-<script src="yangilik.js?v=234"></script>
+<script src="yangilik.js?v=235"></script>
 <script src="saqlash.js?v=216"></script>
-<script src="sinx.js?v=214"></script>
+<script src="sinx.js?v=235"></script>
 <script src="telegram.js?v=216"></script>
 <script>
 "use strict";
@@ -1735,7 +1737,7 @@ const ACH_PL = ["1-o'rin", "2-o'rin", "3-o'rin", "Faxriy yorliq", "Ishtirok"];
 const monthOf = (d) => d.slice(0, 7);
 const monthName = (m) => `${MONTHS[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}`;
 const shiftMonth = (m, n) => iso(new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + n, 1)).slice(0, 7);
-const JPAGES = ["j", "sum", "year", "sm", "bsb", "chsbt", "ktr"];   // "bsb" / "chsbt" — eski sahifalar (endi «Summativ tahlili» — summativ.js)
+const JPAGES = ["j", "sum", "year", "sm", "bsb", "chsbt", "ktr", "ish"];   // "bsb" / "chsbt" — eski sahifalar (endi «Summativ tahlili» — summativ.js)
 function pageJournal(m) {
   if (!D.classes.some((c) => !isGrp(c))) { go("today"); return; }
   S.ci = Math.min(S.ci, D.classes.length - 1);
@@ -1745,6 +1747,7 @@ function pageJournal(m) {
   if (S.jpage === "year") { pageYear(m); return ARX.decorate(m, D.classes[S.ci]); }
   if (S.jpage === "sm") return SMV.page(m);
   if (S.jpage === "ktr") return KTR.page(m);   // kalendar-tematik reja — ktr.js / ktr.css
+  if (S.jpage === "ish") return ISH.page(m);   // dars ishlanma — ishlanma.js / ishlanma.css
   if (S.jpage === "bsb") return pageBsb(m);
   if (S.jpage === "chsbt") { pageChsbTest(m); return ARX.decorate(m, D.classes[S.ci]); }
   if (!viewModes().some(([k]) => k === V.mode)) V.mode = "day";
@@ -2114,6 +2117,7 @@ const FEATS = [
   ["parents", "👪 Ota-onalar", "Kontaktlar va butun sinfga xabarlar (menyuda)"],
   ["otaemk", "🔑 Ota-onalar eMaktab'i", "Ota-ona login/paroli bilan uning nomidan eMaktab'ga kirib chiqish («Kelajak soati» fani bor sinflar menyusida)"],
   ["ktr", "📚 KTR", "Kalendar-tematik reja, mavzular bo'yicha bajarilishi"],
+  ["ish", "📝 Dars ishlanma", "Har dars mavzusi uchun ishlanma: avtomatik to'ldirish, chop etish, PDF, darsda rejimi"],
   ["gaps", "📝 To'ldirilmagan darslar", "«Bugun»da va kechqurun eslatma: yo'qlama yoki mavzu kiritilmagan darslar"],
   ["vweek", "📆 Hafta rejimi", "Jurnalda hafta jadvali (kataklarni bossangiz kunlik rejim ochiladi)"],
   ["vmonth", "🗓 Oy rejimi", "Jurnalda oy jadvali"],
@@ -2165,6 +2169,7 @@ async function moreMenu() {
       feat("seats") && ["🪑 O'rindiq xaritasi", () => seatsDialog(S.ci)],
       ["📝 Mavzular va uy vazifalari", () => lessonsDialog(S.ci)],
       feat("ktr") && ["📚 KTR (kalendar-tematik reja)", () => KTR.open(S.ci)],
+      feat("ish") && ["📝 Dars ishlanma", () => ISH.open(S.ci)],
     ]],
     ["O'quvchilar", [
       ["＋ O'quvchi qo'shish", () => addStudents(S.ci)],

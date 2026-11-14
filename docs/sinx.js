@@ -38,6 +38,8 @@ const SINX = (() => {
       for (const k of ["dates", "att_ok", "held"]) oc[k] = union(oc[k], mc[k]);
       oc.lessons = oc.lessons || {};
       cells(bc ? bc.lessons || {} : base ? {} : null, mc.lessons || {}, oc.lessons, {...where, what: "mavzu"}, R);
+      // dars ishlanmalari (ishlanma.js): har dars ishlanmasi alohida katak
+      if (mc.ish || oc.ish) { oc.ish = oc.ish || {}; cells(bc ? bc.ish || {} : base ? {} : null, mc.ish || {}, oc.ish, {...where, what: "ishlanma"}, R); }
       oc.works = oc.works || [];
       for (const w of mc.works || []) if (!oc.works.some((x) => x.id === w.id) && !(bc && (bc.works || []).some((x) => x.id === w.id))) { oc.works.push(structuredClone(w)); R.added++; }
       for (const ms of stuAll(mc)) {
@@ -66,6 +68,6 @@ const SINX = (() => {
   // oxirgi umumiy holat IndexedDB'da (localStorage'ni ikki baravar to'ldirmaslik uchun)
   async function setBase(txt) { try { if (IDB.db) await idbReq("kv", "readwrite", (st) => st.put(txt, "sync_base")); } catch (e) { console.warn("sinx:", e); } }
   async function getBase() { try { const t = IDB.db && await idbReq("kv", "readonly", (st) => st.get("sync_base")); return t ? JSON.parse(t) : null; } catch (e) { return null; } }
-  const show = (v) => empty(v) ? "—" : typeof v === "object" ? (v.topic || v.hw || "…") : String(v).toUpperCase();
+  const show = (v) => empty(v) ? "—" : typeof v === "object" ? (v.topic || v.hw || (v.type ? `${v.type} darsi ishlanmasi` : "…")) : String(v).toUpperCase();
   return {merge, resolve, setBase, getBase, show};
 })();
