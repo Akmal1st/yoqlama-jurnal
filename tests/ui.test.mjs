@@ -5834,6 +5834,10 @@ for (const [name, viewport] of [["kompyuter", {width: 1280, height: 860}], ["tel
     const p = await page.evaluate(() => { const p = ISH.state.plans[ISH.state.cur]; return {sum: p.st.reduce((a, x) => a + x.m, 0), tasks: p.tasks.length, ask: p.ask.length, tex: p.tasks.every((t) => t.q.includes("$"))}; });
     assert.deepEqual(p, {sum: 45, tasks: 8, ask: n > 20 ? 6 : 4, tex: true});
     assert.ok(await page.locator("#ishp .katex").count() > 0, "formulalar KaTeX bilan chizildi");
+    // SI oynasi: pastki tugma ilovaning pastki panelidan ustun, bosiladi (telefonda oyna pastga tushib ketgan edi)
+    await page.click("#ishp [data-a=ai]"); await page.locator("#ishp [data-a=aiparse]").scrollIntoViewIfNeeded();
+    assert.ok(await page.evaluate(() => { const r = document.querySelector("#ishp [data-a=aiparse]").getBoundingClientRect(), e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!(e && e.closest("[data-a=aiparse]")); }), "«Bo'limlarga ajratish» tugmasi bosiladi");
+    await page.click("#ishp .sheet .sh2 [data-a=close]");
     // tahrir saqlanadi va sahifa qayta ochilganda qaytadi
     await page.fill('#ishp [data-f="g0"]', "Mening maqsadim");
     await page.waitForTimeout(700);
