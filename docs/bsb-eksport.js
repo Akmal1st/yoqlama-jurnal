@@ -93,9 +93,8 @@ const BXP = (() => {
       <p class="bx-small">O'zlash. — savol bo'yicha o'rtacha foiz. Yo'qotilgan ball — sinf yo'qotgan jami ballning shu savolga to'g'ri kelgan ulushi. Ajratish indeksi (kuchli va kuchsiz 27% o'quvchi farqi): 0,4 dan yuqori — a'lo, 0,2–0,4 — yaxshi, 0,2 dan past — kuchsiz (6 tadan kam o'quvchida hisoblanmaydi).</p></div>`;
   }
   function rec(X) {
-    const b = (t, k, col, ic) => `<div class="bx-xb" style="--c:${col}"><b>${ic} ${t}</b><ul>${X.rec[k].map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
     const hard = X.err.filter((e) => e.fail);
-    return [`<div><h3>Xulosa</h3><div class="bx-xs">${b("Yutuqlar", "good", "#2e7d32", "✓")}${b("Kamchiliklar", "bad", "#c62828", "!")}${b("Tavsiyalar", "tips", "#1565c0", "→")}</div></div>`,
+    return [`<div><h3>Xulosa va tavsiyalar</h3>${bsbRecHtml(X.rec)}</div>`,
       ...(hard.length ? [`<div><h3>Kim qaysi savolda qiynaldi (50% dan past)</h3><table>${hard.map((e) => `<tr><td style="width:80px"><b>${e.i}-savol</b></td><td class="l">${esc(e.failNames.join(", "))}</td></tr>`).join("")}</table></div>`] : [])];
   }
   function list(X, ord) {     // [{s|null, name}] — ro'yxat (qatnashmaganlar o'z o'rnida) yoki ball bo'yicha (qatnashmaganlar pastda alohida)
@@ -106,7 +105,7 @@ const BXP = (() => {
     const head = `<tr><th>№</th><th class="l">O'quvchining familiyasi, ismi</th>${an.qmax.map((_, i) => `<th>${i + 1}-s.</th>`).join("")}<th>Jami</th><th>%</th><th>Baho</th></tr>
       <tr class="mx"><td></td><td class="l">Maksimal ball</td>${an.qmax.map((m) => `<td>${gn(m)}</td>`).join("")}<td>${gn(an.tot_max)}</td><td>100</td><td></td></tr>`;
     const body = L.map(({s, name}, i) => s ? `<tr><td>${i + 1}</td><td class="l">${esc(name)}</td>${s.pts.map((v) => `<td>${gn(v)}</td>`).join("")}<td><b>${gn(s.total)}</b></td><td${official ? "" : ' style="text-align:left;white-space:nowrap"'}>${official ? p0(s.pct) : `<span class="bx-mb" style="width:${Math.round(Math.min(s.pct, 100) * 0.32)}px"></span> ${p0(s.pct)}`}</td><td style="background:${gcol(s.grade)}"><b>${s.grade}</b></td></tr>`
-      : `<tr class="ab"><td>${i + 1}</td><td class="l">${esc(name)}</td><td colspan="${nq + 3}">qatnashmadi</td></tr>`).join("");
+      : `<tr class="ab"><td>${i + 1}</td><td class="l">${esc(name)}</td><td colspan="${nq + 3}">${(an.noData || []).includes(name) ? "ball kiritilmagan" : "qatnashmadi"}</td></tr>`).join("");
     const qs = an.questions, sm = sum && X.ok ? `<tr class="sm"><td></td><td class="l">O'rtacha ball</td>${qs.map((q) => `<td>${nf(q.mean)}</td>`).join("")}<td><b>${nf(an.mean_total)}</b></td><td><b>${p0(an.mean_pct)}</b></td><td></td></tr>
       <tr class="sm"><td></td><td class="l">O'zlashtirish, %</td>${qs.map((q) => `<td style="background:${lcol(q.level)}"><b>${Math.round(q.pct)}</b></td>`).join("")}<td colspan="3"></td></tr>
       <tr class="sm"><td></td><td class="l">To'liq yechganlar</td>${qs.map((q) => `<td>${q.full}</td>`).join("")}<td colspan="3"></td></tr>
@@ -340,8 +339,10 @@ const BXP = (() => {
         Z.push(["Baho", "Soni", "%"], "head", {w: 3});
         for (const k of [5, 4, 3, 2]) Z.push([k, an.grades[k], an.n ? Math.round(100 * an.grades[k] / an.n) : 0], "grade", {g: k, w: 3});
         Z.push(["Jami", an.n, an.n ? 100 : 0], "kpi", {w: 3});
-        for (const [t, k, tone] of [["Yutuqlar", "good", "ok"], ["Kamchiliklar", "bad", "bad"], ["Tavsiyalar", "tips", "tip"]]) {
-          Z.push([]); Z.merge(Z.push([t], "sec", {tone}), 0, 3); for (const s of X.rec[k]) Z.push(["• " + s], "li");
+        const R = X.rec, tn = (x) => x.tone === "ok" ? "ok" : x.tone === "bad" ? "bad" : "tip";
+        for (const [t, L, tone] of [["Umumiy xulosa", [R.verdict, ...R.next.map((x, i) => ({t: (i ? "" : "Keyingi qadam: ") + x.t, tone: "info"}))], tn(R.verdict)], ["Savollar bo'yicha", R.qs, "tip"], ["O'quvchilar bo'yicha", [...R.st, ...R.data], "tip"]]) {
+          if (!L.length) continue;
+          Z.push([]); Z.merge(Z.push([t], "sec", {tone}), 0, 3); for (const x of L) Z.push(["• " + bsbRecText(x.t)], "li");
         }
         const S1 = sg.filter((s) => s[0] || s[1]);
         if (S1.length) { Z.push([]); for (const [l, n] of S1) Z.merge(Z.push([`${l}: ____________ ${n}`], "sign"), 0, 3); }

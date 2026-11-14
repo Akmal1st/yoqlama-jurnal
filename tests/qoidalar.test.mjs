@@ -99,3 +99,40 @@ test("Chorak: ta'tilda yangi ish — 1-chorak arxivlanmagan bo'lsa unga, arxivla
   assert.equal(qapp(true).workQuarter("2026-11-03"), 2);
   assert.equal(qapp(true).workQuarter("2026-10-20"), 1, "chorak ichida — doim o'sha chorak");
 });
+
+// BSB xulosa qoidalari (v7): har savol aynan bir toifada, har o'quvchi ko'pi bilan bitta guruhda,
+// umumiy xulosa baho shkalasiga mos, keyingi qadam bitta, ball kiritilmaganlar statistikaga kirmaydi. 36 va 18 o'quvchi.
+test("BSB xulosa qoidalari mantiqiy: 6 holat × 36/18 o'quvchi", () => {
+  const A = loadApp("2026-10-20"), mx = [4, 6, 5, 5];
+  const rnd = (s) => () => ((s = (s * 1103515245 + 12345) % 2147483648) / 2147483648);
+  const rows = (sc, n, seed) => { const rr = rnd(seed), cl = (v, m) => Math.max(0, Math.min(m, Math.round(v)));
+    return Array.from({length: sc === "f" ? 5 : n}, (_, i) => {
+      const ab = sc === "s" ? .6 + rr() * .4 : sc === "w" ? .05 + rr() * .5 : .15 + rr() * .8;
+      const pts = mx.map((m) => cl(m * (ab + (rr() - .5) * .7), m));
+      if (sc === "w" && rr() < .55) pts[3] = 0;
+      if (sc === "x") pts[2] = cl(mx[2] * (1.05 - ab + (rr() - .5) * .3), mx[2]);
+      const r = {name: `O'quvchi ${i + 1}`, in: true, pts};
+      if (sc === "a") { if (i === 4 || i === 11) r.in = false; if (i === 7) r.pts = [null, null, null, null]; if (i === 2) r.pts = [pts[0], null, pts[2], null]; }
+      return r; }); };
+  for (const n of [36, 18]) for (const sc of ["r", "s", "w", "x", "a", "f"]) {
+    const an = A.bsbStats(mx, rows(sc, n, n * 7 + sc.charCodeAt(0))), rc = A.bsbRecs(an), why = `${sc}/${n}`;
+    const qi = rc.qs.flatMap((x) => x.qi), who = rc.st.flatMap((x) => x.who);
+    assert.ok(an.questions.every((q) => qi.filter((i) => i === q.i).length === 1), `${why}: har savol bir marta`);
+    assert.equal(new Set(who).size, who.length, `${why}: o'quvchi bitta guruhda`);
+    const s3 = (rc.st.find((x) => x.id === "S3") || {who: []}).who;
+    assert.ok(an.students.filter((s) => s.grade === 2).every((s) => s3.includes(s.name)), `${why}: «2» guruhi to'liq`);
+    const m = an.mean_pct;
+    assert.equal(rc.verdict.lvl, m >= 86 ? "a'lo" : m >= 66 ? "yaxshi" : m >= 30 ? "qoniqarli" : "past", `${why}: umumiy xulosa`);
+    for (const x of rc.qs) for (const i of x.qi) {
+      if (x.id === "Q6") assert.ok(an.questions[i - 1].pct >= 70, `${why}: oson ≥70%`);
+      if (x.id === "Q3") assert.ok(an.questions[i - 1].pct < 40, `${why}: qiyin <40%`);
+    }
+    assert.equal(rc.next.length, 1 + (rc.qs.some((x) => x.id === "Q1") ? 1 : 0), `${why}: keyingi qadam bitta`);
+    assert.ok(an.noData.every((nm) => !an.students.some((s) => s.name === nm)), `${why}: noData statistikada yo'q`);
+    if (sc === "a") { assert.deepEqual([...an.noData], ["O'quvchi 8"]); assert.ok(rc.st.some((x) => x.id === "S2")); assert.ok(rc.data.some((x) => x.id === "D1")); }
+    if (sc === "f") assert.ok(rc.data.some((x) => x.id === "D2") && !rc.qs.some((x) => x.id === "Q1" || x.id === "Q4"), `${why}: kam o'quvchida ajratish ishlatilmaydi`);
+  }
+  // bo'sh tahlil
+  const e = A.bsbRecs(A.bsbStats(mx, []));
+  assert.equal(e.verdict.id, "V0"); assert.equal(e.qs.length + e.st.length, 0);
+});

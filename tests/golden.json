@@ -3841,6 +3841,7 @@
     "absent": [
      "Qodirova Sevara"
     ],
+    "noData": [],
     "qmax": [
      2,
      2,
@@ -4078,22 +4079,90 @@
     "mastery": 50.9375
    },
    "rec": {
-    "good": [
-     "«5» baho olganlar: 2 ta (Aliyev Ali, Ergasheva Malika)."
+    "verdict": {
+     "id": "V3",
+     "tone": "mid",
+     "lvl": "qoniqarli",
+     "t": "Sinf natijasi — <b>qoniqarli</b>: o'zlashtirish 51%, bilim sifati 50% (o'rtacha), «2» — 2 ta (25%)."
+    },
+    "qs": [
+     {
+      "id": "Q2",
+      "tone": "bad",
+      "qi": [
+       6
+      ],
+      "t": "<b>6-savol</b>da ko'pchilik umuman ishlamagan — 0 ball: 4 ta (50%) — mavzu o'tilganini va vaqt yetganini tekshiring."
+     },
+     {
+      "id": "Q5",
+      "tone": "mid",
+      "qi": [
+       1,
+       2,
+       4,
+       5
+      ],
+      "t": "<b>1, 2, 4, 5-savollar</b> qisman o'zlashtirilgan (62%, 62%, 56%, 48%) — tipik xatolarni sinf bilan tahlil qiling."
+     },
+     {
+      "id": "Q6",
+      "tone": "ok",
+      "qi": [
+       3
+      ],
+      "t": "<b>3-savol</b> yaxshi o'zlashtirilgan (71%) — bu mavzular mustahkam."
+     }
     ],
-    "bad": [
-     "O'zlashtirishi past savollar: 6-savol (30%), 5-savol (48%).",
-     "Ko'pchilik 0 ball olgan savollar: 6-savol (4 ta) — mavzu o'tilmagan, shart tushunarsiz yoki vaqt yetmagan bo'lishi mumkin.",
-     "«2» baho olganlar: 2 ta (25%): Karimov Bek, Yusupov Jasur.",
-     "Ishtirok etmaganlar: 1 ta (Qodirova Sevara).",
-     "2 ta katak to'ldirilmagan — hisobda 0 ball deb olindi."
+    "st": [
+     {
+      "id": "S1",
+      "tone": "mid",
+      "who": [
+       "Qodirova Sevara"
+      ],
+      "t": "<b>Qatnashmagan — 1 ta</b>: Qodirova Sevara — qayta topshirish sanasini belgilang."
+     },
+     {
+      "id": "S3",
+      "tone": "bad",
+      "who": [
+       "Karimov Bek",
+       "Yusupov Jasur"
+      ],
+      "t": "<b>«2» — 2 ta</b>: Karimov Bek (1, 2-savollar), Yusupov Jasur (1, 3-savollar) — yakka tartibda shu savollar mavzusini takrorlang."
+     },
+     {
+      "id": "S5",
+      "tone": "ok",
+      "who": [
+       "Aliyev Ali",
+       "Ergasheva Malika"
+      ],
+      "t": "<b>«5» — 2 ta</b>: Aliyev Ali, Ergasheva Malika — qiyinroq (olimpiada) topshiriqlar bering yoki yordamchi qiling."
+     }
     ],
-    "tips": [
-     "6-savol (30%): mavzuni qayta tushuntiring, o'xshash misollarni sinfda birgalikda yeching.",
-     "5-savol (48%): xatolarni tahlil qiling va qo'shimcha mashqlar bering.",
-     "Karimov Bek, Yusupov Jasur bilan yakka tartibda ishlang: asosiy tushunchalarni takrorlash va qo'shimcha dars.",
-     "Aliyev Ali, Ergasheva Malika — qiyinroq (olimpiada, qo'shimcha) topshiriqlar bering yoki yordamchi sifatida jalb qiling.",
-     "Ishtirok etmaganlarga BSB ni qayta topshirish imkonini bering (kasallik va boshqa sabablarni aniqlang)."
+    "data": [
+     {
+      "id": "D1",
+      "tone": "mid",
+      "who": [
+       "Toshev Anvar"
+      ],
+      "t": "Qisman to'ldirilgan: Toshev Anvar (2 katak) — bo'sh kataklar 0 ball deb olindi, tekshiring."
+     },
+     {
+      "id": "D2",
+      "tone": "info",
+      "who": [],
+      "t": "Ajratish indeksi 10 tadan kam o'quvchida ishonchsiz — xulosada hisobga olinmadi."
+     }
+    ],
+    "next": [
+     {
+      "id": "N2",
+      "t": "Qiyin savollar mavzusini (6-savol) bitta darsda takrorlang, keyin 10 daqiqalik formativ ish bilan tekshiring."
+     }
     ]
    }
   },
@@ -4101,6 +4170,7 @@
    "stats": {
     "n": 3,
     "absent": [],
+    "noData": [],
     "qmax": [
      10,
      10
@@ -4199,17 +4269,62 @@
     "mastery": 77.5
    },
    "rec": {
-    "good": [
-     "Bilim sifati yuqori: 67% o'quvchi «4» va «5» baho olgan.",
-     "«5» baho olganlar: 2 ta (A, B).",
-     "Yaxshi o'zlashtirilgan savollar: 1-savol (88%) — bu mavzular bo'yicha bilim mustahkam.",
-     "Ishtirok etgan barcha o'quvchi «3» dan past bo'lmagan baho olgan."
+    "verdict": {
+     "id": "V2",
+     "tone": "ok",
+     "lvl": "yaxshi",
+     "t": "Sinf natijasi — <b>yaxshi</b>: o'zlashtirish 78%, bilim sifati 67% (o'rtacha), «2» baho yo'q."
+    },
+    "qs": [
+     {
+      "id": "Q5",
+      "tone": "mid",
+      "qi": [
+       2
+      ],
+      "t": "<b>2-savol</b> qisman o'zlashtirilgan (67%) — tipik xatolarni sinf bilan tahlil qiling."
+     },
+     {
+      "id": "Q6",
+      "tone": "ok",
+      "qi": [
+       1
+      ],
+      "t": "<b>1-savol</b> yaxshi o'zlashtirilgan (88%) — bu mavzular mustahkam."
+     }
     ],
-    "bad": [
-     "1 ta katak to'ldirilmagan — hisobda 0 ball deb olindi."
+    "st": [
+     {
+      "id": "S5",
+      "tone": "ok",
+      "who": [
+       "A",
+       "B"
+      ],
+      "t": "<b>«5» — 2 ta</b>: A, B — qiyinroq (olimpiada) topshiriqlar bering yoki yordamchi qiling."
+     }
     ],
-    "tips": [
-     "A, B — qiyinroq (olimpiada, qo'shimcha) topshiriqlar bering yoki yordamchi sifatida jalb qiling."
+    "data": [
+     {
+      "id": "D1",
+      "tone": "mid",
+      "who": [
+       "C"
+      ],
+      "t": "Qisman to'ldirilgan: C (1 katak) — bo'sh kataklar 0 ball deb olindi, tekshiring."
+     },
+     {
+      "id": "D2",
+      "tone": "info",
+      "who": [],
+      "t": "Ajratish indeksi 10 tadan kam o'quvchida ishonchsiz — xulosada hisobga olinmadi."
+     }
+    ],
+    "next": [
+     {
+      "id": "N3",
+      "t": "Keyingi bo'limga o'tishingiz mumkin."
+     }
     ]
    }
   },
@@ -4219,6 +4334,7 @@
     "absent": [
      "A"
     ],
+    "noData": [],
     "qmax": [
      4,
      4,
@@ -4235,17 +4351,23 @@
     }
    },
    "rec": {
-    "good": [],
-    "bad": [
-     "Tahlil uchun ishtirok etgan o'quvchilar va ballar kerak."
-    ],
-    "tips": []
+    "verdict": {
+     "id": "V0",
+     "tone": "bad",
+     "lvl": "",
+     "t": "Tahlil uchun kamida bitta o'quvchining bali kerak."
+    },
+    "qs": [],
+    "st": [],
+    "data": [],
+    "next": []
    }
   },
   {
    "stats": {
     "n": 12,
     "absent": [],
+    "noData": [],
     "qmax": [
      5,
      5,
@@ -4568,24 +4690,58 @@
     "mastery": 52.857143
    },
    "rec": {
-    "good": [
-     "Yaxshi o'zlashtirilgan savollar: 1-savol (100%), 2-savol (100%), 3-savol (100%) — bu mavzular bo'yicha bilim mustahkam.",
-     "Ishtirok etgan barcha o'quvchi «3» dan past bo'lmagan baho olgan."
+    "verdict": {
+     "id": "V3",
+     "tone": "mid",
+     "lvl": "qoniqarli",
+     "t": "Sinf natijasi — <b>qoniqarli</b>: o'zlashtirish 53%, bilim sifati 0% (past), «2» baho yo'q."
+    },
+    "qs": [
+     {
+      "id": "Q2",
+      "tone": "bad",
+      "qi": [
+       4,
+       5,
+       6,
+       7
+      ],
+      "t": "<b>4, 5, 6, 7-savollar</b>da ko'pchilik umuman ishlamagan — 0 ball: 4 ta (33%), 4 ta (33%), 12 ta (100%), 6 ta (50%) — mavzu o'tilganini va vaqt yetganini tekshiring."
+     },
+     {
+      "id": "Q6",
+      "tone": "ok",
+      "qi": [
+       1,
+       2,
+       3
+      ],
+      "t": "<b>1, 2, 3-savollar</b> yaxshi o'zlashtirilgan (100%, 100%, 100%) — bu mavzular mustahkam."
+     },
+     {
+      "id": "Q7",
+      "tone": "mid",
+      "qi": [],
+      "t": "Oxirgi savollar (5%) boshidagilardan (100%) ancha past — vaqt yetmagan bo'lishi mumkin; keyingi ishda vaqt yoki savollar sonini qayta ko'ring."
+     }
     ],
-    "bad": [
-     "O'zlashtirishi past savollar: 6-savol (0%), 7-savol (10%), 5-savol (20%), 4-savol (40%).",
-     "Ko'pchilik 0 ball olgan savollar: 4-savol (4 ta), 5-savol (4 ta), 6-savol (12 ta), 7-savol (6 ta) — mavzu o'tilmagan, shart tushunarsiz yoki vaqt yetmagan bo'lishi mumkin.",
-     "Kuchli va kuchsiz o'quvchilarni yaxshi ajratmagan savollar: 6-savol, 7-savol — savol shakli yoki murakkabligini ko'rib chiqing.",
-     "Oxirgi savollar (5%) boshidagilardan (100%) ancha past — vaqt yetmagan yoki murakkab topshiriqlar qiyinlik tug'dirgan bo'lishi mumkin.",
-     "Bilim sifati past: faqat 0% o'quvchi «4» va «5» baho olgan."
+    "st": [
+     {
+      "id": "S4",
+      "tone": "mid",
+      "who": [
+       "O'quvchi 5",
+       "O'quvchi 11"
+      ],
+      "t": "<b>Keyingi bahoga 2 balldan kam yetmagan — 2 ta</b>: O&#39;quvchi 5 (→ «4»), O&#39;quvchi 11 (→ «4») — qisqa takrorlash yetarli."
+     }
     ],
-    "tips": [
-     "6-savol (0%): mavzuni qayta tushuntiring, o'xshash misollarni sinfda birgalikda yeching.",
-     "7-savol (10%): mavzuni qayta tushuntiring, o'xshash misollarni sinfda birgalikda yeching.",
-     "5-savol (20%): mavzuni qayta tushuntiring, o'xshash misollarni sinfda birgalikda yeching.",
-     "4-savol (40%): xatolarni tahlil qiling va qo'shimcha mashqlar bering.",
-     "Yuqori bahoga yaqin o'quvchilar — qisqa takrorlash bilan natijani oshirish mumkin: O'quvchi 5 (2 ball → «4»), O'quvchi 11 (2 ball → «4»).",
-     "Bo'lim bo'yicha umumiy takrorlash darsi o'tkazing, so'ng qisqa nazorat (formativ) ishi bilan natijani tekshiring."
+    "data": [],
+    "next": [
+     {
+      "id": "N1",
+      "t": "Bo'limni qayta o'ting (1–2 dars), so'ng qisqa formativ ish bilan natijani tekshiring."
+     }
     ]
    }
   }
