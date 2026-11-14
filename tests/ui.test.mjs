@@ -5850,8 +5850,17 @@ for (const [name, viewport] of [["kompyuter", {width: 1280, height: 860}], ["tel
     await page.waitForTimeout(700);
     assert.equal(await page.evaluate((ci) => D.classes[ci].lessons["2026-11-13"].hw, ci), "§12, 315–317");
     // varaq: muqova + ishlanma betlari, ekran yon tomonga surilmaydi
-    await page.click("#ishp [data-a=tab][data-v=paper]"); await page.waitForSelector("#ishp .a4.cover");
-    assert.ok(await page.locator("#ishp .a4").count() >= 4);
+    // yangi varaq (v239): 3 uslub, har birida muqova; hech bir betda matn kesilmaydi; shrift to'plami
+    await page.click("#ishp [data-a=tab][data-v=paper]"); await page.waitForSelector("#ishp .v-pg.v-cv");
+    const vcheck = () => page.evaluate(() => ({n: document.querySelectorAll("#is-ps .v-pg").length, cut: [...document.querySelectorAll("#is-ps .v-pin")].filter((x) => x.scrollHeight > x.clientHeight + 1).length}));
+    for (const vs of ["A", "B", "C"]) {
+      await page.click(`#ishp [data-a=po][data-k=vs][data-v=${vs}]`); await page.waitForSelector(`#is-ps .v-pg.v-s${vs}.v-cv`);
+      const r = await vcheck(); assert.ok(r.n >= 4, `${vs}: ${r.n} bet`); assert.equal(r.cut, 0, `${vs}: kesilgan bet`);
+    }
+    await page.click("#ishp [data-a=po][data-k=ff][data-v=huj]"); await page.waitForSelector("#is-ps .v-pg[data-ff]");
+    await page.waitForFunction(() => [...document.fonts].some((f) => f.family.includes("BV Sans") && f.status === "loaded"));
+    await page.waitForTimeout(300); assert.equal((await vcheck()).cut, 0, "Hujjat shrifti: kesilgan bet");
+    await page.click("#ishp [data-a=po][data-k=vs][data-v=A]"); await page.click("#ishp [data-a=po][data-k=ff][data-v=auto]");
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), "gorizontal siljish yo'q");
     // eksport: PDF va Word
     await page.click("#ishp [data-a=exp]");
