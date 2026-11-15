@@ -13,7 +13,7 @@
 <title>Yo'qlama jurnali</title>
 <link rel="stylesheet" href="vendor/bootstrap-5.3.3.css?v=213">
 <link rel="stylesheet" href="vendor/bootstrap-icons-1.11.3.css?v=213">
-<link rel="stylesheet" href="app.css?v=236">
+<link rel="stylesheet" href="app.css?v=244">
 <link rel="stylesheet" href="guruhlar.css?v=213">
 <link rel="stylesheet" href="tpt-mavzu.css?v=213">
 <link rel="stylesheet" href="tpt-tema.css?v=213">
@@ -76,7 +76,7 @@
 <script src="bugun-arxiv.js?v=213"></script>
 <script src="bugun-tatil.js?v=207"></script>
 <script src="bugun.js?v=230"></script>
-<script src="funksiyalar.js?v=224"></script>
+<script src="funksiyalar.js?v=244"></script>
 <script src="sozlamalar.js?v=216"></script>
 <script src="mezon.js?v=221"></script>
 <script src="kriterial.js?v=233"></script>
@@ -94,7 +94,7 @@
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=218"></script>
 <script src="loyiha.js?v=231"></script>
-<script src="yangilik.js?v=242"></script>
+<script src="yangilik.js?v=244"></script>
 <script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=235"></script>
 <script src="telegram.js?v=216"></script>
@@ -953,6 +953,57 @@ function quarterResult(c, s, q, works) {
   const [fb, nfb, avg] = fbInfo(c, s, qRange(q)); const total = bsb + chsb + fb;
   const complete = mb === BSB_TOTAL && mc === CHSB_TOTAL && missing === 0;
   return {bsb, chsb, fb, n_fb: nfb, avg, total, max_bsb: mb, max_chsb: mc, missing, complete, grade: complete ? grade5(total) : null};
+}
+/* «Maqsad bahosi» (Akmal, 2026-11-15): chorakda t (5/4/3) olish uchun yana nima kerak — quarterResult bilan bir xil qoida.
+   Qaytaradi: {t, st, need, rem, k, nfb}: st = "ok" (ta'minlangan) | "works" (qolgan ishlardan kamida need ball, rem dan) |
+   "both" (qolgan ishlardan to'liq ball va FB kamida need) | "fb" (FB kamida need: yana k ta «10») | "no" (erishib bo'lmaydi).
+   k — FB uchun yana nechta «10» (yoki baho kam bo'lsa, kamida fbMin() gacha) kerak. */
+const GOAL_T = {5: 86, 4: 66, 3: 30};
+// chorak oxirigacha qolgan darslar (bugundan keyin, BSB/CHSB kunisiz); dars kunlari noma'lum bo'lsa — cheklanmaydi
+function lessonsLeft(c, q) {
+  const r = qRange(q), t = todayIso(); if (!r) return 0; if (t > r[1]) return 0;
+  const fut = (c.dates || []).filter((d) => d > t && d <= r[1]);
+  if (!fut.length && !(c.dates || []).some((d) => d > r[1])) return Infinity;
+  return fut.filter((d) => !isNoLesson(c, d) && !sumOn(c, d)).length;
+}
+function goalInfo(c, s, q, works, t) {
+  const g = goalRaw(c, s, q, works, t);
+  // kerakli baholar soni qolgan darslardan ko'p bo'lsa — erishib bo'lmaydi
+  return g.st !== "ok" && g.st !== "no" && g.k > g.left ? {...g, st: "no"} : g;
+}
+function goalRaw(c, s, q, works, t) {
+  const sc = s.scores || {}; let got = 0, rem = 0;
+  for (const w of works) { const v = sc[w.id]; if (isNum(v)) got += v; else rem += +w.max; }
+  const gr = formativeGrades(c, s, qRange(q)), n = gr.length, sum = gr.reduce((a, b) => a + b, 0), min = fbMin();
+  const fbCur = n ? Math.floor(sum / n + 0.5) : 0, T = GOAL_T[t], left = lessonsLeft(c, q);
+  // FB ni f ga chiqarish uchun yana nechta «10» kerak (va jami kamida min ta baho bo'lsin)
+  const tens = (f) => { const r = f - 0.5, k = n ? Math.max(0, Math.ceil((r * n - sum) / (10 - r) - 1e-9)) : 1; return Math.max(k, min - n, 0); };
+  if (rem > 0) {
+    const nw = Math.round((T - got - fbCur) * 10) / 10;
+    if (nw <= 0 && n >= min) return {t, st: "ok", need: 0, rem, k: 0, nfb: n, left};
+    if (nw <= rem) return {t, st: "works", need: Math.max(0, nw), rem, k: Math.max(0, min - n), nfb: n, left, any: true};
+    const nf = Math.round((T - got - rem) * 10) / 10; if (nf > 10) return {t, st: "no", need: 0, rem, k: 0, nfb: n, left};
+    const f = Math.ceil(nf);
+    return {t, st: "both", need: f, rem, k: f <= fbCur ? Math.max(0, min - n) : tens(f), nfb: n, left, any: f <= fbCur};
+  }
+  const f = Math.max(1, Math.ceil(Math.round((T - got) * 10) / 10));
+  if (f > 10) return {t, st: "no", need: 0, rem: 0, k: 0, nfb: n, left};
+  if (f <= fbCur && n >= min) return {t, st: "ok", need: 0, rem: 0, k: 0, nfb: n, left};
+  return {t, st: "fb", need: f, rem: 0, k: f <= fbCur ? min - n : tens(f), nfb: n, left, any: f <= fbCur};
+}
+// eng yuqori erishsa bo'ladigan maqsad (5 → 4 → 3); null — 3 ga ham yetmaydi
+function goalBest(c, s, q, works) {
+  for (const t of [5, 4, 3]) { const g = goalInfo(c, s, q, works, t); if (g.st !== "no") return g; }
+  return null;
+}
+function goalText(g, short) {
+  if (!g) return short ? "—" : "Bu chorakda «3» ga ham yetmaydi";
+  const tt = `«${g.t}»`;
+  if (g.st === "ok") return short ? `✓ ${g.t}` : `${tt} ta'minlangan`;
+  const ks = g.k ? (g.any ? `${g.k} ta baho` : `${g.k} ta «10»`) : "";
+  if (g.st === "works") return short ? `${g.t}: ${fmtNum(g.need)}/${fmtNum(g.rem)}${ks ? " +" + ks : ""}` : `${tt} uchun qolgan ishlardan kamida ${fmtNum(g.need)} ball (${fmtNum(g.rem)} dan)${ks ? `, yana ${ks}` : ""}`;
+  if (g.st === "both") return short ? `${g.t}: ${fmtNum(g.rem)}/${fmtNum(g.rem)}${ks ? " +" + ks : ""}` : `${tt} uchun qolgan ishlardan to'liq ${fmtNum(g.rem)} ball va FB kamida ${g.need}${ks ? ` (yana ${ks})` : ""}`;
+  return short ? `${g.t}: +${ks}` : `${tt} uchun FB kamida ${g.need}: yana ${ks}`;
 }
 function yearResult(c, s) {
   const qres = []; let sb = 0, fbg = [];
@@ -2126,6 +2177,7 @@ const FEATS = [
   ["duty", "👤 Navbatchi", "Har kuni navbat bilan, kelmagan o'tkazib yuboriladi; «Bugun»da va darsda"],
   ["bsbrem", "🔔 BSB/CHSB yaqinlashmoqda", "Summativ ishga 3 kun qolganda «Bugun»da eslatma"],
   ["absmsg", "✉ Kelmaganlar ota-onasiga xabar", "Yo'qlamadan keyin har kelmaganga tayyor matn, Telegram yoki SMS"],
+  ["goal", "🎯 Maqsad bahosi", "Chorak natijasida: keyingi baho (5, 4 yoki 3) uchun yana qancha ball yoki «10» kerak"],
 ];
 const SIMPLE_OFF = ["call", "groups", "seats", "attmodes", "debts", "timer", "duty"];
 // olib tashlangan funksiyalar (2026-11-07): Faollik +/− (mezon «Darsdagi ish» bor), Haftalik xulosa (Hisobotlar va kunlik hisobotda bor) — ma'lumoti saqlanadi
@@ -2874,9 +2926,11 @@ function pageSum(m) {
   if (!rng) body = `<div class="card muted">${q}-chorak sanalari belgilanmagan. «Sozlamalar → Dars kunlari va choraklar»da kiriting.</div>`;
   else {
     const works = worksInQuarter(c, q), [cp] = readiness(c, q);
+    // «Maqsad» ustuni — faqat hali yopilmagan (arxivlanmagan) chorakda
+    const gOn = feat("goal") && !(typeof ARX !== "undefined" && ARX.lockedQ(q));
     const sb = works.filter((w) => w.type !== "chsb").reduce((a, w) => a + +w.max, 0), sc = works.filter((w) => w.type === "chsb").reduce((a, w) => a + +w.max, 0), lo = works.some((w) => w.type === "loyiha");
     let head = `<tr><th class="nm">O'quvchi</th>${works.map((w) => `<th class="wk"><button class="wbtn ${esc(w.type)}" data-we="${esc(w.id)}" title="${esc(w.title || "")}">${wTypeName(w)}<small>${fmt(w.date).slice(0, 5)} · /${fmtNum(w.max)}</small></button></th>`).join("")}
-      <th>${lo ? "BSB + Loyiha" : "BSB"}<small>/${BSB_TOTAL}</small></th><th>CHSB<small>/${CHSB_TOTAL}</small></th><th title="Formativ baho: kundalik baholar o'rtachasi (kamida ${fbMin()} ta)">FB<small>/${FB_TOTAL}</small></th><th>Jami<small>/100</small></th><th>Tavsiya</th><th>Chorak<small>bahosi</small></th></tr>`;
+      <th>${lo ? "BSB + Loyiha" : "BSB"}<small>/${BSB_TOTAL}</small></th><th>CHSB<small>/${CHSB_TOTAL}</small></th><th title="Formativ baho: kundalik baholar o'rtachasi (kamida ${fbMin()} ta)">FB<small>/${FB_TOTAL}</small></th><th>Jami<small>/100</small></th><th>Tavsiya</th>${gOn ? `<th class="goal" title="Keyingi baho uchun yana nima kerak">Maqsad</th>` : ""}<th>Chorak<small>bahosi</small></th></tr>`;
     const body2 = c.students.map((s, si) => {
       const r = quarterResult(c, s, q, works), scs = s.scores || {};
       return `<tr data-sr="${si}"><td class="nm" title="${esc(s.name)}"><i>${si + 1}</i>${nmHtml(s.name)}</td>${works.map((w) => {
@@ -2884,7 +2938,7 @@ function pageSum(m) {
         return `<td class="c"><input class="sc ${v === "" ? "" : isNum(v) ? "" : "ab"} ${bad ? "bad" : ""} ${lt ? "lt" : ""}" data-sc="${si}|${esc(w.id)}" value="${esc(isNum(v) ? fmtNum(v) + (lt ? " KQ" : "") : String(v).toUpperCase())}" inputmode="decimal" enterkeyhint="next" autocomplete="off"></td>`;
       }).join("")}
         <td class="s">${fmtNum(r.bsb)}</td><td class="s">${fmtNum(r.chsb)}</td><td class="s" title="${r.n_fb} ta baho${r.avg !== null ? ", o'rtacha " + r.avg.toFixed(2) : ""}">${r.n_fb >= fbMin() ? r.fb : `<span class="warn" title="Formativ baholar kam">${r.n_fb}/${fbMin()}</span>`}</td>
-        <td class="s"><b>${fmtNum(r.total)}</b></td><td class="s">${r.grade ? g5pill(r.grade, "100–86 → 5, 85–66 → 4, 65–30 → 3, qolgani → 2") : `<span class="muted" title="${r.missing ? r.missing + " ta ball kiritilmagan" : "Maksimal ballar 50/40 emas"}">…</span>`}</td>
+        <td class="s"><b>${fmtNum(r.total)}</b></td><td class="s">${r.grade ? g5pill(r.grade, "100–86 → 5, 85–66 → 4, 65–30 → 3, qolgani → 2") : `<span class="muted" title="${r.missing ? r.missing + " ta ball kiritilmagan" : "Maksimal ballar 50/40 emas"}">…</span>`}</td>${gOn ? goalCell(c, s, q, works) : ""}
         <td class="s">${g5select(`data-fq="${si}"`, scs[`final:q${q}`])}</td></tr>`;
     }).join("");
     body = `${cp.length ? `<div class="card warnbox">⚠ ${cp.map(esc).join(" · ")}</div>` : `<div class="ok">✓ Maksimal ballar to'g'ri: ${lo ? "BSB + Loyiha" : "BSB"} ${fmtNum(sb)}/${BSB_TOTAL}, CHSB ${fmtNum(sc)}/${CHSB_TOTAL}</div>`}
@@ -2944,9 +2998,14 @@ function pageSum(m) {
     const vals = [fmtNum(r.bsb), fmtNum(r.chsb), r.n_fb >= fbMin() ? r.fb : `<span class="warn" title="Formativ baholar kam">${r.n_fb}/${fbMin()}</span>`, `<b>${fmtNum(r.total)}</b>`,
       r.grade ? g5pill(r.grade, "100–86 → 5, 85–66 → 4, 65–30 → 3, qolgani → 2") : `<span class="muted" title="${r.missing ? r.missing + " ta ball kiritilmagan" : "Maksimal ballar 50/40 emas"}">…</span>`];
     vals.forEach((html, k) => { if (cells[k] && cells[k].innerHTML !== html) cells[k].innerHTML = html; });
+    const gc = tr.querySelector("td.goal"); if (gc) gc.outerHTML = goalCell(c, s, q, works);
     if (cells[2]) cells[2].title = `${r.n_fb} ta baho${r.avg !== null ? ", o'rtacha " + r.avg.toFixed(2) : ""}`;
     undoBtn();
   };
+}
+function goalCell(c, s, q, works) {
+  const g = goalBest(c, s, q, works);
+  return `<td class="s goal ${g ? "g-" + g.st : "g-no"}" title="${esc(goalText(g, false))}">${esc(goalText(g, true))}</td>`;
 }
 function workDialog(c, w) {
   const isNew = !w, q = newWorkQuarter(), r = qRange(q) || [todayIso(), todayIso()];

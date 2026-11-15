@@ -297,6 +297,10 @@ kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;padding:3px 5px;
 .hide{display:none!important}
 /* summativ */
 table.sum th{white-space:nowrap;padding:4px 3px}
+table.sum td.goal{white-space:nowrap;font-size:12px;font-weight:600;color:var(--bs-secondary-color)}
+table.sum td.goal.g-ok{color:var(--bs-success-text-emphasis,#146c43)}
+table.sum td.goal.g-no{color:var(--bs-secondary-color);font-weight:400}
+@media print{table.sum td.goal,table.sum th.goal{display:none}}
 table.sum th small{display:block;font-size:11px;font-weight:600}
 @media (max-width:820px){.seg{max-width:100%;overflow-x:auto}}
 table.sum th.wk{padding:0}

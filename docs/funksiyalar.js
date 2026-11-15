@@ -25,6 +25,7 @@ const FNK = (() => {
     absmsg: P('<path d="M21 4L3 11l6 2 2 6z"/><path d="M9 13l12-9"/>'),
     otaemk: P('<circle cx="8" cy="14" r="4"/><path d="M11 11l9-9M16 6l3 3M14 8l2 2"/>'),
     ktr: P('<path d="M4 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/>'),
+    goal: P('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/>'),
     lock: P('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>')};
   // [nomi, izoh, namunadagi yozuv, yangi?]
   const F = {
@@ -43,12 +44,13 @@ const FNK = (() => {
     parents: ["Ota-onalar", "Kontaktlar va butun sinfga xabar", "Kontaktlar"],
     otaemk: ["Ota-onalar eMaktab'i", "Ota-ona nomidan eMaktab'ga kirib chiqish («Kelajak soati» fani bor sinflarda)", "eMaktab'ga kirish", 1],
     absmsg: ["Kelmaganlar ota-onasiga xabar", "Yo'qlamadan keyin tayyor matn, Telegram yoki SMS", "Kelmaganlarga xabar", 1],
-    ktr: ["KTR", "Kalendar-tematik reja va bajarilishi", "KTR"]};
+    ktr: ["KTR", "Kalendar-tematik reja va bajarilishi", "KTR"],
+    goal: ["Maqsad bahosi", "Chorak natijasida: keyingi baho uchun yana qancha ball yoki «10» kerak", "Maqsad", 1]};
   const M = {attm: {n: "Yo'qlama usullari", d: "Ro'yxat doim bor; qo'shimcha usullar", ch: ["attmodes", "seats"], fix: "Ro'yxat"},
     views: {n: "Jurnal davrlari", d: "Kun doim bor; jurnal tepasidagi tugmalar", ch: ["vweek", "vmonth", "vquarter"], fix: "Kun"}};
   const GR = [["lesson", "Darsda", ["call", "groups", "attm", "hw", "timer", "duty"], "Dars tugmalari"],
     ["today", "«Bugun» sahifasi", ["bday", "qend", "gaps", "bsbrem"], "Kartochkalar"],
-    ["journal", "Jurnal", ["views"], "Davr"],
+    ["journal", "Jurnal", ["views", "goal"], "Davr"],
     ["menu", "Sinf menyusi (⋯)", ["debts", "parents", "absmsg", "ktr"], "Menyuda"],
     ["emk", "eMaktab", ["otaemk"], "«Kelajak soati» sinflarida"]];
   const GONE = new Set(["act", "week"]);
