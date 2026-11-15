@@ -113,7 +113,7 @@ const HSB = (() => {
         <button class="btn btn-sm hb-sortb" data-hk="sort">⇅ <span class="hb-pc" style="display:inline">${rt ? `${sN} · ${esc(RISK_TYPES.find(([k]) => k === rt)[1][0])}` : sN}</span><span class="hb-tel" style="display:inline">Saralash${rt ? " ·1" : ""}</span></button></div>
       <div class="hb-tw hb-pc"><table class="hb-t rcls"><thead><tr><th class="s">№</th>${th("name", "O'quvchi")}${th("avg", "O'rtacha", "s")}${th("n", "Baholar", "s")}${th("att", "Davomat", "s")}${th("miss", "Qoldirgan")}${rq ? th("qt", "Chorak", "s") : ""}${th("why", "Izoh")}</tr></thead><tbody>
         ${L.map(([r, i]) => `<tr class="${r.risk ? "hb-rk" : ""}"><td class="s hb-mut hb-num">${i + 1}</td><td class="nm"><button data-card="${i}">${esc(r.name)}</button></td><td class="s">${gp(r.avg)}</td><td class="s hb-num">${r.n}</td>
-          <td class="s hb-num ${r.att !== null && r.att < D.settings.risk.att_below ? "hb-low" : ""}">${f(r.att, 1, "%")}</td><td style="white-space:nowrap">${missChips(r) || `<span class="hb-mut">—</span>`}</td>${rq ? `<td class="s" style="white-space:nowrap">${qCell(r)}</td>` : ""}
+          <td class="s hb-num ${r.att !== null && r.att < D.settings.risk.att_below ? "hb-low" : ""}">${f(r.att, 1, "%")}</td><td class="hb-msc">${missChips(r) ? `<span class="hb-l3">${missChips(r)}</span>` : `<span class="hb-mut">—</span>`}</td>${rq ? `<td class="s" style="white-space:nowrap">${qCell(r)}</td>` : ""}
           <td class="hb-wyc">${r.why.length ? `<span class="hb-l3">${whyChips(r)}</span>` : `<span class="hb-mut">—</span>`}</td></tr>`).join("")}</tbody>
         ${L.length ? clsFoot(rows, avg, att, nRisk, rq) : ""}</table></div>
       <div class="hb-rows hb-tel">${L.map(([r, i]) => `<button class="hb-li ${r.risk ? "hb-rk" : ""}" data-card="${i}"><span class="hb-l1"><b class="hb-ell">${esc(r.name)}</b>${gp(r.avg)}</span>
@@ -124,7 +124,7 @@ const HSB = (() => {
   function clsFoot(rows, avg, att, nRisk, rq) {
     const sum = (k) => rows.reduce((a, r) => a + r[k], 0), Q = rows.filter((r) => r.q && r.q.complete);
     return `<tfoot><tr><td></td><td>O'rtacha / jami</td><td class="s hb-num">${f(avg, 2)}</td><td class="s hb-num">${rows.length ? f(sum("n") / rows.length, 0) : "—"}</td><td class="s hb-num">${f(att, 1, "%")}</td>
-      <td style="white-space:nowrap">${["s", "dq", "k", "kq"].map((k) => `${CODES[k]} ${sum(k)}`).join(" · ")}</td>${rq ? `<td class="s hb-num">${Q.length ? (Q.reduce((a, r) => a + r.q.grade, 0) / Q.length).toFixed(2) : "—"}</td>` : ""}<td>${nRisk} o'quvchi xavf ostida</td></tr></tfoot>`;
+      <td>${["s", "dq", "k", "kq"].map((k) => `<span style="white-space:nowrap">${CODES[k]} ${sum(k)}</span>`).join(" · ")}</td>${rq ? `<td class="s hb-num">${Q.length ? (Q.reduce((a, r) => a + r.q.grade, 0) / Q.length).toFixed(2) : "—"}</td>` : ""}<td>${nRisk} o'quvchi xavf ostida</td></tr></tfoot>`;
   }
   /* ───────── 2. BSB va CHSB ───────── */
   const PB = [["86–100%", "var(--ok)"], ["66–85%", "var(--hb-ok-b)"], ["30–65%", "var(--hb-warn-b)"], ["30% dan past", "var(--danger)"]];

@@ -7,7 +7,7 @@ const DZN = (() => {
   // [nomi, izoh, to'q mavzumi, kunduzgi ranglar, (bo'lsa) o'zining tungi varianti]
   const THEMES = {
     tpt: ["TPT", "Kulrang fon, oq kartochka", 0,
-      {win: "#f3f5f9", base: "#ffffff", alt: "#f7f8fb", soft: "#eef1f6", line: "#e3e7ee", text: "#141b2d", muted: "#667085", acc: "#0d8a87", fg: "#ffffff"},
+      {win: "#f3f5f9", base: "#ffffff", alt: "#f7f8fb", soft: "#eef1f6", line: "#e3e7ee", text: "#141b2d", muted: "#5f6b7f", acc: "#0a7c79", fg: "#ffffff"},
       {win: "#111416", base: "#1a1e21", alt: "#1f2427", soft: "#262c30", line: "#30373c", text: "#e9eef0", muted: "#94a0a6", acc: "#3cc9b9", fg: "#04201f"}],
     osmon: ["Osmon", "Havorang, tiniq ko'k", 0,
       {win: "#eaf1fb", base: "#ffffff", alt: "#f4f8fd", soft: "#e2ebf7", line: "#d3dff0", text: "#10213d", muted: "#5a6b86", acc: "#2563eb", fg: "#ffffff"},
@@ -22,7 +22,7 @@ const DZN = (() => {
       {win: "#0b0f17", base: "#131926", alt: "#171e2c", soft: "#1d2534", line: "#262f40", text: "#e8ecf3", muted: "#8b95a7", acc: "#9aa8ff", fg: "#0d1233"}],
     grafit: ["Grafit", "To'q kulrang, sariq urg'u", 1,
       {win: "#141518", base: "#1c1e22", alt: "#212328", soft: "#2a2d33", line: "#33363d", text: "#eceae6", muted: "#9b9890", acc: "#f2b13d", fg: "#231804"}]};
-  const HUES = ["#0d8a87", "#2563eb", "#2f4fa2", "#6d4fd3", "#c0367a", "#d1393a", "#c46a12", "#2e7d4a", "#475467"];
+  const HUES = ["#0a7c79", "#2563eb", "#2f4fa2", "#6d4fd3", "#c0367a", "#d1393a", "#c46a12", "#2e7d4a", "#475467"];
   const FONTS = {manrope: ["Manrope", "Standart", `"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif`],
     system: ["Tizim shrifti", "Qurilmaniki", `system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif`],
     georgia: ["Georgia", "Kitobiy", `Georgia,"DejaVu Serif",serif`],
@@ -76,7 +76,7 @@ const DZN = (() => {
     const tok = `--win:${v.win};--base:${v.base};--alt:${v.alt};--soft:${v.soft};--line:${v.line};--text:${v.text};--muted:${v.muted};--acc:${acc};--acc-fg:${fg};--acc-t:${accT};
       --acc-d:color-mix(in srgb,${acc} 82%,${dk ? "white" : "black"});--acc-soft:color-mix(in srgb,${acc} ${dk ? 18 : 12}%,${v.base});--side-bg:${v.base};--side-fg:${v.text};--side-mut:${v.muted};
       --today-cell:${dk ? "color-mix(in srgb,#f5b454 18%," + v.base + ")" : "#fef3e2"};--r:${z.rad}px;--rk:${+(z.rad / 14).toFixed(3)};--bs-border-radius:calc(.375rem*var(--rk));--bs-border-radius-sm:calc(.25rem*var(--rk));--bs-border-radius-lg:calc(.5rem*var(--rk));--bs-border-radius-xl:calc(1rem*var(--rk));--bs-border-radius-xxl:calc(2rem*var(--rk));--tpt-f:${fontCss(z)};
-      ${dk ? "--sh:0 1px 2px rgba(0,0,0,.35);--sh-lg:0 16px 40px -10px rgba(0,0,0,.7);--ok:#4ade9b;--danger:#f87171;" : "--ok:#12805c;--danger:#d1393a;"}`;
+      ${dk ? "--sh:0 1px 2px rgba(0,0,0,.35);--sh-lg:0 16px 40px -10px rgba(0,0,0,.7);--ok:#4ade9b;--danger:#f87171;" : "--ok:#0f7a57;--danger:#c42f30;"}`;
     // Guruhlar bo'limi (guruhlar.css) ham shu ranglarda
     const grp = `html.tpt-all.dz .tpt,html.tpt-all.dz[data-theme] .tpt{--g-win:var(--win);--g-base:var(--base);--g-alt:var(--alt);--g-soft:var(--soft);--g-line:var(--line);--g-text:var(--text);--g-muted:var(--muted);
       --g-acc:var(--acc);--g-acc-d:var(--acc-d);--g-acc-fg:var(--acc-fg);--g-acc-soft:var(--acc-soft);--g-f:var(--tpt-f);--g-r:var(--r);--g-ok:var(--ok);--g-bad:var(--danger);--g-sh:var(--sh);--g-sh-lg:var(--sh-lg)}

@@ -1,5 +1,5 @@
 /* eMaktab importi bir bosishda — «Bugun» kartasi va natija oynasi (tasdiqlangan maket, Akmal 2026-11-06). Kod: emk-bir.js */
-.ek-sync{display:flex;align-items:center;gap:12px;padding:12px 14px;flex-wrap:wrap}
+.ek-sync,.bn .card.ek-sync{display:flex;align-items:center;gap:12px;padding:12px 14px;flex-wrap:wrap}
 .ek-ic{width:38px;height:38px;border-radius:11px;background:color-mix(in srgb,#2f6fc0 14%,var(--base));color:#2f6fc0;display:grid;place-items:center;font-weight:800;font-size:17px;flex:none}
 html[data-theme="dark"] .ek-ic{color:#7fb0ef}
 .ek-tx{flex:1 1 150px;display:flex;flex-direction:column;min-width:0}
