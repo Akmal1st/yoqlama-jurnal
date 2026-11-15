@@ -181,3 +181,34 @@
 }
 @media print{.bh-sheet,.bh-scrim,.bh-menu{display:none!important}}
 @media (prefers-reduced-motion:reduce){.bh-tw i::after{transition:none}}
+
+/* «Jadval» ko'rinishi (kriterial jadval): gorizontal surishsiz, bitta ekranga sig'adi; davomat — alohida ustun, bitta tugma */
+.dview.krw{grid-template-columns:minmax(0,1fr)}
+.kr-tw.fit{overflow:visible;max-height:none}
+table.kr-t.fit{width:100%;min-width:0;table-layout:fixed}
+.kr-t.fit col.c-nm{width:230px}.kr-t.fit col.c-at{width:76px}.kr-t.fit col.c-b{width:40px}.kr-t.fit col.c-tot{width:84px}
+.kr-t.fit th,.kr-t.fit td{min-width:0!important;max-width:none;overflow:hidden}
+.kr-t.fit .nm{position:static;width:auto}
+.kr-t.fit thead th{position:static}
+.kr-t.fit tr.d th{padding:4px 1px}
+.kr-t.fit td.att{padding:0 4px}
+.kr-t.fit td.att .bh-at{min-width:0;width:100%;max-width:48px;padding:0 4px}
+.kr-t.fit .kr-c{width:100%;max-width:38px}
+.kr-t.fit .tot{padding:2px 4px}
+.kr-t.fit tr.g th.gh{white-space:normal}
+.kr-t.fit tfoot td{position:static;font-size:11px}
+@media (max-width:700px){
+  .kr-t.fit col.c-nm{width:27%}.kr-t.fit col.c-at{width:36px}.kr-t.fit col.c-b{width:0}.kr-t.fit col.c-tot{width:34px}
+  .kr-t.fit .base{font-size:0;padding:0;border-left:0}
+  .kr-t.fit .gs{border-left-width:1px}
+  .kr-t.fit tr.d th{font-size:11px}.kr-t.fit tr.d th small,.kr-t.fit tr.g th small,.kr-t.fit td.tot small,.kr-t.fit tfoot .kr-bar{display:none}
+  .kr-t.fit tr.g th{font-size:10.5px;padding:3px 1px;line-height:1.15}
+  .kr-t.fit .nm{padding:0 2px}.kr-t.fit thead th.nm{padding-left:4px;font-size:11px}
+  .kr-t.fit .kr-rm{width:14px}
+  .kr-t.fit .dn .fn{display:none}.kr-t.fit .dn .sn{display:inline}.kr-t.fit .dn i{min-width:0;margin-right:3px}
+  .kr-t.fit th.att{font-size:0}.kr-t.fit th.att::after{content:"Dav.";font-size:10px}
+  .kr-t.fit td.att{padding:0 1px}.kr-t.fit td.att .bh-at{height:28px;font-size:10.5px;padding:0;border-radius:8px}
+  .kr-t.fit td.c{padding:2px 0}.kr-t.fit .kr-c{height:30px;font-size:15px;border-radius:5px}
+  .kr-t.fit .kr-bh{min-width:0;width:100%;padding:0;font-size:13px}
+  .kr-t.fit tfoot td{font-size:9.5px;padding:4px 0}
+}

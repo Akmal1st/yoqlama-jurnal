@@ -123,7 +123,7 @@ const KRT = (() => {
     let body = "";
     for (const si of R) {
       const s = c.students[si], mk = s.marks[d] || "", q = esc(normName(s.name)), risk = ctx.risk.has(s.name) ? "risk" : "";
-      const att = `<td class="att"><div class="datt" role="group" aria-label="Yo'qlama">${ctx.att(si)}</div></td>`;
+      const att = `<td class="att">${ctx.pill ? ctx.pill(si) : `<div class="datt" role="group" aria-label="Yo'qlama">${ctx.att(si)}</div>`}</td>`;   // pill — bitta tugma + menyu (baholash.js)
       if (absent(mk)) { body += `<tr class="off ${risk}" data-q="${q}" data-krr="${si}"><td class="nm"><div class="kr-nmw"><span class="kr-rm"></span>${ctx.dn(si)}</div></td>${att}<td colspan="${N + 1}" class="abs gs">${esc((DAY_ATT.find((x) => x[0] === attPart(mk)) || [0, "Darsda yo'q"])[1].split(" (")[0])} — baho qo'yilmaydi</td><td class="tot">—</td></tr>`; continue; }
       const i = info(s, d);
       body += `<tr class="${risk}" data-q="${q}" data-krr="${si}"><td class="nm"><div class="kr-nmw"><button type="button" class="kr-rm" data-krrow="${si}" title="Qatorni to'ldirish" aria-label="${esc(s.name)}: qatorni to'ldirish">⋯</button>${ctx.dn(si)}</div></td>${att}<td class="c gs base">1</td>
@@ -133,7 +133,8 @@ const KRT = (() => {
     if (!R.length) body = `<tr><td class="nm muted" colspan="${N + 4}">Chala o'quvchi yo'q</td></tr>`;
     const L = liveOf(c, d).map((si) => info(c.students[si], d)).filter((i) => i.full), avg = L.length ? L.reduce((a, i) => a + i.g, 0) / L.length : null;
     const ft = `<td class="gs">—</td>` + ds.map((t, k) => { const cs = colStat(c, d, k); return `<td class="${k === ND ? "gs" : ""}" title="${code(k)}: + ${cs.p} ta, − ${cs.m} ta">${cs.pct == null ? "—" : cs.pct + "%"}<i class="kr-bar"><i style="width:${cs.pct || 0}%;background:${pctCol(cs.pct || 0)}"></i></i></td>`; }).join("");
-    return `<div class="kr-tw"><table class="kr-t">${head(c)}<tbody>${body}</tbody>
+    const cg = ctx.pill ? `<colgroup><col class="c-nm"><col class="c-at"><col class="c-b">${"<col>".repeat(N)}<col class="c-tot"></colgroup>` : "";   // Jadval ko'rinishi: ekranga sig'adi (baholash.css)
+    return `<div class="kr-tw ${ctx.pill ? "fit" : ""}"><table class="kr-t ${ctx.pill ? "fit" : ""}">${cg}${head(c)}<tbody>${body}</tbody>
       <tfoot><tr><td class="nm">«+» ulushi (sinf)</td><td class="att"></td>${ft}<td class="tot">${avg == null ? "—" : avg.toFixed(1)}</td></tr></tfoot></table></div>`;
   }
   function pmBtns(si, k, v, ed) {

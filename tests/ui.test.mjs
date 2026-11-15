@@ -5348,12 +5348,15 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
         assert.equal((await st(2))[1], "");
       }
       // davomat: S — baho qo'yilmaydi; KQ — baho bilan birga
-      await page.click("[data-a='3|s']");
+      // davomat jadvalda alohida ustun: bitta tugma → menyu; jadval ekranga sig'adi (gorizontal surish yo'q)
+      assert.equal(await page.evaluate(() => { const w = document.querySelector(".kr-tw"); return w.scrollWidth - w.clientWidth; }), 0, "jadval surilmaydi");
+      assert.equal(await page.locator(".kr-t td.att [data-a]").count(), 0, "davomatda 5 ta tugma emas, bitta");
+      await page.click(".kr-t [data-bhat='3']"); await page.click(".bh-menu [data-bhav=s]");
       assert.equal((await st(3))[0], "s");
       assert.equal(await page.locator("[data-krc^='3|']").count(), 0);
       assert.match(await page.textContent('tr[data-krr="3"]'), /Sababsiz kelmadi — baho qo'yilmaydi/);
       assert.match(await page.textContent(".kr-att"), new RegExp(`Keldi ${n - 1} / ${n}`));
-      await page.click("[data-a='0|kq']"); assert.equal((await st(0))[0], "9kq");
+      await page.click(".kr-t [data-bhat='0']"); await page.click(".bh-menu [data-bhav=kq]"); assert.equal((await st(0))[0], "9kq");
       await page.click("[data-krc='0|8']"); assert.deepEqual(await st(0), ["kq", "++++++++.", "null"]);
       // ustun menyusi: U1 bo'sh kataklarga +
       await page.click("th[data-krcol='5']"); await page.click(".kr-pop [data-v=p]");
