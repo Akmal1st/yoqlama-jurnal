@@ -14,7 +14,7 @@ const KRT = (() => {
   const on = () => (D.web || {}).fmode === "krit";
   const tel = () => typeof matchMedia === "function" && matchMedia("(max-width: 700px)").matches;
   const code = (k) => k < ND ? `D${k + 1}` : `U${k - ND + 1}`;
-  const descs = (c) => Array.isArray(c.kd) && c.kd.length === N ? c.kd : DEF;
+  const descs = (c) => typeof BHL !== "undefined" ? BHL.descs(c) : Array.isArray(c.kd) && c.kd.length === N ? c.kd : DEF;   // sinf → fan (D.web.kdf) → fan shabloni (baholash.js)
   const absent = (mk) => ABS.includes(attPart(mk || ""));
   const sym = (v) => v === "p" ? "+" : v === "m" ? "−" : "·";
   const first = (k) => k === 0 || k === ND;
@@ -27,7 +27,7 @@ const KRT = (() => {
     const a = [...k].map((ch) => ch === "+" ? "p" : ch === "-" ? "m" : null), gs = gradesOf(s.marks[d] || "");
     if (a.every(Boolean)) {   // baho va mezon qismlari (s.fp) ham shu belgilarga mos bo'lishi kerak
       const [x, y] = sum(a), fp = s.fp && s.fp[d];
-      return gs.length === 1 && gs[0] === x + y && (!fp || (fp[0] === x && fp[1] === y)) ? a : blank;
+      return gs.length >= 1 && gs[0] === x + y && (!fp || (fp[0] === x && fp[1] === y)) ? a : blank;   // 1-baho (8/9 da 8) — baholash.js
     }
     return gs.length ? blank : a;
   }
@@ -50,8 +50,10 @@ const KRT = (() => {
 
   // bitta katakni o'zgartirish: 9 tasi bo'lsa — yig'indi baho, bo'lmasa — baho yo'q (chala)
   function write(c, si, d, a, putFn) {
-    const s = c.students[si], old = s.marks[d] || "", late = lateOf(old), full = a.every(Boolean), [dd, uu] = sum(a);
-    const nw = full ? buildMark([dd + uu], late) : late ? "kq" : (gradesOf(old).length ? "" : old);
+    const s = c.students[si], old = s.marks[d] || "", late = lateOf(old), full = a.every(Boolean), [dd, uu] = sum(a), rest = gradesOf(old).slice(1);
+    // 2 baho (8/9): 2-baho saqlanadi; 1-baho chala qilinsa 2-baho yo'qolmasin — Ro'yxatda o'zgartiriladi (baholash.js)
+    if (!full && rest.length) { toast("Bu o'quvchida 2 ta baho bor — «Ro'yxat» ko'rinishida o'zgartiring"); return false; }
+    const nw = full ? buildMark([dd + uu].concat(rest), late) : late ? "kq" : (gradesOf(old).length ? "" : old);
     const pk = s.fk && s.fk[d], pp = s.fp && s.fp[d], str = a.map((v) => v === "p" ? "+" : v === "m" ? "-" : ".").join("");
     s.fk = s.fk || {}; s.fp = s.fp || {};
     if (a.some(Boolean)) s.fk[d] = str; else delete s.fk[d];
@@ -291,7 +293,16 @@ const KRT = (() => {
     ["Ingliz tili", ["Yangi so'zlarni biladi", "Savollarga ingliz tilida javob beradi", "Juftlikda muloqot qiladi", "Tinglab tushunadi", "Grammatikani to'g'ri qo'llaydi", "Uy vazifasi bajarilgan", "Yangi so'zlar yodlangan", "Mashqlar to'g'ri bajarilgan", "O'z vaqtida va ozoda"]],
     ["Informatika", ["Nazariy savollarga javob beradi", "Kompyuterda topshiriqni bajaradi", "Algoritm / dasturni to'g'ri tuzadi", "Texnika xavfsizligiga rioya qiladi", "Mustaqil ishlaydi", "Uy vazifasi bajarilgan", "To'liq bajarilgan", "To'g'ri ishlaydi, xatosiz", "O'z vaqtida topshirilgan"]],
     ["Tabiiy fanlar", ["Mavzu bo'yicha savollarga javob beradi", "Tajriba / kuzatishda faol", "Atamalarni to'g'ri qo'llaydi", "Jadval, chizma, xaritadan foydalanadi", "Xulosa chiqara oladi", "Uy vazifasi bajarilgan", "To'liq bajarilgan", "Xatosiz yoki kam xato", "O'z vaqtida va ozoda"]],
-    ["Jismoniy tarbiya", ["Sport kiyimida kelgan", "Badantarbiya mashqlarini bajaradi", "Asosiy mashqni to'g'ri bajaradi", "Jamoada qoidaga rioya qilib o'ynaydi", "Xavfsizlik qoidalariga rioya qiladi", "Uy mashqlari bajarilgan", "Kun tartibiga rioya qiladi", "Me'yorni bajaradi", "Gigiyena qoidalariga rioya qiladi"]]];
+    ["Jismoniy tarbiya", ["Sport kiyimida kelgan", "Badantarbiya mashqlarini bajaradi", "Asosiy mashqni to'g'ri bajaradi", "Jamoada qoidaga rioya qilib o'ynaydi", "Xavfsizlik qoidalariga rioya qiladi", "Uy mashqlari bajarilgan", "Kun tartibiga rioya qiladi", "Me'yorni bajaradi", "Gigiyena qoidalariga rioya qiladi"]],
+    // Moslashuvchan baholash (2026-11-15): fan bo'yicha qo'shimcha shablonlar — sinf fanidan o'zi tanlanadi (baholash.js)
+    ["Rus tili", ["So'z va iboralarni to'g'ri talaffuz qiladi", "Matnni o'qib tushunadi", "Savollarga rus tilida javob beradi", "Grammatik qoidani qo'llaydi", "Yozma mashqni xatosiz bajaradi", "Uy vazifasi bajarilgan", "Yangi so'zlar yodlangan", "Mashqlar to'g'ri bajarilgan", "Daftar ozoda"]],
+    ["Fizika", ["Hodisani tushuntirib beradi", "Formulani to'g'ri qo'llaydi", "Masalani birliklar bilan yechadi", "Tajribada faol, o'lchashni to'g'ri bajaradi", "Grafik / chizmani o'qiydi", "Uy vazifasi bajarilgan", "Masalalar yechilgan", "Javoblar to'g'ri, birliklar yozilgan", "Daftar ozoda"]],
+    ["Kimyo", ["Moddalar va formulalarni biladi", "Reaksiya tenglamasini to'g'ri tuzadi", "Masalani to'g'ri yechadi", "Tajribada xavfsizlik qoidalariga rioya qiladi", "Kuzatishdan xulosa chiqaradi", "Uy vazifasi bajarilgan", "Tenglamalar tenglashtirilgan", "Masalalar to'g'ri", "Daftar ozoda"]],
+    ["Biologiya", ["Atamalarni to'g'ri qo'llaydi", "Rasm / jadvaldan foydalanadi", "Jarayonni tushuntirib beradi", "Kuzatish / laboratoriyada faol", "Hayotiy misol keltiradi", "Uy vazifasi bajarilgan", "To'liq bajarilgan", "Xatosiz yoki kam xato", "Rasm va jadvallar ozoda"]],
+    ["Geografiya", ["Xaritadan to'g'ri foydalanadi", "Atamalarni biladi", "Hodisa sabablarini tushuntiradi", "Kontur xaritada ishlaydi", "Raqam va faktlarni to'g'ri keltiradi", "Uy vazifasi bajarilgan", "Kontur xarita to'ldirilgan", "Xatosiz yoki kam xato", "O'z vaqtida va ozoda"]],
+    ["Tarix", ["Sana va voqealarni biladi", "Voqea sabab-oqibatini tushuntiradi", "Tarixiy shaxslarni taqqoslaydi", "Xarita / manba bilan ishlaydi", "Fikrini dalil bilan asoslaydi", "Uy vazifasi bajarilgan", "Paragraf o'qilgan, reja tuzilgan", "Savollarga to'liq javob yozilgan", "O'z vaqtida va ozoda"]],
+    ["Texnologiya", ["Asbob-uskunani to'g'ri ishlatadi", "Xavfsizlik qoidalariga rioya qiladi", "Chizma / rejaga ko'ra ishlaydi", "Ishni mustaqil bajaradi", "Ish o'rnini tartibli saqlaydi", "Uy vazifasi bajarilgan", "Material tayyorlangan", "Buyum sifatli bajarilgan", "O'z vaqtida tugatilgan"]],
+    ["Tasviriy san'at va musiqa", ["Mavzuni tushunib, savollarga javob beradi", "Ijodiy yondashadi", "Texnika / usulni to'g'ri qo'llaydi", "Ishni mustaqil bajaradi", "Asar haqida fikr bildiradi", "Uy vazifasi bajarilgan", "To'liq bajarilgan", "Sifatli va ozoda", "O'z vaqtida"]]];
 
   // .dlist ichidagi hamma narsa
   function view(c, d, ctx) {
@@ -413,5 +424,5 @@ const KRT = (() => {
     if (Array.isArray(c.kd) && c.kd.length === N) c.kd = c.kd.map((t, k) => String(t == null ? "" : t).trim().slice(0, 60) || DEF[k]); else delete c.kd;
   }
 
-  return {N, DEF, TPL, descs, other, absent, rowsOf, on, qData, parentDay, parentQ, marks, info, setCell, fillRow, fillCol, partial, view, side, tools, bind, bindTools, clean, cleanCls, closePop, state: st};
+  return {N, DEF, TPL, descs, msgDlg, other, absent, rowsOf, on, qData, parentDay, parentQ, marks, info, setCell, fillRow, fillCol, partial, view, side, tools, bind, bindTools, clean, cleanCls, closePop, state: st};
 })();
