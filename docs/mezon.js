@@ -27,7 +27,7 @@ const MZN = (() => {
   function parts(s, d) {
     const fp = s.fp && s.fp[d]; if (!fp) return [null, null];
     const gs = gradesOf(s.marks[d] || "");
-    if (fp[0] != null && fp[1] != null) return gs.length === 1 && gs[0] === fp[0] + fp[1] ? fp.slice() : [null, null];
+    if (fp[0] != null && fp[1] != null) return gs.length >= 1 && gs[0] === fp[0] + fp[1] ? fp.slice() : [null, null];   // 1-baho (8/9 da 8) — baholash.js
     return gs.length ? [null, null] : fp.slice();
   }
   function qCount(c, s, d) {

@@ -32,6 +32,7 @@
 <link rel="stylesheet" href="mezon.css?v=221">
 <link rel="stylesheet" href="kriterial.css?v=232">
 <link rel="stylesheet" href="kriterial-chop.css?v=248">
+<link rel="stylesheet" href="baholash.css?v=249">
 <link rel="stylesheet" href="orindiq.css?v=234">
 <link rel="stylesheet" href="ktr.css?v=230">
 <link rel="stylesheet" href="kunlik.css?v=213">
@@ -78,9 +79,10 @@
 <script src="bugun.js?v=230"></script>
 <script src="funksiyalar.js?v=244"></script>
 <script src="sozlamalar.js?v=216"></script>
-<script src="mezon.js?v=221"></script>
-<script src="kriterial.js?v=233"></script>
+<script src="mezon.js?v=249"></script>
+<script src="kriterial.js?v=249"></script>
 <script src="kriterial-chop.js?v=248"></script>
+<script src="baholash.js?v=249"></script>
 <script src="orindiq.js?v=234"></script>
 <script src="ktr.js?v=233"></script>
 <script src="kunlik.js?v=221"></script>
@@ -307,6 +309,7 @@ function cleanStudent(s) {
   else delete s.pays;
   MZN.clean(s);   // mezon bo'yicha baho qismlari (s.fp) va izohlar (s.fc) — mezon.js
   KRT.clean(s);   // kriterial (+/−) belgilar (s.fk) — kriterial.js
+  BHL.clean(s);   // 2-baho qismlari (s.f2) — baholash.js
   return s;
 }
 /* CHSB test shakli: w.test = {n: savollar soni, o: variantlar soni, key: "ABCD.." (to'g'ri javoblar), ans: {o'quvchi id: "AB.D.."}}; "." — bo'sh */
@@ -362,6 +365,7 @@ function cleanClass(c) {
   c.analyses = c.analyses.filter((a) => a && typeof a === "object" && SAFE_ID.test(String(a.id)) && ISO_D.test(String(a.date)));
   c.students.forEach(cleanStudent); c.students_off = c.students_off.filter((s) => s && typeof s === "object").map(cleanStudent);
   KRT.cleanCls(c);   // kriterial deskriptor matnlari (c.kd)
+  BHL.cleanCls(c);   // dars turlari (c.lt) — baholash.js
 }
 const FIN_CATS = ["Ijara", "Kommunal", "Reklama", "O'quv materiallari", "Transport", "Soliq", "Boshqa"];
 function cleanFin(f) {
@@ -401,6 +405,7 @@ function normalize(d) {
   d.fin = cleanFin(d.fin);
   d.web = Object.assign({theme: "auto", gen: []}, DESIGN_DEF, d.web || {});
   d.web.dz = DZN.clean(d.web.dz, d.web);
+  BHL.cleanWeb(d.web);   // o'qituvchining dars turlari va fan deskriptorlari — baholash.js
   d.v2 = d.v2 || {};
   if (!d.v2.ranges3 && !d.web.ranges3) { st.ranges = clone(DEFAULTS.ranges); d.web.ranges3 = true; }
   return d;
@@ -1681,6 +1686,7 @@ function render() {
   const m = $("#main");
   // Guruhlar (to'garak va pullik ta'lim) — alohida faylda: guruhlar.js / guruhlar.css
   document.body.classList.toggle("tpt-on", S.page === "groups"); if (S.page !== "groups" && typeof TPT !== "undefined") TPT.leave(); if (typeof HSB !== "undefined") HSB.leave();
+  if (typeof BHL !== "undefined") BHL.leave(!(S.page === "journal" && V.mode === "day"));   // baho oynasi (baholash.js) — kerak bo'lsa pageDay qayta ochadi
   ({today: pageToday, journal: pageJournal, groups: (x) => TPT.page(x), lesson: pageLesson, reports: pageReports, settings: pageSettings, archive: (x) => ARX.page(x)})[S.page](m);
   const pp = $(".perpop"); if (pp) pp.remove();
   labelTables(m); snapCols(); YNG.mount(m);
@@ -1729,7 +1735,7 @@ function jOrder(c, rows) {
 }
 function jFilter(root) {
   const q = normName(S.jq || ""); let n = 0;
-  root.querySelectorAll("table.j tr[data-q], .drow[data-q], .kr-t tr[data-q]").forEach((tr) => { const ok = !q || tr.dataset.q.includes(q); tr.style.display = ok ? "" : "none"; n += ok; });
+  root.querySelectorAll("table.j tr[data-q], .drow[data-q], .kr-t tr[data-q], .bh-r[data-q]").forEach((tr) => { const ok = !q || tr.dataset.q.includes(q); tr.style.display = ok ? "" : "none"; n += ok; });
   const ft = root.querySelector("table.j tr.ft"); if (ft) ft.style.display = q ? "none" : "";
 }
 function colStat(c, d) {
@@ -2011,7 +2017,7 @@ function pageDay(m) {
     return `<button class="dday ${x === d ? "on" : ""} ${x === t ? "today" : ""} ${k}" data-dd="${x}" title="${fmt(x)} · ${WD_FULL[pyWd(x)]}${lb ? " · " + lb : ""}"><small>${WD[pyWd(x)]}</small><b>${+x.slice(8)}</b><i>${lb}</i></button>`; }).join("");
   const x = isNoLesson(c, d), ed = canEdit(d) && !x, l = c.lessons[d] || {};
   const [plo, phi, pq] = periodNow(), pr = reportRows(c, plo, phi, pq).rows, order = S.jord = jOrder(c, pr);
-  const sw = sumOn(c, d), grp = isGrp(c), mz = !grp && !sw && !x && MZN.on(), kr = !grp && !sw && !x && KRT.on(), risk = new Set(grp ? [] : pr.filter((r) => r.why.some((w) => !w.startsWith("baholar soni"))).map((r) => r.name));
+  const sw = sumOn(c, d), grp = isGrp(c), nu = !grp && !sw && !x, kr = nu && BHL.view() === "tab", risk = new Set(grp ? [] : pr.filter((r) => r.why.some((w) => !w.startsWith("baholar soni"))).map((r) => r.name));
   const absentOf = () => c.students.filter((s) => ["s", "dq", "k", "ox"].includes(attPart(s.marks[d] || "")));
   const btn = (cls, data, v, on, title) => { const col = on && markColors(v), base = markColors(v); return `<button class="${cls} ${on ? "on" : ""}" ${data} style="${base ? `--c:${esc(base[0])};` : ""}${col ? `background:${col[0]};color:${col[1]};border-color:transparent` : ""}"${title ? ` title="${title}"` : ""}>${GRP_ATT[v] ? `${GRP_ATT[v][1]} ${GRP_ATT[v][2]}` : v.toUpperCase()}</button>`; };
   const attHtml = (si) => { const mk = c.students[si].marks[d] || "", ap = attPart(mk);
@@ -2023,35 +2029,33 @@ function pageDay(m) {
     const s = c.students[si], mk = s.marks[d] || "", gs = gradesOf(mk);
     if (preJoin(c, s, d)) return `<div class="drow" data-dr="${si}" data-q="${esc(normName(s.name))}"><span class="dn" data-st="${si}"><i>${si + 1}</i>${nmHtml(s.name)}</span><span class="muted">${fmt(s.joined)} dan qo'shilgan</span></div>`;
     const att = attHtml(si);
-    // mezon bo'yicha baho (mezon.js): darsdagi ish 1–6 + uy vazifasi 0–4
-    if (mz) return MZN.row(c, si, d, {att, risk: risk.has(s.name), dn: `<span class="dn" data-st="${si}" title="${esc(s.name)} — kartochkani ochish"><i>${si + 1}</i>${s.star ? "⭐ " : ""}${nmHtml(s.name)}</span>`});
     const gr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((g) => btn("dg", `data-g="${si}|${g}"`, String(g), gs.includes(g))).join("");
     return `<div class="drow ${risk.has(s.name) ? "risk" : ""}" data-dr="${si}" data-q="${esc(normName(s.name))}"><span class="dn" data-st="${si}" title="${esc(s.name)} — kartochkani ochish"><i>${si + 1}</i>${s.star ? "⭐ " : ""}${nmHtml(s.name)}</span>
       <div class="datt" role="group" aria-label="Yo'qlama">${att}</div>${grp || sw ? "" : `<div class="dgr" role="group" aria-label="Baho">${gr}</div>`}</div>`;
   };
-  const rows = kr ? KRT.view(c, d, krCtx) : (mz ? MZN.head(ed) : "") + order.map(rowHtml).join("");
+  // moslashuvchan baholash (baholash.js): ro'yxat / bitta o'quvchi / jadval (kriterial.js)
+  const bhCtx = {ed, risk, order};
+  const rows = nu ? "" : order.map(rowHtml).join("");
   const tile = (k, v) => `<div><small>${k}</small><b>${v}</b></div>`;
   const statsHtml = () => { const absent = absentOf(), cs = colStat(c, d); return grp ? tile("O'tildi", c.students.filter((s) => s.marks[d] === "ot").length) + tile("O'tilmadi", absent.length)
-    : tile("Keldi", `${c.students.length - absent.length - c.students.filter((s) => s.marks[d] === "ch").length} / ${c.students.length}`) + (mz ? tile("Chala", c.students.filter((s) => { const p = MZN.parts(s, d); return (p[0] == null) !== (p[1] == null); }).length) : kr ? tile("Chala", KRT.partial(c, d)) : tile("Qoldirgan", absent.length)) + tile("Baholar", cs.n) + tile("O'rtacha", cs.avg !== null ? cs.avg.toFixed(1) : "—"); };
+    : tile("Keldi", `${c.students.length - absent.length - c.students.filter((s) => s.marks[d] === "ch").length} / ${c.students.length}`) + tile("Qoldirgan", absent.length) + tile("Baholar", cs.n) + tile("O'rtacha", cs.avg !== null ? cs.avg.toFixed(1) : "—"); };
   const actsHtml = () => { const absent = absentOf(); return `${grp ? (ed && c.students.some((s) => !s.marks[d] && !preJoin(c, s, d)) ? `<button class="btn" data-ok title="Belgisiz qolganlarga «dars o'tildi»">✓ Qolganlarga o'tildi</button>` : "")
           : `${ed && !absent.length && !c.att_ok.includes(d) ? `<button class="btn" data-ok title="Hech kim qoldirmagan — yo'qlama tugadi">✓ Hamma keldi</button>` : ""}
           ${!x && c.att_ok.includes(d) ? `<span class="ok">✓ Yo'qlama tugagan</span>` : ""}`}
-          ${ed && !grp && !sw && !mz && !kr ? `<button class="btn ${S.second ? "btn-primary" : ""}" data-two2 title="Keyingi bosilgan baho ikkinchi baho bo'ladi (masalan 8/9)">＋2 baho</button>` : ""}
           <button class="btn" data-colm>⋯ Dars menyusi</button>`; };
   m.innerHTML = `<div class="vcol" style="gap:12px">
     ${jHead(perNav(), `<div class="dstrip">${strip}</div>`, jTools(c))}${ARX.banner(c, [d])}
-    ${!grp && !sw && !x ? MZN.tools(kr ? KRT.tools() : "") : ""}${mz ? MZN.top(c, d, ed) : ""}
     <div class="dview">
-      <div class="dlist ${ed ? "" : "ro"} ${mz ? "mz" : ""} ${kr ? "kr" : ""}">${sw && !x ? `<div class="warn" style="padding:10px 14px">📝 ${sumTag(sw)} kuni${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars o'tilmaydi — faqat yo'qlama. Ballar «Umumiy» sahifasida.</div>` : ""}${x ? `<div class="muted" style="padding:14px">${fmt(d)} — dars yo'q (X). «Dars menyusi»dan dars kuni qilishingiz mumkin.</div>` : rows}</div>
+      ${nu ? `<div class="bh-col">${BHL.main(c, d, bhCtx)}${kr ? `<div class="dlist ${ed ? "" : "ro"} kr">${KRT.view(c, d, krCtx)}</div>` : ""}</div>` : `<div class="dlist ${ed ? "" : "ro"}">${sw && !x ? `<div class="warn" style="padding:10px 14px">📝 ${sumTag(sw)} kuni${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars o'tilmaydi — faqat yo'qlama. Ballar «Umumiy» sahifasida.</div>` : ""}${x ? `<div class="muted" style="padding:14px">${fmt(d)} — dars yo'q (X). «Dars menyusi»dan dars kuni qilishingiz mumkin.</div>` : rows}</div>`}
       <aside class="dinfo" aria-label="Dars">
         <div class="card vcol"><b>${WD_FULL[pyWd(d)]}, ${fmt(d)}${d === t ? " · bugun" : ""}</b>
           ${x ? `<span class="muted">Dars yo'q (X)</span>` : `<label class="vcol"><span class="muted">Mavzu</span><input class="form-control" type="text" id="dmt" value="${esc(l.topic || "")}" placeholder="Dars mavzusi" ${ARX.dateLocked(d, c) ? "readonly" : ""}></label>
           <label class="vcol"><span class="muted">Uy vazifasi</span><input class="form-control" type="text" id="dmh" value="${esc(l.hw || "")}" placeholder="Uy vazifasi" ${ARX.dateLocked(d, c) ? "readonly" : ""}></label>`}
           ${ed || x ? "" : `<span class="muted">${ARX.dateLocked(d, c) ? `🔒 ${quarterOf(d)}-chorak arxivda — faqat ko'rish` : d > t ? "Kelgusi dars — belgi qo'yib bo'lmaydi" : "Faqat ko'rish: o'tgan darslarga belgi qo'yish Sozlamalar → Baholash da yoqiladi"}</span>`}</div>
         ${x ? "" : `<div class="card dstats">${statsHtml()}</div>`}
-        ${mz ? MZN.side(c, d, ed) : ""}${kr ? KRT.side(c, d) : ""}
+        <div class="bh-side">${kr ? KRT.side(c, d) : nu ? BHL.side(c, d) : ""}</div>
         <div class="hrow wrap dacts" style="gap:8px">${actsHtml()}</div>
-        <p class="muted dtip">${grp ? "Har o'quvchiga: «✓ O'tildi» yoki «✗ O'tilmadi». Uyida o'qiydiganlarga faqat «o'tildi» darslar hisoblanadi. Belgini qayta bossangiz o'chadi." : kr ? "Katakni bosing: bo'sh → + → − → bo'sh. Kompyuterda katakni tanlab + yoki − yozing (keyingi o'quvchiga o'tadi), Del — tozalash. Sarlavhadagi deskriptorni yoki ism yonidagi ⋯ ni bosing — ustun/qatorni to'ldirish. 9 tasi belgilansa baho jurnalga tushadi." : mz ? "Yo'qlama chapda. Baho: darsdagi ish (1–6) + uy vazifasi (0–4) — ikkalasi bosilganda yig'indisi jurnalga tushadi. Baho kvadratini bossangiz — tafsilot va izoh." : "Yo'qlama chapda, baho o'ngda. Kelgan o'quvchiga hech narsa bosmang — bo'sh qolsa «keldi» hisoblanadi. Belgini qayta bossangiz o'chadi."}</p>
+        <p class="muted dtip">${grp ? "Har o'quvchiga: «✓ O'tildi» yoki «✗ O'tilmadi». Uyida o'qiydiganlarga faqat «o'tildi» darslar hisoblanadi. Belgini qayta bossangiz o'chadi." : kr ? "Katakni bosing: bo'sh → + → − → bo'sh. Kompyuterda katakni tanlab + yoki − yozing (keyingi o'quvchiga o'tadi), Del — tozalash. Sarlavhadagi deskriptorni yoki ism yonidagi ⋯ ni bosing — ustun/qatorni to'ldirish. 9 tasi belgilansa baho jurnalga tushadi." : nu ? "Baho katagini bosing — baho oynasi ochiladi. Usul dars turidan olinadi (Tez 1–10, 6 + 4 yoki +/−), oynada boshqasiga o'tish mumkin. «✓» — yo'qlama. Kelgan o'quvchiga hech narsa bosmang — bo'sh qolsa «keldi» hisoblanadi." : "Yo'qlama chapda, baho o'ngda. Kelgan o'quvchiga hech narsa bosmang — bo'sh qolsa «keldi» hisoblanadi. Belgini qayta bossangiz o'chadi."}</p>
       </aside></div></div>`;
   bindJHead(m); bindJTools(m);
   m.querySelectorAll("[data-sh]").forEach((b) => b.onclick = () => { V.anchor = L[Math.min(Math.max(i + +b.dataset.sh, 0), L.length - 1)]; render(); });
@@ -2064,7 +2068,7 @@ function pageDay(m) {
     const n = h(KRT.view(c, d, krCtx)); box.replaceWith(n); bindRow(n); KRT.bind(n, c, d, krCtx); jFilter(m);
     const st = $(".dstats", m); if (st) st.innerHTML = statsHtml();
     const ac = $(".dacts", m); if (ac) { ac.innerHTML = actsHtml(); bindActs(); }
-    const sd = $(".kr-side", m); if (sd) sd.replaceWith(h(KRT.side(c, d)));
+    const sd = $(".bh-side", m); if (sd) sd.innerHTML = KRT.side(c, d);
     const db = $(`[data-dd="${d}"]`, m); if (db) { const [k, lb] = dayState(c, d); db.classList.remove("ok", "half"); if (k) db.classList.add(k); const ib = $("i", db); if (ib) ib.textContent = lb; }
   };
   krCtx.refresh = krRefresh;
@@ -2074,7 +2078,6 @@ function pageDay(m) {
     const nr = h(rowHtml(si)); old.replaceWith(nr); bindRow(nr); jFilter(m);
     const st = $(".dstats", m); if (st) st.innerHTML = statsHtml();
     const ac = $(".dacts", m); if (ac) { ac.innerHTML = actsHtml(); bindActs(); }
-    if (mz) mzSide();
     const db = $(`[data-dd="${d}"]`, m); if (db) { const [k, lb] = dayState(c, d); db.classList.remove("ok", "half"); if (k) db.classList.add(k); const ib = $("i", db); if (ib) ib.textContent = lb; }
   };
   const bindRow = (r) => {
@@ -2083,30 +2086,24 @@ function pageDay(m) {
     const [si, v] = b.dataset.a.split("|"), old = c.students[+si].marks[d] || "", gs = gradesOf(old);
     put(+si, v === "kq" ? combineMark(old, "kq") : attPart(old) === v ? (gs.length ? buildMark(gs, false) : "") : v);
   });
-  r.querySelectorAll("[data-mzp]").forEach((b) => b.onclick = () => {
-    const [si, i, v] = b.dataset.mzp.split("|").map(Number);
-    if (MZN.setPart(c, si, d, i, v, (k, nw) => putMark(c, k, d, nw))) patch(si);
-  });
-  r.querySelectorAll("[data-mzb]").forEach((b) => b.onclick = () => { const si = +b.dataset.mzb; MZN.detail(c, si, d, (k, nw) => putMark(c, k, d, nw), () => patch(si)); });
   r.querySelectorAll("[data-g]").forEach((b) => b.onclick = () => {
     const [si, g] = b.dataset.g.split("|").map(Number), old = c.students[si].marks[d] || "", gs = gradesOf(old), late = lateOf(old);
     let nw;
-    if (S.second && gs.length === 1 && gs[0] !== g) { nw = buildMark([gs[0], g], late); S.second = false; }
-    else if (gs.includes(g)) { const rest = gs.filter((q) => q !== g); nw = rest.length ? buildMark(rest, late) : late ? "kq" : ""; }
+    if (gs.includes(g)) { const rest = gs.filter((q) => q !== g); nw = rest.length ? buildMark(rest, late) : late ? "kq" : ""; }
     else nw = buildMark([g], late);
-    const two = S.second; put(si, nw); if (two !== S.second) { const t2 = $("[data-two2]", m); if (t2) t2.classList.toggle("btn-primary", S.second); }
+    put(si, nw);
   });
   };
-  bindRow($(".dlist", m));
-  if (kr) { KRT.bind($(".kr-box", m), c, d, krCtx); KRT.bindTools(m, c, d, () => { const y = window.scrollY; render(); window.scrollTo(0, y); }); }
-  // mezon bo'yicha baho: rejim, mezonlar jadvali, «Qolganlarga» tugmalari va yon kartalar
-  m.querySelectorAll("[data-mzmode]").forEach((b) => b.onclick = () => { D.web.fmode = ["plain", "krit"].includes(b.dataset.mzmode) ? b.dataset.mzmode : "crit"; save(); render(); });
-  { const rb = $("[data-mzrub]", m); if (rb) rb.onclick = () => MZN.rubric(); }
-  const bindFill = (root) => root.querySelectorAll("[data-mzfill]").forEach((b) => b.onclick = () => { MZN.fill(c, d, +b.dataset.mzfill); const y = window.scrollY; render(); window.scrollTo(0, y); });
-  const mzSide = () => {
-    for (const [sel, f] of [[".mz-side", () => MZN.side(c, d, ed)], [".mz-top", () => MZN.top(c, d, ed)]]) { const o = $(sel, m); if (o) { const n = h(f()); o.replaceWith(n); bindFill(n); } }
+  { const dl = $(".dlist", m); if (dl) bindRow(dl); }
+  if (kr) KRT.bind($(".kr-box", m), c, d, krCtx);
+  // moslashuvchan baholash: baho qo'yilganda hisoblar, o'ng panel va kun katagi yangilanadi
+  bhCtx.after = () => {
+    const st = $(".dstats", m); if (st) st.innerHTML = statsHtml();
+    const ac = $(".dacts", m); if (ac) { ac.innerHTML = actsHtml(); bindActs(); }
+    const sd = $(".bh-side", m); if (sd && !kr) sd.innerHTML = BHL.side(c, d);
+    const db = $(`[data-dd="${d}"]`, m); if (db) { const [k, lb] = dayState(c, d); db.classList.remove("ok", "half"); if (k) db.classList.add(k); const ib = $("i", db); if (ib) ib.textContent = lb; }
   };
-  if (mz) bindFill(m);
+  if (nu) BHL.bind(m, c, d, bhCtx); else BHL.leave();
   const save2 = () => {
     const tp = $("#dmt", m).value.trim(), hw = $("#dmh", m).value.trim(), nl = Object.assign({}, c.lessons[d] || {}, {topic: tp, hw});
     if (tp === (l.topic || "") && hw === (l.hw || "")) return;
@@ -2118,7 +2115,6 @@ function pageDay(m) {
   if (!x) { $("#dmt", m).onchange = save2; $("#dmh", m).onchange = save2; }
   const bindActs = () => {
     const ok = $("[data-ok]", m); if (ok) ok.onclick = () => { allDone(c, d); save(); render(); toast(`${fmt(d).slice(0, 5)}: ${grp ? "dars o'tildi" : "hamma keldi"} ✓`); };
-    const two = $("[data-two2]", m); if (two) two.onclick = () => { S.second = !S.second; two.classList.toggle("btn-primary", S.second); if (S.second) toast("Keyingi bosilgan baho ikkinchi baho sifatida qo'shiladi"); };
     $("[data-colm]", m).onclick = () => colMenu(S.ci, d);
   };
   bindActs();
@@ -2856,7 +2852,7 @@ async function undoLast() {
   for (const u of live) {
     const b = u.kind === "mark" ? u.s.marks : (u.s.scores = u.s.scores || {});
     if (u.old === "") delete b[u.key]; else b[u.key] = u.old;
-    if (u.kx) for (const [f, v] of [["fk", u.kx[0]], ["fp", u.kx[1]]]) { if (v) (u.s[f] = u.s[f] || {})[u.key] = v; else if (u.s[f]) { delete u.s[f][u.key]; if (!Object.keys(u.s[f]).length) delete u.s[f]; } }   // kriterial belgilar (kriterial.js)
+    if (u.kx) for (const [f, v] of [["fk", u.kx[0]], ["fp", u.kx[1]], ["f2", u.kx[2]]].slice(0, u.kx.length)) { if (v) (u.s[f] = u.s[f] || {})[u.key] = v; else if (u.s[f]) { delete u.s[f][u.key]; if (!Object.keys(u.s[f]).length) delete u.s[f]; } }   // kriterial belgilar (kriterial.js)
     if (u.nw !== "" && u.old !== "") (u.kind === "mark" ? log(u.c, u.s, u.key, u.nw, u.old) : logScore(u.c, u.s, u.key, u.nw, u.old));
   }
   save(); render(); toast(`Bekor qilindi: ${live.length} ta katak`);
