@@ -554,6 +554,8 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
       // bitta o'quvchi: raqamlar qatori, «Keyingisi», surish
       await page.click("[data-bhv=fok]"); await page.waitForSelector("#bh-fk");
       assert.equal(await page.locator(".bh-strip [data-bhfj]").count(), n);
+      assert.deepEqual(await page.evaluate(() => { const g = document.querySelector(".bh-strip"), b = [...g.children].map((x) => x.getBoundingClientRect());
+        return [g.scrollWidth - g.clientWidth, b.every((r) => r.right <= innerWidth && r.left >= 0), new Set(b.map((r) => Math.round(r.top))).size > 1]; }), [0, true, true], "raqamlar surilmaydi, tagma-tag");
       await page.click(".bh-strip [data-bhfj='7']"); assert.match(await page.textContent(".bh-fkh"), new RegExp(await page.evaluate(() => D.classes[0].students[7].name.split(" ")[0])));
       await page.click("#bh-fk [data-bhpv='6']"); assert.equal((await st(7))[0], "6");
       await page.click("#bh-fk [data-bhnext]"); assert.equal(await page.evaluate(() => BHL.state.sh.si), 8);

@@ -370,7 +370,6 @@ const BHL = (() => {
     const fk = box.querySelector("#bh-fk");
     if (fk) {
       bindSheet(fk);
-      const cb = box.querySelector(".bh-strip .cur"); if (cb && cb.scrollIntoView) { const sx = cb.parentElement; sx.scrollLeft = Math.max(0, cb.offsetLeft - sx.clientWidth / 2); }
       let x0 = null, y0 = 0;
       fk.onpointerdown = (e) => { if (e.pointerType === "mouse") return; x0 = e.clientX; y0 = e.clientY; };
       fk.onpointerup = (e) => { if (x0 == null) return; const dx = e.clientX - x0, dy = Math.abs(e.clientY - y0); x0 = null; if (Math.abs(dx) > 60 && dy < 50) go(dx < 0 ? 1 : -1); };
