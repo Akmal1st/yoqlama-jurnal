@@ -24,7 +24,6 @@
 <link rel="stylesheet" href="bosh-varaq.css?v=227">
 <link rel="stylesheet" href="davomat.css?v=213">
 <link rel="stylesheet" href="bsb-eksport.css?v=213">
-<link rel="stylesheet" href="bsb-yangi.css?v=202">
 <link rel="stylesheet" href="bugun.css?v=213">
 <link rel="stylesheet" href="bajarish.css?v=213">
 <link rel="stylesheet" href="bugun-arxiv.css?v=213">
@@ -66,13 +65,13 @@
 <script src="tugmalar.js?v=213"></script>
 <script src="dizayn.js?v=243"></script>
 <script src="anim.js?v=243"></script>
-<script src="eksport.js?v=236"></script>
+<script src="eksport.js?v=245"></script>
 <script src="hisobotlar.js?v=236"></script>
 <script src="hisobot-eksport.js?v=237"></script>
 <script src="bosh-varaq.js?v=231"></script>
 <script src="davomat.js?v=221"></script>
-<script src="bsb-eksport.js?v=236"></script>
-<script src="bsb-yangi.js?v=202"></script>
+<script src="bsb-eksport.js?v=245"></script>
+<script src="bsb-exp.js?v=245"></script>
 <script src="bugun-arxiv.js?v=213"></script>
 <script src="bugun-tatil.js?v=207"></script>
 <script src="bugun.js?v=230"></script>
@@ -94,7 +93,7 @@
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=218"></script>
 <script src="loyiha.js?v=231"></script>
-<script src="yangilik.js?v=244"></script>
+<script src="yangilik.js?v=245"></script>
 <script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=235"></script>
 <script src="telegram.js?v=216"></script>
@@ -3825,7 +3824,8 @@ function printDoc(html, land, fit, fname) {
 function clearPrintDoc() { document.body.classList.remove("pdoc"); const st = document.getElementById("pdoc-css"); if (st) st.remove(); }
 
 /* eksport oynasi, PDF va Excel — alohida faylda: bsb-eksport.js / bsb-eksport.css (tasdiqlangan dizayn, 2026-11-02) */
-function baExportDialog(c, B) { return BXP.dialog(c, B); }
+// BSB / CHSB / Loyiha ishi tahlili eksporti — umumiy oynada (bsb-exp.js, 2026-11-15); eski oyna (BXP.dialog) olib tashlandi
+function baExportDialog(c, B) { return BEX.open(c, B); }
 async function baTransfer(c, B) {
   if (!B.max.every((v) => v > 0)) { toast("Hamma savol uchun maksimal ball (0 dan katta) kiriting"); return; }
   const an = baAnalysis(c, B);
