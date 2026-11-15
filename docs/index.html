@@ -13,7 +13,7 @@
 <title>Yo'qlama jurnali</title>
 <link rel="stylesheet" href="vendor/bootstrap-5.3.3.css?v=213">
 <link rel="stylesheet" href="vendor/bootstrap-icons-1.11.3.css?v=213">
-<link rel="stylesheet" href="app.css?v=247">
+<link rel="stylesheet" href="app.css?v=253">
 <link rel="stylesheet" href="guruhlar.css?v=213">
 <link rel="stylesheet" href="tpt-mavzu.css?v=213">
 <link rel="stylesheet" href="tpt-tema.css?v=213">
@@ -77,7 +77,7 @@
 <script src="bugun-arxiv.js?v=213"></script>
 <script src="bugun-tatil.js?v=207"></script>
 <script src="bugun.js?v=230"></script>
-<script src="funksiyalar.js?v=244"></script>
+<script src="funksiyalar.js?v=253"></script>
 <script src="sozlamalar.js?v=216"></script>
 <script src="mezon.js?v=249"></script>
 <script src="kriterial.js?v=250"></script>
@@ -2017,7 +2017,7 @@ function pageDay(m) {
     return `<button class="dday ${x === d ? "on" : ""} ${x === t ? "today" : ""} ${k}" data-dd="${x}" title="${fmt(x)} · ${WD_FULL[pyWd(x)]}${lb ? " · " + lb : ""}"><small>${WD[pyWd(x)]}</small><b>${+x.slice(8)}</b><i>${lb}</i></button>`; }).join("");
   const x = isNoLesson(c, d), ed = canEdit(d) && !x, l = c.lessons[d] || {};
   const [plo, phi, pq] = periodNow(), pr = reportRows(c, plo, phi, pq).rows, order = S.jord = jOrder(c, pr);
-  const sw = sumOn(c, d), grp = isGrp(c), nu = !grp && !sw && !x, kr = nu && BHL.view() === "tab", risk = new Set(grp ? [] : pr.filter((r) => r.why.some((w) => !w.startsWith("baholar soni"))).map((r) => r.name));
+  const sw = sumOn(c, d), grp = isGrp(c), gon = feat("dgrade"), ro = !grp && !sw && !x && !gon, nu = !grp && !sw && !x && gon, kr = nu && BHL.view() === "tab", risk = new Set(grp ? [] : pr.filter((r) => r.why.some((w) => !w.startsWith("baholar soni"))).map((r) => r.name));
   const absentOf = () => c.students.filter((s) => ["s", "dq", "k", "ox"].includes(attPart(s.marks[d] || "")));
   const btn = (cls, data, v, on, title) => { const col = on && markColors(v), base = markColors(v); return `<button class="${cls} ${on ? "on" : ""}" ${data} style="${base ? `--c:${esc(base[0])};` : ""}${col ? `background:${col[0]};color:${col[1]};border-color:transparent` : ""}"${title ? ` title="${title}"` : ""}>${GRP_ATT[v] ? `${GRP_ATT[v][1]} ${GRP_ATT[v][2]}` : v.toUpperCase()}</button>`; };
   const attHtml = (si) => { const mk = c.students[si].marks[d] || "", ap = attPart(mk);
@@ -2026,12 +2026,14 @@ function pageDay(m) {
   // kriterial jadval (kriterial.js): ism, yo'qlama tugmalari va xavf belgisi shu sahifadan
   const krCtx = {ed, att: attHtml, dn: dnHtml, risk, pill: (si) => BHL.pill(c, d, si, ed)};
   const rowHtml = (si) => {
-    const s = c.students[si], mk = s.marks[d] || "", gs = gradesOf(mk);
+    const s = c.students[si], mk = s.marks[d] || "", gs = gradesOf(mk), gst = (g) => { const col = gradeColor(g) || "#e0e0e0"; return `background:${col};color:${contrast(col.startsWith("#") ? col : "#ffffff")}`; };
     if (preJoin(c, s, d)) return `<div class="drow" data-dr="${si}" data-q="${esc(normName(s.name))}"><span class="dn" data-st="${si}"><i>${si + 1}</i>${nmHtml(s.name)}</span><span class="muted">${fmt(s.joined)} dan qo'shilgan</span></div>`;
     const att = attHtml(si);
     const gr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((g) => btn("dg", `data-g="${si}|${g}"`, String(g), gs.includes(g))).join("");
+    // kundalik baholash o'chiq: eMaktab bilan sinxronlangan baho faqat ko'rinadi (qo'yib bo'lmaydi)
+    const gv = `<div class="dgv" aria-label="Baho (eMaktab)">${gs.length ? gs.map((g) => `<b style="${gst(g)}">${g}</b>`).join("") : `<span class="muted">—</span>`}</div>`;
     return `<div class="drow ${risk.has(s.name) ? "risk" : ""}" data-dr="${si}" data-q="${esc(normName(s.name))}"><span class="dn" data-st="${si}" title="${esc(s.name)} — kartochkani ochish"><i>${si + 1}</i>${s.star ? "⭐ " : ""}${nmHtml(s.name)}</span>
-      <div class="datt" role="group" aria-label="Yo'qlama">${att}</div>${grp || sw ? "" : `<div class="dgr" role="group" aria-label="Baho">${gr}</div>`}</div>`;
+      <div class="datt" role="group" aria-label="Yo'qlama">${att}</div>${grp || sw ? "" : ro ? gv : `<div class="dgr" role="group" aria-label="Baho">${gr}</div>`}</div>`;
   };
   // moslashuvchan baholash (baholash.js): ro'yxat / bitta o'quvchi / jadval (kriterial.js)
   const bhCtx = {ed, risk, order};
@@ -2046,7 +2048,7 @@ function pageDay(m) {
   m.innerHTML = `<div class="vcol" style="gap:12px">
     ${jHead(perNav(), `<div class="dstrip">${strip}</div>`, jTools(c))}${ARX.banner(c, [d])}
     <div class="dview ${kr ? "krw" : ""}">
-      ${nu ? `<div class="bh-col">${BHL.main(c, d, bhCtx)}${kr ? `<div class="dlist ${ed ? "" : "ro"} kr">${KRT.view(c, d, krCtx)}</div>` : ""}</div>` : `<div class="dlist ${ed ? "" : "ro"}">${sw && !x ? `<div class="warn" style="padding:10px 14px">📝 ${sumTag(sw)} kuni${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars o'tilmaydi — faqat yo'qlama. Ballar «Umumiy» sahifasida.</div>` : ""}${x ? `<div class="muted" style="padding:14px">${fmt(d)} — dars yo'q (X). «Dars menyusi»dan dars kuni qilishingiz mumkin.</div>` : rows}</div>`}
+      ${nu ? `<div class="bh-col">${BHL.main(c, d, bhCtx)}${kr ? `<div class="dlist ${ed ? "" : "ro"} kr">${KRT.view(c, d, krCtx)}</div>` : ""}</div>` : `<div class="dlist ${ed ? "" : "ro"}">${sw && !x ? `<div class="warn" style="padding:10px 14px">📝 ${sumTag(sw)} kuni${sw.title ? ` («${esc(sw.title)}»)` : ""}: oddiy dars o'tilmaydi — faqat yo'qlama. Ballar «Umumiy» sahifasida.</div>` : ""}${ro ? `<div class="dsync"><span>📥 Baholar <b>eMaktab</b>'dan — faqat ko'rish</span><button class="btn btn-sm" data-dgon title="Sozlamalar → Funksiyalar → Kundalik baholash">✏️ Baho qo'yishni yoqish</button></div>` : ""}${x ? `<div class="muted" style="padding:14px">${fmt(d)} — dars yo'q (X). «Dars menyusi»dan dars kuni qilishingiz mumkin.</div>` : rows}</div>`}
       <aside class="dinfo" aria-label="Dars">
         <div class="card vcol"><b>${WD_FULL[pyWd(d)]}, ${fmt(d)}${d === t ? " · bugun" : ""}</b>
           ${x ? `<span class="muted">Dars yo'q (X)</span>` : `<label class="vcol"><span class="muted">Mavzu</span><input class="form-control" type="text" id="dmt" value="${esc(l.topic || "")}" placeholder="Dars mavzusi" ${ARX.dateLocked(d, c) ? "readonly" : ""}></label>
@@ -2054,8 +2056,9 @@ function pageDay(m) {
           ${ed || x ? "" : `<span class="muted">${ARX.dateLocked(d, c) ? `🔒 ${quarterOf(d)}-chorak arxivda — faqat ko'rish` : d > t ? "Kelgusi dars — belgi qo'yib bo'lmaydi" : "Faqat ko'rish: o'tgan darslarga belgi qo'yish Sozlamalar → Baholash da yoqiladi"}</span>`}</div>
         ${x ? "" : `<div class="card dstats">${statsHtml()}</div>`}
         <div class="bh-side">${kr ? KRT.side(c, d) : nu ? BHL.side(c, d) : ""}</div>
+        ${ro && typeof EMK1 !== "undefined" ? EMK1.card() : ""}
         <div class="hrow wrap dacts" style="gap:8px">${actsHtml()}</div>
-        <p class="muted dtip">${grp ? "Har o'quvchiga: «✓ O'tildi» yoki «✗ O'tilmadi». Uyida o'qiydiganlarga faqat «o'tildi» darslar hisoblanadi. Belgini qayta bossangiz o'chadi." : kr ? "Katakni bosing: bo'sh → + → − → bo'sh. Kompyuterda katakni tanlab + yoki − yozing (keyingi o'quvchiga o'tadi), Del — tozalash. Sarlavhadagi deskriptorni yoki ism yonidagi ⋯ ni bosing — ustun/qatorni to'ldirish. 9 tasi belgilansa baho jurnalga tushadi." : nu ? "Baho katagini bosing — baho oynasi ochiladi. Usul dars turidan olinadi (Tez 1–10, 6 + 4 yoki +/−), oynada boshqasiga o'tish mumkin. «✓» — yo'qlama. Kelgan o'quvchiga hech narsa bosmang — bo'sh qolsa «keldi» hisoblanadi." : "Yo'qlama chapda, baho o'ngda. Kelgan o'quvchiga hech narsa bosmang — bo'sh qolsa «keldi» hisoblanadi. Belgini qayta bossangiz o'chadi."}</p>
+        <p class="muted dtip">${grp ? "Har o'quvchiga: «✓ O'tildi» yoki «✗ O'tilmadi». Uyida o'qiydiganlarga faqat «o'tildi» darslar hisoblanadi. Belgini qayta bossangiz o'chadi." : kr ? "Katakni bosing: bo'sh → + → − → bo'sh. Kompyuterda katakni tanlab + yoki − yozing (keyingi o'quvchiga o'tadi), Del — tozalash. Sarlavhadagi deskriptorni yoki ism yonidagi ⋯ ni bosing — ustun/qatorni to'ldirish. 9 tasi belgilansa baho jurnalga tushadi." : nu ? "Baho katagini bosing — baho oynasi ochiladi. Usul dars turidan olinadi (Tez 1–10, 6 + 4 yoki +/−), oynada boshqasiga o'tish mumkin. «✓» — yo'qlama. Kelgan o'quvchiga hech narsa bosmang — bo'sh qolsa «keldi» hisoblanadi." : ro ? "Yo'qlama chapda, o'ngda eMaktab bilan sinxronlangan baholar (yangilash — «🔄 eMaktab'dan yangilash»). Kelgan o'quvchiga hech narsa bosmang — bo'sh qolsa «keldi» hisoblanadi. Baho qo'yish: Sozlamalar → Funksiyalar → «Kundalik baholash»." : "Yo'qlama chapda, baho o'ngda. Kelgan o'quvchiga hech narsa bosmang — bo'sh qolsa «keldi» hisoblanadi. Belgini qayta bossangiz o'chadi."}</p>
       </aside></div></div>`;
   bindJHead(m); bindJTools(m);
   m.querySelectorAll("[data-sh]").forEach((b) => b.onclick = () => { V.anchor = L[Math.min(Math.max(i + +b.dataset.sh, 0), L.length - 1)]; render(); });
@@ -2105,6 +2108,7 @@ function pageDay(m) {
     const db = $(`[data-dd="${d}"]`, m); if (db) { const [k, lb] = dayState(c, d); db.classList.remove("ok", "half"); if (k) db.classList.add(k); const ib = $("i", db); if (ib) ib.textContent = lb; }
   };
   if (nu) BHL.bind(m, c, d, bhCtx); else BHL.leave();
+  if (ro) { if (typeof EMK1 !== "undefined") EMK1.bind(m); const g1 = $("[data-dgon]", m); if (g1) g1.onclick = () => { const o = D.web.on = D.web.on || {}; o.dgrade = 1; save(); render(); toast("Kundalik baholash yoqildi — o'chirish: Sozlamalar → Funksiyalar"); }; }
   const save2 = () => {
     const tp = $("#dmt", m).value.trim(), hw = $("#dmh", m).value.trim(), nl = Object.assign({}, c.lessons[d] || {}, {topic: tp, hw});
     if (tp === (l.topic || "") && hw === (l.hw || "")) return;
@@ -2174,13 +2178,15 @@ const FEATS = [
   ["duty", "👤 Navbatchi", "Har kuni navbat bilan, kelmagan o'tkazib yuboriladi; «Bugun»da va darsda"],
   ["bsbrem", "🔔 BSB/CHSB yaqinlashmoqda", "Summativ ishga 3 kun qolganda «Bugun»da eslatma"],
   ["absmsg", "✉ Kelmaganlar ota-onasiga xabar", "Yo'qlamadan keyin har kelmaganga tayyor matn, Telegram yoki SMS"],
+  ["dgrade", "✏️ Kundalik baholash", "Jurnal → Kundalik: baho qo'yish (Tez 1–10, 6 + 4, +/−). O'chiq bo'lsa kundalikda eMaktab bilan sinxronlangan baholar faqat ko'rinadi, yo'qlama ishlayveradi"],
   ["goal", "🎯 Maqsad bahosi", "Chorak natijasida: keyingi baho (5, 4 yoki 3) uchun yana qancha ball yoki «10» kerak"],
 ];
 const SIMPLE_OFF = ["call", "groups", "seats", "attmodes", "debts", "timer", "duty"];
 // olib tashlangan funksiyalar (2026-11-07): Faollik +/− (mezon «Darsdagi ish» bor), Haftalik xulosa (Hisobotlar va kunlik hisobotda bor) — ma'lumoti saqlanadi
 const FEAT_GONE = new Set(["act", "week", "ish"]);   // "ish" — Dars ishlanma olib tashlandi (Akmal, 2026-11-14)
 // sukut bo'yicha o'chiq funksiyalar (Akmal, 2026-11-11): foydalanuvchi o'zi yoqadi — D.web.on = {id: 1}
-const FEAT_OPTIN = new Set(["otaemk"]);
+// «Kundalik baholash» ham (Akmal, 2026-11-15): Jurnal → Kundalik qismida eMaktab bilan sinxronlangan baholar turadi, baho qo'yish yoqilgandagina
+const FEAT_OPTIN = new Set(["otaemk", "dgrade"]);
 // «Ota-onalar eMaktab'i» faqat «Kelajak soati» (ruscha «Час будущего») fani bor sinflarda (Akmal, 2026-11-11):
 // shu sinf nomidagi istalgan jurnalda (masalan 7-A · Matematika ham) chiqadi, chunki bu fan sinf rahbarida bo'ladi
 const isKSubj = (s) => /kelajak\s*soat|келажак\s*соат|час\s*будущ/.test(normName(s || ""));
