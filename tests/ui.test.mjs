@@ -493,6 +493,9 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
       assert.equal(await page.locator(".dg, .bh-r, [data-bhg], .kr-box").count(), 0, "baho qo'yish tugmalari yo'q");
       assert.equal(await page.locator(".dgv").count(), n);
       assert.match(await page.textContent(".dsync"), /eMaktab/);
+      // ikonka va matn ro'yxat chetiga tegmaydi (Akmal, 2026-11-15)
+      const gap = await page.evaluate(() => { const l = document.querySelector(".dlist").getBoundingClientRect().left, f = document.querySelector(".dsync > span").getBoundingClientRect().left; return f - l; });
+      assert.ok(gap >= 10, `.dsync chap bo'shlig'i ${gap}px`);
       assert.equal(await page.locator("[data-ekgo]").count(), 1, "eMaktab'dan yangilash tugmasi");
       const gv = (i) => page.evaluate((i) => document.querySelector(`.drow[data-dr="${i}"] .dgv`).textContent.trim(), i);
       assert.equal(await gv(0), "8"); assert.equal(await gv(1), "97"); assert.equal(await gv(2), "—"); assert.equal(await gv(3), "6"); assert.equal(await gv(4), "—");
