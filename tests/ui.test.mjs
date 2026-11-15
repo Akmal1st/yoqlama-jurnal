@@ -13,7 +13,7 @@ import XLSXN from "xlsx";
 
 // Tezlik uchun (CI): 1) brauzer bitta jarayonda BIR MARTA ochiladi, har test o'z alohida
 // kontekstida (cookie/IndexedDB/localStorage ajratilgan) ishlaydi — browser.close() faqat
-// shu test kontekstlarini yopadi; 2) UI_SHARD="2/4" — testlar 4 bo'lakka bo'linadi, CI ularni
+// shu test kontekstlarini yopadi; 2) UI_SHARD="2/6" — testlar 6 bo'lakka bo'linadi, CI ularni
 // parallel ishga tushiradi (bo'laksiz ishga tushirilsa hammasi bajariladi).
 let sharedBrowser = null;
 const chromium = {
@@ -28,9 +28,19 @@ const chromium = {
   },
 };
 after(() => sharedBrowser && sharedBrowser.close());
+// Bo'laklar vaqt bo'yicha teng: tests/ui_vaqt.json — har testning taxminiy vaqti (soniya); yangi test o'rtacha vaqt bilan
+// hisoblanadi. Testlar fayl oxirida (distribute) eng uzunidan boshlab eng bo'sh bo'lakka taqsimlanadi.
 const [SHARD, SHARDS] = (process.env.UI_SHARD || "1/1").split("/").map(Number);
-let testNo = 0;
-const test = (...a) => (testNo++ % SHARDS === SHARD - 1 ? nodeTest(...a) : undefined);
+const TESTS = [];
+const test = (...a) => { TESTS.push(a); };
+function distribute() {
+  let T = {}; try { T = JSON.parse(readFileSync(new URL("ui_vaqt.json", import.meta.url), "utf8")); } catch (e) { /* vaqtlar yo'q — teng hisoblanadi */ }
+  const known = Object.values(T), avg = known.length ? known.reduce((x, y) => x + y, 0) / known.length : 1;
+  const load = Array(SHARDS).fill(0), mine = new Set();
+  TESTS.map((a, i) => [T[a[0]] ?? avg, i]).sort((x, y) => y[0] - x[0] || x[1] - y[1]).forEach(([t, i]) => {
+    const k = load.indexOf(Math.min(...load)); load[k] += t; if (k === SHARD - 1) mine.add(i); });
+  TESTS.forEach((a, i) => { if (mine.has(i)) nodeTest(...a); });   // fayldagi tartibda
+}
 
 const APP = new URL("../docs/index.html", import.meta.url).href;
 const FIXTURE = fileURLToPath(new URL("fixtures/journal.json", import.meta.url));
@@ -6265,3 +6275,5 @@ test("Ota-onalarga xabar: «Chorak xulosasi» — butun sinf va o'quvchi kartoch
     }
   } finally { await browser.close(); }
 });
+
+distribute();
