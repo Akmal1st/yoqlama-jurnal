@@ -182,3 +182,14 @@ test("Maqsad: qolgan darslar kam bo'lsa (2 ta dars, 4 ta «10» kerak) — «5»
   assert.equal(g5.left, 2); assert.equal(g5.st, "no");
   const g = A.goalBest(c, s, 1, ws); assert.equal(g.t, 4); assert.equal(g.st, "ok");
 });
+
+test("Chorak xulosasi (ota-onaga): ishlar ballari, FB va «5» uchun nima kerakligi", () => {
+  const {A, c, s} = app({works: W, marks: M4("8", "9", "10", "9"), scores: {b1: 20, l1: 15}});
+  const t = A.quarterDigest(c, s, 1, "uz");
+  assert.ok(t.includes("BSB 21.09 — 20/25") && t.includes("Loyiha ishi 05.10 — 15/25") && t.includes("CHSB 26.10 — —/40"), t);
+  assert.ok(t.includes("Formativ baho (FB): 9/10"), t);
+  assert.ok(t.includes("«4» olishi uchun: qolgan ishlardan kamida 22 ball (40 dan)."), t);
+  const done = app({works: W, marks: M4("8", "9", "10", "9"), scores: {b1: 25, l1: 25, c1: 30}});
+  assert.ok(done.A.quarterDigest(done.c, done.s, 1, "uz").includes("Jami: 89/100 — kutilayotgan chorak bahosi: 5."));
+  assert.ok(done.A.quarterDigest(done.c, done.s, 1, "ru").includes("Итого: 89/100"));
+});

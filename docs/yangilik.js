@@ -23,7 +23,8 @@ const YNG = (() => {
   // go: [sahifa, Sozlamalar bo'limi] — «Ochish» shu joyga olib boradi
   const NEWS = [
     {v: 244, d: "15-noyabr", items: [
-      {ic: "star", t: "Maqsad bahosi", s: "Jurnal → «Chorak» jadvalida yangi «Maqsad» ustuni: har o'quvchi uchun keyingi baho (5, 4 yoki 3) uchun yana nima kerakligi — qolgan ishlardan qancha ball yoki yana nechta «10». Ustun ustiga olib borsangiz, to'liq izoh chiqadi. Sozlamalar → Funksiyalar → «Maqsad bahosi» bilan o'chiriladi.", go: ["journal"], gl: "Jurnal"}]},
+      {ic: "star", t: "Maqsad bahosi", s: "Jurnal → «Chorak» jadvalida yangi «Maqsad» ustuni: har o'quvchi uchun keyingi baho (5, 4 yoki 3) uchun yana nima kerakligi — qolgan ishlardan qancha ball yoki yana nechta «10». Ustun ustiga olib borsangiz, to'liq izoh chiqadi. Sozlamalar → Funksiyalar → «Maqsad bahosi» bilan o'chiriladi.", go: ["journal"], gl: "Jurnal"},
+      {ic: "star", t: "Ota-onaga «Chorak xulosasi»", s: "Sinf menyusi → «Xabarlar (butun sinf)» yoki o'quvchi kartochkasi → «Ota-onaga xabar»da yangi tur: BSB/CHSB ballari, formativ baho, jami ball va kutilayotgan chorak bahosi yoki «5» (4) olish uchun nima kerakligi. O'zbekcha va ruscha.", go: ["journal"], gl: "Jurnal"}]},
     {v: 242, d: "14-noyabr", items: [
       {ic: "bug", t: "Dars ishlanma olib tashlandi", s: "«Dars ishlanma» bo'limi dasturdan olib tashlandi. Boshqa bo'limlar o'zgarmadi."}]},
     {v: 234, d: "13-noyabr", items: [

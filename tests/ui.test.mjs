@@ -5966,3 +5966,39 @@ test("Maqsad bahosi: «Chorak» jadvalida ustun, ball kiritilganda yangilanadi, 
     }
   } finally { await browser.close(); }
 });
+
+test("Ota-onalarga xabar: «Chorak xulosasi» — butun sinf va o'quvchi kartochkasi (36 va 18 o'quvchi, kompyuter va telefon)", async () => {
+  const fx = JSON.parse(readFileSync(FIXTURE, "utf8"));
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const [vname, viewport] of [["kompyuter", {width: 1440, height: 900}], ["telefon", {width: 390, height: 844}]]) for (const n of [36, 18]) {
+      const d = JSON.parse(JSON.stringify(fx)), c0 = d.classes[0], base = c0.students;
+      c0.students = Array.from({length: n}, (_, i) => ({...JSON.parse(JSON.stringify(base[i % base.length])), name: i < base.length ? base[i].name : `Qo'shimcha O'quvchi ${i + 1}`}));
+      const f = `${tmpdir()}/qsum-${n}.json`; writeFileSync(f, JSON.stringify(d));
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message)); page.on("dialog", (x) => x.accept());
+      await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+      await page.goto(APP);
+      const [ch] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await ch.setFiles(f); await page.waitForSelector(".bn-hd");
+      const tag = `${vname}/${n}`;
+      await page.evaluate(() => { const c = D.classes[0]; c.works = [{id: "gw1", type: "bsb", date: "2026-09-21", max: 50, title: ""}, {id: "gw2", type: "chsb", date: "2026-10-26", max: 40, title: ""}];
+        c.students.forEach((s, i) => { s.scores = {gw1: 30 + (i % 20)}; }); save(); parentBulk(0); });
+      await page.waitForSelector("#pbk");
+      await page.selectOption("#pbk", "qsum");
+      await page.waitForFunction(() => (document.querySelector('[data-pt="0"]') || {}).value?.includes("Summativ ishlar"));
+      assert.equal(await page.locator(".modal textarea[data-pt]").count(), n, `${tag}: har o'quvchiga xabar`);
+      const t0 = await page.locator('.modal [data-pt="0"]').inputValue();
+      assert.ok(t0.includes("1-chorak") && t0.includes("BSB 21.09 — 30/50") && t0.includes("olishi uchun"), `${tag}: ${t0}`);
+      const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(over <= 1, `${tag}: sahifa ${over}px kengroq`);
+      await page.click(".modal [data-x]");
+      // o'quvchi kartochkasi → «Ota-onaga xabar» → «Chorak xulosasi»
+      await page.evaluate(() => { S.pkind = "qsum"; studentCard(0, D.classes[0].students[1].name, "msg"); });
+      await page.waitForSelector("#pm");
+      assert.ok((await page.locator("#pm").inputValue()).includes("Summativ ishlar"), `${tag}: kartochkada chorak xulosasi`);
+      assert.deepEqual(errors, [], `${tag}: JavaScript xatosi`);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});
