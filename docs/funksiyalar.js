@@ -26,6 +26,7 @@ const FNK = (() => {
     otaemk: P('<circle cx="8" cy="14" r="4"/><path d="M11 11l9-9M16 6l3 3M14 8l2 2"/>'),
     ktr: P('<path d="M4 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4zM20 4h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/>'),
     goal: P('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/>'),
+    dgrade: P('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/><path d="M14 20h6"/>'),
     lock: P('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>')};
   // [nomi, izoh, namunadagi yozuv, yangi?]
   const F = {
@@ -45,12 +46,13 @@ const FNK = (() => {
     otaemk: ["Ota-onalar eMaktab'i", "Ota-ona nomidan eMaktab'ga kirib chiqish («Kelajak soati» fani bor sinflarda)", "eMaktab'ga kirish", 1],
     absmsg: ["Kelmaganlar ota-onasiga xabar", "Yo'qlamadan keyin tayyor matn, Telegram yoki SMS", "Kelmaganlarga xabar", 1],
     ktr: ["KTR", "Kalendar-tematik reja va bajarilishi", "KTR"],
+    dgrade: ["Kundalik baholash", "Jurnal → Kundalik qismida baho qo'yish. O'chiq bo'lsa u yerda eMaktab bilan sinxronlangan baholar ko'rinadi", "Baho qo'yish", 1],
     goal: ["Maqsad bahosi", "Chorak natijasida: keyingi baho uchun yana qancha ball yoki «10» kerak", "Maqsad", 1]};
   const M = {attm: {n: "Yo'qlama usullari", d: "Ro'yxat doim bor; qo'shimcha usullar", ch: ["attmodes", "seats"], fix: "Ro'yxat"},
     views: {n: "Jurnal davrlari", d: "Kun doim bor; jurnal tepasidagi tugmalar", ch: ["vweek", "vmonth", "vquarter"], fix: "Kun"}};
   const GR = [["lesson", "Darsda", ["call", "groups", "attm", "hw", "timer", "duty"], "Dars tugmalari"],
     ["today", "«Bugun» sahifasi", ["bday", "qend", "gaps", "bsbrem"], "Kartochkalar"],
-    ["journal", "Jurnal", ["views", "goal"], "Davr"],
+    ["journal", "Jurnal", ["dgrade", "views", "goal"], "Davr"],
     ["menu", "Sinf menyusi (⋯)", ["debts", "parents", "absmsg", "ktr"], "Menyuda"],
     ["emk", "eMaktab", ["otaemk"], "«Kelajak soati» sinflarida"]];
   const GONE = new Set(["act", "week"]);
@@ -66,7 +68,7 @@ const FNK = (() => {
   const preset = () => { const o = ALL.filter((k) => !on(k)), B = BASIC_OFF(); return !o.length ? "all" : o.length === B.length && B.every((k) => !on(k)) ? "basic" : "mine"; };
   function preview(g, rows) {
     const L = rows.flatMap(leaves).filter(on);
-    if (g === "journal") return `<span class="fn-mseg"><span class="on">Kun</span>${L.map((k) => `<span>${F[k][2]}</span>`).join("")}</span>`;
+    if (g === "journal") return `<span class="fn-mseg"><span class="on">Kun</span>${L.filter((k) => k !== "dgrade").map((k) => `<span>${F[k][2]}</span>`).join("")}</span>${L.includes("dgrade") ? `<span class="fn-chip">${IC.dgrade}${F.dgrade[2]}</span>` : ""}`;
     return L.length ? L.map((k) => `<span class="fn-chip">${IC[k] || IC[k === "attmodes" || k === "seats" ? "attm" : "views"]}${F[k][2]}</span>`).join("") : `<span class="fn-none">Hech narsa qo'shilmaydi</span>`;
   }
   function row(r) {
@@ -95,7 +97,7 @@ const FNK = (() => {
         <div class="sz-card fn-box"><div class="fn-prev" aria-label="Namuna: ${t}"><span class="fn-pl">${pl}</span>${preview(g, rows)}</div>${vis.map(row).join("")}</div></section>`;
     }
     if (!shown) h += `<div class="fn-empty">${flt === "off" ? "O'chirilgan funksiya yo'q, hammasi yoqilgan." : "Bu saralashda funksiya yo'q."}</div>`;
-    h += `<div class="fn-core"><span>${IC.lock}Doim yoqilgan:</span><div><em>Yo'qlama</em><em>Baholar</em><em>BSB / CHSB</em><em>Hisobotlar</em><em>Sozlamalar</em></div></div>`;
+    h += `<div class="fn-core"><span>${IC.lock}Doim yoqilgan:</span><div><em>Yo'qlama</em><em>Baholar jadvali</em><em>BSB / CHSB</em><em>Hisobotlar</em><em>Sozlamalar</em></div></div>`;
     return {body: `<div class="fn-sec">${h}</div>`, acts: [], what: `${n} / ${ALL.length} ta yoqilgan`};
   }
   function bind(m) {

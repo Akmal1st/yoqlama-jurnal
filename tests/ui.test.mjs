@@ -465,6 +465,61 @@ test("Yangi dizayn: Ctrl+K buyruqlar oynasi, Alt+raqam, ? tezkor tugmalar, telef
   } finally { await browser.close(); }
 });
 
+// Kundalik baholash sukut bo'yicha o'chiq (Akmal, 2026-11-15): Jurnal → Kundalik qismida eMaktab bilan sinxronlangan baholar faqat ko'rinadi,
+// yo'qlama ishlaydi, eski baholar o'zgarmaydi; Sozlamalar → Funksiyalar yoki kundalikdagi tugma bilan yoqiladi
+for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36], ["kompyuter", {width: 1440, height: 900}, 18], ["telefon", {width: 390, height: 844}, 36], ["telefon", {width: 390, height: 844}, 18]]) {
+  test(`${name}: kundalik baholash sukut bo'yicha o'chiq — eMaktab baholari ko'rinadi, yo'qlama ishlaydi (${n} o'quvchi)`, async () => {
+    const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+    try {
+      const page = await browser.newPage({viewport});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      const tel = viewport.width < 600;
+      const [t, old] = await page.evaluate((n) => { const c = D.classes[0], t = todayIso(); D.settings.method_weekday = null; c.extra_x = [];
+        if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } D.settings.protect.enabled = false;
+        while (c.students.length < n) c.students.push({id: "dg" + c.students.length, name: `Sinov O'quvchi ${c.students.length + 1}`, marks: {}, scores: {}});
+        c.students.length = n; for (const s of c.students) { delete s.marks[t]; delete s.joined; }
+        c.students[0].marks[t] = "8"; c.students[1].marks[t] = "9/7"; c.students[2].marks[t] = "s"; c.students[3].marks[t] = "6kq";
+        delete D.web.on; delete D.web.fmode; S.ci = 0; save();
+        return [t, JSON.stringify(c.students.map((s) => s.marks))]; }, n);
+      assert.equal(await page.evaluate(() => feat("dgrade")), false, "sukut bo'yicha o'chiq");
+      await page.click(`${tel ? ".tabbar" : ".side"} [data-go=journal]`);
+      await page.evaluate((d) => { S.ci = 0; V.mode = "day"; V.anchor = d; render(); }, t);
+      await page.waitForSelector(".dlist .drow");
+      assert.equal(await page.locator(".drow").count(), n, "hamma o'quvchi ro'yxatda");
+      assert.equal(await page.locator(".dg, .bh-r, [data-bhg], .kr-box").count(), 0, "baho qo'yish tugmalari yo'q");
+      assert.equal(await page.locator(".dgv").count(), n);
+      assert.match(await page.textContent(".dsync"), /eMaktab/);
+      assert.equal(await page.locator("[data-ekgo]").count(), 1, "eMaktab'dan yangilash tugmasi");
+      const gv = (i) => page.evaluate((i) => document.querySelector(`.drow[data-dr="${i}"] .dgv`).textContent.trim(), i);
+      assert.equal(await gv(0), "8"); assert.equal(await gv(1), "97"); assert.equal(await gv(2), "—"); assert.equal(await gv(3), "6"); assert.equal(await gv(4), "—");
+      assert.equal(await page.evaluate(() => JSON.stringify(D.classes[0].students.map((s) => s.marks))), old, "eski baholar o'zgarmadi");
+      // yo'qlama ishlaydi
+      await page.click(`[data-a='5|s']`);
+      assert.equal(await page.evaluate(([d]) => D.classes[0].students[5].marks[d], [t]), "s");
+      await page.click(`[data-a='5|s']`);
+      assert.equal(await page.evaluate(([d]) => D.classes[0].students[5].marks[d] || "", [t]), "");
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "sahifa yonga chiqmaydi");
+      // Sozlamalar → Funksiyalar: kalit bor, o'chiq
+      await page.evaluate(() => { S.sec = 6; go("settings"); });
+      assert.equal(await page.getAttribute('[data-ft="dgrade"]', "aria-checked"), "false");
+      await page.click('[data-ft="dgrade"]');
+      assert.equal(await page.evaluate(() => feat("dgrade")), true);
+      await page.evaluate((d) => { go("journal"); S.ci = 0; V.mode = "day"; V.anchor = d; render(); }, t);
+      await page.waitForSelector(".bh-r"); assert.equal(await page.locator(".dgv, .dsync").count(), 0);
+      // yana o'chirish — kundalikdagi tugma bilan qayta yoqish
+      await page.evaluate(() => { S.sec = 6; go("settings"); }); await page.click('[data-ft="dgrade"]');
+      await page.evaluate((d) => { go("journal"); S.ci = 0; V.mode = "day"; V.anchor = d; render(); }, t);
+      await page.click("[data-dgon]"); await page.waitForSelector(".bh-r");
+      assert.deepEqual(await page.evaluate(() => D.web.on), {dgrade: 1});
+      assert.deepEqual(errors, []);
+    } finally { await browser.close(); }
+  });
+}
+
 // Moslashuvchan baholash (baholash.js): dars turi → usul (Tez 1–10 / 6 + 4 / +/−), 2 baho, fanga mos deskriptorlar, ketma-ket, bitta o'quvchi
 for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36], ["kompyuter", {width: 1440, height: 900}, 18], ["telefon", {width: 390, height: 844}, 36], ["telefon", {width: 390, height: 844}, 18]]) {
   test(`${name}: moslashuvchan baholash — dars turi, 3 usul, 2 baho, deskriptorlar, ketma-ket, bitta o'quvchi (${n} o'quvchi)`, async () => {
@@ -481,7 +536,7 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
         if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } D.settings.protect.enabled = false;
         while (c.students.length < n) c.students.push({id: "bh" + c.students.length, name: `Sinov O'quvchi ${c.students.length + 1}`, marks: {}, scores: {}});
         c.students.length = n; for (const s of c.students) { delete s.marks[t]; delete s.joined; }
-        delete D.web.fmode; S.ci = 0; V.mode = "day"; V.anchor = t; save();
+        delete D.web.fmode; D.web.on = {dgrade: 1}; S.ci = 0; V.mode = "day"; V.anchor = t; save();
         return [t, JSON.stringify(c.students.map((s) => [s.marks, s.fp || null, s.fk || null]))]; }, n);
       await page.click(`${tel ? ".tabbar" : ".side"} [data-go=journal]`);
       await page.evaluate((d) => { S.ci = 0; V.mode = "day"; V.anchor = d; render(); }, t);
@@ -597,7 +652,7 @@ test("jurnal: Kun ko'rinishi, katak yonidagi belgi oynasi, sinf tanlash", async 
     const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
     await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
     const t = await page.evaluate(() => { const c = D.classes[0], t = todayIso(); D.settings.method_weekday = null; c.extra_x = [];
-      if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } D.settings.protect.enabled = false; c.students[0].marks[t] = ""; delete c.students[0].marks[t]; D.web.fmode = "plain"; save(); return t; });
+      if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } D.settings.protect.enabled = false; c.students[0].marks[t] = ""; delete c.students[0].marks[t]; D.web.fmode = "plain"; D.web.on = {dgrade: 1}; save(); return t; });
     await page.click(".side [data-go=journal]"); await page.click("[data-per]"); await page.click(".perpop [data-mode=day]");
     assert.equal(await page.locator("table.j").count(), 0, "Kun — jadval emas, ro'yxat");
     assert.equal(await page.locator(`.dday.on[data-dd="${t}"]`).count(), 1);
@@ -4926,10 +4981,10 @@ for (const n of [36, 18]) test(`Qo'shimcha funksiyalar: yangi bo'lim, taymer, na
     // Sozlamalar → Funksiyalar: 4 guruh, jonli namuna, saralash, guruhni o'chirish va «Qaytarish»
     await page.evaluate(() => { S.sec = 6; go("settings"); });
     assert.equal(await page.locator(".fn-g").count(), 5);   // + «eMaktab» guruhi (v223)
-    assert.equal(await page.locator(".fn-row .fn-new").count(), 6);   // + Ota-onalar eMaktab'i (v222), Maqsad bahosi (v244)
+    assert.equal(await page.locator(".fn-row .fn-new").count(), 7);   // + Ota-onalar eMaktab'i (v222), Maqsad bahosi (v244), Kundalik baholash (v253)
     assert.equal(await page.locator('[data-ft="act"], [data-ft="week"]').count(), 0);
     assert.ok((await page.textContent(".fn-g .fn-prev")).includes("Taymer"));
-    await page.click('[data-fnf="new"]'); assert.equal(await page.locator(".fn-row:not(.multi)").count(), 6);
+    await page.click('[data-fnf="new"]'); assert.equal(await page.locator(".fn-row:not(.multi)").count(), 7);
     await page.click('[data-fnf="all"]');
     await page.click('[data-fng="lesson"]');
     assert.equal(await page.evaluate(() => ["call", "groups", "attmodes", "seats", "hw", "timer", "duty"].some(feat)), false);
@@ -5318,7 +5373,7 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
         if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } D.settings.protect.enabled = false;
         while (c.students.length < n) c.students.push({id: "kr" + c.students.length, name: `Sinov O'quvchi ${c.students.length + 1}`, marks: {}, scores: {}});
         c.students.length = n; for (const s of c.students) { delete s.marks[t]; delete s.joined; }
-        D.web.fmode = "krit"; BHL.state.v = "tab"; S.ci = 0; V.mode = "day"; V.anchor = t; save();
+        D.web.fmode = "krit"; D.web.on = {dgrade: 1}; BHL.state.v = "tab"; S.ci = 0; V.mode = "day"; V.anchor = t; save();
         window.print = () => { window.__printed = document.getElementById("pdoc").textContent; }; return t; }, n);
       await page.click(`${viewport.width < 600 ? ".tabbar" : ".side"} [data-go=journal]`);
       await page.evaluate((d) => { S.ci = 0; V.mode = "day"; V.anchor = d; render(); }, t);
@@ -5529,7 +5584,14 @@ test("Yo'qlama: «CH» (chet elda) — darsda, Kun sahifasida, davomat foizi va 
       assert.equal(await page.evaluate(() => D.classes[0].students[3].marks[todayIso()]), "ch");
       await page.click('[data-am="list"]');
       // Kun sahifasi: CH tugmasi, «Keldi» soni
+      // kundalik baholash o'chiq (sukut): oddiy yo'qlama tugmalari
       await page.evaluate(() => { S.ci = 0; V.mode = "day"; V.anchor = todayIso(); S.page = "journal"; render(); });
+      await page.waitForSelector("[data-a='4|ch']"); await page.click("[data-a='4|ch']");
+      assert.equal(await page.evaluate(() => D.classes[0].students[4].marks[todayIso()]), "ch");
+      assert.match(await page.textContent(".dstats"), new RegExp(`Keldi\\s*${N - 4} / ${N}`));
+      await page.click("[data-a='4|ch']"); assert.equal(await page.evaluate(() => D.classes[0].students[4].marks[todayIso()] || ""), "");
+      // kundalik baholash yoqilgan: moslashuvchan baholash ro'yxati
+      await page.evaluate(() => { D.web.on = {dgrade: 1}; save(); render(); });
       await page.waitForSelector("[data-bhat='4']");
       await page.click("[data-bhat='4']"); await page.click(".bh-menu [data-bhav=ch]");
       assert.equal(await page.evaluate(() => D.classes[0].students[4].marks[todayIso()]), "ch");
