@@ -18,11 +18,14 @@ const BVQ = (() => {
     ["ras", "Rasmiy", "Times", "Times", "Hujjat va ma'lumotnomalardagidek, an'anaviy"],
     ["huj", "Hujjat", "Times", "Arial", "Rasmiy sarlavha, o'qilishi oson jadval"],
     ["odd", "Oddiy", "Arial", "Arial", "Neytral, nusxa ko'chirganda ham tiniq"],
-    ["ara", "Aralash", "Manrope", "Arial", "Qalin zamonaviy sarlavha, ixcham jadval"],
-    ["lib", "Libertinus", "Libertinus", "Libertinus", "Nafis kitobiy shrift, rasmiy hujjat uchun"]];
+    ["ara", "Aralash", "Manrope", "Arial", "Qalin zamonaviy sarlavha, ixcham jadval"]];
+  // dastur ichidagi kitobiy shriftlar (shriftlar.js, 2026-11-15) — har biriga mos uslub; Libertinus kaliti «lib» (avval saqlangan tanlov uchun)
+  const SHL = typeof SHR !== "undefined" ? SHR.L : [];
+  const OWN = new Set(SHL.map((r) => r[0] === "lb" ? "lib" : "sh-" + r[0]));
+  for (const r of SHL) SETS.push([r[0] === "lb" ? "lib" : "sh-" + r[0], r[1], r[1], r[5] || r[1], r[4]]);
   const AUTO = {kl: "zam", oq: "huj", rang: "zam", daf: "ras", qal: "ara", min: "odd", kok: "huj", kat: "odd", ilik: "ras"};
-  const FF = {Manrope: '"Manrope",Arial,Helvetica,sans-serif', Times: '"BV Serif","Liberation Serif","Times New Roman",Times,serif', Arial: '"BV Sans","Liberation Sans",Arial,Helvetica,sans-serif',
-    Libertinus: '"BV Libertinus","Libertinus Serif","BV Serif","Liberation Serif",serif'};
+  const FF = {Manrope: '"Manrope",Arial,Helvetica,sans-serif', Times: '"BV Serif","Liberation Serif","Times New Roman",Times,serif', Arial: '"BV Sans","Liberation Sans",Arial,Helvetica,sans-serif'};
+  for (const r of SHL) FF[r[1]] = SHR.bv(r[1]);
   const PERS = [["day", "Kun"], ["week", "Hafta"], ["month", "Oy"], ["q", "Chorak"]];
   const KEY = "yoqlama_bv";
   const DEF = {type: "att", per: "week", tasks: 5, tmax: [10, 10, 10, 10, 10], wtype: "BSB", wno: 1, own: "Kitob, Daftar, Forma",
@@ -114,8 +117,10 @@ const BVQ = (() => {
   const setRow = (k) => SETS.find((x) => x[0] === k) || SETS[0];
   const famB = () => FF[setRow(setOf())[3]];
   // «BV Serif» / «BV Sans» — PDF uchun dastur ichidagi Liberation shriftlari (vendor/pdf-shrift) ekranga ham ulanadi: ekran = chop etish = PDF
-  const FREG = {}, FKEYS = {Times: [["BV Serif", "sR", "400"], ["BV Serif", "sB", "700"]], Arial: [["BV Sans", "aR", "400"], ["BV Sans", "aB", "700"]],
-    Libertinus: [["BV Libertinus", "lbR", "400"], ["BV Libertinus", "lbB", "700"]]};
+  const FREG = {}, FKEYS = {Times: [["BV Serif", "sR", "400"], ["BV Serif", "sB", "700"]], Arial: [["BV Sans", "aR", "400"], ["BV Sans", "aB", "700"]]};
+  for (const r of SHL) FKEYS[r[1]] = [["BV " + r[1], r[0] + "R", "400"], ["BV " + r[1], r[0] + "B", "700"]];
+  // kitobiy shrift uslubi: sarlavha/jadval shrifti varaqqa o'zgaruvchi sifatida beriladi (bosh-varaq.css: --bvh, --bvb)
+  const setVars = (k) => { if (!OWN.has(k)) return ""; const r = setRow(k); return `;--bvh:${FF[r[2]].replace(/"/g, "'")};--bvb:${FF[r[3]].replace(/"/g, "'")};--bvhw:700`; };
   function needFonts(set) { const r = setRow(set); return [...new Set([r[2], r[3]])].filter((f) => FKEYS[f]); }
   function fontsReady(set) { return needFonts(set || setOf()).every((f) => FREG[f] === true); }
   function loadFonts(set) {
@@ -214,7 +219,7 @@ const BVQ = (() => {
     const lg = [B.type === "mz" ? "Ish — darsdagi ish (1–6), Uy — uy vazifasi (0–4), Baho = Ish + Uy (1–10)." : "",
       G.some((g) => g.fut) ? "Rangli kunlar jurnalda hali yo'q — dars jadvalidan olingan." : "",
       B.type === "att" || B.type === "only" ? "Belgilar: S — sababsiz, DQ — sababli, K — kasal, KQ — kech qoldi." : ""].filter(Boolean).join(" ");
-    return `<div class="bx-pg bv-pg d-${B.tdz} fs-${setOf()} ${land ? "land" : ""}" style="padding:${m}mm"><div class="bv-in" style="--fh:${fhead()}pt;--fb:${fs.toFixed(2)}pt${probe ? ";height:auto" : ""}">
+    return `<div class="bx-pg bv-pg d-${B.tdz} fs-${setOf()} ${land ? "land" : ""}" style="padding:${m}mm${setVars(setOf())}"><div class="bv-in" style="--fh:${fhead()}pt;--fb:${fs.toFixed(2)}pt${probe ? ";height:auto" : ""}">
       <div class="bv-top"><div class="bv-ttl"><small>${TNAME[B.type]}</small><b>${esc(label(c))}${B.type === "bsb" ? ` · ${B.wno}-${B.wtype}` : ""}</b></div>
         <div class="bv-info">${info.map(([a, b]) => `<span>${a}</span><span><b>${esc(b)}</b></span>`).join("")}</div></div>
       <table class="bv-t ${B.zebra ? "zb" : ""}"><thead>${h1}</thead><tbody>${body}</tbody></table>
@@ -244,7 +249,7 @@ const BVQ = (() => {
     const an = setRow(AUTO[B.tdz] || "zam");
     return [["auto", "Dizaynga mos", null, null, `«${(DZ.find((d) => d[0] === B.tdz) || DZ[0])[1]}» uchun — ${an[1]}`], ...SETS].map(([k, n, h, b, d]) => {
       const r = setRow(k === "auto" ? an[0] : k);
-      return `<button class="bv-fso ${B.fset === k ? "on" : ""}" data-bv="fset" data-v="${k}" aria-pressed="${B.fset === k}"><span class="bv-aa" aria-hidden="true"><span style="font-family:${FF[r[2]].replace(/"/g, "'")}">A</span><small style="font-family:${FF[r[3]].replace(/"/g, "'")}">a</small></span><span class="bv-fst"><b>${n}</b><small>${h ? `Sarlavha: ${h} · Jadval: ${b}` : d}</small></span>${k === "auto" ? "<em>sukut</em>" : ""}</button>`; }).join("");
+      return (k === [...OWN][0] ? `<div class="bv-fgr">Kitobiy shriftlar</div>` : "") + `<button class="bv-fso ${B.fset === k ? "on" : ""}" data-bv="fset" data-v="${k}" aria-pressed="${B.fset === k}"><span class="bv-aa" aria-hidden="true"><span style="font-family:${FF[r[2]].replace(/"/g, "'")}">A</span><small style="font-family:${FF[r[3]].replace(/"/g, "'")}">a</small></span><span class="bv-fst"><b${OWN.has(k) ? ` style="font-family:${FF[r[2]].replace(/"/g, "'")}"` : ""}>${n}</b><small>${h && !OWN.has(k) ? `Sarlavha: ${h} · Jadval: ${b}` : d}</small></span>${k === "auto" ? "<em>sukut</em>" : ""}</button>`; }).join("");
   }
   function settings() {
     return `<div class="bv-shd"><h2>Varaq sozlamalari</h2><button class="bv-x" data-bv="set" aria-label="Yopish">✕</button></div>
@@ -419,7 +424,7 @@ const BVQ = (() => {
       const cell = (r, cc) => { const a = XL.utils.encode_cell({r, c: cc}); return ws[a] || (ws[a] = {t: "s", v: ""}); };
       const side = (st) => ({style: st, color: col(ln)}), dot = B.tdz === "kat" ? "dotted" : "thin";
       const BOX = B.tdz === "min" ? {bottom: side("thin")} : {top: side(dot), bottom: side(dot), left: side(dot), right: side(dot)};
-      const xf = (f) => f === "Times" || f === "Libertinus" ? "Times New Roman" : "Arial", XB = xf(setRow(setOf())[3]), XH = xf(setRow(setOf())[2]);   // Excel: shrift to'plamiga mos (Manrope Excel'da yo'q → Arial)
+      const xf = (f) => f === "Arial" || f === "Manrope" ? "Arial" : "Times New Roman", XB = xf(setRow(setOf())[3]), XH = xf(setRow(setOf())[2]);   // Excel: shrift to'plamiga mos (Manrope Excel'da yo'q → Arial)
       const put = (r, cc, st) => { cell(r, cc).s = {font: {name: XB, sz: 10, ...(st.font || {})}, alignment: {vertical: "center", ...(st.alignment || {})}, ...(st.fill ? {fill: st.fill} : {}), ...(st.border ? {border: st.border} : {})}; };
       for (let cc = 0; cc < nCol; cc++) { put(rT, cc, {font: {bold: true, sz: 14, name: XH}}); if (rM >= 0) put(rM, cc, {font: {color: col("55606B")}}); }
       const hb = B.tdz === "min" ? {bottom: {style: "medium", color: col("1B232D")}} : {top: side("thin"), bottom: side("thin"), left: side("thin"), right: side("thin")};

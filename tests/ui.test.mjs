@@ -3220,8 +3220,10 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
   });
 }
 
-test("Sozlamalar → Dizayn → Yozuv turi: Libertinus Serif — dastur ichidan, oʻ gʻ va kirill, PDF'da ham (36 va 18 o'quvchi, telefon)", async () => {
+test("Sozlamalar → Dizayn → Yozuv turi: dastur ichidagi 10 kitobiy shrift — oʻ gʻ va kirill, PDF'da ham (36 va 18 o'quvchi, telefon)", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  // shriftning o'zida yo'q harflar (Liberation Serif'dan olinadi) — shriftlar.js izohida
+  const MISS = {st: "ҚқҒғҲҳ", lt: "Ҳҳ"};
   try {
     for (const [w, h] of [[1300, 860], [390, 844]]) {
       const page = await browser.newPage({viewport: {width: w, height: h}});
@@ -3232,35 +3234,40 @@ test("Sozlamalar → Dizayn → Yozuv turi: Libertinus Serif — dastur ichidan,
       const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
       await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
       await page.evaluate(() => { const grow = (c, n) => { for (let i = c.students.length; i < n; i++) c.students.push({name: `Gʻulomova Oʻgʻiloy ${i + 1}`, marks: {}, scores: {}}); c.students.length = n; };
-        grow(D.classes[0], 36); grow(D.classes[1], 18); save(); S.sec = 3; S.dztab = "look"; go("settings"); });
-      const btn = page.locator('.dz-sec [data-dz-font="libertinus"]');
-      assert.equal(await btn.count(), 1, `${w}: «Libertinus Serif» yozuv turlari ro'yxatida`);
-      await btn.click();
-      assert.equal(await page.evaluate(() => D.web.dz.font), "libertinus");
-      for (const ci of [0, 1]) {
-        await page.evaluate((ci) => { S.ci = ci; go("journal"); }, ci);
-        await page.waitForTimeout(250);
-        const r = await page.evaluate(async () => {
-          await document.fonts.load('400 16px "Libertinus Serif"', "Oʻoʻ Жж"); await document.fonts.load('700 16px "Libertinus Serif"', "Gʻgʻ"); await document.fonts.ready;
-          const fam = getComputedStyle(document.body).fontFamily.split(",")[0].replace(/"/g, "").trim();
-          const faces = [...document.fonts].filter((f) => f.family.replace(/"/g, "") === "Libertinus Serif" && f.status === "loaded").map((f) => f.weight + f.style);
-          // har belgi Libertinus'da: zaxira shriftga o'tsa kenglik o'zgaradi
-          const c = document.createElement("canvas").getContext("2d"), wd = (f, t) => { c.font = `40px ${f}`; return c.measureText(t).width; };
-          const miss = [..."Oʻoʻ Gʻgʻ maʼno Ўў Ққ Ғғ Ҳҳ Жж Шш"].filter((ch) => ch.trim() && wd('"Libertinus Serif",monospace', ch) === wd("monospace", ch) && wd('"Libertinus Serif",serif', ch) === wd("serif", ch));
-          const box = document.createElement("div"); box.innerHTML = '<p id="lb">Oʻquvchi Gʻ <b>Жж</b></p>'; document.body.append(box);
-          const keys = PTG.measure(box).ops.filter((o) => o.k === "text").map((o) => o.keys[0]); box.remove();
-          const pdf = await PTG.fontData("lbR").then((b) => b.length > 1000, () => false);
-          return {fam, faces, miss, keys, pdf, n: D.classes[S.ci].students.length, wide: document.documentElement.scrollWidth > innerWidth + 1};
-        });
-        const why = `${w}px · ${r.n} o'quvchi`;
-        assert.equal(r.fam, "Libertinus Serif", `${why}: butun dastur shrifti`);
-        assert.ok(r.faces.includes("400normal") && r.faces.includes("700normal"), `${why}: shrift dastur ichidan yuklandi (${r.faces})`);
-        assert.deepEqual(r.miss, [], `${why}: hamma harf Libertinus'da`);
-        assert.ok(r.keys.length && r.keys.every((k) => /^lb/.test(k)), `${why}: PDF'da ham Libertinus (${r.keys})`);
-        assert.ok(r.pdf, `${why}: PDF shrifti fayli bor`);
-        assert.ok(!r.wide, `${why}: sahifa ekrandan kengaymadi`);
+        grow(D.classes[0], 36); grow(D.classes[1], 18); save(); });
+      const L = await page.evaluate(() => SHR.L.map((r) => [r[0], r[1], r[0] === "lb" ? "libertinus" : "sh-" + r[0]]));
+      assert.equal(L.length, 10);
+      for (const [k, name, fk] of L) {
+        await page.evaluate(() => { S.sec = 3; S.dztab = "look"; go("settings"); });
+        const btn = page.locator(`.dz-sec [data-dz-font="${fk}"]`);
+        assert.equal(await btn.count(), 1, `${w}: «${name}» yozuv turlari ro'yxatida`);
+        await btn.click();
+        assert.equal(await page.evaluate(() => D.web.dz.font), fk);
+        for (const ci of [0, 1]) {
+          await page.evaluate((ci) => { S.ci = ci; go("journal"); }, ci);
+          await page.waitForTimeout(150);
+          const r = await page.evaluate(async ([k, name]) => {
+            await document.fonts.load(`400 16px "${name}"`, "Oʻoʻ Жж"); await document.fonts.load(`700 16px "${name}"`, "Gʻgʻ"); await document.fonts.ready;
+            const fam = getComputedStyle(document.body).fontFamily.split(",")[0].replace(/"/g, "").trim();
+            const faces = [...document.fonts].filter((f) => f.family.replace(/"/g, "") === name && f.status === "loaded").map((f) => f.weight + f.style);
+            // har belgi shriftning o'zida: zaxira shriftga o'tsa kenglik o'zgaradi
+            const c = document.createElement("canvas").getContext("2d"), wd = (f, t) => { c.font = `40px ${f}`; return c.measureText(t).width; };
+            const miss = [..."Oʻoʻ Gʻgʻ maʼno Ўў Ққ Ғғ Ҳҳ Жж Шш"].filter((ch) => ch.trim() && wd(`"${name}",monospace`, ch) === wd("monospace", ch) && wd(`"${name}",serif`, ch) === wd("serif", ch)).join("");
+            const box = document.createElement("div"); box.innerHTML = '<p>Oʻquvchi Gʻ <b>Жж</b> <i>maʼno</i></p>'; document.body.append(box);
+            const keys = PTG.measure(box).ops.filter((o) => o.k === "text").map((o) => o.keys[0]); box.remove();
+            const pdf = (await Promise.all(["R", "B", "I", "BI"].map((s) => PTG.fontData(k + s).then((b) => b.length > 1000, () => false)))).every(Boolean);
+            return {fam, faces, miss, keys, pdf, n: D.classes[S.ci].students.length, wide: document.documentElement.scrollWidth > innerWidth + 1};
+          }, [k, name]);
+          const why = `${w}px · ${r.n} o'quvchi · ${name}`;
+          assert.equal(r.fam, name, `${why}: butun dastur shrifti`);
+          assert.ok(r.faces.includes("400normal") && r.faces.includes("700normal"), `${why}: shrift dastur ichidan yuklandi (${r.faces})`);
+          assert.equal(r.miss, MISS[k] || "", `${why}: harflar shriftning o'zida`);
+          assert.ok(r.keys.length && r.keys.every((x) => x.startsWith(k)), `${why}: PDF'da ham shu shrift (${r.keys})`);
+          assert.ok(r.pdf, `${why}: PDF shrifti fayllari bor`);
+          assert.ok(!r.wide, `${why}: sahifa ekrandan kengaymadi`);
+        }
       }
-      assert.deepEqual(ext.filter((u) => /font|woff|libertinus/i.test(u)), [], "shrift internetdan olinmaydi");
+      assert.deepEqual(ext.filter((u) => /font|woff|serif/i.test(u)), [], "shrift internetdan olinmaydi");
       assert.deepEqual(errors, []);
       await page.close();
     }
@@ -5619,8 +5626,8 @@ test("Bo'sh varaq: shrift to'plamlari — «Dizaynga mos» va qo'lda tanlash, ek
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     const AUTO = {kl: "zam", oq: "huj", rang: "zam", daf: "ras", qal: "ara", min: "odd", kok: "huj", kat: "odd", ilik: "ras"};
-    const FAM = {zam: ["Manrope", "Manrope"], ras: ["BV Serif", "BV Serif"], huj: ["BV Serif", "BV Sans"], odd: ["BV Sans", "BV Sans"], ara: ["Manrope", "BV Sans"], lib: ["BV Libertinus", "BV Libertinus"]};
-    const PDFK = {Manrope: "m", "BV Serif": "s", "BV Sans": "a", "BV Libertinus": "l"};
+    const FAM = {zam: ["Manrope", "Manrope"], ras: ["BV Serif", "BV Serif"], huj: ["BV Serif", "BV Sans"], odd: ["BV Sans", "BV Sans"], ara: ["Manrope", "BV Sans"]};
+    const PDFK = {Manrope: "m", "BV Serif": "s", "BV Sans": "a"};
     for (const vp of [{width: 1440, height: 900}, {width: 390, height: 844}]) {
       const page = await browser.newPage({viewport: vp});
       const errors = []; page.on("pageerror", (e) => errors.push(e.message));
@@ -5644,7 +5651,7 @@ test("Bo'sh varaq: shrift to'plamlari — «Dizaynga mos» va qo'lda tanlash, ek
       const check = async (want, why) => { const r = await probe(); const w = FAM[want];
         assert.deepEqual([r.h, r.b, r.lg], [w[0], w[1], w[1]], `${why}: sarlavha/jadval/pastki shrift`);
         assert.ok(r.ok, `${why}: shrift ulandi`);
-        assert.deepEqual(r.pk.map((k) => k && k[0]), [PDFK[w[0]], PDFK[w[1]]], `${why}: PDF shrifti ekrandagidek`);
+        assert.deepEqual(r.pk.map((k) => k && k.replace(/(R|B|I|BI|\d)$/, "")), [PDFK[w[0]], PDFK[w[1]]], `${why}: PDF shrifti ekrandagidek`);
         assert.ok(!r.over && !r.bad && !r.wide, `${why}: hech narsa sig'may qolmadi`); };
       for (const [ci, per] of [["0", "month"], ["1", "week"]]) {
         await page.evaluate(() => { const v = document.querySelector(".bv-veil"); if (v) v.click(); });
@@ -5664,18 +5671,22 @@ test("Bo'sh varaq: shrift to'plamlari — «Dizaynga mos» va qo'lda tanlash, ek
       assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("yoqlama_bv")).fset), "ras");
       const panel = await page.evaluate(() => { const l = document.querySelector(".bv-fsl"), r = l.getBoundingClientRect();
         return {n: l.querySelectorAll(".bv-fso").length, on: l.querySelector(".bv-fso.on").dataset.v, fit: [...l.querySelectorAll(".bv-fso")].every((b) => b.scrollWidth <= b.clientWidth + 1 && b.getBoundingClientRect().right <= r.right + 1)}; });
-      assert.deepEqual(panel, {n: 7, on: "ras", fit: true});
-      // Libertinus Serif (2026-11-15): 36 va 18 o'quvchida, oʻ gʻ va kirill harflari o'z shriftida, PDF'da ham Libertinus
-      await page.evaluate(() => document.querySelector("[data-bv=fset][data-v=lib]").click());
+      assert.deepEqual(panel, {n: 16, on: "ras", fit: true});
+      // kitobiy shriftlar uslublari (2026-11-15: Libertinus, Tinos, PT Serif, …): 36 va 18 o'quvchida, ekran = PDF
+      const OWN = await page.evaluate(() => SHR.L.map((r) => [r[0] === "lb" ? "lib" : "sh-" + r[0], r[0], "BV " + r[1], r[5] ? "BV " + r[5] : "BV " + r[1]]));
+      for (const [sk, pk, hf, bf] of OWN) { FAM[sk] = [hf, bf]; PDFK[hf] = pk; }
+      PDFK["BV PT Serif"] = "pt";
       for (const [ci, per] of [["0", "month"], ["1", "week"]]) {
         await page.evaluate(() => { const v = document.querySelector(".bv-veil"); if (v) v.click(); });
         await page.evaluate(() => document.querySelector("[data-hk=cls]").click());
         await page.evaluate((ci) => document.querySelector(`[data-ho=ci][data-v='${ci}']`).click(), ci);
         await page.waitForTimeout(300);
         await page.evaluate((p) => document.querySelector(`[data-bv=per][data-v=${p}]`).click(), per);
-        await check("lib", `${vp.width}px · ${ci === "0" ? 36 : 18} o'quvchi · Libertinus`);
+        for (const [sk] of OWN) {
+          await page.evaluate((sk) => { if (!document.querySelector(".bv-pop")) document.querySelector("[data-bv=set]").click(); document.querySelector(`[data-bv=fset][data-v=${sk}]`).click(); }, sk);
+          await check(sk, `${vp.width}px · ${ci === "0" ? 36 : 18} o'quvchi · ${sk}`);
+        }
       }
-      assert.ok(await page.evaluate(() => document.fonts.check(`10px "BV Libertinus"`, "Oʻoʻ Gʻgʻ maʼlumot Ўў Ққ Ғғ Ҳҳ")), "Libertinus: oʻ gʻ va kirill harflari bor");
       await page.evaluate(() => { if (!document.querySelector(".bv-pop")) document.querySelector("[data-bv=set]").click(); document.querySelector("[data-bv=fset][data-v=auto]").click(); });
       await check("odd", "Dizaynga mos, Minimal");
       assert.deepEqual(errors, []);
