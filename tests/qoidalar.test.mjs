@@ -136,3 +136,60 @@ test("BSB xulosa qoidalari mantiqiy: 6 holat × 36/18 o'quvchi", () => {
   const e = A.bsbRecs(A.bsbStats(mx, []));
   assert.equal(e.verdict.id, "V0"); assert.equal(e.qs.length + e.st.length, 0);
 });
+
+// «Maqsad bahosi» (2026-11-15): keyingi baho uchun yana nima kerak — qo'lda hisoblangan
+const gl = (o, t) => { const {A, c, s} = app(o); const ws = A.worksInQuarter(c, 1); return t ? A.goalInfo(c, s, 1, ws, t) : A.goalBest(c, s, 1, ws); };
+const M4 = (a, b, c2, d) => ({"2026-09-07": a, "2026-09-08": b, "2026-09-09": c2, "2026-09-10": d});
+
+test("Maqsad: hamma ish baholangan, 65 + FB 9 = 74 → «5» imkonsiz (FB 21 kerak), «4» ta'minlangan", () => {
+  const o = {works: W, marks: M4("8", "9", "10", "9"), scores: {b1: 20, l1: 15, c1: 30}};
+  assert.equal(gl(o, 5).st, "no");
+  const g = gl(o); assert.equal(g.t, 4); assert.equal(g.st, "ok");
+});
+
+test("Maqsad: 76 ball, FB 9 (8,9,10,9) → «5» uchun FB 10: yana 4 ta «10» ((36+40)/8 = 9,5 → 10)", () => {
+  const {A, c, s} = app({works: W, marks: M4("8", "9", "10", "9"), scores: {b1: 25, l1: 25, c1: 26}});
+  const g = A.goalBest(c, s, 1, A.worksInQuarter(c, 1));
+  assert.equal(g.t, 5); assert.equal(g.st, "fb"); assert.equal(g.need, 10); assert.equal(g.k, 4);
+  assert.equal(A.goalText(g, true), "5: +4 ta «10»");
+});
+
+test("Maqsad: CHSB hali yo'q, 35 + FB 9 → «5» imkonsiz, «4» uchun CHSB'dan 22/40", () => {
+  const {A, c, s} = app({works: W, marks: M4("8", "9", "10", "9"), scores: {b1: 20, l1: 15}});
+  const ws = A.worksInQuarter(c, 1), g = A.goalBest(c, s, 1, ws);
+  assert.equal(A.goalInfo(c, s, 1, ws, 5).st, "no");
+  assert.equal(g.t, 4); assert.equal(g.st, "works"); assert.equal(g.need, 22); assert.equal(g.rem, 40);
+  assert.equal(A.goalText(g, true), "4: 22/40");
+  assert.equal(A.goalText(g, false), "«4» uchun qolgan ishlardan kamida 22 ball (40 dan)");
+});
+
+test("Maqsad: 40 ball, FB 5, CHSB yo'q → «5» uchun CHSB 40/40 va FB 6 (yana 1 ta «10»: 30/5 = 6)", () => {
+  const g = gl({works: W, marks: M4("5", "5", "5", "5"), scores: {b1: 20, l1: 20}}, 5);
+  assert.equal(g.st, "both"); assert.equal(g.need, 6); assert.equal(g.k, 1); assert.equal(g.rem, 40);
+});
+
+test("Maqsad: baho kam (9, 9) va 76 ball → «5» uchun yana 2 ta «10» ((18+20)/4 = 9,5 → 10)", () => {
+  const g = gl({works: W, marks: {"2026-09-07": "9", "2026-09-08": "9"}, scores: {b1: 25, l1: 25, c1: 26}}, 5);
+  assert.equal(g.st, "fb"); assert.equal(g.k, 2);
+});
+
+test("Maqsad: qolgan darslar kam bo'lsa (2 ta dars, 4 ta «10» kerak) — «5» imkonsiz, «4» ta'minlangan", () => {
+  const A = loadApp("2026-10-20");
+  A.setData({version: 2, settings: {quarters: Q}, classes: [{name: "7-A", subject: "Matematika", dates: [...DATES, "2026-10-21", "2026-10-22"], works: W,
+    students: [{id: "s1", name: "Ali", marks: M4("8", "9", "10", "9"), scores: {b1: 25, l1: 25, c1: 26}}]}]});
+  const c = A.D.classes[0], s = c.students[0], ws = A.worksInQuarter(c, 1);
+  const g5 = A.goalInfo(c, s, 1, ws, 5);
+  assert.equal(g5.left, 2); assert.equal(g5.st, "no");
+  const g = A.goalBest(c, s, 1, ws); assert.equal(g.t, 4); assert.equal(g.st, "ok");
+});
+
+test("Chorak xulosasi (ota-onaga): ishlar ballari, FB va «5» uchun nima kerakligi", () => {
+  const {A, c, s} = app({works: W, marks: M4("8", "9", "10", "9"), scores: {b1: 20, l1: 15}});
+  const t = A.quarterDigest(c, s, 1, "uz");
+  assert.ok(t.includes("BSB 21.09 — 20/25") && t.includes("Loyiha ishi 05.10 — 15/25") && t.includes("CHSB 26.10 — —/40"), t);
+  assert.ok(t.includes("Formativ baho (FB): 9/10"), t);
+  assert.ok(t.includes("«4» olishi uchun: qolgan ishlardan kamida 22 ball (40 dan)."), t);
+  const done = app({works: W, marks: M4("8", "9", "10", "9"), scores: {b1: 25, l1: 25, c1: 30}});
+  assert.ok(done.A.quarterDigest(done.c, done.s, 1, "uz").includes("Jami: 89/100 — kutilayotgan chorak bahosi: 5."));
+  assert.ok(done.A.quarterDigest(done.c, done.s, 1, "ru").includes("Итого: 89/100"));
+});
