@@ -46,7 +46,7 @@ const FNK = (() => {
     otaemk: ["Ota-onalar eMaktab'i", "Ota-ona nomidan eMaktab'ga kirib chiqish («Kelajak soati» fani bor sinflarda)", "eMaktab'ga kirish", 1],
     absmsg: ["Kelmaganlar ota-onasiga xabar", "Yo'qlamadan keyin tayyor matn, Telegram yoki SMS", "Kelmaganlarga xabar", 1],
     ktr: ["KTR", "Kalendar-tematik reja va bajarilishi", "KTR"],
-    dgrade: ["Kundalik baholash", "Jurnal → Kundalik qismida baho qo'yish. O'chiq bo'lsa u yerda eMaktab bilan sinxronlangan baholar ko'rinadi", "Baho qo'yish", 1],
+    dgrade: ["Kundalik baholash va yo'qlama", "Jurnal → Kundalik qismida baho va yo'qlama qo'yish. O'chiq bo'lsa u yerda eMaktab bilan sinxronlangan ma'lumot faqat ko'rinadi", "Baho va yo'qlama", 1],
     goal: ["Maqsad bahosi", "Chorak natijasida: keyingi baho uchun yana qancha ball yoki «10» kerak", "Maqsad", 1]};
   const M = {attm: {n: "Yo'qlama usullari", d: "Ro'yxat doim bor; qo'shimcha usullar", ch: ["attmodes", "seats"], fix: "Ro'yxat"},
     views: {n: "Jurnal davrlari", d: "Kun doim bor; jurnal tepasidagi tugmalar", ch: ["vweek", "vmonth", "vquarter"], fix: "Kun"}};

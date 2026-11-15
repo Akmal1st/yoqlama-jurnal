@@ -468,7 +468,7 @@ test("Yangi dizayn: Ctrl+K buyruqlar oynasi, Alt+raqam, ? tezkor tugmalar, telef
 // Kundalik baholash sukut bo'yicha o'chiq (Akmal, 2026-11-15): Jurnal → Kundalik qismida eMaktab bilan sinxronlangan baholar faqat ko'rinadi,
 // yo'qlama ishlaydi, eski baholar o'zgarmaydi; Sozlamalar → Funksiyalar yoki kundalikdagi tugma bilan yoqiladi
 for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36], ["kompyuter", {width: 1440, height: 900}, 18], ["telefon", {width: 390, height: 844}, 36], ["telefon", {width: 390, height: 844}, 18]]) {
-  test(`${name}: kundalik baholash sukut bo'yicha o'chiq — eMaktab baholari ko'rinadi, yo'qlama ishlaydi (${n} o'quvchi)`, async () => {
+  test(`${name}: kundalik baholash va yo'qlama sukut bo'yicha o'chiq — eMaktab ma'lumoti faqat ko'rinadi (${n} o'quvchi)`, async () => {
     const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
     try {
       const page = await browser.newPage({viewport});
@@ -500,11 +500,10 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
       const gv = (i) => page.evaluate((i) => document.querySelector(`.drow[data-dr="${i}"] .dgv`).textContent.trim(), i);
       assert.equal(await gv(0), "8"); assert.equal(await gv(1), "97"); assert.equal(await gv(2), "—"); assert.equal(await gv(3), "6"); assert.equal(await gv(4), "—");
       assert.equal(await page.evaluate(() => JSON.stringify(D.classes[0].students.map((s) => s.marks))), old, "eski baholar o'zgarmadi");
-      // yo'qlama ishlaydi
-      await page.click(`[data-a='5|s']`);
-      assert.equal(await page.evaluate(([d]) => D.classes[0].students[5].marks[d], [t]), "s");
-      await page.click(`[data-a='5|s']`);
-      assert.equal(await page.evaluate(([d]) => D.classes[0].students[5].marks[d] || "", [t]), "");
+      // yo'qlama ham faqat ko'rinadi (Akmal: «bitta kalit bo'lsin»)
+      assert.equal(await page.locator("[data-a], [data-ok]").count(), 0, "yo'qlama tugmalari va «Hamma keldi» yo'q");
+      const av = (i) => page.evaluate((i) => document.querySelector(`.drow[data-dr="${i}"] .datt`).textContent.trim(), i);
+      assert.equal(await av(2), "S"); assert.equal(await av(3), "KQ"); assert.equal(await av(0), "✓");
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "sahifa yonga chiqmaydi");
       // Sozlamalar → Funksiyalar: kalit bor, o'chiq
       await page.evaluate(() => { S.sec = 6; go("settings"); });
@@ -5587,12 +5586,12 @@ test("Yo'qlama: «CH» (chet elda) — darsda, Kun sahifasida, davomat foizi va 
       assert.equal(await page.evaluate(() => D.classes[0].students[3].marks[todayIso()]), "ch");
       await page.click('[data-am="list"]');
       // Kun sahifasi: CH tugmasi, «Keldi» soni
-      // kundalik baholash o'chiq (sukut): oddiy yo'qlama tugmalari
-      await page.evaluate(() => { S.ci = 0; V.mode = "day"; V.anchor = todayIso(); S.page = "journal"; render(); });
-      await page.waitForSelector("[data-a='4|ch']"); await page.click("[data-a='4|ch']");
-      assert.equal(await page.evaluate(() => D.classes[0].students[4].marks[todayIso()]), "ch");
+      // kundalik baholash va yo'qlama o'chiq (sukut): eMaktab'dan kelgan CH faqat ko'rinadi
+      await page.evaluate(() => { D.classes[0].students[4].marks[todayIso()] = "ch"; save(); S.ci = 0; V.mode = "day"; V.anchor = todayIso(); S.page = "journal"; render(); });
+      await page.waitForSelector('.drow[data-dr="4"] .dav');
+      assert.equal(await page.textContent('.drow[data-dr="4"] .dav'), "CH");
       assert.match(await page.textContent(".dstats"), new RegExp(`Keldi\\s*${N - 4} / ${N}`));
-      await page.click("[data-a='4|ch']"); assert.equal(await page.evaluate(() => D.classes[0].students[4].marks[todayIso()] || ""), "");
+      await page.evaluate(() => { delete D.classes[0].students[4].marks[todayIso()]; save(); });
       // kundalik baholash yoqilgan: moslashuvchan baholash ro'yxati
       await page.evaluate(() => { D.web.on = {dgrade: 1}; save(); render(); });
       await page.waitForSelector("[data-bhat='4']");
