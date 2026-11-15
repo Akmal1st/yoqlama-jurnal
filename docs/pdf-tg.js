@@ -18,8 +18,10 @@ const PTG = (() => {
 
   /* ───────── shriftlar ───────── */
   const FILES = {m4: "manrope-400", m6: "manrope-600", m7: "manrope-700", m8: "manrope-800",
-    sR: "lserif-Regular", sB: "lserif-Bold", sI: "lserif-Italic", sBI: "lserif-BoldItalic", aR: "lsans-Regular", aB: "lsans-Bold",
-    lbR: "libertinus-Regular", lbB: "libertinus-Bold", lbI: "libertinus-Italic", lbBI: "libertinus-BoldItalic"};
+    sR: "lserif-Regular", sB: "lserif-Bold", sI: "lserif-Italic", sBI: "lserif-BoldItalic", aR: "lsans-Regular", aB: "lsans-Bold"};
+  // dastur ichidagi serif shriftlar (shriftlar.js): <k>R/B/I/BI → vendor/pdf-shrift/<fayl>-Regular.js …
+  const SHL = typeof SHR !== "undefined" ? SHR.L : [];
+  for (const r of SHL) for (const [s, n] of [["R", "Regular"], ["B", "Bold"], ["I", "Italic"], ["BI", "BoldItalic"]]) FILES[r[0] + s] = `${r[2]}-${n}`;
   const fbin = {};
   function fontData(k) {   // shrift .js fayl ichida base64 (file:// da ham ishlaydi, fetch shart emas)
     if (window.PTGF && window.PTGF[k]) return Promise.resolve(window.PTGF[k]);
@@ -31,11 +33,10 @@ const PTG = (() => {
   // CSS shrift → PDF shrifti (+ shu shriftda yo'q belgilar uchun zaxira)
   const SERIF = /times|bv serif|liberation serif|tinos|georgia|pt serif|noto serif|cambria|book antiqua|garamond|^\s*serif/i;
   const SANS = /^\s*"?(arial|helvetica|bv sans|liberation sans|arimo|calibri|tahoma|verdana|segoe ui)/i;
-  // Libertinus Serif (Akmal, 2026-11-15) — o'z shrifti PDF'ga joylanadi; yarim qalin-kursivda yo'q o'zbekcha kirill harflari (Ққ Ғғ Ҳҳ Ў) Liberation Serif'dan
-  const LIB = /^\s*"?(bv libertinus|libertinus)/i;
+  // shriftlar.js dagi shriftlar (Libertinus, Tinos, PT Serif, …) o'z fayli bilan joylanadi; shriftda yo'q harflar Liberation Serif'dan
   function fontKey(fam, wt, it) {
-    const b = wt >= 600;
-    if (LIB.test(fam)) return [it ? (b ? "lbBI" : "lbI") : (b ? "lbB" : "lbR"), it ? (b ? "sBI" : "sI") : (b ? "sB" : "sR"), b ? "aB" : "aR"];
+    const b = wt >= 600, own = SHL.length ? SHR.pdfKey(fam) : null;
+    if (own) return [own + (it ? (b ? "BI" : "I") : (b ? "B" : "R")), it ? (b ? "sBI" : "sI") : (b ? "sB" : "sR"), b ? "aB" : "aR"];
     if (SERIF.test(fam.split(",")[0]) || (/serif/i.test(fam) && !/sans-serif/i.test(fam) && SERIF.test(fam))) return [it ? (b ? "sBI" : "sI") : (b ? "sB" : "sR"), b ? "aB" : "aR"];
     if (SANS.test(fam)) return [b ? "aB" : "aR", b ? "sB" : "sR"];
     return [wt >= 750 ? "m8" : wt >= 650 ? "m7" : b ? "m6" : "m4", b ? "aB" : "aR", b ? "sB" : "sR"];

@@ -1,8 +1,45 @@
-/* Libertinus Serif (SIL OFL 1.1, vendor/libertinus-LICENSE.txt) — Sozlamalar → Dizayn → Yozuv turi va Bo'sh varaq shrift to'plami. Lotin, kirill, ʻ ʼ */
+/* Dastur ichidagi kitobiy shriftlar (SIL OFL 1.1, litsenziyalar: vendor/pdf-shrift/<fayl>-OFL.txt; ro'yxat — shriftlar.js).
+   Sozlamalar → Dizayn → Yozuv turi va Bo'sh varaq. Lotin, kirill, ʻ ʼ; brauzer faqat tanlangan shriftni yuklaydi. */
 @font-face{font-family:"Libertinus Serif";font-style:normal;font-weight:400;font-display:swap;src:url(vendor/libertinus-serif-Regular.woff2) format("woff2")}
 @font-face{font-family:"Libertinus Serif";font-style:normal;font-weight:700;font-display:swap;src:url(vendor/libertinus-serif-Bold.woff2) format("woff2")}
 @font-face{font-family:"Libertinus Serif";font-style:italic;font-weight:400;font-display:swap;src:url(vendor/libertinus-serif-Italic.woff2) format("woff2")}
 @font-face{font-family:"Libertinus Serif";font-style:italic;font-weight:700;font-display:swap;src:url(vendor/libertinus-serif-BoldItalic.woff2) format("woff2")}
+@font-face{font-family:"Tinos";font-style:normal;font-weight:400;font-display:swap;src:url(vendor/tinos-Regular.woff2) format("woff2")}
+@font-face{font-family:"Tinos";font-style:normal;font-weight:700;font-display:swap;src:url(vendor/tinos-Bold.woff2) format("woff2")}
+@font-face{font-family:"Tinos";font-style:italic;font-weight:400;font-display:swap;src:url(vendor/tinos-Italic.woff2) format("woff2")}
+@font-face{font-family:"Tinos";font-style:italic;font-weight:700;font-display:swap;src:url(vendor/tinos-BoldItalic.woff2) format("woff2")}
+@font-face{font-family:"STIX Two Text";font-style:normal;font-weight:400;font-display:swap;src:url(vendor/stix-two-text-Regular.woff2) format("woff2")}
+@font-face{font-family:"STIX Two Text";font-style:normal;font-weight:700;font-display:swap;src:url(vendor/stix-two-text-Bold.woff2) format("woff2")}
+@font-face{font-family:"STIX Two Text";font-style:italic;font-weight:400;font-display:swap;src:url(vendor/stix-two-text-Italic.woff2) format("woff2")}
+@font-face{font-family:"STIX Two Text";font-style:italic;font-weight:700;font-display:swap;src:url(vendor/stix-two-text-BoldItalic.woff2) format("woff2")}
+@font-face{font-family:"PT Serif";font-style:normal;font-weight:400;font-display:swap;src:url(vendor/pt-serif-Regular.woff2) format("woff2")}
+@font-face{font-family:"PT Serif";font-style:normal;font-weight:700;font-display:swap;src:url(vendor/pt-serif-Bold.woff2) format("woff2")}
+@font-face{font-family:"PT Serif";font-style:italic;font-weight:400;font-display:swap;src:url(vendor/pt-serif-Italic.woff2) format("woff2")}
+@font-face{font-family:"PT Serif";font-style:italic;font-weight:700;font-display:swap;src:url(vendor/pt-serif-BoldItalic.woff2) format("woff2")}
+@font-face{font-family:"Noto Serif";font-style:normal;font-weight:400;font-display:swap;src:url(vendor/noto-serif-Regular.woff2) format("woff2")}
+@font-face{font-family:"Noto Serif";font-style:normal;font-weight:700;font-display:swap;src:url(vendor/noto-serif-Bold.woff2) format("woff2")}
+@font-face{font-family:"Noto Serif";font-style:italic;font-weight:400;font-display:swap;src:url(vendor/noto-serif-Italic.woff2) format("woff2")}
+@font-face{font-family:"Noto Serif";font-style:italic;font-weight:700;font-display:swap;src:url(vendor/noto-serif-BoldItalic.woff2) format("woff2")}
+@font-face{font-family:"Source Serif 4";font-style:normal;font-weight:400;font-display:swap;src:url(vendor/source-serif-4-Regular.woff2) format("woff2")}
+@font-face{font-family:"Source Serif 4";font-style:normal;font-weight:700;font-display:swap;src:url(vendor/source-serif-4-Bold.woff2) format("woff2")}
+@font-face{font-family:"Source Serif 4";font-style:italic;font-weight:400;font-display:swap;src:url(vendor/source-serif-4-Italic.woff2) format("woff2")}
+@font-face{font-family:"Source Serif 4";font-style:italic;font-weight:700;font-display:swap;src:url(vendor/source-serif-4-BoldItalic.woff2) format("woff2")}
+@font-face{font-family:"Literata";font-style:normal;font-weight:400;font-display:swap;src:url(vendor/literata-Regular.woff2) format("woff2")}
+@font-face{font-family:"Literata";font-style:normal;font-weight:700;font-display:swap;src:url(vendor/literata-Bold.woff2) format("woff2")}
+@font-face{font-family:"Literata";font-style:italic;font-weight:400;font-display:swap;src:url(vendor/literata-Italic.woff2) format("woff2")}
+@font-face{font-family:"Literata";font-style:italic;font-weight:700;font-display:swap;src:url(vendor/literata-BoldItalic.woff2) format("woff2")}
+@font-face{font-family:"Merriweather";font-style:normal;font-weight:400;font-display:swap;src:url(vendor/merriweather-Regular.woff2) format("woff2")}
+@font-face{font-family:"Merriweather";font-style:normal;font-weight:700;font-display:swap;src:url(vendor/merriweather-Bold.woff2) format("woff2")}
+@font-face{font-family:"Merriweather";font-style:italic;font-weight:400;font-display:swap;src:url(vendor/merriweather-Italic.woff2) format("woff2")}
+@font-face{font-family:"Merriweather";font-style:italic;font-weight:700;font-display:swap;src:url(vendor/merriweather-BoldItalic.woff2) format("woff2")}
+@font-face{font-family:"Lora";font-style:normal;font-weight:400;font-display:swap;src:url(vendor/lora-Regular.woff2) format("woff2")}
+@font-face{font-family:"Lora";font-style:normal;font-weight:700;font-display:swap;src:url(vendor/lora-Bold.woff2) format("woff2")}
+@font-face{font-family:"Lora";font-style:italic;font-weight:400;font-display:swap;src:url(vendor/lora-Italic.woff2) format("woff2")}
+@font-face{font-family:"Lora";font-style:italic;font-weight:700;font-display:swap;src:url(vendor/lora-BoldItalic.woff2) format("woff2")}
+@font-face{font-family:"EB Garamond";font-style:normal;font-weight:400;font-display:swap;src:url(vendor/eb-garamond-Regular.woff2) format("woff2")}
+@font-face{font-family:"EB Garamond";font-style:normal;font-weight:700;font-display:swap;src:url(vendor/eb-garamond-Bold.woff2) format("woff2")}
+@font-face{font-family:"EB Garamond";font-style:italic;font-weight:400;font-display:swap;src:url(vendor/eb-garamond-Italic.woff2) format("woff2")}
+@font-face{font-family:"EB Garamond";font-style:italic;font-weight:700;font-display:swap;src:url(vendor/eb-garamond-BoldItalic.woff2) format("woff2")}
 :root{
   --win:#f5f1e8;--base:#fffdf8;--alt:#f8f4eb;--soft:#efe8da;--line:#e4dccb;--text:#1b2a2f;--muted:#6c7774;
   --acc:#0b6f79;--acc-d:#08525a;--acc-fg:#ffffff;--acc-soft:#e1efee;--today:#f2c14e;--today-cell:#fdf3d4;--danger:#b8322a;--ok:#2f7a3a;

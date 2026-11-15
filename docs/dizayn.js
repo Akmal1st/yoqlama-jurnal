@@ -26,7 +26,10 @@ const DZN = (() => {
   const FONTS = {manrope: ["Manrope", "Standart", `"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif`],
     system: ["Tizim shrifti", "Qurilmaniki", `system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif`],
     georgia: ["Georgia", "Kitobiy", `Georgia,"DejaVu Serif",serif`],
-    libertinus: ["Libertinus Serif", "Nafis, dastur ichida", `"Libertinus Serif","Liberation Serif",Georgia,serif`], verdana: ["Verdana", "Keng, aniq", `Verdana,"DejaVu Sans",Geneva,sans-serif`]};
+    verdana: ["Verdana", "Keng, aniq", `Verdana,"DejaVu Sans",Geneva,sans-serif`]};
+  // dastur ichidagi ochiq litsenziyali serif shriftlar (shriftlar.js, 2026-11-15): «libertinus» (eski kalit), «sh-tn», «sh-pt», …
+  const OWNF = new Set();
+  if (typeof SHR !== "undefined") for (const r of SHR.L) { const k = r[0] === "lb" ? "libertinus" : "sh-" + r[0]; FONTS[k] = [r[1], r[3], SHR.css(r[1])]; OWNF.add(k); }
   // [nomi, izoh, tugma balandligi, kartochka ichki chekkasi, katak balandligi]
   const DENS = [["Keng", "telefon", 44, 20, 40], ["Oddiy", "standart", 0, 0, 0], ["Ixcham", "jadval", 30, 11, 28]];
   // yoqish/o'chirish belgilari tanlovi olib tashlandi (Akmal, 2026-11-07): hamma joyda bitta oddiy kalit — kalit.css
@@ -146,7 +149,7 @@ const DZN = (() => {
           <label class="sl"><span class="sll"><b>Yozuv o'lchami</b><output>${z.size}%</output></span><span class="slr"><small style="font-size:12px">A</small><span class="trk"><input type="range" data-dz-r="size" min="90" max="120" step="5" value="${z.size}" aria-label="Yozuv o'lchami"><span class="ticks"><i>90%</i><i class="st">100% standart</i><i>120%</i></span></span><small style="font-size:20px">A</small></span></label>
           <label class="sl"><span class="sll"><b>Zichlik</b><output>${DENS[z.dens][0]}</output></span><span class="slr"><span class="trk"><input type="range" data-dz-r="dens" min="0" max="2" step="1" value="${z.dens}" aria-label="Zichlik"><span class="ticks"><i>Keng · telefon</i><i class="st">Oddiy · standart</i><i>Ixcham · jadval</i></span></span></span></label>
           <label class="sl"><span class="sll"><b>Burchaklar</b><output>${z.rad} px</output></span><span class="slr"><i class="rq" style="border-radius:0"></i><span class="trk"><input type="range" data-dz-r="rad" min="0" max="20" step="2" value="${z.rad}" aria-label="Burchaklar"><span class="ticks"><i>To'g'ri</i><i class="st">14 px standart</i><i>Yumaloq</i></span></span><i class="rq" style="border-radius:9px"></i></span></label></div>`) +
-        grp("Yozuv turi", "Ekran, hisobot va chop etishda", `<div class="radios fl">${Object.entries(FONTS).map(([k, x]) => fr(k, x[0], x[1], x[2])).join("")}${cf ? fr("custom", cf, "Kompyuterdan", `"${cf}",system-ui`) : ""}
+        grp("Yozuv turi", "Ekran, hisobot va chop etishda", `<div class="radios fl">${Object.entries(FONTS).filter(([k]) => !OWNF.has(k)).map(([k, x]) => fr(k, x[0], x[1], x[2])).join("")}${OWNF.size ? `<p class="rdn dz-fgr">Dastur ichidagi kitobiy shriftlar — internetsiz ishlaydi, PDF'da ham bir xil</p>` + [...OWNF].map((k) => fr(k, FONTS[k][0], FONTS[k][1], FONTS[k][2])).join("") : ""}${cf ? fr("custom", cf, "Kompyuterdan", `"${cf}",system-ui`) : ""}
           <button class="rd" data-dz-sysfont="1"><i class="rdo" style="visibility:hidden"></i><span><b>🖥 Kompyuterdagi shriftlar…</b><small>O'rnatilgan istalgan shrift</small></span></button></div>`) +
         (typeof ALF !== "undefined" ? ALF.body() : "") + (typeof ANM !== "undefined" ? ANM.body() : "");
     } else html = TGM.body(z, BTNS, NAVN, NAVK, ICO);
