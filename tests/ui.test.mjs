@@ -4781,10 +4781,10 @@ for (const n of [36, 18]) test(`Qo'shimcha funksiyalar: yangi bo'lim, taymer, na
     // Sozlamalar → Funksiyalar: 4 guruh, jonli namuna, saralash, guruhni o'chirish va «Qaytarish»
     await page.evaluate(() => { S.sec = 6; go("settings"); });
     assert.equal(await page.locator(".fn-g").count(), 5);   // + «eMaktab» guruhi (v223)
-    assert.equal(await page.locator(".fn-row .fn-new").count(), 5);   // + Ota-onalar eMaktab'i (v222)
+    assert.equal(await page.locator(".fn-row .fn-new").count(), 6);   // + Ota-onalar eMaktab'i (v222), Maqsad bahosi (v244)
     assert.equal(await page.locator('[data-ft="act"], [data-ft="week"]').count(), 0);
     assert.ok((await page.textContent(".fn-g .fn-prev")).includes("Taymer"));
-    await page.click('[data-fnf="new"]'); assert.equal(await page.locator(".fn-row:not(.multi)").count(), 5);
+    await page.click('[data-fnf="new"]'); assert.equal(await page.locator(".fn-row:not(.multi)").count(), 6);
     await page.click('[data-fnf="all"]');
     await page.click('[data-fng="lesson"]');
     assert.equal(await page.evaluate(() => ["call", "groups", "attmodes", "seats", "hw", "timer", "duty"].some(feat)), false);
