@@ -105,12 +105,14 @@
 .bv-pg,.bv-pg.bx-pg{width:210mm;height:296.5mm;padding:0;background:#fff;color:#1b232d;box-sizing:border-box;font-family:"Manrope",Arial,Helvetica,sans-serif;font-size:var(--fh,9pt);line-height:1.2;font-weight:400;letter-spacing:normal;overflow:hidden;--fh:9pt;--fb:9pt}
 .bv-pg.land{width:297mm;height:209.5mm}
 /* Shrift to'plamlari (Akmal, 2026-11-11: «jadval dizayniga mos shriftlar to'plami»): --bvh — sarlavha, --bvb — jadval va pastki yozuvlar.
-   Faqat dastur bilan birga keladigan shriftlar (PDF'ga ham joylanadi): Manrope, BV Serif (Liberation Serif = Times), BV Sans (Liberation Sans = Arial). */
-.bv-pg{--bvM:"Manrope",Arial,Helvetica,sans-serif;--bvS:"BV Serif","Liberation Serif","Times New Roman",Times,serif;--bvA:"BV Sans","Liberation Sans",Arial,Helvetica,sans-serif;--bvh:var(--bvM);--bvb:var(--bvM);--bvhw:800}
+   Faqat dastur bilan birga keladigan shriftlar (PDF'ga ham joylanadi): Manrope, BV Serif (Liberation Serif = Times), BV Sans (Liberation Sans = Arial),
+   BV Libertinus (Libertinus Serif, 2026-11-15). */
+.bv-pg{--bvM:"Manrope",Arial,Helvetica,sans-serif;--bvS:"BV Serif","Liberation Serif","Times New Roman",Times,serif;--bvA:"BV Sans","Liberation Sans",Arial,Helvetica,sans-serif;--bvL:"BV Libertinus","Libertinus Serif","BV Serif","Liberation Serif",serif;--bvh:var(--bvM);--bvb:var(--bvM);--bvhw:800}
 .bv-pg.fs-ras{--bvh:var(--bvS);--bvb:var(--bvS);--bvhw:700}
 .bv-pg.fs-huj{--bvh:var(--bvS);--bvb:var(--bvA);--bvhw:700}
 .bv-pg.fs-odd{--bvh:var(--bvA);--bvb:var(--bvA);--bvhw:700}
 .bv-pg.fs-ara{--bvh:var(--bvM);--bvb:var(--bvA);--bvhw:800}
+.bv-pg.fs-lib{--bvh:var(--bvL);--bvb:var(--bvL);--bvhw:700}
 .bv-pg,.bv-pg.bx-pg{font-family:var(--bvb)}
 .bv-pg .bv-ttl{font-family:var(--bvh)}
 .bv-pg .bv-ttl b{font-weight:var(--bvhw)!important}

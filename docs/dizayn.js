@@ -25,7 +25,8 @@ const DZN = (() => {
   const HUES = ["#0d8a87", "#2563eb", "#2f4fa2", "#6d4fd3", "#c0367a", "#d1393a", "#c46a12", "#2e7d4a", "#475467"];
   const FONTS = {manrope: ["Manrope", "Standart", `"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif`],
     system: ["Tizim shrifti", "Qurilmaniki", `system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif`],
-    georgia: ["Georgia", "Kitobiy", `Georgia,"DejaVu Serif",serif`], verdana: ["Verdana", "Keng, aniq", `Verdana,"DejaVu Sans",Geneva,sans-serif`]};
+    georgia: ["Georgia", "Kitobiy", `Georgia,"DejaVu Serif",serif`],
+    libertinus: ["Libertinus Serif", "Nafis, dastur ichida", `"Libertinus Serif","Liberation Serif",Georgia,serif`], verdana: ["Verdana", "Keng, aniq", `Verdana,"DejaVu Sans",Geneva,sans-serif`]};
   // [nomi, izoh, tugma balandligi, kartochka ichki chekkasi, katak balandligi]
   const DENS = [["Keng", "telefon", 44, 20, 40], ["Oddiy", "standart", 0, 0, 0], ["Ixcham", "jadval", 30, 11, 28]];
   // yoqish/o'chirish belgilari tanlovi olib tashlandi (Akmal, 2026-11-07): hamma joyda bitta oddiy kalit — kalit.css

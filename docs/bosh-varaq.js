@@ -18,9 +18,11 @@ const BVQ = (() => {
     ["ras", "Rasmiy", "Times", "Times", "Hujjat va ma'lumotnomalardagidek, an'anaviy"],
     ["huj", "Hujjat", "Times", "Arial", "Rasmiy sarlavha, o'qilishi oson jadval"],
     ["odd", "Oddiy", "Arial", "Arial", "Neytral, nusxa ko'chirganda ham tiniq"],
-    ["ara", "Aralash", "Manrope", "Arial", "Qalin zamonaviy sarlavha, ixcham jadval"]];
+    ["ara", "Aralash", "Manrope", "Arial", "Qalin zamonaviy sarlavha, ixcham jadval"],
+    ["lib", "Libertinus", "Libertinus", "Libertinus", "Nafis kitobiy shrift, rasmiy hujjat uchun"]];
   const AUTO = {kl: "zam", oq: "huj", rang: "zam", daf: "ras", qal: "ara", min: "odd", kok: "huj", kat: "odd", ilik: "ras"};
-  const FF = {Manrope: '"Manrope",Arial,Helvetica,sans-serif', Times: '"BV Serif","Liberation Serif","Times New Roman",Times,serif', Arial: '"BV Sans","Liberation Sans",Arial,Helvetica,sans-serif'};
+  const FF = {Manrope: '"Manrope",Arial,Helvetica,sans-serif', Times: '"BV Serif","Liberation Serif","Times New Roman",Times,serif', Arial: '"BV Sans","Liberation Sans",Arial,Helvetica,sans-serif',
+    Libertinus: '"BV Libertinus","Libertinus Serif","BV Serif","Liberation Serif",serif'};
   const PERS = [["day", "Kun"], ["week", "Hafta"], ["month", "Oy"], ["q", "Chorak"]];
   const KEY = "yoqlama_bv";
   const DEF = {type: "att", per: "week", tasks: 5, tmax: [10, 10, 10, 10, 10], wtype: "BSB", wno: 1, own: "Kitob, Daftar, Forma",
@@ -112,7 +114,8 @@ const BVQ = (() => {
   const setRow = (k) => SETS.find((x) => x[0] === k) || SETS[0];
   const famB = () => FF[setRow(setOf())[3]];
   // «BV Serif» / «BV Sans» — PDF uchun dastur ichidagi Liberation shriftlari (vendor/pdf-shrift) ekranga ham ulanadi: ekran = chop etish = PDF
-  const FREG = {}, FKEYS = {Times: [["BV Serif", "sR", "400"], ["BV Serif", "sB", "700"]], Arial: [["BV Sans", "aR", "400"], ["BV Sans", "aB", "700"]]};
+  const FREG = {}, FKEYS = {Times: [["BV Serif", "sR", "400"], ["BV Serif", "sB", "700"]], Arial: [["BV Sans", "aR", "400"], ["BV Sans", "aB", "700"]],
+    Libertinus: [["BV Libertinus", "lbR", "400"], ["BV Libertinus", "lbB", "700"]]};
   function needFonts(set) { const r = setRow(set); return [...new Set([r[2], r[3]])].filter((f) => FKEYS[f]); }
   function fontsReady(set) { return needFonts(set || setOf()).every((f) => FREG[f] === true); }
   function loadFonts(set) {
@@ -416,7 +419,7 @@ const BVQ = (() => {
       const cell = (r, cc) => { const a = XL.utils.encode_cell({r, c: cc}); return ws[a] || (ws[a] = {t: "s", v: ""}); };
       const side = (st) => ({style: st, color: col(ln)}), dot = B.tdz === "kat" ? "dotted" : "thin";
       const BOX = B.tdz === "min" ? {bottom: side("thin")} : {top: side(dot), bottom: side(dot), left: side(dot), right: side(dot)};
-      const xf = (f) => f === "Times" ? "Times New Roman" : "Arial", XB = xf(setRow(setOf())[3]), XH = xf(setRow(setOf())[2]);   // Excel: shrift to'plamiga mos (Manrope Excel'da yo'q → Arial)
+      const xf = (f) => f === "Times" || f === "Libertinus" ? "Times New Roman" : "Arial", XB = xf(setRow(setOf())[3]), XH = xf(setRow(setOf())[2]);   // Excel: shrift to'plamiga mos (Manrope Excel'da yo'q → Arial)
       const put = (r, cc, st) => { cell(r, cc).s = {font: {name: XB, sz: 10, ...(st.font || {})}, alignment: {vertical: "center", ...(st.alignment || {})}, ...(st.fill ? {fill: st.fill} : {}), ...(st.border ? {border: st.border} : {})}; };
       for (let cc = 0; cc < nCol; cc++) { put(rT, cc, {font: {bold: true, sz: 14, name: XH}}); if (rM >= 0) put(rM, cc, {font: {color: col("55606B")}}); }
       const hb = B.tdz === "min" ? {bottom: {style: "medium", color: col("1B232D")}} : {top: side("thin"), bottom: side("thin"), left: side("thin"), right: side("thin")};

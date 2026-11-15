@@ -1,3 +1,8 @@
+/* Libertinus Serif (SIL OFL 1.1, vendor/libertinus-LICENSE.txt) — Sozlamalar → Dizayn → Yozuv turi va Bo'sh varaq shrift to'plami. Lotin, kirill, ʻ ʼ */
+@font-face{font-family:"Libertinus Serif";font-style:normal;font-weight:400;font-display:swap;src:url(vendor/libertinus-serif-Regular.woff2) format("woff2")}
+@font-face{font-family:"Libertinus Serif";font-style:normal;font-weight:700;font-display:swap;src:url(vendor/libertinus-serif-Bold.woff2) format("woff2")}
+@font-face{font-family:"Libertinus Serif";font-style:italic;font-weight:400;font-display:swap;src:url(vendor/libertinus-serif-Italic.woff2) format("woff2")}
+@font-face{font-family:"Libertinus Serif";font-style:italic;font-weight:700;font-display:swap;src:url(vendor/libertinus-serif-BoldItalic.woff2) format("woff2")}
 :root{
   --win:#f5f1e8;--base:#fffdf8;--alt:#f8f4eb;--soft:#efe8da;--line:#e4dccb;--text:#1b2a2f;--muted:#6c7774;
   --acc:#0b6f79;--acc-d:#08525a;--acc-fg:#ffffff;--acc-soft:#e1efee;--today:#f2c14e;--today-cell:#fdf3d4;--danger:#b8322a;--ok:#2f7a3a;
