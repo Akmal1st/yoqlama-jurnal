@@ -4,7 +4,11 @@
 .bh-hd{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
 .bh-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .bh-lt{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--alt);color:var(--text);border-radius:10px;padding:6px 10px 6px 12px;font-weight:700;min-height:38px}
-.bh-lt small{font-weight:700;color:var(--acc-d);background:var(--acc-soft);border-radius:6px;padding:2px 6px;font-size:11.5px}
+/* kenglik dars turiga qarab o'zgarmaydi (Akmal, 2026-11-15) */
+.bh-lt{width:290px;max-width:100%}
+.bh-lt small .s{display:none}
+.bh-lt .n{flex:1;min-width:0;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bh-lt small{flex:none;min-width:98px;text-align:center;font-weight:700;color:var(--acc-d);background:var(--acc-soft);border-radius:6px;padding:2px 6px;font-size:11.5px}
 .bh-lt::after{content:"▾";color:var(--muted);font-size:12px}
 .bh-lt:disabled{opacity:.7;cursor:default}
 .bh-tw{display:inline-flex;gap:8px;align-items:center;font-weight:700;font-size:13px;border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:var(--base);color:var(--text);min-height:38px}
@@ -156,8 +160,9 @@
 .bh-av{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:21px;color:#fff;flex:none}
 .bh-fkh b{font-size:21px;display:block;line-height:1.15}
 .bh-fkh small{color:var(--muted);font-size:12.5px}
-.bh-strip{display:flex;gap:4px;overflow-x:auto;padding:4px 2px 8px;scrollbar-width:thin;max-width:640px;width:100%;margin:0 auto}
-.bh-strip button{flex:none;width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--base);color:var(--muted);font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums;padding:0}
+/* tartib raqamlari — surilmaydi, tagma-tag (setka) */
+.bh-strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:5px;padding:4px 2px 8px;max-width:640px;width:100%;margin:0 auto}
+.bh-strip button{width:100%;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--base);color:var(--muted);font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums;padding:0}
 .bh-strip button.f{border:0}
 .bh-strip button.pt{border-color:var(--bh-warn);background:var(--bh-warn-soft)}
 .bh-strip button.ab{opacity:.45;text-decoration:line-through}
@@ -174,6 +179,7 @@
   .bh-hd{padding:10px}
   .bh-sum{flex-wrap:nowrap;overflow-x:auto}
   .bh-bar .bh-seg{order:5;flex:1 1 100%}
+  .bh-lt{width:auto;flex:1 1 180px;min-width:0}.bh-lt small{min-width:42px}.bh-lt small .l{display:none}.bh-lt small .s{display:inline}
   .bh-bar .bh-seg button{flex:1}
   .bh-r{grid-template-columns:22px minmax(0,1fr) auto auto;gap:8px;padding:0 8px;min-height:58px}
   .bh-gc{width:50px;height:42px}
@@ -181,3 +187,34 @@
 }
 @media print{.bh-sheet,.bh-scrim,.bh-menu{display:none!important}}
 @media (prefers-reduced-motion:reduce){.bh-tw i::after{transition:none}}
+
+/* «Jadval» ko'rinishi (kriterial jadval): gorizontal surishsiz, bitta ekranga sig'adi; davomat — alohida ustun, bitta tugma */
+.dview.krw{grid-template-columns:minmax(0,1fr)}
+.kr-tw.fit{overflow:visible;max-height:none}
+table.kr-t.fit{width:100%;min-width:0;table-layout:fixed}
+.kr-t.fit col.c-nm{width:230px}.kr-t.fit col.c-at{width:76px}.kr-t.fit col.c-b{width:40px}.kr-t.fit col.c-tot{width:84px}
+.kr-t.fit th,.kr-t.fit td{min-width:0!important;max-width:none;overflow:hidden}
+.kr-t.fit .nm{position:static;width:auto}
+.kr-t.fit thead th{position:static}
+.kr-t.fit tr.d th{padding:4px 1px}
+.kr-t.fit td.att{padding:0 4px}
+.kr-t.fit td.att .bh-at{min-width:0;width:100%;max-width:48px;padding:0 4px}
+.kr-t.fit .kr-c{width:100%;max-width:38px}
+.kr-t.fit .tot{padding:2px 4px}
+.kr-t.fit tr.g th.gh{white-space:normal}
+.kr-t.fit tfoot td{position:static;font-size:11px}
+@media (max-width:700px){
+  .kr-t.fit col.c-nm{width:27%}.kr-t.fit col.c-at{width:36px}.kr-t.fit col.c-b{width:0}.kr-t.fit col.c-tot{width:34px}
+  .kr-t.fit .base{font-size:0;padding:0;border-left:0}
+  .kr-t.fit .gs{border-left-width:1px}
+  .kr-t.fit tr.d th{font-size:11px}.kr-t.fit tr.d th small,.kr-t.fit tr.g th small,.kr-t.fit td.tot small,.kr-t.fit tfoot .kr-bar{display:none}
+  .kr-t.fit tr.g th{font-size:10.5px;padding:3px 1px;line-height:1.15}
+  .kr-t.fit .nm{padding:0 2px}.kr-t.fit thead th.nm{padding-left:4px;font-size:11px}
+  .kr-t.fit .kr-rm{width:14px}
+  .kr-t.fit .dn .fn{display:none}.kr-t.fit .dn .sn{display:inline}.kr-t.fit .dn i{min-width:0;margin-right:3px}
+  .kr-t.fit th.att{font-size:0}.kr-t.fit th.att::after{content:"Dav.";font-size:10px}
+  .kr-t.fit td.att{padding:0 1px}.kr-t.fit td.att .bh-at{height:28px;font-size:10.5px;padding:0;border-radius:8px}
+  .kr-t.fit td.c{padding:2px 0}.kr-t.fit .kr-c{height:30px;font-size:15px;border-radius:5px}
+  .kr-t.fit .kr-bh{min-width:0;width:100%;padding:0;font-size:13px}
+  .kr-t.fit tfoot td{font-size:9.5px;padding:4px 0}
+}

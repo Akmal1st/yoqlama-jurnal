@@ -213,7 +213,9 @@ html[data-theme="dark"] .hb{--hb-warn:#f5b454;--hb-warn-s:#2e2414;--hb-warn-b:#d
 .hb .hb-opt{display:flex;align-items:center;gap:10px;border:0;background:none;padding:8px 10px;border-radius:calc(9px*var(--rk,1));text-align:left;width:100%;color:var(--text);min-height:40px;cursor:pointer}
 .hb .hb-opt:hover{background:var(--alt)}
 .hb .hb-opt.on{background:var(--acc-soft)}
-.hb .hb-opt>span:not(.hb-ic):not(.hb-ck){flex:1;display:flex;flex-direction:column}
+.hb .hb-opt>span:not(.hb-ic):not(.hb-ck):not(.hb-bd){flex:1;min-width:0;display:flex;flex-direction:column}
+.hb .hb-opt small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hb .hb-opt .hb-bd{white-space:nowrap}
 .hb .hb-opt b{font-weight:700}
 .hb .hb-opt small{font-size:12px;color:var(--muted)}
 .hb .hb-opt .hb-ck{color:var(--acc-t,var(--acc));font-weight:800;flex:none;width:16px}

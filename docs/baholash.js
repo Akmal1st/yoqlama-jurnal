@@ -166,7 +166,17 @@ const BHL = (() => {
     const g = I.ab ? `<span class="bh-gc no-g"><b>—</b></span>` : [0, 1].slice(0, I.two ? 2 : 1).map((sl) => cell(I, si, sl, ctx.ed)).join("");
     return `<div class="bh-r ${cur ? "cur" : ""} ${ctx.risk.has(s.name) ? "risk" : ""}" data-bhr="${si}" data-q="${esc(normName(s.name))}"><span class="no">${si + 1}</span>
       <div class="nm"><b class="bh-nmb" data-st="${si}" title="${esc(s.name)} — kartochkani ochish">${s.star ? "⭐ " : ""}${esc(s.name)}</b><small>${sub}</small></div>
-      <button type="button" class="bh-at a-${ak || "ok"}" data-bhat="${si}" ${ctx.ed ? "" : "disabled"} aria-label="Yo'qlama: ${esc(attName(ak))}" title="${esc(attName(ak))}">${ATT_L[ak] || esc(ak.toUpperCase())}</button><div class="bh-gs">${g}</div></div>`;
+      ${pill(c, d, si, ctx.ed)}<div class="bh-gs">${g}</div></div>`;
+  }
+  // yo'qlama tugmasi (ro'yxat va kriterial jadval): bosilsa menyu — ✓ Keldi, S, DQ, K, KQ, CH
+  function pill(c, d, si, ed) {
+    const ak = attKey(c.students[si].marks[d] || "");
+    return `<button type="button" class="bh-at a-${ak || "ok"}" data-bhat="${si}" ${ed ? "" : "disabled"} aria-label="Yo'qlama: ${esc(attName(ak))}" title="${esc(attName(ak))}">${ATT_L[ak] || esc(ak.toUpperCase())}</button>`;
+  }
+  function attMenu(anchor, c, si, d, after) {
+    const ak = attKey(c.students[si].marks[d] || "");
+    menu(anchor, [""].concat(DAY_ATT.map((a) => a[0])).map((k) => `<button type="button" class="${ak === k ? "on" : ""}" data-bhav="${k}"><b class="bh-mk a-${k || "ok"}">${ATT_L[k]}</b>${esc(attName(k))}</button>`).join(""),
+      (mm) => mm.querySelectorAll("[data-bhav]").forEach((x) => x.onclick = () => { closeMenu(); if (setAtt(c, si, d, x.dataset.bhav)) after(); }));
   }
   function barH(c, d, ctx) {
     const L = ltOf(c, d), R = rowsOf(c, d, ctx.order), o = counts(c, d, R);
@@ -175,7 +185,7 @@ const BHL = (() => {
     const vw = [["list", "Ro'yxat"], ["fok", "Bitta o'quvchi"], ["tab", "Jadval"]].map(([k, t]) => `<button type="button" class="${st.v === k ? "on" : ""}" data-bhv="${k}">${t}</button>`).join("");
     return `<div class="card bh-hd">
       <div class="bh-bar">
-        <button type="button" class="bh-lt" data-bhlt aria-haspopup="menu" ${ctx.ed ? "" : "disabled"} title="Dars turi — qaysi usul ochilishini belgilaydi">${esc(L.t.n)}<small>${METH[L.t.m].n}</small></button>
+        <button type="button" class="bh-lt" data-bhlt aria-haspopup="menu" ${ctx.ed ? "" : "disabled"} title="Dars turi — qaysi usul ochilishini belgilaydi"><span class="n">${esc(L.t.n)}</span><small><span class="l">${METH[L.t.m].n}</span><span class="s">${METH[L.t.m].s}</span></small></button>
         <button type="button" class="bh-tw" data-bhtwo aria-pressed="${L.two}" ${ctx.ed ? "" : "disabled"} title="Hammaga ikkinchi baho katagi (masalan 8/9)"><i></i>2 baho</button>
         <div class="mz-seg bh-seg" role="group" aria-label="Ko'rinish">${vw}</div>
         <span class="sp"></span>
@@ -354,15 +364,12 @@ const BHL = (() => {
         if (v === "fill") fillAll(c, d); else if (v === "desc") descDlg(c); else if (v === "rub") rubDlg(); else if (v === "pr") KCH.dialog(c, d);
         else if (v === "q") { KRT.state.tab = "q"; st.v = "tab"; st.sh = null; leave(); render(); } });
     }); };
-    box.querySelectorAll("[data-bhat]").forEach((b) => b.onclick = (e) => { const si = +b.dataset.bhat, ak = attKey(c.students[si].marks[d] || "");
-      menu(e.currentTarget, [""].concat(DAY_ATT.map((a) => a[0])).map((k) => `<button type="button" class="${ak === k ? "on" : ""}" data-bhav="${k}"><b class="bh-mk a-${k || "ok"}">${ATT_L[k]}</b>${esc(attName(k))}</button>`).join(""),
-        (mm) => mm.querySelectorAll("[data-bhav]").forEach((x) => x.onclick = () => { closeMenu(); if (setAtt(c, si, d, x.dataset.bhav)) { if (st.sh && st.sh.si === si) st.tmp = null; paint(); } })); });
+    box.querySelectorAll("[data-bhat]").forEach((b) => b.onclick = (e) => { const si = +b.dataset.bhat; attMenu(e.currentTarget, c, si, d, () => { if (st.sh && st.sh.si === si) st.tmp = null; paint(); }); });
     box.querySelectorAll("[data-bhg]").forEach((b) => b.onclick = () => { const [si, sl] = b.dataset.bhg.split("|").map(Number); saveIz(); open0(c, d, si, sl, false); });
     box.querySelectorAll("[data-bhfj]").forEach((b) => b.onclick = () => { saveIz(); open0(c, d, +b.dataset.bhfj, null, st.seq); });
     const fk = box.querySelector("#bh-fk");
     if (fk) {
       bindSheet(fk);
-      const cb = box.querySelector(".bh-strip .cur"); if (cb && cb.scrollIntoView) { const sx = cb.parentElement; sx.scrollLeft = Math.max(0, cb.offsetLeft - sx.clientWidth / 2); }
       let x0 = null, y0 = 0;
       fk.onpointerdown = (e) => { if (e.pointerType === "mouse") return; x0 = e.clientX; y0 = e.clientY; };
       fk.onpointerup = (e) => { if (x0 == null) return; const dx = e.clientX - x0, dy = Math.abs(e.clientY - y0); x0 = null; if (Math.abs(dx) > 60 && dy < 50) go(dx < 0 ? 1 : -1); };
@@ -531,6 +538,6 @@ const BHL = (() => {
     } else delete w.kdf;
   }
 
-  return {METH, DEF_T, types, ltOf, tplName, tplOf, descs, slotOf, gradeOf, write, setAtt, main, bind, side, leave, clean, cleanCls, cleanWeb, state: st,
+  return {METH, DEF_T, types, ltOf, tplName, tplOf, descs, slotOf, gradeOf, write, setAtt, main, bind, side, leave, pill, attMenu, clean, cleanCls, cleanWeb, state: st,
     view: () => st.v};
 })();
