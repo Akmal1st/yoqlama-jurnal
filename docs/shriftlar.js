@@ -22,5 +22,15 @@ const SHR = (() => {
   const byName = (n) => L.find((x) => x[1] === n);
   // CSS shrift nomi → PDF kalit boshi ("lb", "tn", …) yoki null
   const pdfKey = (fam) => { const f = String(fam || "").split(",")[0].replace(/["']/g, "").replace(/^\s*BV\s+/i, "").trim().toLowerCase(); const r = L.find((x) => x[1].toLowerCase() === f); return r ? r[0] : null; };
-  return {L, css, bv, byName, pdfKey};
+  // chop etish oynalari (umumiy eksport, kriterial): tanlangan shrift varaqqa bitta <style> qoidasi bilan ulanadi
+  const row = (k) => L.find((x) => x[0] === k);
+  function rule(id, sel, k) {
+    let el = document.getElementById(id); if (!el) { el = document.createElement("style"); el.id = id; document.head.append(el); }
+    const r = row(k); el.textContent = r ? `${sel}{font-family:${css(r[1])}!important}${sel} :is(h1,h2,h3,b,strong,th){font-weight:700}` : "";
+  }
+  // shrift fayllari yuklanmaguncha varaq o'lchanmasin / chop etilmasin
+  const ready = (k) => { const r = row(k); return r ? Promise.all(["400", "700", "italic 400"].map((w) => document.fonts.load(`${w} 12px "${r[1]}"`, "Oʻo Жж"))).catch(() => {}) : Promise.resolve(); };
+  // <select> uchun variantlar: birinchisi — oynaning o'z shrifti
+  const options = (cur, first) => `<option value="">${first}</option><optgroup label="Kitobiy shriftlar">${L.map((r) => `<option value="${r[0]}" ${cur === r[0] ? "selected" : ""}>${r[1]} — ${r[3]}</option>`).join("")}</optgroup>`;
+  return {L, css, bv, byName, pdfKey, row, rule, ready, options};
 })();
