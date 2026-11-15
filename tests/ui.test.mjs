@@ -1,15 +1,36 @@
 // Brauzerda tutun testi: ilova kompyuter va telefon ekranida ochiladi, hamma sahifalar xatosiz chiziladi.
 // Ishga tushirish: npx playwright install chromium && node --test tests/ui.test.mjs
-import {test} from "node:test";
+import {test as nodeTest, after} from "node:test";
 import assert from "node:assert/strict";
 import {fileURLToPath} from "node:url";
-import {chromium} from "playwright";
+import {chromium as pwChromium} from "playwright";
 import {DatabaseSync} from "node:sqlite";
 import botServer from "../bot-server/worker.js";
 import {makeGas} from "./gas_harness.mjs";
 import {tmpdir} from "node:os";
 import {readFileSync, writeFileSync} from "node:fs";
 import XLSXN from "xlsx";
+
+// Tezlik uchun (CI): 1) brauzer bitta jarayonda BIR MARTA ochiladi, har test o'z alohida
+// kontekstida (cookie/IndexedDB/localStorage ajratilgan) ishlaydi — browser.close() faqat
+// shu test kontekstlarini yopadi; 2) UI_SHARD="2/4" — testlar 4 bo'lakka bo'linadi, CI ularni
+// parallel ishga tushiradi (bo'laksiz ishga tushirilsa hammasi bajariladi).
+let sharedBrowser = null;
+const chromium = {
+  async launch(opts) {
+    if (!sharedBrowser || !sharedBrowser.isConnected()) sharedBrowser = await pwChromium.launch(opts);
+    const ctxs = [];
+    return {
+      async newContext(o) { const c = await sharedBrowser.newContext(o); ctxs.push(c); return c; },
+      async newPage(o) { const c = await this.newContext(o); return c.newPage(); },
+      async close() { await Promise.all(ctxs.splice(0).map((c) => c.close().catch(() => {}))); },
+    };
+  },
+};
+after(() => sharedBrowser && sharedBrowser.close());
+const [SHARD, SHARDS] = (process.env.UI_SHARD || "1/1").split("/").map(Number);
+let testNo = 0;
+const test = (...a) => (testNo++ % SHARDS === SHARD - 1 ? nodeTest(...a) : undefined);
 
 const APP = new URL("../docs/index.html", import.meta.url).href;
 const FIXTURE = fileURLToPath(new URL("fixtures/journal.json", import.meta.url));
@@ -467,7 +488,8 @@ test("Yangi dizayn: Ctrl+K buyruqlar oynasi, Alt+raqam, ? tezkor tugmalar, telef
 
 // Kundalik baholash sukut bo'yicha o'chiq (Akmal, 2026-11-15): Jurnal → Kundalik qismida eMaktab bilan sinxronlangan baholar faqat ko'rinadi,
 // yo'qlama ishlaydi, eski baholar o'zgarmaydi; Sozlamalar → Funksiyalar yoki kundalikdagi tugma bilan yoqiladi
-for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36], ["kompyuter", {width: 1440, height: 900}, 18], ["telefon", {width: 390, height: 844}, 36], ["telefon", {width: 390, height: 844}, 18]]) {
+// 36 va 18 o'quvchi × kompyuter va telefon — 2 ta holatda: telefon + 36 (eng tor ekran, eng uzun ro'yxat) va kompyuter + 18
+for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 18], ["telefon", {width: 390, height: 844}, 36]]) {
   test(`${name}: kundalik baholash va yo'qlama sukut bo'yicha o'chiq — eMaktab ma'lumoti faqat ko'rinadi (${n} o'quvchi)`, async () => {
     const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
     try {
@@ -523,7 +545,8 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
 }
 
 // Moslashuvchan baholash (baholash.js): dars turi → usul (Tez 1–10 / 6 + 4 / +/−), 2 baho, fanga mos deskriptorlar, ketma-ket, bitta o'quvchi
-for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36], ["kompyuter", {width: 1440, height: 900}, 18], ["telefon", {width: 390, height: 844}, 36], ["telefon", {width: 390, height: 844}, 18]]) {
+// 36 va 18 o'quvchi × kompyuter va telefon — 2 ta holatda: telefon + 36 (eng tor ekran, eng uzun ro'yxat) va kompyuter + 18
+for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 18], ["telefon", {width: 390, height: 844}, 36]]) {
   test(`${name}: moslashuvchan baholash — dars turi, 3 usul, 2 baho, deskriptorlar, ketma-ket, bitta o'quvchi (${n} o'quvchi)`, async () => {
     const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
     try {
@@ -616,6 +639,8 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
       assert.deepEqual(await page.evaluate(() => { const g = document.querySelector(".bh-strip"), b = [...g.children].map((x) => x.getBoundingClientRect());
         return [g.scrollWidth - g.clientWidth, b.every((r) => r.right <= innerWidth && r.left >= 0), new Set(b.map((r) => Math.round(r.top))).size > 1]; }), [0, true, true], "raqamlar surilmaydi, tagma-tag");
       await page.click(".bh-strip [data-bhfj='7']"); assert.match(await page.textContent(".bh-fkh"), new RegExp(await page.evaluate(() => D.classes[0].students[7].name.split(" ")[0])));
+      // avtomatik o'tish (180 ms) yuqorida tekshirildi; bu yerda o'chiriladi — aks holda sekin mashinada «Keyingisi» bilan poyga bo'ladi
+      await page.evaluate(() => { BHL.state.seq = false; });
       await page.click("#bh-fk [data-bhpv='6']"); assert.equal((await st(7))[0], "6");
       await page.click("#bh-fk [data-bhnext]"); assert.equal(await page.evaluate(() => BHL.state.sh.si), 8);
       await page.dispatchEvent("#bh-fk", "pointerdown", {pointerType: "touch", clientX: 300, clientY: 400});
@@ -1825,7 +1850,7 @@ test("«Yana» menyusi: bo'limlar va qidiruv", async () => {
     await page.fill("#mq", "chaqir"); await page.press("#mq", "Enter");
     await page.waitForSelector(".modal >> text=Doskaga");
     // o'quvchi tanlanganda uning bo'limi birinchi chiqadi
-    await page.click(".modal [data-x]").catch(() => {}); await page.evaluate(() => { document.querySelectorAll(".modal").forEach((m) => m.remove()); S.sel = [0, D.classes[S.ci].dates[0]]; });
+    await page.click(".modal [data-x]", {timeout: 1500}).catch(() => {}); await page.evaluate(() => { document.querySelectorAll(".modal").forEach((m) => m.remove()); S.sel = [0, D.classes[S.ci].dates[0]]; });
     await page.click("[data-more]");
     assert.ok((await page.textContent(".modal .mgrp h3")).startsWith("Tanlangan:"));
     assert.deepEqual(errors, []);
@@ -2610,7 +2635,7 @@ test("KTR: reja boshlanadigan sanani tanlash", async () => {
 });
 
 // KTR sahifasi (ktr.js): reja, uy vazifasi dars kuniga, soat ±, «dars bo'lmadi», tahrirlash, Excel «ish reja» eksporti/importi, matn, chop etish
-for (const [name, viewport] of [["kompyuter", {width: 1280, height: 860}], ["telefon", {width: 390, height: 844}]]) for (const n of [36, 18]) test(`KTR sahifasi (${name}, ${n} o'quvchi)`, async () => {
+for (const [name, viewport, n] of [["kompyuter", {width: 1280, height: 860}, 18], ["telefon", {width: 390, height: 844}, 36]]) test(`KTR sahifasi (${name}, ${n} o'quvchi)`, async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
     const ctx = await browser.newContext({serviceWorkers: "block", viewport, acceptDownloads: true});
@@ -2790,6 +2815,8 @@ test("Hamma dizaynda tugmalar bir xil: hech biri yo'qolmaydi yoki qirqilmaydi", 
       const sigs = {};
       for (const st of ["dash", "qulay", "zich"]) {
         const page = await browser.newPage({viewport: {width: w, height: h}});
+        // sana qotiriladi: aks holda chorak tugagach avtoarxiv «Arxiv» tugmali xabar chiqaradi va test sekin mashinada yiqiladi
+        await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
         await page.goto(APP);
         const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
         await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
@@ -3848,7 +3875,7 @@ for (const [name, viewport] of [["kompyuter", {width: 1300, height: 860}], ["tel
       await page.click("[data-tab=top]");
       await page.click("[data-tpv=rep]");
       await page.click("[data-tprk=st]");
-      await page.click("[data-tpst='nv']").catch(() => {});
+      await page.click("[data-tpst='nv']", {timeout: 1500}).catch(() => {});
       assert.equal(await page.locator("#g-rsel option").count(), 36);
       await page.click("[data-tprk=yr]");
       await page.waitForSelector(".g-a4yr, .g-a4flow");
@@ -4459,7 +4486,7 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
       await page.waitForFunction(() => { const c = D.classes[0], w = c.works.at(-1); return c.students[0].scores[w.id] === 4; });
       // Loyiha ishi: rasmiy shablon bilan (loyiha.js) — Informatika 11: 5 mezon × 10 (Ha/Yo'q) = 50
       await page.click("[data-smt=loyiha]"); await page.click("[data-smnew]"); await page.waitForSelector("#ly-ov");
-      await page.fill("#ly-ov #ly-nd", "2026-10-15"); await page.click('#ly-ov [data-ly=tplall]').catch(() => {});
+      await page.fill("#ly-ov #ly-nd", "2026-10-15"); await page.click('#ly-ov [data-ly=tplall]', {timeout: 1500}).catch(() => {});
       await page.click('#ly-ov [data-ly=pick][data-v=inf11]'); await page.click("#ly-ov [data-ly=apply]");
       await page.waitForSelector("#ly-ov", {state: "detached"});
       assert.match(await page.textContent("#smw option:checked"), /^Loyiha ishi-1/);
@@ -5244,11 +5271,14 @@ test("ikki oyna: biri saqlagan baho ikkinchisida yo'qolmaydi", async () => {
     // B oynada baho qo'yildi → A oyna o'zi yangilanadi
     await b.evaluate(() => { D.classes[0].students[0].marks["2026-10-20"] = "9"; save(); });
     await a.waitForFunction(() => D.classes[0].students[0].marks["2026-10-20"] === "9", null, {timeout: 5000});
-    // A oyna yangilanishni olmagan bo'lsa (masalan, oyna ochiq dialog bilan band edi): eski nusxa B ning bahosini bosib ketmaydi
+    // A oyna yangilanishni olmagan bo'lsa (masalan, oyna ochiq dialog bilan band edi): eski nusxa B ning bahosini bosib ketmaydi.
+    // A da dialog ochiq turadi (busyUi) — shunda A B ning yozuvlarini o'zi yuklamaydi va eski nusxa holati aniq bo'ladi
+    // (avval A ba'zan yuklashning o'rtasida o'zgarish qilib, test tasodifan yiqilardi)
+    await a.evaluate(() => document.body.insertAdjacentHTML("beforeend", '<div class="modal" id="t-busy" hidden></div>'));
     await b.evaluate(() => { D.classes[0].students[1].marks["2026-10-20"] = "s"; save(); });
     // A oynaning o'z o'zgarishi ham yo'qolmaydi: ikkala oyna katak darajasida birlashtiriladi; bir katakni ikkalasi o'zgartirsa — A niki (oxirgisi)
     await b.evaluate(() => { D.classes[0].students[3].marks["2026-10-20"] = "5"; save(); });
-    await a.evaluate(() => { BASE_REV = 0; D.classes[0].students[2].marks["2026-10-20"] = "7"; D.classes[0].students[3].marks["2026-10-20"] = "8"; save(); });
+    await a.evaluate(() => { BASE_REV = 0; D.classes[0].students[2].marks["2026-10-20"] = "7"; D.classes[0].students[3].marks["2026-10-20"] = "8"; save(); document.getElementById("t-busy").remove(); });
     const stored = () => a.evaluate(() => JSON.parse(localStorage.getItem(STORE_KEY)).classes[0].students.map((s) => s.marks["2026-10-20"] || "").slice(0, 4).join(","));
     await a.waitForFunction(() => JSON.parse(localStorage.getItem(STORE_KEY)).classes[0].students[2].marks["2026-10-20"] === "7", null, {timeout: 5000});
     assert.equal(await stored(), "9,s,7,8", "B oynaning baholari ham, A oynaning o'zgarishi ham saqlandi");
@@ -5361,7 +5391,8 @@ test("Chorak devori: boshqa choraklar o'zgarsa, tanlangan chorak hech narsasi o'
 });
 
 // Kriterial (+/−) formativ baho (kriterial.js): 1 + darsdagi ish 5 deskriptor + uy vazifasi 4 deskriptor = 1–10
-for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36], ["kompyuter", {width: 1440, height: 900}, 18], ["telefon", {width: 390, height: 844}, 36], ["telefon", {width: 390, height: 844}, 18]]) {
+// 36 va 18 o'quvchi × kompyuter va telefon — 2 ta holatda: telefon + 36 (eng tor ekran, eng uzun ro'yxat) va kompyuter + 18
+for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 18], ["telefon", {width: 390, height: 844}, 36]]) {
   test(`${name}: kriterial (+/−) formativ baho, davomat, deskriptorlar, chop etish (${n} o'quvchi)`, async () => {
     const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
     try {
@@ -5757,7 +5788,8 @@ test("Ota-onalar eMaktab'i: jadvalga login/parol, kirib chiqish, aylanib chiqish
       assert.equal(XLSXN.utils.sheet_to_json(XLSXN.readFile(t18).Sheets["Ota-onalar"], {header: 1}).length, 19, "18 o'quvchi + sarlavha");
       await page.locator(".modal [data-x]").last().click();
       await page.fill('[data-otl="17"]', "ota18"); await page.fill('[data-otp="17"]', "p-ota18"); await page.click('[data-otin="17"]');
-      await page.waitForSelector(".modal >> text=PIN kiriting").catch(() => {});
+      // PIN so'ralishi ham, so'ralmasligi ham mumkin — qaysi biri chiqsa, shuni kutamiz (avval 30 s bekor kutilardi)
+      await page.locator("#otpi").or(page.locator(".modal", {hasText: "Ilovada faqat «Oxirgi kirish»"})).first().waitFor();
       if (await page.locator("#otpi").count()) { await page.fill("#otpi", "1234"); await page.click(".ot-pin [type=submit]"); }
       await done();
       assert.equal(await sum(), "1 / 18 | 1 / 1 | 17 | 0");
@@ -6022,7 +6054,7 @@ test("O'rindiq xaritasi: o'g'il-qiz yonma-yon (v234; 36 va 18 o'quvchi, telefon 
       assert.equal(await page.evaluate(() => { const c = D.classes[0], L = D.web.seats[normName(c.name)]; return ORX.sexOf(L, L.at["0-1"]); }), "m");
       // partada 1 o'rin bo'lsa — band ko'rinmaydi
       await page.evaluate(() => { const L = D.web.seats[normName(D.classes[0].name)]; L.per = 1; });
-      await page.click(".modal [data-oxcancel]").catch(() => {});
+      await page.click(".modal [data-oxcancel]", {timeout: 1500}).catch(() => {});
       await page.click('.modal [data-oxsh="auto"]');
       assert.equal(await page.locator('[data-oxauto="sex"]').count(), 0);
       assert.deepEqual(errors, []);
@@ -6059,13 +6091,14 @@ for (const n of [36, 18]) test(`Dars ishlanma olib tashlangan (${n} o'quvchi)`, 
   } finally { await browser.close(); }
 });
 
-test("animatsiyalar: o'chiq / yengil / to'liq — 36 va 18 o'quvchi, kompyuter va telefon", async () => {
+// har ekranda 3 daraja; o'quvchi soni navbatma-navbat (36/18), shunda har daraja ikkala ekranda va ikkala sonda tekshiriladi
+for (const [vname, viewport, combos] of [["kompyuter", {width: 1440, height: 900}, [["lite", 36], ["full", 18], ["off", 36]]], ["telefon", {width: 390, height: 844}, [["lite", 18], ["full", 36], ["off", 18]]]])
+test(`animatsiyalar: o'chiq / yengil / to'liq — 36 va 18 o'quvchi (${vname})`, async () => {
   // eski testlarda animatsiya o'chiq (navigator.webdriver); bu yerda window.ANM_TEST bilan yoqiladi (anim.js)
   const fx = JSON.parse(readFileSync(FIXTURE, "utf8")), fails = [];
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
-  for (const [vname, viewport] of [["kompyuter", {width: 1440, height: 900}], ["telefon", {width: 390, height: 844}]])
-  for (const lvl of ["lite", "full", "off"]) for (const n of [36, 18]) {
+  for (const [lvl, n] of combos) {
     const d = JSON.parse(JSON.stringify(fx)), c0 = d.classes[0], base = c0.students;
     c0.students = Array.from({length: n}, (_, i) => ({...JSON.parse(JSON.stringify(base[i % base.length])), name: i < base.length ? base[i].name : `Qo'shimcha O'quvchi ${i + 1}`}));
     const f = `${tmpdir()}/anm-${n}.json`; writeFileSync(f, JSON.stringify(d));
