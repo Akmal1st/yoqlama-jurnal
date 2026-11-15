@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0c5d66">
+<meta name="theme-color" content="#0b6f79">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Jurnal">
@@ -13,18 +13,18 @@
 <title>Yo'qlama jurnali</title>
 <link rel="stylesheet" href="vendor/bootstrap-5.3.3.css?v=213">
 <link rel="stylesheet" href="vendor/bootstrap-icons-1.11.3.css?v=213">
-<link rel="stylesheet" href="app.css?v=254">
-<link rel="stylesheet" href="guruhlar.css?v=213">
+<link rel="stylesheet" href="app.css?v=255">
+<link rel="stylesheet" href="guruhlar.css?v=255">
 <link rel="stylesheet" href="tpt-mavzu.css?v=213">
-<link rel="stylesheet" href="tpt-tema.css?v=213">
+<link rel="stylesheet" href="tpt-tema.css?v=255">
 <link rel="stylesheet" href="dizayn.css?v=202">
 <link rel="stylesheet" href="tugmalar.css?v=213">
-<link rel="stylesheet" href="hisobotlar.css?v=250">
+<link rel="stylesheet" href="hisobotlar.css?v=255">
 <link rel="stylesheet" href="eksport.css?v=236">
 <link rel="stylesheet" href="bosh-varaq.css?v=247">
 <link rel="stylesheet" href="davomat.css?v=213">
 <link rel="stylesheet" href="bsb-eksport.css?v=213">
-<link rel="stylesheet" href="bugun.css?v=213">
+<link rel="stylesheet" href="bugun.css?v=255">
 <link rel="stylesheet" href="bajarish.css?v=213">
 <link rel="stylesheet" href="bugun-arxiv.css?v=213">
 <link rel="stylesheet" href="bugun-tatil.css?v=199">
@@ -39,13 +39,13 @@
 <link rel="stylesheet" href="arxiv.css?v=213">
 <link rel="stylesheet" href="arxiv-tekshir.css?v=213">
 <link rel="stylesheet" href="ikon.css?v=213">
-<link rel="stylesheet" href="emk-bir.css?v=197">
+<link rel="stylesheet" href="emk-bir.css?v=255">
 <link rel="stylesheet" href="boshlash.css?v=213">
 <link rel="stylesheet" href="alifbo.css?v=213">
 <link rel="stylesheet" href="taxminiy.css?v=193">
 <link rel="stylesheet" href="summativ.css?v=218">
 <link rel="stylesheet" href="loyiha.css?v=205">
-<link rel="stylesheet" href="funksiyalar.css?v=213">
+<link rel="stylesheet" href="funksiyalar.css?v=255">
 <link rel="stylesheet" href="kalit.css?v=213">
 <link rel="stylesheet" href="yangilik.css?v=206">
 <link rel="stylesheet" href="ota-emk.css?v=228">
@@ -65,10 +65,10 @@
 <script src="guruhlar.js?v=213"></script>
 <script src="tugmalar.js?v=213"></script>
 <script src="shriftlar.js?v=248"></script>
-<script src="dizayn.js?v=247"></script>
+<script src="dizayn.js?v=255"></script>
 <script src="anim.js?v=243"></script>
 <script src="eksport.js?v=248"></script>
-<script src="hisobotlar.js?v=236"></script>
+<script src="hisobotlar.js?v=255"></script>
 <script src="hisobot-eksport.js?v=237"></script>
 <script src="bosh-varaq.js?v=247"></script>
 <script src="davomat.js?v=221"></script>
@@ -464,7 +464,9 @@ function gradeColor(v) { let c = null; for (const r of ranges()) if (v >= r.min)
 const ranges = () => D.settings.ranges.slice().sort((a, b) => a.min - b.min);
 function contrast(hex) {
   const n = parseInt(hex.slice(1), 16); const r = n >> 16, g = (n >> 8) & 255, b = n & 255;
-  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? "#12303a" : "#ffffff";
+  // WCAG bo'yicha: oq yoki to'q yozuvdan qaysi biri fonda aniqroq ko'rinsa (masalan KQ jigarrang katakda to'q yozuv)
+  const L = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }, bg = 0.2126 * L(r) + 0.7152 * L(g) + 0.0722 * L(b);
+  return (bg + 0.05) / (0.0262 + 0.05) >= 1.05 / (bg + 0.05) ? "#12303a" : "#ffffff";
 }
 function markColors(m) {
   if (!m) return null; const gs = gradesOf(m);
@@ -1518,7 +1520,7 @@ function renderNav() {
   // tartib va yashirilganlar — Sozlamalar → Dizayn → Tugmalar
   const one = Object.fromEntries(NAV.map(([k, t]) => [k, `<button class="nav ${cur === k ? "on" : ""}" data-go="${k}" title="${t}">${ICONS[k]}<span class="lbl">${t}</span></button>`]));
   const navs = DZN.navList().map((k) => k === "help" ? hb : one[k] || "").join("");
-  $("#side").innerHTML = `<div class="logo"><b>Y</b><span>Yo'qlama jurnali<small>web</small></span></div><button class="btn btn-sm cmdb" data-cmdk title="Qidirish va buyruqlar (Ctrl+K)">🔍<span class="lbl">Qidirish</span><kbd>Ctrl K</kbd></button>${navs}${sideView()}<div class="grow"></div>
+  $("#side").innerHTML = `<div class="logo"><b class="lg-ic"><img src="icon.svg" alt="" width="36" height="36"></b><span>Yo'qlama jurnali<small>web</small></span></div><button class="btn btn-sm cmdb" data-cmdk title="Qidirish va buyruqlar (Ctrl+K)">🔍<span class="lbl">Qidirish</span><kbd>Ctrl K</kbd></button>${navs}${sideView()}<div class="grow"></div>
     <div class="sbot">${ALF.chip(sideMin())}<button class="btn btn-sm sidet" data-sidet title="${sideMin() ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}" aria-label="${sideMin() ? "Yon panelni kengaytirish" : "Yon panelni kichraytirish"}">${sideMin() ? "»" : "« Yig'ish"}</button>
     <button class="btn btn-sm" data-lock title="Qo'yilgan baholar himoyasi: ${lockTxt.slice(2)}">${sideMin() ? lockTxt.slice(0, 2) : lockTxt}</button></div>`;
   $("#tabbar").innerHTML = navs;
@@ -1885,14 +1887,14 @@ function todayCard(c) {
 }
 // kompyuterda jurnal bitta ekranga sig'adi: qatorlar balandligi va ustunlar eni ekranga moslanadi (sahifa surilmaydi)
 let FITM = null;
-const FIT_MAX = 20, FIT_MAX_FULL = 30, FIT_MIN_ROW = 26;   // sig'dirishda qator balandligi FIT_MIN_ROW dan kichraymaydi
+const FIT_MAX = 20, FIT_MAX_FULL = 30, FIT_MIN_ROW = 26, FIT_MAX_CW = 64;   // sig'dirishda qator balandligi FIT_MIN_ROW dan kichraymaydi
 function fitJournal(m) {
   FITM = m; const tw = $("#tw", m); if (!tw) return;
-  tw.classList.remove("fit", "noft"); tw.style.height = tw.style.maxHeight = ""; { const tb0 = tw.querySelector("table.j"); if (tb0) tb0.style.width = ""; } tw.style.removeProperty("--rh"); tw.style.removeProperty("--cw");
+  tw.classList.remove("fit", "noft", "wide"); tw.style.height = tw.style.maxHeight = tw.style.width = ""; { const tb0 = tw.querySelector("table.j"); if (tb0) tb0.style.width = ""; } tw.style.removeProperty("--rh"); tw.style.removeProperty("--cw");
   if (!matchMedia("(min-width:821px)").matches) return;
   const body = [...tw.querySelectorAll("table.j tr")].filter((r) => r.querySelector("td.nm") && !r.classList.contains("ft")), n = body.length; if (!n) return;
   // o'quvchi ko'p bo'lsa jadval juda kichrayib ketmasin: 20 tagacha (to'liq ekran rejimida 30 tagacha) sig'diriladi, undan ko'pida oddiy o'lcham
-  if (n > (S.jonly ? FIT_MAX_FULL : FIT_MAX)) return;
+  if (n > (S.jonly ? FIT_MAX_FULL : FIT_MAX)) { widenJournal(tw); return; }
   tw.classList.add("fit"); tw.style.maxHeight = "none";
   const sp = 2, kids = [...m.firstElementChild.children], card = $(".tdcard", m); if (card) card.style.display = "";
   const calc = () => {
@@ -1908,8 +1910,10 @@ function fitJournal(m) {
   tw.style.setProperty("--rh", rh + "px");
   // ustun eni cho'zilmaydi: odatdagi o'lchamda qoladi, faqat joy yetmasa torayadi
   const nd = tw.querySelectorAll("th.d").length, tb = tw.querySelector("table.j"), free = tw.clientWidth - 12 - 190 - 2 * 54;
-  const cw = nd ? Math.max(22, Math.min(Math.floor(free / nd) - 2, Math.max(40, Math.round(rh * 1.25)))) : 40;
+  // ustunlar bo'sh joyga qarab kengayadi (FIT_MAX_CW gacha) — jadval kartaning kichik bir burchagida qolib ketmasin
+  const cw = nd ? Math.max(22, Math.min(Math.floor(free / nd) - 2, FIT_MAX_CW)) : 40;
   tw.style.setProperty("--cw", cw + "px"); tb.style.width = 190 + 2 * 54 + nd * (cw + 2) + "px";
+  if (tb.offsetWidth + 14 < tw.clientWidth) tw.style.width = "fit-content";
   // sahifa baribir ekrandan oshsa (chekka, padding) — qatorlarni yana bir oz qisqartiramiz
   for (let k = 0; k < 3; k++) { const over = document.documentElement.scrollHeight - innerHeight; if (over <= 0 || rh <= FIT_MIN_ROW) break; rh = Math.max(FIT_MIN_ROW, rh - Math.ceil(over / n)); tw.style.setProperty("--rh", rh + "px"); }
   // qolgan bo'sh joy bo'lsa — qatorlarni yana biroz balandlatamiz
@@ -1917,6 +1921,14 @@ function fitJournal(m) {
   // jami balandlik ekrandan oshsa — jadval ichida surish (juda ko'p o'quvchi bo'lsa)
   const need = tw.scrollHeight; tw.style.height = need > avail ? Math.max(120, avail) + "px" : "";
   const over = document.documentElement.scrollHeight - innerHeight; if (over > 0 && tw.style.height) tw.style.height = Math.max(120, parseFloat(tw.style.height) - over) + "px";
+}
+// ko'p o'quvchili (sig'dirilmaydigan) jadval: sana ustunlari bo'sh enni to'ldiradi (FIT_MAX_CW gacha), baribir tor qolsa karta jadvalga moslashadi
+function widenJournal(tw) {
+  const tb = tw.querySelector("table.j"), ths = tw.querySelectorAll("th.d"), nd = ths.length; if (!tb || !nd || document.body.classList.contains("dense")) return;
+  const free = tw.clientWidth - 16 - tb.offsetWidth; if (free <= 0) return;
+  const cur = ths[0].offsetWidth, cw = Math.min(FIT_MAX_CW, cur + Math.floor(free / nd));
+  if (cw > cur) { tw.classList.add("wide"); tw.style.setProperty("--cw", cw + "px"); }
+  if (tb.offsetWidth + 18 < tw.clientWidth) tw.style.width = "fit-content";
 }
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.jonly && document.body.classList.contains("jonly") && !document.querySelector(".modal")) { S.jonly = false; render(); } });
 window.addEventListener("resize", () => { clearTimeout(fitJournal.t); fitJournal.t = setTimeout(() => { if (FITM && document.body.contains(FITM) && $("#tw", FITM)) fitJournal(FITM); }, 120); });

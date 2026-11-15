@@ -22,7 +22,7 @@
 .fn-flt{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
 .fn-flt button{border:1px solid var(--line);background:var(--base);padding:6px 12px;border-radius:999px;font-weight:700;font-size:12.5px;white-space:nowrap;color:var(--muted)}
 .fn-flt button.on{border-color:var(--acc);color:var(--acc-t,var(--acc));background:var(--acc-soft)}
-.fn-flt button em{font-style:normal;opacity:.75;margin-left:4px;font-variant-numeric:tabular-nums}
+.fn-flt button em{font-style:normal;margin-left:4px;font-variant-numeric:tabular-nums}
 /* guruhlar */
 .fn-g{gap:0}
 .fn-gh{display:flex;align-items:center;gap:8px;margin:0 2px 7px}

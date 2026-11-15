@@ -3,9 +3,9 @@
    olib tashlash uchun index.html dagi TPT_ALL ni false qiling (yoki shu fayl ulanishini o'chiring).
    Ranglar guruhlar.css dagi --g-* bilan bir xil; Manrope shrifti guruhlar.css da ulangan. */
 html.tpt-all{
-  --win:#f3f5f9;--base:#ffffff;--alt:#f7f8fb;--soft:#eef1f6;--line:#e3e7ee;--text:#141b2d;--muted:#667085;
-  --acc:#0d8a87;--acc-d:#0a706e;--acc-fg:#ffffff;--acc-soft:#e3f4f3;--today:#e9a23b;--today-cell:#fef3e2;--danger:#d1393a;--ok:#12805c;
-  --side-bg:#ffffff;--side-fg:#141b2d;--side-mut:#667085;
+  --win:#f3f5f9;--base:#ffffff;--alt:#f7f8fb;--soft:#eef1f6;--line:#e3e7ee;--text:#141b2d;--muted:#5f6b7f;
+  --acc:#0a7c79;--acc-d:#0a706e;--acc-fg:#ffffff;--acc-soft:#e3f4f3;--today:#e9a23b;--today-cell:#fef3e2;--danger:#c42f30;--ok:#0f7a57;
+  --side-bg:#ffffff;--side-fg:#141b2d;--side-mut:#5f6b7f;
   --sh:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);--sh-lg:0 12px 32px -8px rgba(16,24,40,.18),0 4px 8px -4px rgba(16,24,40,.06);
   --r:14px;--tpt-f:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 }
