@@ -130,3 +130,7 @@
 .kc-cdt>div>b{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em}
 .kc-cdp{font-size:10.5px;line-height:1.45;border-left:3px solid var(--ac);padding:2px 0 2px 8px;color:#222}
 .kc-cdf{margin-top:auto;display:flex;justify-content:space-between;font-size:10.5px}
+/* shrift tanlovi (shriftlar.js, 2026-11-15) */
+.kc-ffl{display:flex;align-items:center;gap:8px;margin:8px 0 0}
+.kc-ffl span{font-size:12.5px;font-weight:700;color:var(--muted);white-space:nowrap}
+.kc-ffl select{flex:1;min-width:0;width:auto}

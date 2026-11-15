@@ -18,15 +18,20 @@ const KCH = (() => {
   const HDR = () => (D.web && D.web.bsb_hdr) || {};
 
   // ── sozlamalar (qurilmada)
-  const DEF = {doc: "day", col: "c", ord: "l", ori: "l", cw: "all", bn: 1, bd: 0, bf: 1, bk: "cls", tpl: 0, t: null, ch: {leg: 1, st: 1, sch: 1, sg: 1, pt: 1}};
+  const DEF = {doc: "day", col: "c", ord: "l", ori: "l", cw: "all", bn: 1, bd: 0, bf: 1, bk: "cls", tpl: 0, t: null, ff: "", ch: {leg: 1, st: 1, sch: 1, sg: 1, pt: 1}};
+  // dastur ichidagi kitobiy shriftlar (shriftlar.js, 2026-11-15): "" — Manrope
+  const HAS_SHR = typeof SHR !== "undefined";
+  const ffApply = (O) => { if (HAS_SHR) SHR.rule("kc-ff-css", ".bx-pg.kc-pg.kc-ff", O.ff); };
+  const ffReady = (O) => HAS_SHR ? SHR.ready(O.ff) : Promise.resolve();
   function load() {
     let o = {}; try { o = JSON.parse(localStorage.getItem(LS) || "{}") || {}; } catch (e) { o = {}; }
     const s = Object.assign({}, DEF, o); s.ch = Object.assign({}, DEF.ch, o.ch || {});
     if (!["day", "blank", "q", "card"].includes(s.doc)) s.doc = "day";
     s.bn = Math.max(1, Math.min(5, +s.bn || 1));
+    if (!HAS_SHR || !SHR.row(s.ff)) s.ff = "";
     return s;
   }
-  function keep(O) { try { const {doc, col, ord, ori, cw, bn, bd, bf, bk, tpl, t, ch} = O; localStorage.setItem(LS, JSON.stringify({doc, col, ord, ori, cw, bn, bd, bf, bk, tpl, t, ch})); } catch (e) { /* xotira yopiq */ } }
+  function keep(O) { try { const {doc, col, ord, ori, cw, bn, bd, bf, bk, tpl, t, ff, ch} = O; localStorage.setItem(LS, JSON.stringify({doc, col, ord, ori, cw, bn, bd, bf, bk, tpl, t, ff, ch})); } catch (e) { /* xotira yopiq */ } }
 
   // ── bitta o'quvchi, bitta dars: {a} kelmagan | {o, og} boshqa usul | {i} kriterial; null — guruhga hali qo'shilmagan
   function ent(c, s, d) {
@@ -78,7 +83,7 @@ const KCH = (() => {
   }
   const teacher = () => X.O.t != null ? X.O.t : HDR().teacher || "";
   const sign = (anon) => X.O.ch.sg ? `<span class="kc-sg">O'qituvchi: ${!anon && teacher() ? `<b>${esc(teacher())}</b>` : "_______________"} &nbsp; Imzo: ____________</span>` : "";
-  const cls = (P) => `bx-pg kc-pg ${P ? "kc-por" : "bx-land"} ${X.O.col === "bw" ? "kc-bw" : ""}`;
+  const cls = (P) => `bx-pg kc-pg ${P ? "kc-por" : "bx-land"} ${X.O.col === "bw" ? "kc-bw" : ""}${X.O.ff ? " kc-ff" : ""}`;
   const pbot = (txt, pi, pn) => `<div class="kc-pbot"><span>Yo'qlama jurnali · ${txt}</span><span>${pi} / ${pn}</span></div>`;
 
   // 1. dars varaqasi va bo'sh varaq
@@ -269,7 +274,7 @@ const KCH = (() => {
           <div class="kc-ed"></div><p class="kc-hint kc-warn" hidden></p><p class="kc-hint kc-bkh"></p></div>
         <div class="kc-sec" data-for="q card"><span class="kc-lb">Chorak</span>${seg("kcq", qs.map((q) => [q, q + "-chorak"]), O.q)}</div>
         <div class="kc-sec" data-for="card"><span class="kc-lb">Kimlar uchun</span>${seg("kccw", [["all", "Hammasi"], ["att", "E'tibor kerak"]], O.cw)}<p class="kc-hint kc-cwh"></p></div>
-        <div class="kc-sec"><span class="kc-lb">Ko'rinish</span><div class="kc-row">${seg("kccol", [["c", "Rangli"], ["bw", "Oq-qora"]], O.col)}<span data-for="day blank q">${seg("kcori", [["l", "Albom"], ["p", "Tik"]], O.ori)}</span><span data-for="day q">${seg("kcord", [["l", "Ro'yxat"], ["g", "Baho ↓"]], O.ord)}</span></div></div>
+        <div class="kc-sec"><span class="kc-lb">Ko'rinish</span><div class="kc-row">${seg("kccol", [["c", "Rangli"], ["bw", "Oq-qora"]], O.col)}<span data-for="day blank q">${seg("kcori", [["l", "Albom"], ["p", "Tik"]], O.ori)}</span><span data-for="day q">${seg("kcord", [["l", "Ro'yxat"], ["g", "Baho ↓"]], O.ord)}</span></div>${HAS_SHR ? `<label class="kc-ffl"><span>Shrift</span><select class="form-select kc-ffsel" aria-label="Shrift">${SHR.options(O.ff, "Manrope (oddiy)")}</select></label>` : ""}</div>
         <div class="kc-sec"><span class="kc-lb">Varaqda</span><div class="kc-chips">${CH.map(([k, t, f]) => `<button type="button" class="kc-chip ${O.ch[k] ? "on" : ""}" data-kcch="${k}" ${f ? `data-for="${f}"` : ""}>${t}</button>`).join("")}</div>${HDR().school ? "" : `<p class="kc-hint">Maktab nomi BSB eksport sozlamalaridan olinadi (hozir bo'sh).</p>`}</div>
         <div class="kc-sec"><label class="kc-lb" for="kc-t">O'qituvchi (imzo qatorida)</label><input type="text" class="form-control" id="kc-t" maxlength="60" value="${esc(O.t != null ? O.t : HDR().teacher || "")}" placeholder="Familiya I."></div>
         <div class="kc-sec"><label class="kc-lb" for="kc-cap">Telegram izohi</label><textarea class="form-control kc-cap" id="kc-cap" rows="4"></textarea><p class="kc-hint">PDF bilan birga boradi. Xulosa o'zi yoziladi, xohlasangiz o'zgartiring.</p></div>
@@ -322,11 +327,13 @@ const KCH = (() => {
         else if (s.kcord) { O.ord = s.kcord; sel("kcord", O.ord); }
         else if (s.kcch) { O.ch[s.kcch] = O.ch[s.kcch] ? 0 : 1; b.classList.toggle("on", !!O.ch[s.kcch]); }
         else if (s.kcz) { z = s.kcz; sel("kcz", z); }
-        else if ("kcpr" in s) { if (P.length) doPrint(P, O.doc !== "card" && O.ori !== "p", fileOf(c, d, O)); return; }
-        else if ("kctg" in s) { if (P.length) { const pg = P.slice(), land = O.doc !== "card" && O.ori !== "p"; PTG.run(() => PTG.pagesPdf(pg, land), fileOf(c, d, O), $m(".kc-cap").value, b); } return; }
+        else if ("kcpr" in s) { if (P.length) { const pg = P.slice(); ffApply(O); ffReady(O).then(() => doPrint(pg, O.doc !== "card" && O.ori !== "p", fileOf(c, d, O))); } return; }
+        else if ("kctg" in s) { if (P.length) { const pg = P.slice(), land = O.doc !== "card" && O.ori !== "p"; PTG.run(() => { ffApply(O); return ffReady(O).then(() => PTG.pagesPdf(pg, land)); }, fileOf(c, d, O), $m(".kc-cap").value, b); } return; }
         else return;
         draw();
       });
+      const ffs = $m(".kc-ffsel"); if (ffs) ffs.onchange = () => { O.ff = ffs.value; ffApply(O); draw(); ffReady(O).then(() => { if (m.isConnected) draw(); }); };
+      ffApply(O); if (O.ff) ffReady(O).then(() => { if (m.isConnected) draw(); });
       $m(".kc-tpl").onchange = (e) => { O.tpl = +e.target.value; capDirty = false; drawEd(); draw(); };
       let edT; $m(".kc-ed").addEventListener("input", (e) => { const k = e.target.dataset.kce; if (k == null) return; const key = O.bk === "tpl" ? "t" + O.tpl : "cls"; (E[key] = E[key] || {})[+k] = e.target.value; clearTimeout(edT); edT = setTimeout(draw, 250); });
       let tT; $m("#kc-t").addEventListener("input", (e) => { O.t = e.target.value.trim(); clearTimeout(tT); tT = setTimeout(draw, 250); });

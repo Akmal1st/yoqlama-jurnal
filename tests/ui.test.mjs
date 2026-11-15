@@ -4461,6 +4461,81 @@ test("Hisobotlar tuzatishlari (2026-11-07): Loyiha belgisi, qisqa izohlar, jami 
   } finally { await browser.close(); }
 });
 
+test("Chop etish oynalari: kitobiy shriftlar — umumiy eksport va Kriterial, ekran = chop etish = PDF (36 va 18 o'quvchi, telefon)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const [N, vp] of [[36, {width: 1440, height: 900}], [18, {width: 390, height: 844}]]) {
+      const page = await browser.newPage({viewport: vp});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 9, 20, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      await page.evaluate((N) => {
+        const c = D.classes[0]; c.students = c.students.slice(0, N); while (c.students.length < N) c.students.push({name: `Gʻulomova Oʻgʻiloy ${c.students.length + 1}`, marks: {}, scores: {}});
+        c.students[0].name = "Ғуломова Ўғилой Қаҳҳоровна";
+        D.web.bsb_hdr = Object.assign(D.web.bsb_hdr || {}, {teacher: "Aliyeva N.", school: "42-maktab"}); save();
+        window.print = () => { window.__printed = (window.__printed || 0) + 1; };
+        S.rq = 1; S.rep = {ci: 0, per: "q1", kind: "cls"}; go("reports");
+      }, N);
+      const L = await page.evaluate(() => SHR.L.map((r) => [r[0], r[1]]));
+      await page.click("[data-exp]:visible"); await page.waitForSelector(".exw .e-pg", {state: "attached"});
+      if (vp.width < 800) await page.evaluate(() => document.querySelector(".exw button[data-tab=set]").click());
+      assert.equal(await page.locator(".exw select[data-ff] option").count(), 11, "Uslubga mos + 10 shrift");
+      const tab = (t) => vp.width < 800 ? page.evaluate((t) => document.querySelector(`.exw button[data-tab=${t}]`).click(), t) : null;
+      for (const [k, name] of L) {
+        await tab("set");
+        await page.selectOption(".exw select[data-ff]", k);
+        await page.waitForFunction((name) => document.fonts.check(`700 12px "${name}"`) && [...document.fonts].some((f) => f.family.replace(/"/g, "") === name && f.status === "loaded"), name);
+        await page.waitForTimeout(120); await tab("pv");
+        const r = await page.evaluate(() => {
+          const pgs = [...document.querySelectorAll(".exw .e-pg")], out = [];
+          pgs.forEach((pg, i) => {
+            const fl = pg.querySelector(".pg-flow"); if (fl && fl.scrollHeight > fl.clientHeight + 1) out.push(`${i + 1}-bet to'lib ketdi`);
+            pg.querySelectorAll("th").forEach((th) => { if (th.scrollWidth > th.clientWidth + 1) out.push(`sarlavha kesilgan: ${th.textContent}`); });
+          });
+          const pg = pgs[0], fam = getComputedStyle(pg).fontFamily.split(",")[0].replace(/"/g, "").trim();
+          const keys = PTG.measure(pg).ops.filter((o) => o.k === "text" && /\p{L}/u.test(o.t)).map((o) => o.keys[0]);
+          return {n: pgs.length, out, fam, ff: pg.classList.contains("ff"), keys: [...new Set(keys)], rows: document.querySelectorAll(".exw .e-pg table[data-e] tbody tr:not(.tot)").length};
+        });
+        const why = `${N} o'quvchi · ${name}`;
+        assert.ok(r.ff && r.fam === name, `${why}: varaq shrifti (${r.fam})`);
+        assert.deepEqual(r.out, [], why);
+        assert.equal(r.rows, N, `${why}: hamma o'quvchi`);
+        assert.ok(r.keys.length && r.keys.every((x) => x.startsWith(k)), `${why}: PDF'da ham shu shrift (${r.keys})`);
+      }
+      // haqiqiy PDF: shrift fayli ichiga joylanadi; chop etish ishlaydi; tanlov eslab qolinadi
+      await tab("set"); await page.selectOption(".exw select[data-ff]", "pt");
+      const {readFile} = await import("node:fs/promises");
+      const [dl] = await Promise.all([page.waitForEvent("download"), page.evaluate(() => document.querySelector(".exw [data-act=pdf]").click())]);
+      const b64 = (await readFile(await dl.path())).toString("latin1");
+      assert.ok(b64.startsWith("%PDF-") && /\/BaseFont\s*\/[A-Z]*\+?ptR/.test(b64) && /\/BaseFont\s*\/[A-Z]*\+?ptB/.test(b64), `${N}: PDF ichida PT Serif`);
+      assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("yoqlama_exp")).g.ff), "pt");
+      await page.evaluate(() => document.querySelector(".exw [data-act=pr]").click());
+      await page.waitForFunction(() => window.__printed >= 1);
+      await page.evaluate(() => { document.body.classList.remove("pdoc"); document.querySelectorAll(".modal").forEach((m) => m.remove()); });
+      // Kriterial chop etish oynasi: shrift tanlovi
+      await page.evaluate(() => { const c = D.classes[0]; KCH.dialog(c, c.dates.filter((x) => x <= todayIso()).pop()); });
+      await page.waitForSelector(".kc-dlg .kc-pages .bx-pg.kc-pg", {state: "attached"});
+      assert.equal(await page.locator(".kc-dlg select.kc-ffsel option").count(), 11);
+      for (const [k, name] of [["lb", "Libertinus Serif"], ["eb", "EB Garamond"], ["tn", "Tinos"]]) {
+        const kt = (t) => vp.width < 800 ? page.evaluate((t) => document.querySelector(`.kc-dlg [data-kct=${t}]`).click(), t) : null;
+        await kt("set"); await page.selectOption(".kc-dlg select.kc-ffsel", k);
+        await page.waitForFunction((name) => document.fonts.check(`700 12px "${name}"`) && [...document.fonts].some((f) => f.family.replace(/"/g, "") === name && f.status === "loaded"), name);
+        await page.waitForTimeout(150); await kt("pv"); await page.waitForTimeout(100);
+        const r = await page.evaluate(() => { const pg = document.querySelector(".kc-pages .bx-pg.kc-pg");
+          return {fam: getComputedStyle(pg).fontFamily.split(",")[0].replace(/"/g, "").trim(), keys: [...new Set(PTG.measure(pg).ops.filter((o) => o.k === "text" && /\p{L}/u.test(o.t)).map((o) => o.keys[0]))],
+            over: [...pg.querySelectorAll("td,th")].some((x) => x.scrollWidth > x.clientWidth + 2 && getComputedStyle(x).overflow !== "visible")}; });
+        assert.equal(r.fam, name, `${N} kriterial · ${name}`);
+        assert.ok(r.keys.length && r.keys.every((x) => x.startsWith(k)), `${N} kriterial PDF · ${name} (${r.keys})`);
+      }
+      assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("yoqlama_kch")).ff), "tn");
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});
+
 test("Hisobotlar (2026-11-08): belgilar tanlovga bog'liq emas, tayyorlik xatolari; umumiy eksport oynasi — 7 hujjat (36 va 18 o'quvchi)", async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
@@ -4543,7 +4618,7 @@ test("Hisobotlar (2026-11-08): belgilar tanlovga bog'liq emas, tayyorlik xatolar
       // rang va uslub hamma hujjat uchun bitta, qurilmada eslab qolinadi
       await page.click("[data-exp]:visible"); await page.click(".exw [data-col=bw]"); await page.click(".exw [data-sty=ras]");
       assert.ok(await page.$(".exw .e-pg.bw.s-ras"));
-      assert.deepEqual(JSON.parse(await page.evaluate(() => localStorage.getItem("yoqlama_exp"))).g, {col: "bw", sty: "ras"});
+      assert.deepEqual(JSON.parse(await page.evaluate(() => localStorage.getItem("yoqlama_exp"))).g, {col: "bw", sty: "ras", ff: ""});
       await page.click(".exw [data-x]");
       assert.deepEqual(errors, []);
       await page.close();

@@ -10,8 +10,13 @@
 const EXP = (() => {
   const LS = "yoqlama_exp", GAP = 10;
   const I = (n, c = "") => `<i class="bi bi-${n}${c ? " " + c : ""}" aria-hidden="true"></i>`;
-  const G = {col: "c", sty: "zam"}; let ST = {};
-  try { const s = JSON.parse(localStorage.getItem(LS) || "{}") || {}; if (s.g) { if (["c", "bw"].includes(s.g.col)) G.col = s.g.col; if (["zam", "yen", "ras", "ixc"].includes(s.g.sty)) G.sty = s.g.sty; } if (s.st && typeof s.st === "object") ST = s.st; } catch (e) {}
+  const G = {col: "c", sty: "zam", ff: ""}; let ST = {};
+  // dastur ichidagi kitobiy shriftlar (shriftlar.js, Akmal 2026-11-15): "" — uslubning o'z shrifti (Manrope, «Rasmiy»da Times)
+  const SHL = typeof SHR !== "undefined" ? SHR.L : [], ffRow = () => SHL.find((r) => r[0] === G.ff);
+  try { const s = JSON.parse(localStorage.getItem(LS) || "{}") || {}; if (s.g) { if (["c", "bw"].includes(s.g.col)) G.col = s.g.col; if (["zam", "yen", "ras", "ixc"].includes(s.g.sty)) G.sty = s.g.sty; if (SHL.some((r) => r[0] === s.g.ff)) G.ff = s.g.ff; } if (s.st && typeof s.st === "object") ST = s.st; } catch (e) {}
+  // tanlangan shrift varaqqa (ekran, chop etish va PDF) bitta qoida bilan ulanadi; sarlavhalar 700 (kitobiy shriftlarda 800 yo'q)
+  const ffCss = () => { if (SHL.length) SHR.rule("exp-ff", ".exw .e-pg.ff", G.ff); };
+  const ffReady = () => SHL.length ? SHR.ready(G.ff) : Promise.resolve();
   const keep = () => { try { localStorage.setItem(LS, JSON.stringify({g: G, st: ST})); } catch (e) {} };
   // maktab va imzo: hamma hujjat uchun bitta (BSB eksporti, davomat va boshqalar bilan umumiy)
   const HDR = () => { const h = (D.web && D.web.bsb_hdr) || {}; return {school: h.school || "", teacher: h.teacher || "", head: h.head || "", role3: h.role3 || "MB rahbari", name3: h.deputy || ""}; };
@@ -95,7 +100,7 @@ const EXP = (() => {
     pages.forEach((p) => p.items.forEach((b) => { if (b.k === "tbl") b.ex = ex(b.rh || rh); }));
     return {W, H, land, pages: pages.map((p, i) => `<div class="${pgCls(sp)}" style="width:${W}px;height:${H}px">${head1(o, sp, i)}<div class="pg-flow" style="height:${body - 10}px">${p.items.map((b) => blk(b, sp, IW, b.rh || rh, fsOf(b.rh || rh))).join("")}</div>${foot1(o, sp, i, N)}</div>`)};
   }
-  const pgCls = (sp) => `e-pg s-${G.sty}${G.col === "bw" ? " bw" : ""}${sp && sp.fixRh ? " wr" : ""}`;
+  const pgCls = (sp) => `e-pg s-${G.sty}${G.ff ? " ff" : ""}${G.col === "bw" ? " bw" : ""}${sp && sp.fixRh ? " wr" : ""}`;
   // bosh qism: chapda o'qituvchi, o'rtada maktab, o'ngda chop etilgan sana; sarlavha va davr
   function head1(o, sp, i) {
     const h = HDR(), sch = [h.teacher ? `<span>${esc(h.teacher)} (o'qituvchi)</span>` : "<span></span>", `<span>${esc(h.school)}</span>`, `<span>Chop etilgan: <b>${fmt(todayIso())}</b></span>`];
@@ -180,7 +185,7 @@ const EXP = (() => {
     if (!XL) return saveTable(name, aoa, wch);
     const bw = G.col === "bw", K = bw ? "333333" : "0B6F79", K2 = bw ? "EEEEEE" : "E3F0EF", ZB = bw ? "F6F6F6" : "F5F9F8", LN = "BFC7C6";
     const ws = XL.utils.aoa_to_sheet(aoa), nC = C.length, bd = {style: "thin", color: {rgb: LN}}, BOX = {top: bd, bottom: bd, left: bd, right: bd};
-    const put = (r, c, s) => { const a = XL.utils.encode_cell({r, c}); const x = ws[a] || (ws[a] = {t: "s", v: ""}); x.s = {font: {name: "Arial", sz: 10, ...(s.font || {})}, alignment: {vertical: "center", ...(s.alignment || {})}, ...(s.fill ? {fill: s.fill} : {}), ...(s.border ? {border: s.border} : {})}; };
+    const put = (r, c, s) => { const a = XL.utils.encode_cell({r, c}); const x = ws[a] || (ws[a] = {t: "s", v: ""}); x.s = {font: {name: G.ff ? "Times New Roman" : "Arial", sz: 10, ...(s.font || {})}, alignment: {vertical: "center", ...(s.alignment || {})}, ...(s.fill ? {fill: s.fill} : {}), ...(s.border ? {border: s.border} : {})}; };
     put(0, 0, {font: {bold: true, sz: 14, color: {rgb: K}}}); put(1, 0, {font: {color: {rgb: "555555"}}}); put(2, 0, {font: {color: {rgb: "555555"}}});
     for (let c = 0; c < nC; c++) put(4, c, {fill: {fgColor: {rgb: K}}, font: {bold: true, color: {rgb: "FFFFFF"}}, alignment: {horizontal: "center", wrapText: true}, border: BOX});
     sp.rows.forEach((row, i) => {
@@ -218,7 +223,7 @@ const EXP = (() => {
     document.title = name; window.addEventListener("afterprint", back); setTimeout(() => { document.title = old; }, 120000);
     window.print();
   }
-  const pdf = (B) => PTG.pagesPdf([wrapOut(B)], B.land, ".e-pg");
+  const pdf = async (B) => { ffCss(); await ffReady(); return PTG.pagesPdf([wrapOut(B)], B.land, ".e-pg"); };
   async function savePdf(B, name) {
     const blob = await pdf(B), a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = name + ".pdf"; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
@@ -264,8 +269,9 @@ const EXP = (() => {
                 <span>Rang</span><div>${seg("col", [["c", "Rangli"], ["bw", "Oq-qora"]], G.col)}</div>
                 ${d.oris.length > 1 ? `<span>Varaq</span>${seg("ori", [["p", "Tik"], ["l", "Albom"]], o["ori_" + o.doc])}` : `<span>Varaq</span><span class="fixed">${d.oris[0] === "l" ? "Albom" : "Tik"} <small>(faqat shu)</small></span>`}
                 <span>Uslub</span><div class="seg4">${seg("sty", [["zam", "Zamonaviy"], ["yen", "Yengil"], ["ras", "Rasmiy"], ["ixc", "Ixcham"]], G.sty)}</div>
+                ${SHL.length ? `<span>Shrift</span><div><select data-ff aria-label="Shrift" class="e-ffsel" style="font-family:${esc(ffRow() ? SHR.css(ffRow()[1]) : "inherit")}">${SHR.options(G.ff, `Uslubga mos (${G.sty === "ras" ? "Times" : "Manrope"})`)}</select></div>` : ""}
                 ${d.ord ? `<span>Tartib</span>${seg("ord", [["l", "Ro'yxat"], ["g", "Natija ↓"]], o.ord)}` : ""}</div>
-                <p class="e-hint">Rang va uslub hamma hujjat uchun bitta: bir marta tanlansa, hamma joyda shunday chiqadi. «Rasmiy» — Times shrifti, rangsiz jadval.</p></div>
+                <p class="e-hint">Rang va uslub hamma hujjat uchun bitta: bir marta tanlansa, hamma joyda shunday chiqadi. «Rasmiy» — Times shrifti, rangsiz jadval. Shrift har uslubga qo'llanadi: ekranda, chop etishda va PDF'da bir xil.</p></div>
               <div class="sec"><span class="lb">Varaqda</span><div class="e-chips">${chips.map(([k, t]) => `<button type="button" class="e-chip ${o.ch[k] ? "on" : ""}" data-ch="${k}" aria-pressed="${!!o.ch[k]}">${I("check2")}${esc(t)}</button>`).join("")}</div></div>
               <details class="e-grp" ${U.openHdr ? "open" : ""}><summary>${I("person-badge")} Maktab va imzo <small>${esc(H.teacher || "kiritilmagan")}</small>${I("chevron-down", "cv")}</summary><div class="gin">
                 <label>Maktab nomi<input type="text" data-h="school" value="${esc(H.school)}"></label>
@@ -314,6 +320,7 @@ const EXP = (() => {
         on("[data-doc]", (b) => { o.doc = b.dataset.doc; re(); });
         on("[data-col]", (b) => { G.col = b.dataset.col; keep(); render(); });
         on("[data-sty]", (b) => { G.sty = b.dataset.sty; keep(); render(); });
+        const fs = root.querySelector("[data-ff]"); if (fs) fs.onchange = () => { G.ff = fs.value; keep(); ffCss(); render(); ffReady().then(() => { if (root.isConnected) render(); }); };
         on("[data-ori]", (b) => { o["ori_" + o.doc] = b.dataset.ori; re(); });
         on("[data-ord]", (b) => { o.ord = b.dataset.ord; re(); });
         on("[data-pv]", (b) => { U.pv = b.dataset.pv; render(); });
@@ -331,7 +338,7 @@ const EXP = (() => {
       async function act(b) {
         if (busy || !B) return;
         const a = b.dataset.act, sp = B.sp, nm = fileName(sp), np = B.pages.length, ICN = {xl: "filetype-xlsx", pdf: "filetype-pdf", tg: "telegram", pr: "printer"}[a];
-        if (a === "pr") { print(B, nm); return; }
+        if (a === "pr") { ffCss(); await ffReady(); print(B, nm); return; }
         const lbl = b.querySelector("span"), old = lbl.textContent, ph = root.clientWidth <= 720;
         const set = (ic, t) => { const i = b.querySelector("i"); if (i) i.outerHTML = I(ic); lbl.textContent = t; };
         busy = true; b.classList.add("busy"); set("hourglass-split", a === "tg" ? (ph ? "Yuborish…" : "Yuborilmoqda…") : ph ? "Tayyor…" : "Tayyorlanmoqda…");
@@ -348,7 +355,8 @@ const EXP = (() => {
           else set(ICN, old);
         }
       }
-      render();
+      ffCss(); render();
+      if (G.ff) ffReady().then(() => { if (root.isConnected) render(); });
       // oyna kengligi o'zgarsa (telefonni burish) — varaq yana sig'diriladi
       let rzT = null; const rz = () => { clearTimeout(rzT); rzT = setTimeout(() => { if (root.isConnected) render(); else removeEventListener("resize", rz); }, 200); };
       addEventListener("resize", rz);
