@@ -648,15 +648,16 @@ body.pmeas .noprint{display:none!important}
 /* kundalik baholash o'chiq: eMaktab baholari faqat ko'rinadi */
 .dgv{display:flex;gap:4px;flex:none;min-width:64px;justify-content:flex-end;align-items:center}
 .dgv b{min-width:30px;height:30px;padding:0 4px;border-radius:50%;display:inline-grid;place-items:center;font-weight:800;font-size:14px}
-.dsync{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--muted)}
+.dav,.dav0{display:inline-grid;place-items:center;min-width:36px;height:30px;padding:0 6px;border-radius:calc(7px*var(--rk,1));font-weight:800;font-size:13px}
+.dav0{color:var(--muted);font-weight:600}
+.dsync{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--muted)}
 @container (max-width:625px){
   .drow{flex-wrap:wrap;row-gap:6px}
   .datt{border-right:0;padding-right:0}
   .dgr{flex:1 1 100%;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));background:var(--alt);border-radius:calc(12px*var(--rk,1));padding:5px 4px;gap:2px}
   .dg{width:100%;max-width:32px;height:auto;aspect-ratio:1;justify-self:center}
-  /* eMaktab bahosi ism qatorida o'ngda, yo'qlama tugmalari ikkinchi qatorda */
-  .drow:has(.dgv) .dgv{order:1;min-width:0}
-  .drow:has(.dgv) .datt{order:2}
+  /* faqat ko'rish rejimi: ism, yo'qlama va baho bir qatorda */
+  .drow:has(.dgv){flex-wrap:nowrap}
 }
 .dinfo{display:flex;flex-direction:column;gap:12px;position:sticky;top:12px}
 .dinfo .card{padding:14px;gap:8px}
