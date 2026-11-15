@@ -21,8 +21,14 @@ jobs:
         run: node --test tests/bot_server.test.mjs tests/gas_server.test.mjs
 
   brauzer:
-    name: Web ilova brauzerda (kompyuter va telefon ekrani)
+    # UI testlari 4 bo'lakka bo'linib, 4 ta mashinada bir vaqtda ishlaydi (tests/ui.test.mjs: UI_SHARD)
+    name: Web ilova brauzerda (${{ matrix.shard }}/4)
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -33,3 +39,5 @@ jobs:
       # GitHub runner'da Chromium uchun kerakli kutubxonalar bor, ilova shriftlari esa o'zida (vendor/)
       - run: npx playwright install --with-deps chromium || (sleep 20 && npx playwright install --with-deps chromium) || npx playwright install chromium
       - run: node --test tests/ui.test.mjs
+        env:
+          UI_SHARD: ${{ matrix.shard }}/4
