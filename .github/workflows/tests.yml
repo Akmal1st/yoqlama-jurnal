@@ -1,8 +1,11 @@
 name: Testlar
 
 on:
+  # faqat matn (.md) o'zgarsa testlar ishga tushmaydi
   push:
+    paths-ignore: ["**.md"]
   pull_request:
+    paths-ignore: ["**.md"]
 
 jobs:
   hisob-kitob:
@@ -21,14 +24,14 @@ jobs:
         run: node --test tests/bot_server.test.mjs tests/gas_server.test.mjs
 
   brauzer:
-    # UI testlari 4 bo'lakka bo'linib, 4 ta mashinada bir vaqtda ishlaydi (tests/ui.test.mjs: UI_SHARD)
-    name: Web ilova brauzerda (${{ matrix.shard }}/4)
+    # UI testlari 6 bo'lakka (vaqt bo'yicha teng) bo'linib, 6 ta mashinada bir vaqtda ishlaydi (tests/ui.test.mjs: UI_SHARD)
+    name: Web ilova brauzerda (${{ matrix.shard }}/6)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -37,7 +40,14 @@ jobs:
       - run: npm ci
       # apt oynasi ba'zan ishlamaydi (DNS xatosi) — ikki marta urinib, bo'lmasa brauzerning o'zini o'rnatamiz:
       # GitHub runner'da Chromium uchun kerakli kutubxonalar bor, ilova shriftlari esa o'zida (vendor/)
-      - run: npx playwright install --with-deps chromium || (sleep 20 && npx playwright install --with-deps chromium) || npx playwright install chromium
+      # brauzer keshdan olinadi (playwright versiyasi o'zgarmaguncha); kesh bo'lmasa o'rnatiladi
+      - uses: actions/cache@v4
+        id: pw
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - if: steps.pw.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium || (sleep 20 && npx playwright install --with-deps chromium) || npx playwright install chromium
       - run: node --test tests/ui.test.mjs
         env:
-          UI_SHARD: ${{ matrix.shard }}/4
+          UI_SHARD: ${{ matrix.shard }}/6
