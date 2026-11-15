@@ -185,7 +185,7 @@ const BHL = (() => {
     const vw = [["list", "Ro'yxat"], ["fok", "Bitta o'quvchi"], ["tab", "Jadval"]].map(([k, t]) => `<button type="button" class="${st.v === k ? "on" : ""}" data-bhv="${k}">${t}</button>`).join("");
     return `<div class="card bh-hd">
       <div class="bh-bar">
-        <button type="button" class="bh-lt" data-bhlt aria-haspopup="menu" ${ctx.ed ? "" : "disabled"} title="Dars turi — qaysi usul ochilishini belgilaydi">${esc(L.t.n)}<small>${METH[L.t.m].n}</small></button>
+        <button type="button" class="bh-lt" data-bhlt aria-haspopup="menu" ${ctx.ed ? "" : "disabled"} title="Dars turi — qaysi usul ochilishini belgilaydi"><span class="n">${esc(L.t.n)}</span><small><span class="l">${METH[L.t.m].n}</span><span class="s">${METH[L.t.m].s}</span></small></button>
         <button type="button" class="bh-tw" data-bhtwo aria-pressed="${L.two}" ${ctx.ed ? "" : "disabled"} title="Hammaga ikkinchi baho katagi (masalan 8/9)"><i></i>2 baho</button>
         <div class="mz-seg bh-seg" role="group" aria-label="Ko'rinish">${vw}</div>
         <span class="sp"></span>

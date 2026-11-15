@@ -492,7 +492,9 @@ for (const [name, viewport, n] of [["kompyuter", {width: 1440, height: 900}, 36]
       assert.equal(await page.locator(".bh-r").count(), n, "hamma o'quvchi ro'yxatda");
       // dars turi: eski rejim yo'q → «Yangi mavzu» (6 + 4); «Mustahkamlash» → +/−
       assert.match(await page.textContent("[data-bhlt]"), /Yangi mavzu\s*6 \+ 4/);
+      const ltW = () => page.evaluate(() => Math.round(document.querySelector("[data-bhlt]").getBoundingClientRect().width)), w0 = await ltW();
       await page.click("[data-bhlt]"); await page.click(".bh-menu [data-bhty=must]");
+      assert.equal(await ltW(), w0, "dars turi tugmasining kengligi o'zgarmaydi");
       assert.equal(await page.evaluate((d) => D.classes[0].lt[d].t, t), "must");
       assert.match(await page.textContent("[data-bhlt]"), /Mustahkamlash\s*\+\/− deskriptor/);
       // +/−: fan (Matematika) deskriptorlari; telefonda oyna suriladi — U4 ko'rinadi va bosiladi
