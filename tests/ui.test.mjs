@@ -5584,7 +5584,14 @@ test("Yo'qlama: «CH» (chet elda) — darsda, Kun sahifasida, davomat foizi va 
       assert.equal(await page.evaluate(() => D.classes[0].students[3].marks[todayIso()]), "ch");
       await page.click('[data-am="list"]');
       // Kun sahifasi: CH tugmasi, «Keldi» soni
+      // kundalik baholash o'chiq (sukut): oddiy yo'qlama tugmalari
       await page.evaluate(() => { S.ci = 0; V.mode = "day"; V.anchor = todayIso(); S.page = "journal"; render(); });
+      await page.waitForSelector("[data-a='4|ch']"); await page.click("[data-a='4|ch']");
+      assert.equal(await page.evaluate(() => D.classes[0].students[4].marks[todayIso()]), "ch");
+      assert.match(await page.textContent(".dstats"), new RegExp(`Keldi\\s*${N - 4} / ${N}`));
+      await page.click("[data-a='4|ch']"); assert.equal(await page.evaluate(() => D.classes[0].students[4].marks[todayIso()] || ""), "");
+      // kundalik baholash yoqilgan: moslashuvchan baholash ro'yxati
+      await page.evaluate(() => { D.web.on = {dgrade: 1}; save(); render(); });
       await page.waitForSelector("[data-bhat='4']");
       await page.click("[data-bhat='4']"); await page.click(".bh-menu [data-bhav=ch]");
       assert.equal(await page.evaluate(() => D.classes[0].students[4].marks[todayIso()]), "ch");
