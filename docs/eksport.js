@@ -60,7 +60,9 @@ const EXP = (() => {
     };
     let pages, rh = sp.fixRh || baseRh;
     const one = body - hOf(pre) - hOf(post);
-    if (N0 && !sp.fixRh && (N0 + 1) * 15 + 2 + GAP + ex(15) <= one) { rh = Math.min(sp.maxRh || 34, Math.floor((one - GAP - 2 - ex(15)) / (N0 + 1))); pages = lay(rh, 1); }
+    // sp.fit1 — hujjat doim bitta varaqqa sig'adi (BSB «Rasmiy shakl»): qatorlar 11px gacha zichlanadi
+    const r0 = sp.fit1 ? 11 : 15;
+    if (N0 && !sp.fixRh && (N0 + 1) * r0 + 2 + GAP + ex(r0) <= one) { rh = Math.min(sp.maxRh || 34, Math.floor((one - GAP - 2 - ex(r0)) / (N0 + 1))); pages = lay(rh, 1); }
     else {
       pages = lay(rh);
       // oxirgi bet deyarli bo'sh qolsa — qatorlarni biroz zichlab, bet sonini kamaytirishga urinadi
@@ -131,6 +133,7 @@ const EXP = (() => {
     top: (c) => c.items.length ? `<ol class="tp ${c.wide ? "wd" : ""} ${c.big ? "bg" : ""}">${c.items.map(([nm, ch, rt]) => `<li><span>${esc(nm)}</span>${(ch || []).map(([t, k]) => `<em class="${k || ""}">${esc(t)}</em>`).join("")}${rt ? `<strong>${esc(rt)}</strong>` : ""}</li>`).join("")}</ol>` : `<div class="nt">${esc(c.empty || "Yo'q")}</div>`,
     checks: (c) => `<ul class="ck">${c.items.map(([ok, t, nt]) => `<li class="${ok ? "ok" : "no"}">${I(ok ? "check-circle-fill" : "exclamation-triangle")}<span><b>${esc(t)}</b>${nt ? ` <small>${esc(nt)}</small>` : ""}</span></li>`).join("")}</ul>`,
     list: (c) => `<dl class="kv">${c.items.map(([k, v, cl]) => `<dt>${esc(k)}</dt><dd class="${cl || ""}">${esc(v)}</dd>`).join("")}</dl>`,
+    gtab: (c) => `<table class="mt"><thead><tr><th>Baho</th><th>Soni</th><th>%</th><th>Taqsimot</th></tr></thead><tbody>${c.items.map(([g, n, k]) => `<tr><td class="${k}">«${g}»</td><td>${n}</td><td>${pct(n, c.T)}%</td><td class="l"><span class="gb ${k}" style="width:${pct(n, c.T)}%"></span></td></tr>`).join("")}<tr class="tot"><td>Jami</td><td>${c.T}</td><td>100%</td><td></td></tr></tbody></table>`,
     note: (c) => c.ul ? `<ul class="nul ${c.dots ? "dots" : ""}">${c.ul.map((x) => `<li>${x}</li>`).join("")}</ul>` : `<div class="nt">${c.text}</div>`,
   };
   function blk(b, sp, IW, rh, fs) {
@@ -140,6 +143,7 @@ const EXP = (() => {
       case "info": return `<div class="pg-info" style="height:${b.h}px;grid-template-columns:repeat(${b.cols || 3},1fr);grid-template-rows:repeat(${Math.ceil(b.items.reduce((a, x) => a + (x[2] || 1), 0) / (b.cols || 3))},1fr)">${b.items.map(([k, v, sp2]) => `<div ${sp2 ? `style="grid-column:span ${sp2}"` : ""}><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div>`;
       case "sec": return `<div class="pg-sec" ${st0}><span>${esc(b.t)}</span></div>`;
       case "txt": return `<div class="pg-txt" ${st0}>${b.t}</div>`;
+      case "mtab": return `<table class="mt2" data-e="5" style="height:${b.h}px"><colgroup>${b.cols.map((c) => `<col style="width:${c.w}%">`).join("")}</colgroup><thead><tr>${b.cols.map((c) => `<th class="${c.a || ""}">${c.h}</th>`).join("")}</tr></thead><tbody>${b.rows.map((r) => `<tr>${r.map((v, k) => td(v, b.cols[k])).join("")}</tr>`).join("")}</tbody></table>`;
       case "row": { const n = b.cells.length, av = IW - (n - 1) * 12, sm = b.cells.reduce((a, x) => a + (x.span || 1), 0);
         return `<div class="pg-row" style="height:${b.h}px;grid-template-columns:${b.cells.map((c) => (c.span || 1) + "fr").join(" ")}">${b.cells.map((c) => { const w = av * (c.span || 1) / sm, box = ["note", "list", "dist", "checks", "hbars", "top", "line", "bars"].includes(c.k) && b.box !== false;
           return `<div class="pg-cell ${c.k} ${c.tone || ""} ${box ? "bx" : ""}">${c.t ? `<div class="pg-ct">${c.t}</div>` : ""}<div class="pg-cb">${CELL[c.k](c, Math.floor(w - (box ? 22 : 0)), b.h - (c.t ? 20 : 0) - (box ? 14 : 0))}</div></div>`; }).join("")}</div>`; }
@@ -170,6 +174,7 @@ const EXP = (() => {
     return {aoa: [[sp.title], [sp.sub || ""], [info], [], C.map((c) => c.xh || xlHead(c.h)), ...sp.rows.map((r) => r.map(xlVal))], C};
   }
   async function excel(sp) {
+    if (sp.xlfn) return sp.xlfn(G.col === "bw");   // o'z Excel shakli bor hujjat (BSB tahlili — rasmiy ko'rinish, bsb-eksport.js)
     const {aoa, C} = xlAoa(sp), name = fileName(sp), wch = C.map((c) => Math.max(5, Math.round(c.xw || c.w * 1.25)));
     let XL; try { XL = await BXP.loadXlsxStyle(); } catch (e) { XL = null; }
     if (!XL) return saveTable(name, aoa, wch);
@@ -196,6 +201,7 @@ const EXP = (() => {
   }
   // Excel ko'rinishi (oynada): faylning boshi
   function xlHtml(sp) {
+    if (sp.xlhtml) return sp.xlhtml(G.col === "bw");
     const {aoa, C} = xlAoa(sp), L = (i) => i < 26 ? String.fromCharCode(65 + i) : "A" + String.fromCharCode(39 + i);
     const cl = (r, k) => { if (r < 5) return ""; const row = sp.rows[r - 5], x = cellObj(row[k]); return `${C[k] && C[k].a ? "" : "c "}${/g2|p-r/.test(x.c || "") ? "xr" : ""}${row.tot ? " tb" : ""}`; };
     return `<div class="xg" style="--xk:${G.col === "bw" ? "#444" : "#0b6f79"}"><table><thead><tr><th></th>${C.map((_, i) => `<th>${L(i)}</th>`).join("")}</tr></thead><tbody>${aoa.slice(0, 45).map((r, i) => `<tr><td class="rn">${i + 1}</td>${i < 4 ? `<td colspan="${C.length}" class="${i === 0 ? "t" : i < 3 ? "s" : ""}">${esc(r[0] ?? "")}</td>` : C.map((_, k) => `<td class="${i === 4 ? "h" : cl(i, k)}">${esc(r[k] ?? "")}</td>`).join("")}</tr>`).join("")}</tbody></table>
@@ -236,14 +242,17 @@ const EXP = (() => {
       root = m.querySelector(".e-dlgw");
       const docOf = () => F.docs.find((d) => d.id === o.doc);
       const seg = (attr, opts, cur) => `<div class="e-seg" role="group">${opts.map(([v, t]) => `<button type="button" class="${String(v) === String(cur) ? "on" : ""}" data-${attr}="${esc(v)}">${t}</button>`).join("")}</div>`;
-      function render() {
+      // qayta kirishdan himoya: innerHTML fokusdagi maydonni o'chirsa, blur → change → render ichma-ich chaqiriladi
+      let rendering = false;
+      function render() { if (rendering) return; rendering = true; try { render0(); } finally { rendering = false; } }
+      function render0() {
         const d = docOf(); B = build(F, o); const sp = B.sp;
         if (!d.xl || sp.noxl || sp.empty) U.pv = "pdf";
         if (U.capAuto) U.cap = sp.cap || "";
         const xl = d.xl && !sp.noxl && !sp.empty, np = B.pages.length, nm = fileName(sp), H = HDR(), tg = tgOn();
         const opt = (F.opts || []).filter((x) => !x.for || x.for === o.doc).map((x) => `<div class="sec"><span class="lb">${x.t}</span>${x.seg ? seg("op-" + x.k, x.seg, o[x.k])
           : `<select data-ops="${x.k}" aria-label="${esc(x.t)}">${x.sel.map(([v, t]) => `<option value="${esc(v)}" ${String(v) === String(o[x.k]) ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>`}</div>`).join("");
-        const chips = [["sch", "Maktab nomi"], ["sg", "Imzo qatori"], ["pn", "Bet raqami"], ...(F.chips || []).map(([k, t]) => [k, t])];
+        const chips = [["sch", "Maktab nomi"], ["sg", "Imzo qatori"], ["pn", "Bet raqami"], ...(F.chips || []).filter((x) => !x[3] || x[3] === o.doc).map(([k, t]) => [k, t])];
         root.innerHTML = `<div class="dlg" data-tab="${U.tab}">
           <div class="dh"><span class="dh-ic">${I(F.ic || "printer")}</span><div class="dh-t"><h2>Chop etish va eksport</h2><small>${esc(sp.doc || F.t)}${sp.who ? " · " + esc(sp.who) : ""}</small></div><button type="button" class="x" data-x aria-label="Yopish">${I("x-lg")}</button></div>
           <div class="tabs">${seg("tab", [["set", `${I("gear")} Sozlash`], ["pv", `${I("eye")} Ko'rish · ${U.pv === "xl" ? "Excel" : np + " bet"}`]], U.tab)}</div>

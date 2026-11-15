@@ -614,25 +614,27 @@ for (const [name, viewport] of [["kompyuter", {width: 1440, height: 900}], ["tel
       assert.equal(a.length, 1);
       assert.deepEqual([a[0].id, a[0].title, a[0].date, a[0].q, a[0].max], ["a1", "Kasrlar", qd, 3, [2, 2, 6]]);
       assert.equal(Object.keys(a[0].rows).length, n); assert.equal(Object.values(a[0].rows)[1].in, false);
-      // eksport: 1) tahlil hisoboti  2) rasmiy shakl (bsb-eksport.js)
+      // eksport: umumiy oyna (bsb-exp.js → EXP): 1) tahlil hisoboti  2) rasmiy shakl
       await page.evaluate(() => { window.print = () => { window.__printed = document.getElementById("pdoc").textContent; }; });
-      await page.click("[data-bexp]"); await page.click('.modal [data-v="1"]'); await page.waitForSelector(".modal .bx-pg", {state: "attached"}); await page.click(".modal [data-pdf]");
+      await page.click("[data-bexp]"); await page.waitForSelector(".exw .e-pg", {state: "attached"}); await page.click('.exw [data-doc="an"]'); await page.click(".exw [data-act=pr]");
       let txt = await page.evaluate(() => window.__printed);
-      for (const s of ["Bo'lim bo'yicha summativ baholash (BSB) tahlili", "Savollar jadvali", "Xulosa va tavsiyalar", "Umumiy xulosa", "O'quvchilar natijalari", "1 / "]) assert.ok(txt.includes(s), s);
-      await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]'); await page.click(".modal .bx-grp summary");
-      await page.fill("#hs", "12-maktab"); await page.fill('[data-sn="0"]', "Karimova N."); await page.click(".modal [data-pdf]");
+      for (const s of ["Bo'lim bo'yicha summativ baholash (BSB) tahlili", "Savollar jadvali", "Xulosa", "Umumiy xulosa", "O'quvchilar natijalari", "1 / "]) assert.ok(txt.includes(s), s);
+      await page.click('.exw [data-doc="form"]'); await page.click(".exw .e-grp summary");
+      await page.fill('.exw [data-h="school"]', "12-maktab"); await page.dispatchEvent('.exw [data-h="school"]', "change");
+      await page.fill('.exw [data-h="teacher"]', "Karimova N."); await page.dispatchEvent('.exw [data-h="teacher"]', "change");
+      await page.click(".exw [data-act=pr]");
       txt = await page.evaluate(() => window.__printed);
-      for (const s of ["12-maktab", "Bo'lim bo'yicha summativ baholash (BSB) natijalari", "Kasrlar", "qatnashmadi", "Qatnashdi", "Metod birlashma rahbari", "Karimova N.", "O'zlashtirish, %", "To'liq yechganlar", "Baholar taqsimoti", "Bilim sifati"]) assert.ok(txt.includes(s), s);
+      for (const s of ["12-maktab", "Summativ baholash (BSB) natijalari", "Kasrlar", "qatnashmadi", "Qatnashdi", "Metod birlashma rahbari", "Karimova N.", "O'zlashtirish, %", "To'liq yechganlar", "Baho", "Bilim sifati"]) assert.ok(txt.includes(s), s);
       assert.ok(!txt.includes("Yutuqlar"));
       assert.equal(await page.evaluate(() => D.web.bsb_hdr.school), "12-maktab", "header ma'lumoti eslab qolinadi");
-      assert.equal(await page.evaluate(() => D.web.bsb_hdr.teacher), "Karimova N.", "o'qituvchi imzodan olinadi");
-      await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]');
-      const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".modal [data-xl]")]);
+      assert.equal(await page.evaluate(() => D.web.bsb_hdr.teacher), "Karimova N.", "o'qituvchi umumiy oynadan");
+      const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".exw [data-act=xl]")]);
       const wb = XLSX.read(await readFile(await dl.path()));
       const aoa = XLSX.utils.sheet_to_json(wb.Sheets.BSB, {header: 1});
-      assert.equal(aoa[0][0], "12-maktab"); assert.ok(aoa.some((r) => r[1] === "O'zlashtirish, %") && aoa.some((r) => r[1] === "Baho" && r[2] === "Soni"), "yangi qatorlar Excelda"); assert.ok(aoa.some((r) => r.some((x) => String(x).startsWith("Metod birlashma rahbari"))));
+      assert.equal(aoa[0][0], "12-maktab"); assert.ok(aoa.some((r) => r[1] === "O'zlashtirish, %") && aoa.some((r) => r[1] === "Baho" && r[2] === "Soni"), "yangi qatorlar Excelda"); assert.ok(aoa.some((r) => r.some((x) => String(x).startsWith("Metod birlashma"))), "imzo Excelda");
       const ws = wb.Sheets.BSB, hr = aoa.findIndex((r) => r[1] === "Maksimal ball") + 2, tc = XLSX.utils.encode_col(2 + 3);
       assert.equal(ws[`${tc}${hr}`].f, `SUM(C${hr}:E${hr})`, "Jami — formula");
+      await page.click(".exw [data-x]");
       // jami ballni summativga o'tkazish (yangi BSB ishi)
       await page.click("[data-btr]"); await page.click(".modal [data-ok]");
       const w = await page.evaluate((d) => { const c = D.classes[S.ci], w = c.works.find((x) => x.type === "bsb" && x.date === d && x.title === "Kasrlar"); return w && [w.max, c.students.map((s) => (s.scores || {})[w.id] ?? null)]; }, qd);
@@ -679,8 +681,8 @@ test("BSB tahlili: strelka tugmalari, Excel'dan joylash, savol nomlari va xatola
     assert.ok(ph <= 1, `hisobot qutisi kesilgan: ${ph}px`);
     await page.click("[data-bsave]");
     assert.equal(await page.evaluate(() => D.classes[S.ci].analyses[0].names[0]), "Kasrni qisqartirish");
-    await page.click("[data-bexp]"); await page.click('.modal [data-v="1"]');
-    const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".modal [data-xl]")]);
+    await page.click("[data-bexp]"); await page.waitForSelector(".exw .e-pg", {state: "attached"}); await page.click('.exw [data-doc="an"]');
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.click(".exw [data-act=xl]")]);
     const wb = XLSX.read(await readFile(await dl.path()));
     assert.deepEqual(wb.SheetNames, ["Natijalar", "Savollar", "Xulosa"]);
     const aoa = XLSX.utils.sheet_to_json(wb.Sheets.Savollar, {header: 1});
@@ -690,69 +692,65 @@ test("BSB tahlili: strelka tugmalari, Excel'dan joylash, savol nomlari va xatola
     const XS = XLSX.read(await readFile(await dl.path()), {cellStyles: true}).Sheets.Natijalar, hc = Object.keys(XS).find((a) => XS[a].v === "№");
     assert.equal(XS[hc].s && XS[hc].s.fgColor && XS[hc].s.fgColor.rgb, "0B5C5A", "Excel sarlavhasi rangli");
     assert.ok(!JSON.stringify(XLSX.utils.sheet_to_json(wb.Sheets.Natijalar, {header: 1})).includes("Kasrni qisqartirish"), "savol nomlari eksportga chiqmaydi");
-    // sarlavha, imzolar va qismlar
-    await page.evaluate(() => { window.print = () => { window.__printed = document.getElementById("pdoc").textContent; }; });
-    await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]'); await page.click(".modal .bx-grp summary");
-    await page.fill("#hn", "2026-2027 o'quv yili"); await page.fill("#hfn", "Metodbirlashmada ko'rildi");
-    await page.fill('[data-sl="0"]', "Sinf rahbari"); await page.fill('[data-sn="0"]', "Aliyev B."); await page.fill('[data-sl="1"]', "Direktor"); await page.fill('[data-sn="1"]', "Valiyev S.");
-    await page.click('[data-chip="dist"]');
-    assert.equal(await page.textContent(".modal [data-tit]"), "Bo'lim bo'yicha summativ baholash (BSB) natijalari", "sarlavha ish turidan");
-    await page.click(".modal [data-pdf]");
+    // Excel ko'rinishi oynada
+    await page.click('.exw [data-pv="xl"]'); await page.waitForSelector(".exw .bx-xl");
+    await page.click('.exw [data-pv="pdf"]');
+    // sarlavha ostidagi qator, varaq oxiri izohi va eski imzo qatorlari saqlanadi; qismlarni o'chirish
+    await page.evaluate(() => { D.web.bsb_hdr.note = "2026-2027 o'quv yili"; D.web.bsb_hdr.fnote = "Metodbirlashmada ko'rildi"; D.web.bsb_hdr.sign = "Fan o'qituvchisi | X\nDirektor | Valiyev S."; window.print = () => { window.__printed = document.getElementById("pdoc").textContent; }; });
+    await page.click(".exw [data-x]");
+    await page.click("[data-bexp]"); await page.waitForSelector(".exw .e-pg", {state: "attached"}); await page.click('.exw [data-doc="form"]');
+    if (await page.getAttribute('.exw [data-ch="dist"]', "aria-pressed") === "true") await page.click('.exw [data-ch="dist"]');
+    await page.click(".exw [data-act=pr]");
     let ft = await page.evaluate(() => window.__printed);
-    for (const x of ["Bo'lim bo'yicha summativ baholash (BSB) natijalari", "2026-2027 o'quv yili", "Metodbirlashmada ko'rildi", "Sinf rahbari", "Valiyev S."]) assert.ok(ft.includes(x), x);
-    assert.ok(!ft.includes("Baholar taqsimoti") && !ft.includes("Metod birlashma rahbari") && !ft.includes("Kasrni qisqartirish"), "o'chirilgan bloklar va savol nomlari chiqmaydi");
-    assert.deepEqual(await page.evaluate(() => [D.web.bsb_hdr.bx.off2, D.web.bsb_hdr.sign]), [["dist"], "Sinf rahbari | Aliyev B.\nDirektor | Valiyev S."]);
-    await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]');
-    const [dl2] = await Promise.all([page.waitForEvent("download"), page.click(".modal [data-xl]")]);
+    for (const x of ["Summativ baholash (BSB) natijalari", "2026-2027 o'quv yili", "Metodbirlashmada ko'rildi", "Direktor", "Valiyev S."]) assert.ok(ft.includes(x), x);
+    assert.ok(!ft.includes("Taqsimot") && !ft.includes("Kasrni qisqartirish"), "o'chirilgan blok va savol nomlari chiqmaydi");
+    const [dl2] = await Promise.all([page.waitForEvent("download"), page.click(".exw [data-act=xl]")]);
     const wb2 = XLSX.read(await readFile(await dl2.path())), a2 = XLSX.utils.sheet_to_json(wb2.Sheets.BSB, {header: 1});
-    assert.equal(a2[1][0], "Bo'lim bo'yicha summativ baholash (BSB) natijalari"); assert.ok(a2.some((r) => r.some((x) => String(x).startsWith("Sinf rahbari"))));
-    await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]'); await page.click('[data-chip="dist"]'); await page.click(".modal [data-pdf]");
-    ft = await page.evaluate(() => window.__printed); assert.ok(ft.includes("Baholar taqsimoti"), "qism qaytdi");
-    // taqsimot ko'rinishi: asosiy — jadval; tanlov eslab qolinadi, qism o'chsa tanlov yashiriladi
-    assert.ok(await page.evaluate(() => !!document.querySelector("#pdoc table.bx-dtab")), "asosiy ko'rinish jadval");
-    await page.click("[data-bexp]"); await page.click('.modal [data-v="2"]');
-    assert.equal(await page.getAttribute('.modal [data-dv="tab"]', "aria-pressed"), "true");
-    await page.click('[data-chip="dist"]'); assert.ok(await page.isHidden(".modal [data-dvw]"), "taqsimot o'chsa tanlov yashirin");
-    await page.click('[data-chip="dist"]'); await page.click('.modal [data-dv="col"]');
-    assert.ok(await page.evaluate(() => !!document.querySelector(".modal .bx-pg .bx-dcol")), "ko'rinishda ustunli diagramma");
-    await page.click(".modal [data-pdf]");
-    assert.deepEqual(await page.evaluate(() => [D.web.bsb_hdr.bx.dv, !!document.querySelector("#pdoc .bx-dcol"), !!document.querySelector("#pdoc .bx-dtab")]), ["col", true, false]);
-    await page.click("[data-bexp]"); await page.click('.modal [data-v="1"]'); await page.click('.modal [data-dv="row"]');
-    assert.ok(await page.evaluate(() => !!document.querySelector(".modal .bx-pg table.bx-drow")), "tahlil hisobotida qator jadval");
-    await page.click('.modal [data-dv="tab"]'); await page.click(".modal [data-x]");
+    assert.equal(a2[1][0], "Bo'lim bo'yicha summativ baholash (BSB) natijalari"); assert.ok(a2.some((r) => r.some((x) => String(x).startsWith("Direktor"))));
+    assert.ok(!a2.some((r) => r[1] === "Baho" && r[2] === "Soni"), "o'chirilgan taqsimot Excelda ham yo'q");
+    await page.click('.exw [data-ch="dist"]'); await page.click(".exw [data-act=pr]");
+    ft = await page.evaluate(() => window.__printed); assert.ok(ft.includes("Taqsimot"), "qism qaytdi");
+    await page.click(".exw [data-x]");
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
 
-test("BSB eksporti: rasmiy shakl 1 ta varaqqa sig'adi, tahlil hisoboti betlarga bo'linadi", async () => {
+test("BSB eksporti: rasmiy shakl 1 ta varaqqa sig'adi, tahlil hisoboti betlarga bo'linadi (umumiy oyna; 36 va 18 o'quvchi)", async () => {
   const {readFile} = await import("node:fs/promises");
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
   try {
-    const page = await browser.newPage({viewport: {width: 1200, height: 900}});
-    const errors = []; page.on("pageerror", (e) => errors.push(e.message));
-    await page.goto(APP);
-    const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
-    await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
-    await page.evaluate(() => { window.print = () => {}; const c = D.classes[0], B = baBlank(); B.q = 6; B.max = Array(6).fill(2); B.title = "Kasrlar";
-      while (c.students.length < 45) c.students.push({...clone(c.students[0]), name: "Talaba " + c.students.length, id: "t" + c.students.length});
-      c.students.forEach((s, i) => { B.rows[s.name] = {in: true, pts: B.max.map((m, k) => (i + k) % 3)}; });
-      window.__X = BXP.data(c, B); D.web.bsb_hdr = {school: "12-maktab"}; });
-    const r = await page.evaluate(() => { const H = BXP.cfg(), X = window.__X, f1 = BXP.pagesHtml(X, H, 1), f2 = BXP.pagesHtml(X, H, 2);
-      BXP.print(X, H, 2); return {z: f2.P[0].zoom, n2: f2.P.length, n1: f1.P.length, cont: f1.P.some((p) => p.html.includes("(davomi)")), css: document.getElementById("pdoc-css").textContent}; });
-    assert.ok(r.z < 1 && r.z > 0.3, `zoom ${r.z}`); assert.equal(r.n2, 1); assert.ok(r.css.includes("margin:0"));
-    assert.ok(r.n1 >= 3 && r.cont, `tahlil hisoboti ${r.n1} bet, jadval davomi bor`);
-    await page.emulateMedia({media: "print"});
-    await page.pdf({path: "/tmp/bsb-fit.pdf", preferCSSPageSize: true});
-    let pages = (await readFile("/tmp/bsb-fit.pdf")).toString("latin1").match(/\/Type\s*\/Page[^s]/g).length;
-    assert.equal(pages, 1, "bitta varaq");
-    // tahlil hisoboti: chop etilgan betlar soni ko'rinishdagi bilan bir xil, hech bir bet toshib ketmaydi
-    await page.emulateMedia({media: "screen"}); await page.evaluate(() => BXP.print(window.__X, BXP.cfg(), 1)); await page.emulateMedia({media: "print"});
-    const n1 = await page.evaluate(() => [...document.querySelectorAll("#pdoc .bx-body")].map((b) => b.scrollHeight - b.clientHeight));
-    assert.ok(n1.every((v) => v <= 1), `betdan toshgan: ${n1}`);
-    await page.pdf({path: "/tmp/bsb-f1.pdf", preferCSSPageSize: true});
-    pages = (await readFile("/tmp/bsb-f1.pdf")).toString("latin1").match(/\/Type\s*\/Page[^s]/g).length;
-    assert.equal(pages, r.n1, "PDF betlari = ko'rinishdagi betlar");
-    assert.deepEqual(errors, []);
+    for (const n of [36, 18]) {
+      const page = await browser.newPage({viewport: {width: 1200, height: 900}});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      await page.evaluate((n) => { window.print = () => {}; const c = D.classes[0], B = baBlank(); B.q = 6; B.max = Array(6).fill(2); B.title = "Kasrlar";
+        c.students = c.students.slice(0, Math.min(n, c.students.length));
+        while (c.students.length < n) c.students.push({...clone(c.students[0]), name: "Talaba " + c.students.length, id: "t" + c.students.length});
+        c.students.forEach((s, i) => { B.rows[s.name] = {in: true, pts: B.max.map((m, k) => (i + k) % 3)}; });
+        D.web.bsb_hdr = {school: "12-maktab"}; baExportDialog(c, B); }, n);
+      await page.waitForSelector(".exw .e-pg", {state: "attached"});
+      await page.click('.exw [data-doc="form"]'); await page.click(".exw [data-act=pr]");
+      const css = await page.evaluate(() => document.getElementById("pdoc-css").textContent);
+      assert.ok(css.includes("margin:0"));
+      assert.equal(await page.locator("#pdoc .e-pg").count(), 1, `${n}: rasmiy shakl bitta varaq`);
+      await page.emulateMedia({media: "print"});
+      await page.pdf({path: `/tmp/bsb-fit-${n}.pdf`, preferCSSPageSize: true});
+      let pages = (await readFile(`/tmp/bsb-fit-${n}.pdf`)).toString("latin1").match(/\/Type\s*\/Page[^s]/g).length;
+      assert.equal(pages, 1, `${n}: PDF bitta varaq`);
+      // hech bir bet toshib ketmaydi; tahlil hisoboti bir necha bet, jadval davomi bilan
+      await page.emulateMedia({media: "screen"}); await page.click('.exw [data-doc="an"]'); await page.click(".exw [data-act=pr]"); await page.emulateMedia({media: "print"});
+      const n1 = await page.locator("#pdoc .e-pg").count();
+      assert.ok(n1 >= 2, `${n}: tahlil hisoboti ${n1} bet`);
+      const over = await page.evaluate(() => [...document.querySelectorAll("#pdoc .pg-flow")].map((b) => b.scrollHeight - b.clientHeight));
+      assert.ok(over.every((v) => v <= 1), `${n}: betdan toshgan: ${over}`);
+      await page.pdf({path: `/tmp/bsb-f1-${n}.pdf`, preferCSSPageSize: true});
+      pages = (await readFile(`/tmp/bsb-f1-${n}.pdf`)).toString("latin1").match(/\/Type\s*\/Page[^s]/g).length;
+      assert.equal(pages, n1, `${n}: PDF betlari = ko'rinishdagi betlar`);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
   } finally { await browser.close(); }
 });
 
@@ -1102,15 +1100,16 @@ test("Hisobotlar va BSB/CHSB tahlili: PDF hisobot Telegram'ga (soxta bot API)", 
     }
     // ota-onalar majlisi: har o'quvchiga varaq — bir necha bet
     assert.ok(pdfPages(docs[3].pdf) >= 2, "par: bir necha bet");
-    // BSB/CHSB tahlili eksport oynasi: tayyor varaqlar PDF bo'lib ketadi
-    const n = await page.evaluate(async () => { const c = D.classes[0], B = baBlank(); B.q = 4; B.max = [2, 2, 3, 3]; B.title = "Kasrlar";
-      c.students.forEach((s, i) => { B.rows[s.name] = {in: true, pts: B.max.map((m, k) => (i + k) % (m + 1))}; }); baExportDialog(c, B); return 0; });
-    await page.waitForSelector(".modal [data-tgpdf]", {state: "attached"});
-    await page.evaluate(() => document.querySelector(".modal [data-tgpdf]").click());
-    await page.waitForFunction((k) => document.querySelector(".toast")?.textContent.includes("PDF hisobot Telegram'ga yuborildi") && true, n);
-    await page.waitForFunction(() => !document.querySelector(".ptg-box"));
+    // BSB/CHSB tahlili: umumiy eksport oynasi (bsb-exp.js) — varaqlar PDF bo'lib Telegram'ga ketadi
+    await page.evaluate(() => { const c = D.classes[0], B = baBlank(); B.q = 4; B.max = [2, 2, 3, 3]; B.title = "Kasrlar";
+      c.students.forEach((s, i) => { B.rows[s.name] = {in: true, pts: B.max.map((m, k) => (i + k) % (m + 1))}; }); baExportDialog(c, B); });
+    await page.waitForSelector(".exw .e-pg", {state: "attached"});
+    await page.click(".exw [data-tab=pv]");
+    const bp = await page.locator(".exw .e-pg").count();
+    await page.click(".exw [data-act=tg]");
+    await page.waitForFunction(() => document.querySelector(".exw .e-ab.tg.done"));
     const b = docs[docs.length - 1]; assert.equal(docs.length, 5);
-    assert.ok(b.pdf && pdfPages(b.pdf) >= 1 && b.cap.startsWith("📄"), b.cap);
+    assert.ok(b.pdf && pdfPages(b.pdf) === bp && b.cap.startsWith("📊") && b.cap.includes("BSB"), b.cap);
     assert.ok(vector(b.pdf), "BSB: vektor PDF");
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
@@ -2953,7 +2952,8 @@ test("CHSB testi: ishtirok, % va baho, tahlil, xatolar kesimi, joylash, variant 
     const er = await page.innerText(".paper");
     assert.ok(er.includes("Variantlar bo'yicha taqsimot") && er.includes("To'g'ri %"));
     // eksport oynasi
-    await page.click("[data-bexp]"); await page.waitForSelector("text=CHSB tahlilini eksport qilish"); await page.click("[data-x]");
+    await page.click("[data-bexp]"); await page.waitForSelector(".exw .e-pg", {state: "attached"});
+    assert.ok((await page.textContent(".exw .e-pg h1")).includes("(CHSB) tahlili")); await page.click(".exw [data-x]");
     // o'chirish
     await page.click("[data-tdel]"); await page.click("text=O'chirish >> nth=-1");
     await page.waitForFunction(() => !D.classes[S.ci].works.some((x) => x.title === "Kasrlar"));
@@ -4646,9 +4646,9 @@ test("Yangilaganda (F5) ochiq sahifa qoladi, yangi oynada «Bugun» (36 va 18 o'
   } finally { await browser.close(); }
 });
 
-// Summativ eksporti: «Hozirgi / Yangi» varaq dizayni (bsb-yangi.js) — hozirgi o'zgarishsiz, yangi uslublar, qayta chizilmaslik, sig'ish, kontrast, PDF
+// Summativ eksporti umumiy oynada (bsb-exp.js → EXP; eski «Hozirgi / Yangi» dizaynlar 2026-11-15 da olib tashlandi): sig'ish, uzun ism, 4 uslub, PDF
 for (const [name, viewport, count] of [["kompyuter", {width: 1440, height: 900}, 36], ["telefon", {width: 390, height: 844}, 18]]) {
-  test(`${name}: Summativ eksporti — Hozirgi/Yangi varaq dizayni (${count} o'quvchi)`, async () => {
+  test(`${name}: Summativ eksporti — umumiy oyna, ikki hujjat, 4 uslub (${count} o'quvchi)`, async () => {
     const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
     try {
       const ctx = await browser.newContext({viewport});
@@ -4671,67 +4671,21 @@ for (const [name, viewport, count] of [["kompyuter", {width: 1440, height: 900},
       const n = await page.evaluate(() => D.classes[S.ci].students.length);
       for (let si = 0; si < n; si++) for (let i = 0; i < 3; i++) await page.fill(`[data-bp="${si}|${i}"]`, String((si + i) % (i === 2 ? 7 : 3)));
       await page.press(`[data-bp="${n - 1}|2"]`, "Tab"); await page.click("[data-bsave]");
-      const tap = (s) => page.evaluate((s) => document.querySelector(s).click(), s);
-      await page.click("[data-bexp]"); await page.waitForSelector(".modal .bx-pg", {state: "attached"});
-      // Hozirgi: avvalgidek, yangi elementlar yo'q
-      assert.equal(await page.evaluate(() => document.querySelector(".bx-dlg").dataset.d), "old");
-      const old = await page.evaluate(() => ({nw: document.querySelectorAll(".modal .bx-pg.nw").length, cb: document.querySelectorAll(".modal .bx-cb").length, kp: document.querySelectorAll(".modal .bx-kp").length, fr: document.querySelectorAll(".modal .bx-fr").length,
-        newVis: [...document.querySelectorAll("[data-newonly]")].some((e) => e.offsetParent), oldVis: [...document.querySelectorAll("[data-oldonly]")].filter((e) => !e.hidden).every((e) => e.offsetParent)}));
-      assert.deepEqual([old.nw, old.cb, old.kp, old.fr, old.newVis, old.oldVis], [0, 0, 0, 0, false, true], "Hozirgi dizayn o'zgarmagan");
-      // Yangi
-      await tap('[data-seg=dz] [data-v=new]'); await page.waitForSelector(".modal .bx-pg.nw", {state: "attached"});
-      const nw = await page.evaluate(() => ({d: document.querySelector(".bx-dlg").dataset.d, st: D.web.bsb_hdr.bx.d, cb: document.querySelectorAll(".modal .bx-pg.nw .bx-cb").length, kp: document.querySelectorAll(".modal .bx-kp").length, med: document.querySelectorAll(".modal td.mdl").length,
-        pre: document.querySelectorAll(".bxn-pc").length, dots: document.querySelectorAll(".bxn-dot").length, oldHidden: [...document.querySelectorAll("[data-oldonly]")].every((e) => !e.offsetParent), gl: document.querySelectorAll(".modal .bx-gl").length}));
-      assert.equal(nw.d, "new"); assert.equal(nw.st, "new"); assert.ok(nw.cb >= 1 && nw.kp === 3 && nw.med === 3 && nw.gl >= 1, JSON.stringify(nw)); assert.equal(nw.pre, 4); assert.equal(nw.dots, 6); assert.ok(nw.oldHidden);
-      assert.ok(await page.evaluate(() => document.querySelector(".bxn-pc.on")), "Zamonaviy tanlangan");
-      // tugma bosilganda panel va varaq qayta chizilmaydi (tugunlar va scroll joyida)
-      await page.evaluate(() => { window.__chips = document.querySelector("[data-chips]"); window.__pg = document.querySelector(".bx-pages .bx-pw"); window.__sb = document.querySelector(".bx-side-b"); document.querySelector(".bx-pages").scrollTop = 150; });   // telefonda ko'rish yorlig'i yopiq: faqat tugunlar tekshiriladi
-      await tap('[data-np=ras]');
-      const same = await page.evaluate(() => ({chips: window.__chips === document.querySelector("[data-chips]"), pg: window.__pg === document.querySelector(".bx-pages .bx-pw"), sb: window.__sb === document.querySelector(".bx-side-b"), y: document.querySelector(".bx-pages").scrollTop,
-        fr: document.querySelectorAll(".modal .bx-fr").length, mo: document.querySelectorAll(".modal .bx-mo").length, serif: document.querySelectorAll(".modal .bx-pg.f-serif").length, on: document.querySelector(".bxn-pc.on").dataset.np}));
-      assert.ok(same.chips && same.pg && same.sb, "tugunlar saqlanadi"); if (name === "kompyuter") assert.ok(same.y >= 100, `scroll joyida: ${same.y}`);
-      assert.ok(same.fr >= 2 && same.mo >= 1 && same.serif >= 1 && same.on === "ras", JSON.stringify(same));
-      // hamma rang mavzusi va uslub, ikkala shakl: ichki sig'ish, ismlar kesilmaydi, kontrast >= 4.5
-      const scan = () => page.evaluate(() => {
-        const parse = (c) => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(",").map(Number); return {r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1}; };
-        const lum = ({r, g, b}) => { const f = (v) => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(r) + .7152 * f(g) + .0722 * f(b); };
-        const over = (t, b) => ({r: t.r * t.a + b.r * (1 - t.a), g: t.g * t.a + b.g * (1 - t.a), b: t.b * t.a + b.b * (1 - t.a), a: 1});
-        const bgOf = (el) => { const ch = []; for (let e = el; e; e = e.parentElement) { const c = parse(getComputedStyle(e).backgroundColor); if (c && c.a > 0) { ch.push(c); if (c.a >= 1) break; } } let b = {r: 255, g: 255, b: 255, a: 1}; for (let i = ch.length - 1; i >= 0; i--) b = over(ch[i], b); return b; };
-        const bad = [], cut = [];
-        for (const pg of document.querySelectorAll(".modal .bx-pg")) {
-          const body = pg.querySelector(".bx-body"); if (body.scrollHeight > body.clientHeight + 1) cut.push("sig'maydi " + (body.scrollHeight - body.clientHeight));
-          const zm = body.firstElementChild && body.firstElementChild.classList.contains("bx-zm") ? body.firstElementChild : body, ks = [...zm.children];
-          for (let i = 0; i + 1 < ks.length; i++) if (ks[i].getBoundingClientRect().bottom > ks[i + 1].getBoundingClientRect().top + 1) cut.push("bloklar ustma-ust " + i);
-          const w = document.createTreeWalker(pg, NodeFilter.SHOW_TEXT);
-          while (w.nextNode()) { const t = w.currentNode; if (!t.nodeValue.trim()) continue; const el = t.parentElement, cs = getComputedStyle(el); if (cs.visibility === "hidden" || !el.getBoundingClientRect().width) continue;
-            const fg = parse(cs.color), bg = bgOf(el), f2 = over(fg, bg), a = lum(f2), b = lum(bg), cr = (Math.max(a, b) + .05) / (Math.min(a, b) + .05); const big = parseFloat(cs.fontSize) >= 18.66;
-            if (cr < (big ? 3 : 4.5)) bad.push(`${el.className}|${t.nodeValue.trim().slice(0, 14)}|${cr.toFixed(2)}`); }
-        }
-        return {bad: [...new Set(bad)].slice(0, 6), cut};
-      });
-      for (const th of ["", "t-kok", "t-bin", "t-iliq", "t-qiz", "t-bw"]) for (const pre of ["zam", "yen", "ras", "ixc"]) for (const form of ["1", "2"]) {
-        await tap(`[data-np=${pre}]`); await tap(`[data-nth="${th}"]`); await tap(`.bxn-full [data-v="${form}"]`);
-        const r = await scan(); assert.deepEqual(r, {bad: [], cut: []}, `${th || "yashil"} ${pre} ${form}: ${JSON.stringify(r)}`);
+      await page.evaluate(() => { window.print = () => { window.__printed = document.getElementById("pdoc").innerHTML; }; });
+      await page.click("[data-bexp]"); await page.waitForSelector(".exw .e-pg", {state: "attached"});
+      for (const doc of ["an", "form"]) for (const sty of ["zam", "yen", "ras", "ixc"]) {
+        await page.evaluate(([d, st]) => { document.querySelector(`.exw [data-doc="${d}"]`).click(); document.querySelector(`.exw [data-sty="${st}"]`).click(); }, [doc, sty]);
+        await page.evaluate(() => document.querySelector(".exw [data-act=pr]").click());
+        const r = await page.evaluate(() => ({n: document.querySelectorAll("#pdoc .e-pg").length, over: [...document.querySelectorAll("#pdoc .pg-flow")].map((b) => b.scrollHeight - b.clientHeight).filter((v) => v > 1),
+          long: document.getElementById("pdoc").textContent.includes("Abdurahmonova Mohinur Shuhratjon qizi"), tit: [...document.querySelectorAll("#pdoc h1")].every((h) => h.scrollWidth <= h.clientWidth + 1)}));
+        const tag = `${doc}/${sty}`;
+        assert.ok(r.n >= 1 && !r.over.length, `${tag}: bet toshmaydi ${r.over}`);
+        if (doc === "form") assert.equal(r.n, 1, `${tag}: rasmiy shakl bitta varaq`);
+        assert.ok(r.long, `${tag}: uzun ism to'liq`); assert.ok(r.tit, `${tag}: sarlavha kesilmaydi`);
       }
-      assert.equal(await page.evaluate(() => D.web.bsb_hdr.bx.bw), true, "Oq-qora mavzu Excel uchun ham oq-qora");
-      // suv belgisi, rangli baho katagi, imzo muhri — PDF va chop etishga o'tadi
-      await tap('[data-nth=""]'); await tap('[data-np=yen]'); await tap('[data-seg=nform] [data-v="1"]');
-      await page.evaluate(() => { document.querySelector(".bxn-g").open = true; });
-      for (const k of ["wm", "gc", "fr", "mo"]) await tap(`[data-nt=${k}]`);
-      assert.ok(await page.evaluate(() => document.querySelectorAll(".modal img.bx-wm").length >= 1 && document.querySelector(".bxn-g").open), "suv belgisi va ochiq bo'lim saqlanadi");
-      await page.evaluate(() => { window.__pdf = null; const R = BXP.pagesHtml(BXP.data(D.classes[S.ci], D.classes[S.ci].analyses[0]), BXP.cfg(), 1); return PTG.pagesPdf(R.pages, R.land).then((b) => b.arrayBuffer()).then((ab) => { window.__pdf = [...new Uint8Array(ab).slice(0, 5)].map((c) => String.fromCharCode(c)).join("") + ":" + ab.byteLength; }); });
-      const pdf = await page.evaluate(() => window.__pdf); assert.match(pdf, /^%PDF-:\d+$/); assert.ok(+pdf.split(":")[1] > 8000, pdf);
-      await page.click(".modal [data-pdf]");
-      const html = await page.evaluate(() => window.__printed);
-      assert.ok(html.includes("bx-pg") && html.includes("nw") && html.includes("bx-fr") && html.includes("bx-cb"), "chop etishda yangi dizayn");
-      // eslab qolinadi: qayta ochilganda ham Yangi, tanlangan uslub saqlangan
-      await page.click("[data-bexp]"); await page.waitForSelector(".modal .bx-pg.nw", {state: "attached"});
-      assert.equal(await page.evaluate(() => document.querySelector(".bx-dlg").dataset.d), "new");
-      assert.equal(await page.evaluate(() => D.web.bsb_hdr.bx.n.wm), true);
-      // Hozirgi'ga qaytish — avvalgi ko'rinish
-      await tap('[data-seg=dz] [data-v=old]');
-      const back = await page.evaluate(() => ({nw: document.querySelectorAll(".modal .bx-pg.nw").length, d: document.querySelector(".bx-dlg").dataset.d, bw: D.web.bsb_hdr.bx.bw}));
-      assert.deepEqual(back, {nw: 0, d: "old", bw: false});
+      await page.evaluate(() => { document.querySelector('.exw [data-sty="zam"]').click(); });
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "oyna ekrandan chiqmaydi");
+      await page.evaluate(() => document.querySelector(".exw [data-x]").click());
       assert.deepEqual(errors, []);
       await ctx.close();
     } finally { await browser.close(); }

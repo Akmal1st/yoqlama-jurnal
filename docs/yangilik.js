@@ -8,7 +8,7 @@
    va NEWS boshiga yozuv qo'shing.
    Bu fayl asosiy skriptdan OLDIN ulanadi; S, go, render, renderNav, esc, $ … faqat chaqirilganda ishlatiladi. */
 const YNG = (() => {
-  const VER = 244, KEY = "yoqlama_yangilik";
+  const VER = 245, KEY = "yoqlama_yangilik";
   const P = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const IC = {
     spark: P('<path d="M12 3l1.8 4.9L19 9.7l-5.2 1.8L12 16.5l-1.8-5L5 9.7l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>'),
@@ -22,6 +22,8 @@ const YNG = (() => {
     bug: P('<rect x="7" y="7" width="10" height="13" rx="5"/><path d="M12 7v13M4 12h3M17 12h3"/>')};
   // go: [sahifa, Sozlamalar bo'limi] — «Ochish» shu joyga olib boradi
   const NEWS = [
+    {v: 245, d: "15-noyabr", items: [
+      {ic: "star", t: "BSB/CHSB tahlili: yangi eksport oynasi", s: "BSB tahlili → «⬇ Eksport» endi boshqa hisobotlar kabi umumiy oynada ochiladi: «Tahlil hisoboti» yoki «Rasmiy shakl» (har doim 1 varaq), 4 uslub, rangli yoki oq-qora, PDF, Excel va Telegram bir joyda. Eski «Hozirgi / Yangi» tanlovi olib tashlandi.", go: ["journal"], gl: "Jurnal"}]},
     {v: 244, d: "15-noyabr", items: [
       {ic: "star", t: "Maqsad bahosi", s: "Jurnal → «Chorak» jadvalida yangi «Maqsad» ustuni: har o'quvchi uchun keyingi baho (5, 4 yoki 3) uchun yana nima kerakligi — qolgan ishlardan qancha ball yoki yana nechta «10». Ustun ustiga olib borsangiz, to'liq izoh chiqadi. Sozlamalar → Funksiyalar → «Maqsad bahosi» bilan o'chiriladi.", go: ["journal"], gl: "Jurnal"},
       {ic: "star", t: "Ota-onaga «Chorak xulosasi»", s: "Sinf menyusi → «Xabarlar (butun sinf)» yoki o'quvchi kartochkasi → «Ota-onaga xabar»da yangi tur: BSB/CHSB ballari, formativ baho, jami ball va kutilayotgan chorak bahosi yoki «5» (4) olish uchun nima kerakligi. O'zbekcha va ruscha.", go: ["journal"], gl: "Jurnal"}]},
