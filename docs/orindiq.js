@@ -16,7 +16,14 @@ const ORX = (() => {
   const parts = (n) => { const w = String(n).trim().split(/\s+/); return {fam: w[0] || "", ism: w.slice(1).join(" ") || w[0] || ""}; };
   const w = (L) => L.cols * L.per;
   const narrow = () => typeof matchMedia === "function" && matchMedia("(max-width:640px)").matches;
-  const prefs = () => (D.web.seatv = Object.assign({flip: false, avg: true, real: false, gx: false}, D.web.seatv));
+  const prefs = () => (D.web.seatv = Object.assign({flip: false, avg: true, real: false, gx: false, pcol: "c", pff: ""}, D.web.seatv));
+  // chop etish varag'i: rangli («c») yoki oq-qora («bw»), shrift (shriftlar.js, "" — Manrope)
+  const HAS_SHR = typeof SHR !== "undefined";
+  const ffOk = (k) => (HAS_SHR && SHR.row(k) ? k : "");
+  const ffApply = (k) => { if (HAS_SHR) SHR.rule("ox-ff-css", ".bx-pg.oxp.oxff", ffOk(k)); };
+  const ffReady = (k) => (HAS_SHR && ffOk(k) ? SHR.ready(k) : Promise.resolve());
+  // qatorlar (ustunlar) ranglari: [asosiy, och fon]
+  const QC = [["#0b7a75", "#e3f4f2"], ["#1d5fa8", "#e5eefa"], ["#a35a00", "#fcf0dc"], ["#7a3fa6", "#f1e8f8"]];
   // jinsni familiya yoki «o'g'li/qizi» bo'yicha taxmin qilish: "m" | "f" | ""
   function guessSex(n) {
     const t = String(n).toLowerCase().replace(/[ʻʼ‘’`]/g, "'"), ws = t.split(/\s+/), f = ws[0] || "";
@@ -127,7 +134,7 @@ const ORX = (() => {
         : av != null ? `<span class="ox-bdg" style="background:${gradeColor(av) || "var(--acc)"};color:${contrast(gradeColor(av) || "#0b6f79")}">${av.toFixed(1)}</span>` : "";
       const pin = o.mode === "edit" && L.pin[p] ? `<span class="pin">${I("pin-angle-fill")}</span>` : "";
       const sx = o.gx ? sexOf(L, n) : "", gx = sx ? `<span class="gx ${sx}" title="${sx === "m" ? "O'g'il" : "Qiz"}">${I(sx === "m" ? "gender-male" : "gender-female")}</span>` : "";
-      const st = a && STC[a] ? `style=""background:var(--ox-${a}-t);border-color:${col(a)}"` : "";
+      const st = a && STC[a] ? `style="background:var(--ox-${a}-t);border-color:${col(a)}"` : "";
       const inner = cmp ? `<span class="no">${i + 1}</span>${gx}<span class="nm">${esc(ism)} <i>${esc(fam.slice(0, 1))}.</i></span>${pin}${bdg}`
         : `<span class="hd"><span class="no">${i + 1}${gx ? " " + gx : ""}</span>${pin}${bdg || "<span></span>"}</span><span class="nm">${esc(ism)}</span><span class="fm">${esc(fam)}</span>`;
       return `<button type="button" class="ox-seat ${st ? "st" : ""} ${sx ? "sx" + sx : ""} ${o.sel === p ? "sel" : ""}" data-oxs="${p}" data-oxn="${i}" ${st} title="${esc(n)}">${inner}</button>`;
@@ -180,7 +187,7 @@ const ORX = (() => {
     const c = D.classes[ci], L = of(c, true), hist = []; let sel = null;   // sel: "q-u" yoki "n:ism"
     const snap = () => { hist.push(JSON.stringify({at: L.at, pin: L.pin, rows: L.rows, cols: L.cols, per: L.per})); if (hist.length > 40) hist.shift(); };
     const subs = siblings(c).map((x) => x.subject).filter(Boolean);
-    return modal(`<div class="ox-ed" id="oxed"></div>`, (m, close) => {
+    const done = modal(`<div class="ox-ed" id="oxed"></div>`, (m, close) => {
       const box = $("#oxed", m);
       const draw = () => {
         const P = prefs(), N = narrow(), away = awayNames(c), live = c.students.filter((s) => !away.has(s.name));
@@ -313,6 +320,8 @@ const ORX = (() => {
       };
       draw();
     });
+    // Esc yoki fon bosilib yopilsa ham sahifa (dars xaritasi, Hisobotlar) yangilansin
+    return done.then((v) => { render(); return v; });
   }
 
   /* ───── darsda: xaritadan yo'qlama (avval holat, keyin joy) ───── */
@@ -348,19 +357,21 @@ const ORX = (() => {
     const L = of(c), idx = new Map(c.students.map((s, i) => [s.name, i])), F = o.flip, ord = order(L, F), away = [...awayNames(c)].filter((n) => idx.has(n));
     const avg = o.avg ? avgMap(c) : null, placed = Object.values(L.at).filter((n) => idx.has(n)).length, empty = L.rows * w(L) - placed;
     const unplaced = c.students.length - away.length - placed, subs = siblings(c).map((x) => x.subject).filter(Boolean);
+    const C = o.col !== "bw", qs = (d) => C ? ` style="--q:${QC[d % QC.length][0]};--qt:${QC[d % QC.length][1]}"` : "";
     let g = "";
-    for (const r of ord.rows) for (const d of ord.cols) g += `<div class="oxp-d">${d === ord.cols[0] ? `<span class="oxp-dn">${r + 1}</span>` : ""}${ord.seats(d).map((u) => {
+    for (const r of ord.rows) for (const d of ord.cols) g += `<div class="oxp-d"${qs(d)}>${d === ord.cols[0] ? `<span class="oxp-dn">${r + 1}</span>` : ""}${ord.seats(d).map((u) => {
       const n = L.at[`${r}-${u}`], i = n != null ? idx.get(n) : undefined;
       if (i === undefined) return `<div class="oxp-s e"><span class="oxp-n">–</span></div>`;
       const {fam, ism} = parts(n), a = avg && avg.get(n);
-      return `<div class="oxp-s"><span class="oxp-n">${i + 1}</span><span class="oxp-nm"><b>${esc(fam)}</b><span>${esc(ism)}</span></span>${a != null ? `<span class="oxp-a">${a.toFixed(1)}</span>` : ""}</div>`;
+      const gc = C && a != null && typeof gradeColor === "function" ? gradeColor(a) : "", ac = gc ? ` style="background:${gc};color:${contrast(gc)}"` : "";
+      return `<div class="oxp-s"><span class="oxp-n">${i + 1}</span><span class="oxp-nm"><b>${esc(fam)}</b><span>${esc(ism)}</span></span>${a != null ? `<span class="oxp-a"${ac}>${a.toFixed(1)}</span>` : ""}</div>`;
     }).join("")}</div>`;
     const tpl = `grid-template-columns:repeat(${L.cols},minmax(0,1fr))`;
     const front = `<div class="oxp-f ${F ? "b" : ""}">${F ? "" : `<div class="oxp-td">O'QITUVCHI STOLI</div>`}<div class="oxp-board">DOSKA</div>${F ? `<div class="oxp-td">O'QITUVCHI STOLI</div>` : ""}</div>`;
-    const cols = `<div class="oxp-cols ${F ? "b" : ""}" style="${tpl}">${ord.cols.map((d) => `<span>${d + 1}-qator</span>`).join("")}</div>`;
+    const cols = `<div class="oxp-cols ${F ? "b" : ""}" style="${tpl}">${ord.cols.map((d) => `<span${qs(d)}>${d + 1}-qator</span>`).join("")}</div>`;
     const grid = `<div class="oxp-g" style="${tpl};grid-template-rows:repeat(${L.rows},1fr)">${g}</div>`;
     const t = todayIso(), y = +t.slice(0, 4), sy = +t.slice(5, 7) >= 8 ? `${y}–${y + 1}` : `${y - 1}–${y}`;
-    return `<div class="bx-pg bx-land oxp ${L.rows <= 4 ? "big" : ""}">
+    return `<div class="bx-pg bx-land oxp ${L.rows <= 4 ? "big" : ""} ${C ? "oxc" : "oxbw"}${ffOk(o.ff) ? " oxff" : ""}">
       <div class="oxp-h"><div><div class="oxp-t">O'RINDIQ XARITASI</div><div class="oxp-c"><b>${esc(c.name)} sinf</b>${subs.length ? ` · ${subs.map(esc).join(", ")}` : ""}</div></div>
         <div class="oxp-r">O'qituvchi: ${esc(((D.web.bsb_hdr || {}).teacher || "").trim()) || "______________________"}<br>${sy} o'quv yili · ${fmt(t)}</div></div>
       ${F ? grid + cols + front : front + cols + grid}
@@ -387,13 +398,27 @@ const ORX = (() => {
     } catch (e) { console.warn("O'rindiq PDF:", e); toast(`PDF tayyorlanmadi: ${e.message}`); }
     finally { if (btn) { btn.disabled = false; btn.innerHTML = t0; } }
   }
+  // chop etish / PDF / Telegram — tanlangan shrift yuklangandan keyin (varaq o'lchami shriftga bog'liq)
+  const withFf = (o, f) => { ffApply(o.ff); return ffReady(o.ff).then(f); };
+  const outPrint = (c, o) => withFf(o, () => doPrint(pageHtml(c, o), fileOf(c)));
+  const outPdf = (c, o, btn) => withFf(o, () => savePdf(pageHtml(c, o), fileOf(c), btn));
+  const outTg = (c, o, btn) => PTG.run(() => withFf(o, () => PTG.pagesPdf([pageHtml(c, o)], true)), fileOf(c), `🪑 O'rindiq xaritasi\n${c.name} sinf · ${fmt(todayIso())}`, btn);
+  // «Rangli / Oq-qora» + «Shrift» boshqaruvi (hisobot oynasi va Hisobotlar sahifasi uchun bitta)
+  const lookHtml = (o) => `<div class="seg ox-pcol" role="group" aria-label="Varaq ranglari"><button type="button" class="${o.col !== "bw" ? "on" : ""}" data-oxpc="c">${I("palette")} Rangli</button><button type="button" class="${o.col === "bw" ? "on" : ""}" data-oxpc="bw">${I("circle-half")} Oq-qora</button></div>${HAS_SHR ? `<label class="ox-ffl"><span>Shrift</span><select class="form-select form-select-sm" data-oxff aria-label="Shrift">${SHR.options(o.ff, "Manrope (oddiy)")}</select></label>` : ""}`;
+  function lookBind(m, o, redraw) {
+    m.querySelectorAll("[data-oxpc]").forEach((b) => b.onclick = () => { o.col = prefs().pcol = b.dataset.oxpc; save(); redraw(); });
+    const f = $("[data-oxff]", m); if (f) f.onchange = () => { o.ff = prefs().pff = ffOk(f.value); save(); ffApply(o.ff); redraw(); ffReady(o.ff).then(() => { if (m.isConnected) redraw(); }); };
+  }
+  const look = () => { const P = prefs(); return {col: P.pcol === "bw" ? "bw" : "c", ff: ffOk(P.pff)}; };
   function report(c) {
     if (!of(c)) { toast("Avval xaritani tuzing"); return; }
-    const o = {flip: prefs().flip, avg: false};
+    const o = {flip: prefs().flip, avg: false, ...look()};
+    ffApply(o.ff);
     return modal(`<div class="ox-pdlg vcol" style="gap:10px"><h2>${I("file-earmark-text")} O'rindiq xaritasi · ${esc(c.name)}</h2>
       <div class="hrow wrap" style="gap:8px"><div class="seg" id="oxpf"></div><button type="button" class="btn btn-sm" data-oxpa></button><span class="ox-hint" id="oxpw"></span></div>
+      <div class="hrow wrap" style="gap:8px" id="oxlk"></div>
       <div class="ox-pvw"><div class="ox-pv"></div></div>
-      <div class="ox-hint">A4 albom · oq-qora printerga mos</div>
+      <div class="ox-hint" id="oxph"></div>
       <div class="hrow wrap" style="gap:8px"><button class="btn" type="button" data-x>Yopish</button><span class="sp"></span>
         <button class="btn" type="button" data-oxpdf title="A4 PDF faylni saqlash">${I("file-earmark-pdf")} PDF</button>
         <button class="btn" type="button" data-oxtg title="PDF qilib Telegram botingizga yuborish">${I("telegram")} Telegram</button>
@@ -403,6 +428,8 @@ const ORX = (() => {
         $("#oxpf", m).innerHTML = `<button type="button" class="${o.flip ? "" : "on"}" data-oxpf="0">O'quvchi nigohi</button><button type="button" class="${o.flip ? "on" : ""}" data-oxpf="1">O'qituvchi nigohi</button>`;
         $("[data-oxpa]", m).innerHTML = o.avg ? `${I("check2")} O'rtacha baho` : `${I("123")} O'rtacha bahoni qo'shish`;
         $("#oxpw", m).textContent = o.avg ? "Baholi varaqni sinfga osmang: faqat o'zingiz uchun" : "";
+        $("#oxlk", m).innerHTML = lookHtml(o); lookBind(m, o, draw);
+        $("#oxph", m).textContent = o.col === "bw" ? "A4 albom · oq-qora printerga mos" : "A4 albom · rangli: har qator o'z rangida (oq-qora printerda ham o'qiladi)";
         pv.innerHTML = pageHtml(c, o); const k = Math.min(1, Math.max(240, box.clientWidth - 8) / 1123);
         pv.style.transform = `scale(${k})`; box.style.height = 791 * k + 8 + "px";
         m.querySelectorAll("[data-oxpf]").forEach((b) => b.onclick = () => { o.flip = b.dataset.oxpf === "1"; draw(); });
@@ -410,31 +437,36 @@ const ORX = (() => {
       requestAnimationFrame(() => requestAnimationFrame(draw));
       $("[data-oxpa]", m).onclick = () => { o.avg = !o.avg; draw(); };
       $("[data-x]", m).onclick = () => close();
-      $("[data-oxpr]", m).onclick = () => doPrint(pageHtml(c, o), fileOf(c));
-      $("[data-oxpdf]", m).onclick = (e) => savePdf(pageHtml(c, o), fileOf(c), e.currentTarget);
-      $("[data-oxtg]", m).onclick = (e) => PTG.run(() => PTG.pagesPdf([pageHtml(c, o)], true), fileOf(c), `🪑 O'rindiq xaritasi\n${c.name} sinf · ${fmt(todayIso())}`, e.currentTarget);
+      $("[data-oxpr]", m).onclick = () => outPrint(c, o);
+      $("[data-oxpdf]", m).onclick = (e) => outPdf(c, o, e.currentTarget);
+      $("[data-oxtg]", m).onclick = (e) => outTg(c, o, e.currentTarget);
+      if (o.ff) ffReady(o.ff).then(() => { if (m.isConnected) draw(); });
     });
   }
 
   /* ───── Hisobotlar → «Chop etish uchun» → O'rindiq xaritasi (hisobotlar.js) ───── */
   const ho = {flip: false, avg: false};
   function hbBody(c) {
+    Object.assign(ho, look()); ffApply(ho.ff);
     if (!of(c)) return `<div class="hb-box vcol" style="gap:10px;align-items:flex-start"><b>${esc(c.name)} sinfi uchun o'rindiq xaritasi hali tuzilmagan</b><span class="hb-mut">Xarita sinfning barcha fanlari uchun bitta. Bir marta tuzing — keyin chop etish, PDF va Telegram shu yerda.</span><button class="btn btn-primary" data-oxhed>${I("grid-3x3-gap")} Xaritani tuzish</button></div>`;
     return `<div class="hrow wrap" style="gap:8px;margin-bottom:8px"><div class="seg"><button type="button" class="${ho.flip ? "" : "on"}" data-oxhf="0">O'quvchi nigohi</button><button type="button" class="${ho.flip ? "on" : ""}" data-oxhf="1">O'qituvchi nigohi</button></div>
         <button type="button" class="btn btn-sm" data-oxha>${ho.avg ? `${I("check2")} O'rtacha baho` : `${I("123")} O'rtacha bahoni qo'shish`}</button>
         <button type="button" class="btn btn-sm" data-oxhed>${I("pencil-square")} Xaritani tahrirlash</button>${ho.avg ? `<span class="ox-hint">Baholi varaqni sinfga osmang: faqat o'zingiz uchun</span>` : ""}</div>
+      <div class="hrow wrap" style="gap:8px;margin-bottom:8px">${lookHtml(ho)}</div>
       <div class="ox-pvw"><div class="ox-pv" data-oxhpv>${pageHtml(c, ho)}</div></div>`;
   }
   function hbBind(m, c) {
     const pv = $("[data-oxhpv]", m), box = pv && pv.parentElement;
     const fit = () => { if (!pv || !box.isConnected) return; const k = Math.min(1, Math.max(240, box.clientWidth - 8) / 1123); pv.style.transform = `scale(${k})`; box.style.height = 791 * k + 8 + "px"; };
     requestAnimationFrame(fit);
+    lookBind(m, ho, () => render());
+    if (ho.ff) ffReady(ho.ff).then(() => { if (pv && pv.isConnected) { pv.innerHTML = pageHtml(c, ho); fit(); } });
     m.querySelectorAll("[data-oxhf]").forEach((b) => b.onclick = () => { ho.flip = b.dataset.oxhf === "1"; render(); });
     m.querySelectorAll("[data-oxha]").forEach((b) => b.onclick = () => { ho.avg = !ho.avg; render(); });
     m.querySelectorAll("[data-oxhed]").forEach((b) => b.onclick = () => editor(D.classes.indexOf(c)));
-    m.querySelectorAll("[data-print]").forEach((b) => b.onclick = () => { if (of(c)) doPrint(pageHtml(c, ho), fileOf(c)); else toast("Avval xaritani tuzing"); });
-    m.querySelectorAll("[data-oxpdf]").forEach((b) => b.onclick = () => { if (of(c)) savePdf(pageHtml(c, ho), fileOf(c), b); else toast("Avval xaritani tuzing"); });
-    m.querySelectorAll("[data-tgpdf]").forEach((b) => b.onclick = () => { if (!of(c)) return toast("Avval xaritani tuzing"); PTG.run(() => PTG.pagesPdf([pageHtml(c, ho)], true), fileOf(c), `🪑 O'rindiq xaritasi\n${c.name} sinf · ${fmt(todayIso())}`, b); });
+    m.querySelectorAll("[data-print]").forEach((b) => b.onclick = () => { if (of(c)) outPrint(c, ho); else toast("Avval xaritani tuzing"); });
+    m.querySelectorAll("[data-oxpdf]").forEach((b) => b.onclick = () => { if (of(c)) outPdf(c, ho, b); else toast("Avval xaritani tuzing"); });
+    m.querySelectorAll("[data-tgpdf]").forEach((b) => b.onclick = () => { if (!of(c)) return toast("Avval xaritani tuzing"); outTg(c, ho, b); });
   }
 
   return {guessSex, sexOf, of, editor, report, attHtml, attBind, autoCh, awayNames, autoFill, pageHtml, hbBody, hbBind};

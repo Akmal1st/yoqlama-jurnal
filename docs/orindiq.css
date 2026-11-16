@@ -155,3 +155,27 @@ body.ox-drag,body.ox-drag *{cursor:grabbing!important}
 .ox-gl .r.unk b::after{content:" · aniqlanmadi";color:var(--ox-s);font-weight:700;font-size:11px}
 .ox-gl .seg button{padding:5px 9px;font-size:12px}
 .ox-gl .seg button.on.m{background:var(--ox-gm-t);color:var(--ox-gm)}.ox-gl .seg button.on.f{background:var(--ox-gf-t);color:var(--ox-gf)}
+
+/* rangli chop etish + shrift (v256, Akmal 2026-11-16: «chop etish faqat oq-qora bo'lib qolibdi») */
+.ox-ffl{display:flex;align-items:center;gap:8px;min-width:0;flex:0 1 360px;margin:0}
+.ox-ffl span{font-size:12.5px;font-weight:700;color:var(--ox-mut);white-space:nowrap}
+.ox-ffl select{flex:1;min-width:0;width:auto}
+.ox-pcol button .bi{margin-right:3px}
+.bx-pg.oxp,.bx-pg.oxp *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.oxp.oxff .oxp-t{letter-spacing:.03em}
+.oxp.oxc .oxp-h{border-bottom:3px solid #0b6f79}
+.oxp.oxc .oxp-t{color:#0b5f68}
+.oxp.oxc .oxp-c b{color:#0b5f68}
+.oxp.oxc .oxp-board{background:#2f4f4a;border:3px solid #8d6e4a;color:#f4f1e6;border-radius:4px}
+.oxp.oxc .oxp-td{background:#efe3cc;border-color:#8d6e4a;color:#5b4128}
+.oxp.oxc .oxp-cols span{border:0;border-radius:999px;background:var(--qt);color:var(--q);padding:3px 0}
+.oxp.oxc .oxp-d{border:2px solid var(--q);background:var(--qt);border-radius:6px}
+.oxp.oxc .oxp-s{background:#fff;margin:3px;border-radius:4px}
+.oxp.oxc .oxp-s+.oxp-s{border-left:0;margin-left:0}
+.oxp.oxc .oxp-n{background:var(--q);border-color:var(--q);color:#fff}
+.oxp.oxc .oxp-nm b{color:#111}
+.oxp.oxc .oxp-dn{color:#5b6b6a}
+.oxp.oxc .oxp-a{padding:1px 5px;border-radius:999px;background:#e9eeee;color:#222}
+.oxp.oxc .oxp-s.e{background:repeating-linear-gradient(135deg,#fff 0 6px,#eef1f1 6px 7px)}
+.oxp.oxc .oxp-s.e .oxp-n{background:#fff;color:#9aa5a4;border-color:#b9c2c1}
+.oxp.oxc .oxp-ft{border-top:2px solid #0b6f79}
