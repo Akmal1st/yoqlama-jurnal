@@ -6073,6 +6073,72 @@ test("O'rindiq xaritasi: o'g'il-qiz yonma-yon (v234; 36 va 18 o'quvchi, telefon 
   } finally { await browser.close(); }
 });
 
+// v256 (Akmal 2026-11-16: «O'rindiq xaritasidagi tugmalar ishlamayapti, chop etish faqat oq-qora»):
+// xabar (toast) tugmalarni to'smaydi, Esc bilan yopilsa sahifa yangilanadi, holat rangi xaritada ko'rinadi, varaq rangli / oq-qora + shrift
+test("O'rindiq xaritasi: tugmalar xabar ostida ham bosiladi, rangli chop etish va shrift (v256; 36 va 18 o'quvchi)", async () => {
+  const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
+  try {
+    for (const [n, vp] of [[36, {width: 390, height: 844}], [18, {width: 1280, height: 860}]]) {
+      const page = await browser.newPage({viewport: vp, acceptDownloads: true});
+      const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+      await page.clock.setFixedTime(new Date(2026, 10, 18, 10, 0));
+      await page.goto(APP);
+      const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.click("[data-w=import]")]);
+      await chooser.setFiles(FIXTURE); await page.waitForSelector(".bn-hd");
+      await page.evaluate((n) => {
+        const c = D.classes[0], base = c.students[0], t = todayIso();
+        c.students = Array.from({length: n}, (_, i) => Object.assign(JSON.parse(JSON.stringify(base)), {name: `Familiya${i + 1} Ism${i + 1}`, id: newSid(), marks: {}}));
+        if (!c.dates.includes(t)) { c.dates.push(t); c.dates.sort(); } c.extra_x = (c.extra_x || []).filter((d) => d !== t); if (!c.held.includes(t)) c.held.push(t);
+        delete (D.web.seats || {})[normName(c.name)]; D.settings.protect.enabled = false; D.web.att_mode = "map"; save(); startLesson(0);
+      }, n);
+      await page.click("text=Xaritani tuzish"); await page.waitForSelector(".ox-ed");
+      // uzun xabar tugmalar ustida turibdi — baribir bosiladi
+      const toastOver = async (sel) => page.evaluate((sel) => {
+        toast("Juda uzun xabar matni: tugmalar ustini yopib turadi va bir necha soniya ko'rinadi");
+        const t = document.querySelector(".toast"), r = document.querySelector(sel).getBoundingClientRect();
+        Object.assign(t.style, {top: r.top - 4 + "px", bottom: "auto", left: r.left + r.width / 2 + "px"});
+      }, sel);
+      await page.click('.modal [data-oxsh="auto"]'); await page.click('[data-oxauto="rand"]');
+      await toastOver(".ox-ed [data-oxundo]"); await page.click(".ox-ed [data-oxundo]", {timeout: 3000});
+      await toastOver(".ox-ed [data-oxrep]"); await page.click(".ox-ed [data-oxrep]", {timeout: 3000});
+      await page.waitForSelector(".ox-pdlg .oxp");
+      // varaq: sukut bo'yicha rangli, qatorlar o'z rangida
+      assert.ok(await page.locator(".ox-pdlg .oxp.oxc").count() === 1, "rangli varaq");
+      const look = await page.evaluate(() => { const d = document.querySelector(".ox-pdlg .oxp-d"), cs = getComputedStyle(d), n = getComputedStyle(d.querySelector(".oxp-n")), b = getComputedStyle(document.querySelector(".ox-pdlg .oxp-board"));
+        return {bg: cs.backgroundColor, bc: cs.borderTopColor, nb: n.backgroundColor, pa: cs.printColorAdjust || cs.webkitPrintColorAdjust, board: b.backgroundColor}; });
+      assert.notEqual(look.bg, "rgba(0, 0, 0, 0)"); assert.notEqual(look.bc, "rgb(17, 17, 17)"); assert.notEqual(look.nb, "rgba(0, 0, 0, 0)");
+      assert.equal(look.pa, "exact"); assert.equal(look.board, "rgb(47, 79, 74)");
+      await toastOver('.ox-pdlg [data-oxpc="bw"]'); await page.click('.ox-pdlg [data-oxpc="bw"]', {timeout: 3000});
+      assert.equal(await page.locator(".ox-pdlg .oxp.oxbw").count(), 1, "oq-qora");
+      assert.equal(await page.evaluate(() => D.web.seatv.pcol), "bw", "tanlov eslab qolinadi");
+      await page.click('.ox-pdlg [data-oxpc="c"]');
+      await page.selectOption(".ox-pdlg [data-oxff]", "pt");
+      assert.equal(await page.locator(".ox-pdlg .oxp.oxc.oxff").count(), 1);
+      assert.match(await page.evaluate(() => getComputedStyle(document.querySelector(".ox-pdlg .oxp-nm b")).fontFamily), /PT Serif/);
+      const [dl] = await Promise.all([page.waitForEvent("download"), (async () => { await toastOver(".ox-pdlg [data-oxpdf]"); await page.click(".ox-pdlg [data-oxpdf]", {timeout: 3000}); })()]);
+      assert.match(dl.suggestedFilename(), /\.pdf$/);
+      await page.click(".ox-pdlg [data-x]");
+      // Esc bilan yopilsa ham dars sahifasidagi xarita yangilanadi
+      const first = await page.evaluate(() => D.web.seats[normName(D.classes[0].name)].at["0-0"]);
+      await page.click('.ox-ed [data-oxs="0-0"]'); await page.click(".ox-ed [data-unseat]");
+      await page.keyboard.press("Escape");
+      await page.waitForSelector(".ox-ed", {state: "detached"});
+      assert.ok(!(await page.textContent(".ox-room")).includes(first.split(" ")[1] + "\n") && await page.locator('.ox-room [data-oxs="0-0"].empty').count() === 1, "xarita yangilandi");
+      // holat rangi xaritada (style atributi buzilmagan)
+      const sp = await page.locator(".ox-room [data-oxn]").first().getAttribute("data-oxs");
+      await page.click('[data-oxbr="s"]'); await page.click(`.ox-room [data-oxs="${sp}"]`);
+      const st = await page.evaluate((sp) => { const b = document.querySelector(`.ox-room [data-oxs="${sp}"]`); return {cls: b.className, bg: getComputedStyle(b).backgroundColor, style: b.getAttribute("style")}; }, sp);
+      assert.match(st.cls, /\bst\b/); assert.match(st.style || "", /background:var\(--ox-s-t\)/); assert.equal(st.bg, "rgb(251, 228, 225)");
+      // Hisobotlar → O'rindiq xaritasi: rangli / oq-qora va shrift shu yerda ham
+      await page.evaluate(() => { S.rep = Object.assign(S.rep || {}, {kind: "seat", ci: 0}); go("reports"); });
+      await page.waitForSelector("[data-oxhpv] .oxp.oxc.oxff");
+      await page.click('main [data-oxpc="bw"]'); await page.waitForSelector("[data-oxhpv] .oxp.oxbw");
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});
+
 // Dars ishlanma olib tashlandi (v242, Akmal 2026-11-14): menyuda yo'q, eski c.ish ma'lumoti va eski «ish» sahifasi xato bermaydi
 for (const n of [36, 18]) test(`Dars ishlanma olib tashlangan (${n} o'quvchi)`, async () => {
   const browser = await chromium.launch({executablePath: process.env.CHROMIUM_PATH || undefined});
