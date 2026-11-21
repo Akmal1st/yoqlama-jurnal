@@ -105,7 +105,7 @@ const SZL = (() => {
     const rk = `<div class="sz-rkp"><span>Tayyor to'plam:</span><div class="sz-seg full">${RISK_PRESETS.map(([k, n]) => `<button class="${isSet(k) ? "on" : ""}" data-rkpre="${k}" title="${n}">${RISK_SHORT[k] || n}</button>`).join("")}</div></div>` +
       RISK_TYPES.map(([k, [t, d], fields]) => { const on = !!st.risk.on[k];
         return `<div class="sz-rk ${on ? "" : "off"} ${flash === "rk" + k ? "sz-flash" : ""}" id="sz-rk${k}"><div class="sz-st"><b>${t}</b><small>${d}</small></div>
-          <div class="sz-th" ${on ? "" : "inert aria-disabled=\"true\""}>${fields.map(([fk, fn, stp_, u], j) => `<label>${fields.length > 1 ? (j ? "kamida" : "o'rtacha <") : ""}${stp(`data-rk="${fk}"`, st.risk[fk], u, stp_, 0, fn)}</label>`).join("")}</div>${tog(`data-rkon="${k}"`, on, t)}</div>`; }).join("");
+          <div class="sz-th" ${on ? "" : "inert aria-disabled=\"true\""}>${fields.map(([fk, fn, stp_, u, pre], j) => `<label>${pre ?? (fields.length > 1 ? (j ? "kamida" : "o'rtacha <") : "")}${stp(`data-rk="${fk}"`, st.risk[fk], u, stp_, 0, fn)}</label>`).join("")}</div>${tog(`data-rkon="${k}"`, on, t)}</div>`; }).join("");
     const nOn = RISK_TYPES.filter(([k]) => st.risk.on[k]).length;
     return {body: grp("Baho ranglari", colors, "", "Jurnalda har bir baho qaysi rangda chiqishi. Guruh tanlangan bahodan boshlanib, keyingisigacha davom etadi.", "rng") +
       grp("Xavf turlari", rk, cnt(`${nOn} / ${RISK_TYPES.length}`), "Yoqilgan shartlardan biri bajarilsa, o'quvchi jurnalda qizil, «Bugun»da «E'tibor talab qiladi»da chiqadi.") +

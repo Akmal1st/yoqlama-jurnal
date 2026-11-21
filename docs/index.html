@@ -78,7 +78,7 @@
 <script src="bugun-tatil.js?v=207"></script>
 <script src="bugun.js?v=230"></script>
 <script src="funksiyalar.js?v=254"></script>
-<script src="sozlamalar.js?v=216"></script>
+<script src="sozlamalar.js?v=257"></script>
 <script src="mezon.js?v=249"></script>
 <script src="kriterial.js?v=250"></script>
 <script src="kriterial-chop.js?v=248"></script>
@@ -96,7 +96,7 @@
 <script src="taxminiy.js?v=193"></script>
 <script src="summativ.js?v=218"></script>
 <script src="loyiha.js?v=231"></script>
-<script src="yangilik.js?v=256"></script>
+<script src="yangilik.js?v=257"></script>
 <script src="saqlash.js?v=216"></script>
 <script src="sinx.js?v=235"></script>
 <script src="telegram.js?v=216"></script>
@@ -118,14 +118,14 @@ const DEFAULTS = {
   method_weekday: null, lesson_weekdays: [0, 1, 2, 3, 4, 5], quarters: [null, null, null, null],
   holidays: ["01-01", "03-08", "03-21", "05-09", "09-01", "10-01", "12-08"],
   protect: {enabled: true, auto_lock_min: 10, pin: null},
-  risk: {avg_below: 5.0, att_below: 80, s_ge: 3, min_n: 3, few_lt: 4, avg_min_grades: 3, consec_ge: 3, drop_ge: 1.5, work_below: 40,
+  risk: {avg_below: 5.0, att_below: 80, s_ge: 3, min_n: 3, few_lt: 4, few_from: 5, avg_min_grades: 3, consec_ge: 3, drop_ge: 1.5, work_below: 40,
          on: {avg: true, few: true, min_n: true, att: true, s: true, qgrade: true, consec: false, drop: false, work: false}},
 };
 // xavf turlari (sozlamalar uchun): [kalit, [nomi, izoh], [[chegara kaliti, nomi, qadam, birlik]]]
 const RISK_TYPES = [
   ["avg", ["O'rtacha baho past", "O'rtacha baho shundan past bo'lsa (kamida «baho soni» ta baho qo'yilgan bo'lsa)"], [["avg_below", "O'rtacha baho shundan past", "0.5", ""], ["avg_min_grades", "Kamida shuncha baho", "1", "ta"]]],
-  ["few", ["Baholar kam", "Dars o'tilgan bo'lsa-yu, baholar soni shundan kam bo'lsa"], [["few_lt", "Baholar soni shundan kam", "1", "ta"]]],
-  ["min_n", ["BSB dan keyin baholar kam", "BSB topshirilgandan keyin ham baholar soni shundan kam bo'lsa"], [["min_n", "Baholar soni shundan kam", "1", "ta"]]],
+  ["few", ["Baholar kam", "Belgilangan darsdan boshlab (sukut bo'yicha 5-darsdan) baholar soni shundan kam bo'lsa"], [["few_lt", "Baholar soni shundan kam", "1", "ta", "baho <"], ["few_from", "Nechanchi darsdan boshlab", "1", "-darsdan", ""]]],
+  ["min_n", ["BSB dan keyin baholar kam", "BSB topshirilgandan keyin ham baholar soni shundan kam bo'lsa («Baholar kam»dagi darsdan boshlab)"], [["min_n", "Baholar soni shundan kam", "1", "ta"]]],
   ["att", ["Davomat past", "Davomat foizi shundan past bo'lsa"], [["att_below", "Davomat shundan past", "1", "%"]]],
   ["s", ["Sababsiz qoldirish", "Sababsiz qoldirilgan darslar soni shuncha va undan ko'p bo'lsa"], [["s_ge", "Sababsiz qoldirish, kamida", "1", "ta"]]],
   ["qgrade", ["Chorak bahosi 2", "Chorak natijasi to'liq bo'lib, baho 2 chiqsa"], []],
@@ -634,9 +634,11 @@ function reportRows0(c, lo, hi, q) {
     const qr = hasQ ? quarterResult(c, s, q, works) : null;
     const why = [], kinds = [], W = (k, t) => { why.push(t); kinds.push(k); };
     if (on.avg && avg !== null && gr.length >= Math.max(1, rk.avg_min_grades) && avg < rk.avg_below) W("avg", `o'rtacha ${pyFixed(avg, 1)} < ${rk.avg_below}`);
-    const few = !!(on.few && lessons && lessons >= (rk.few_lt ?? 4) && gr.length < (rk.few_lt ?? 4));
+    // «baho kam» ogohlantirishi faqat few_from-darsdan (sukut: 5-dars) boshlab chiqadi
+    const fewOk = lessons >= Math.max(1, rk.few_from ?? 5);
+    const few = !!(on.few && fewOk && gr.length < (rk.few_lt ?? 4));
     if (few) W("few", `shu kungacha ${gr.length} ta baho (< ${rk.few_lt ?? 4})`);
-    if (!few && on.min_n && rk.min_n && lessons && bsbTaken && gr.length < rk.min_n) W("min_n", `baholar soni ${gr.length} < ${rk.min_n}`);
+    if (!few && on.min_n && rk.min_n && fewOk && bsbTaken && gr.length < rk.min_n) W("min_n", `baholar soni ${gr.length} < ${rk.min_n}`);
     if (on.att && att !== null && att < rk.att_below) W("att", `davomat ${pyFixed(att, 0)}% < ${rk.att_below}%`);
     if (on.s && cnt.s >= rk.s_ge) W("s", `sababsiz ${cnt.s} ta`);
     if (on.qgrade && qr && qr.complete && qr.grade === 2) W("qgrade", "chorak bahosi 2");

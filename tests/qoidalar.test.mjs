@@ -193,3 +193,26 @@ test("Chorak xulosasi (ota-onaga): ishlar ballari, FB va «5» uchun nima kerakl
   assert.ok(done.A.quarterDigest(done.c, done.s, 1, "uz").includes("Jami: 89/100 — kutilayotgan chorak bahosi: 5."));
   assert.ok(done.A.quarterDigest(done.c, done.s, 1, "ru").includes("Итого: 89/100"));
 });
+
+// «Baholar kam» ogohlantirishi (Akmal, 2026-11-21): chorakdagi 5-darsdan boshlab chiqadi (few_from, sukut 5).
+// 4-darsgacha hech kimda chiqmaydi; 5-darsda 4 tadan kam bahosi borlarda chiqadi. 18 va 36 o'quvchi bilan.
+function fewApp(n, risk = {}) {
+  const A = loadApp("2026-10-20");
+  // juft o'quvchilarda 1 ta baho, toqlarida har darsda baho (5-darsda 5 ta → kam emas)
+  const students = Array.from({length: n}, (_, i) => ({id: "s" + i, name: "O'quvchi " + (i + 1), scores: {},
+    marks: i % 2 ? Object.fromEntries(DATES.map((d) => [d, "8"])) : {[DATES[0]]: "7"}}));
+  A.setData({version: 2, settings: {quarters: Q, risk}, classes: [{name: "7-A", subject: "Matematika", dates: DATES, students,
+    works: [{id: "b1", type: "bsb", date: DATES[0], max: 25, title: ""}]}]});
+  const c = A.D.classes[0];
+  return {A, c, warn: (hi) => A.reportRows(c, Q[0][0], hi, 1).rows.filter((r) => r.kinds.includes("few") || r.kinds.includes("min_n")).length};
+}
+for (const n of [18, 36]) test(`Baholar kam: ${n} o'quvchi — 4-darsda yo'q, 5-darsdan boshlab bor`, () => {
+  const {A, c, warn} = fewApp(n);
+  assert.equal(A.D.settings.risk.few_from, 5);
+  for (let k = 1; k <= 4; k++) assert.equal(warn(DATES[k - 1]), 0, `${k}-dars: ogohlantirish chiqmasligi kerak`);
+  assert.equal(warn(DATES[4]), n / 2, "5-dars: 1 ta bahosi borlarda chiqadi");
+  assert.equal(A.reportRows(c, Q[0][0], DATES[4], 1).rows[0].kinds.includes("few"), true);
+  const b = fewApp(n, {few_from: 3});
+  assert.equal(b.warn(DATES[1]), 0);
+  assert.equal(b.warn(DATES[2]), n, "sozlamada 3-dars tanlansa, 3-darsdan chiqadi (3 ta baho ham < 4)");
+});
