@@ -3198,6 +3198,12 @@ test("Xavf turlarini tanlash: har tur alohida yoqiladi, chegarasi o'zgaradi, tay
     if (await page.getAttribute('[data-rkon="consec"]', "aria-checked") !== "true") await page.click('[data-rkon="consec"]');
     await page.fill('[data-rk="consec_ge"]', "4"); await page.dispatchEvent('[data-rk="consec_ge"]', "change");
     assert.equal(await page.evaluate(() => D.settings.risk.consec_ge), 4);
+    // «Baholar kam»: nechanchi darsdan boshlab (sukut 5)
+    assert.equal(await page.inputValue('[data-rk="few_from"]'), "5");
+    assert.match(await page.locator("#sz-rkfew .sz-th").innerText(), /baho <[\s\S]*darsdan/);
+    await page.fill('[data-rk="few_from"]', "6"); await page.dispatchEvent('[data-rk="few_from"]', "change");
+    assert.equal(await page.evaluate(() => D.settings.risk.few_from), 6);
+    if (process.env.SHOT) await page.locator("#sz-rkfew").screenshot({path: process.env.SHOT});
     // tayyor to'plamlar
     await page.click('[data-rkpre="all"]'); assert.equal(await page.evaluate(() => Object.values(D.settings.risk.on).filter(Boolean).length), 9);
     await page.click('[data-rkpre="none"]'); assert.equal(await page.evaluate(() => Object.values(D.settings.risk.on).filter(Boolean).length), 0);
